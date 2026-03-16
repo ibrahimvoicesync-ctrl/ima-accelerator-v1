@@ -13,7 +13,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **AUTH-02**: User can register with invite code (invite-only)
 - [x] **AUTH-03**: User can register via magic link
 - [x] **AUTH-04**: User is routed to role-specific dashboard after login (owner/coach/student)
-- [ ] **AUTH-05**: Unauthorized user sees no-access page
+- [x] **AUTH-05**: Unauthorized user sees no-access page
 - [x] **AUTH-06**: User session persists across browser refresh
 
 ### Student - Work Tracker
@@ -120,7 +120,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-02 | Phase 2 | Complete |
 | AUTH-03 | Phase 2 | Complete |
 | AUTH-04 | Phase 2 | Complete |
-| AUTH-05 | Phase 2 | Pending |
+| AUTH-05 | Phase 2 | Complete |
 | AUTH-06 | Phase 2 | Complete |
 | WORK-01 | Phase 3 | Pending |
 | WORK-02 | Phase 3 | Pending |

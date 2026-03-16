@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-authentication-access/02-01-PLAN.md
-last_updated: "2026-03-16T16:57:30.266Z"
+stopped_at: Completed 02-authentication-access/02-02-PLAN.md
+last_updated: "2026-03-16T16:57:40.954Z"
 last_activity: "2026-03-16 — Completed plan 01-03: V1 config.ts, proxy.ts route guard, dashboard layout, Sidebar, placeholder pages"
 progress:
   total_phases: 10
@@ -66,6 +66,7 @@ Progress: [███░░░░░░░] 33%
 
 *Updated after each plan completion*
 | Phase 02-authentication-access P01 | 3 | 2 tasks | 2 files |
+| Phase 02-authentication-access P02 | 3 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 02-authentication-access]: No last_active_at updates in auth callback — V1 schema lacks this column; DB trigger auto-sets updated_at
 - [Phase 02-authentication-access]: requireRole redirects to user's own dashboard (not /no-access) on role mismatch for friendlier UX
 - [Phase 02-authentication-access]: Admin client used throughout callback — bypasses RLS for reliable auth during session establishment
+- [Phase 02-authentication-access]: RegisterCard and MagicLinkCard extracted as separate client component files within route dirs to keep async server components free of use client directives
+- [Phase 02-authentication-access]: Google G SVG inlined in auth pages — no external image dependency, identical render across environments
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:57:18.866Z
-Stopped at: Completed 02-authentication-access/02-01-PLAN.md
+Last session: 2026-03-16T16:57:40.952Z
+Stopped at: Completed 02-authentication-access/02-02-PLAN.md
 Resume file: None
