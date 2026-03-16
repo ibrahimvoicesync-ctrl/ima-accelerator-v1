@@ -71,12 +71,12 @@ Plans:
   4. Student can abandon a cycle; if less than 5 minutes have elapsed a confirmation is required, after 5 minutes abandon is immediate
   5. Student who navigates away mid-cycle and returns finds the timer restored with correct remaining time based on started_at
   6. Today's cycle count (e.g., 2/4 complete) is visible on the student dashboard
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 03-01: Work session API routes (start, complete, pause, abandon — with grace period logic and stale session auto-abandon)
-- [ ] 03-02: Work tracker client island (countdown timer, cycle state display, start/pause/complete/abandon actions, timer restoration on mount)
-- [ ] 03-03: Student dashboard integration (today's cycle progress display, server-component page with initialData pass-through)
+- [ ] 03-01-PLAN.md — DB migration (pause support), TypeScript types, utility functions, and work session API routes (POST start, PATCH complete/pause/resume/abandon)
+- [ ] 03-02-PLAN.md — Work tracker client components (WorkTimer SVG ring, CycleCard status cards, WorkTrackerClient orchestrator, /student/work page)
+- [ ] 03-03-PLAN.md — Student dashboard rewrite (personalized greeting, work progress card with adaptive CTA, placeholder cards)
 
 ### Phase 4: Student Roadmap
 **Goal**: A student can see their progress through the 10-step program roadmap and advance steps in sequence
