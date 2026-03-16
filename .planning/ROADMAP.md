@@ -119,11 +119,11 @@ Plans:
   2. Students who meet the at-risk threshold (3 days inactive or avg rating < 2) are visually flagged on the dashboard
   3. Coach can click a student to reach a detail page showing their roadmap progress, recent sessions, and submitted reports
   4. Coach sees only their own assigned students — no data from students assigned to other coaches
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 06-01: Coach dashboard page (server component, assigned students overview query, at-risk flag computation)
-- [ ] 06-02: Coach student list and detail pages (student list server component, student detail page with roadmap/sessions/reports)
+- [ ] 06-01-PLAN.md — Coach dashboard page (StudentCard component, server component with parallel data fetch, stat cards, at-risk banner, student card grid, /coach/students redirect)
+- [ ] 06-02-PLAN.md — Student detail page (StudentHeader, StudentDetailTabs, StudentDetailClient, RoadmapTab, WorkSessionsTab, ReportsTab, server page with defense-in-depth coach_id filter)
 
 ### Phase 7: Coach Report Review, Invites & Analytics
 **Goal**: A coach can review and acknowledge student reports, invite new students, and see basic analytics on their cohort
