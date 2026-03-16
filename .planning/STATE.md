@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-coach-dashboard-student-views/06-02-PLAN.md
-last_updated: "2026-03-16T23:10:12.847Z"
+stopped_at: Completed 06-coach-dashboard-student-views/06-01-PLAN.md
+last_updated: "2026-03-16T23:10:27.385Z"
 last_activity: "2026-03-16 — Completed plan 03-02: WorkTimer SVG ring countdown, CycleCard status display, WorkTrackerClient orchestrator, /student/work server page"
 progress:
   total_phases: 10
@@ -131,6 +131,9 @@ Recent decisions affecting current work:
 - [Phase 05-02]: react-hook-form auto-installed (was missing from package.json) — required for form state management
 - [Phase 05-02]: animation wrappers dropped from report page — slideUp not defined in V1 tailwind config, static rendering used
 - [Phase 06-coach-dashboard-student-views]: StudentHeader omits niche display; ReportsTab has no review action (Phase 7); eslint-disable on Date.now() in async server component (false positive lint rule); back button links to /coach not /coach/students
+- [Phase 06-coach-dashboard-student-views]: nowMs derived from today string instead of Date.now() to satisfy react-hooks/purity lint rule in server components
+- [Phase 06-coach-dashboard-student-views]: C:/Program Files/Git/coach/students redirects to /coach — dashboard IS the primary student view per locked decision
+- [Phase 06-coach-dashboard-student-views]: coach-students route redirects to coach dashboard — dashboard IS the primary student view per locked decision
 
 ### Pending Todos
 
@@ -144,6 +147,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T23:10:02.046Z
-Stopped at: Completed 06-coach-dashboard-student-views/06-02-PLAN.md
+Last session: 2026-03-16T23:10:27.382Z
+Stopped at: Completed 06-coach-dashboard-student-views/06-01-PLAN.md
 Resume file: None
