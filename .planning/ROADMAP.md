@@ -35,12 +35,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `proxy.ts` redirects unauthenticated visitors to /login and wrong-role visitors to /no-access
   4. `createAdminClient()` is service-role guarded (server-only) and accessible from page components
   5. `lib/config.ts` exports all roles, routes, roadmap steps, thresholds, and validation rules with no runtime errors
-**Plans**: TBD
+**Plans:** 3 plans (Wave 1: 01-01, Wave 2: 01-02, Wave 3: 01-03)
 
 Plans:
-- [ ] 01-01: Project scaffold (Next.js 16, TypeScript strict, Tailwind v4, ESLint, path aliases)
-- [ ] 01-02: Supabase setup (local dev, schema migration, RLS policies, admin client, SSR client)
-- [ ] 01-03: Config and proxy (lib/config.ts, proxy.ts route guard, dashboard layout shell)
+- [ ] 01-01-PLAN.md — Project scaffold (Next.js 16, TypeScript strict, Tailwind v4, ima-* tokens, all dependencies)
+- [ ] 01-02-PLAN.md — Supabase schema (6-table migration, RLS policies, seed data, three client tiers, type generation)
+- [ ] 01-03-PLAN.md — Config and proxy (V1 config.ts, proxy.ts route guard, dashboard layout shell, Sidebar, placeholder pages)
 
 ### Phase 2: Authentication & Access
 **Goal**: Users can securely enter the platform via Google OAuth with invite gating, and land on the correct role dashboard
