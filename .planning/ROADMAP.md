@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Project scaffold (Next.js 16, TypeScript strict, Tailwind v4, ima-* tokens, all dependencies)
-- [ ] 01-02-PLAN.md — Supabase schema (6-table migration, RLS policies, seed data, three client tiers, type generation)
+- [x] 01-02-PLAN.md — Supabase schema (6-table migration, RLS policies, seed data, three client tiers, type generation)
 - [ ] 01-03-PLAN.md — Config and proxy (V1 config.ts, proxy.ts route guard, dashboard layout shell, Sidebar, placeholder pages)
 
 ### Phase 2: Authentication & Access
@@ -199,7 +199,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/3 | In progress | - |
+| 1. Foundation | 2/3 | In progress | - |
 | 2. Authentication & Access | 0/3 | Not started | - |
 | 3. Student Work Tracker | 0/3 | Not started | - |
 | 4. Student Roadmap | 0/2 | Not started | - |
