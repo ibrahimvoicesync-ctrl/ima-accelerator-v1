@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER, ROADMAP_STEPS } from "@/lib/config";
 import { getGreeting, formatHours, getToday, cn } from "@/lib/utils";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import type { Database } from "@/lib/types";
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
@@ -26,9 +26,14 @@ export default async function StudentDashboard() {
   const admin = createAdminClient();
   const today = getToday();
 
-  const [{ data: sessions, error: sessionsError }, { data: roadmapRows, error: roadmapError }] = await Promise.all([
+  const [
+    { data: sessions, error: sessionsError },
+    { data: roadmapRows, error: roadmapError },
+    reportResult,
+  ] = await Promise.all([
     admin.from("work_sessions").select("*").eq("student_id", user.id).eq("date", today).order("cycle_number", { ascending: true }),
     admin.from("roadmap_progress").select("step_number, status").eq("student_id", user.id).order("step_number", { ascending: true }),
+    admin.from("daily_reports").select("submitted_at").eq("student_id", user.id).eq("date", today).maybeSingle(),
   ]);
 
   if (sessionsError) {
@@ -37,6 +42,11 @@ export default async function StudentDashboard() {
   if (roadmapError) {
     console.error("[student dashboard] Failed to load roadmap:", roadmapError);
   }
+  if (reportResult.error) {
+    console.error("[student dashboard] Failed to load report:", reportResult.error);
+  }
+
+  const todayReport = reportResult.data;
 
   const todaySessions = (sessions ?? []) as WorkSession[];
 
@@ -153,16 +163,31 @@ export default async function StudentDashboard() {
 
         {/* Daily Report */}
         <div className="bg-ima-surface border border-ima-border rounded-xl p-6">
-          <FileText className="h-8 w-8 text-ima-text-muted mb-3" aria-hidden="true" />
-          <h3 className="font-semibold text-ima-text">Daily Report</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-ima-text">Daily Report</h3>
+            {todayReport?.submitted_at ? (
+              <span className="flex items-center gap-1 text-xs font-medium text-ima-success">
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
+                Submitted
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs font-medium text-ima-warning">
+                <span className="h-2 w-2 rounded-full bg-ima-warning" aria-hidden="true" />
+                Pending
+              </span>
+            )}
+          </div>
           <p className="text-sm text-ima-text-secondary mt-1">
-            Submit your daily progress report
+            {todayReport?.submitted_at
+              ? "Your report is in. You can still update it."
+              : "Submit your daily progress report"}
           </p>
+          <p className="text-xs text-ima-text-muted mt-1">Due by 11 PM</p>
           <Link
             href="/student/report"
-            className="mt-3 inline-flex items-center text-sm font-medium text-ima-primary hover:underline min-h-[44px]"
+            className="mt-3 inline-flex items-center justify-center w-full bg-ima-surface-light text-ima-primary rounded-lg min-h-[44px] px-6 font-medium text-sm hover:bg-ima-surface-accent motion-safe:transition-colors"
           >
-            Submit Report
+            {todayReport?.submitted_at ? "Update Report" : "Submit Report"}
           </Link>
         </div>
       </div>
