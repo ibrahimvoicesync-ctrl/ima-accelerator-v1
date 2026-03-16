@@ -1,0 +1,109 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { VALIDATION } from "@/lib/config";
+import { isValidDateString } from "@/lib/utils";
+
+const postSchema = z.object({
+  date: z.string().refine(isValidDateString, "Invalid date format (YYYY-MM-DD)"),
+  hours_worked: z.number().min(0).max(24),
+  star_rating: z.number().int().min(VALIDATION.starRating.min).max(VALIDATION.starRating.max),
+  outreach_count: z.number().int().min(VALIDATION.outreachCount.min).max(VALIDATION.outreachCount.max),
+  wins: z.string().max(VALIDATION.reportWins.max).optional(),
+  improvements: z.string().max(VALIDATION.reportImprovements.max).optional(),
+});
+
+export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Admin client bypasses RLS — needed because RLS policies use
+  // get_user_role() which can fail during profile resolution
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("users")
+    .select("id, role")
+    .eq("auth_id", authUser.id)
+    .single();
+
+  if (!profile) {
+    return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+  }
+
+  if (profile.role !== "student") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Validation failed" }, { status: 400 });
+  }
+
+  const { date, hours_worked, star_rating, outreach_count, wins, improvements } = parsed.data;
+
+  const now = new Date().toISOString();
+
+  // Check for existing report
+  const { data: existing } = await admin
+    .from("daily_reports")
+    .select("id")
+    .eq("student_id", profile.id)
+    .eq("date", date)
+    .maybeSingle();
+
+  if (existing) {
+    // Update existing report
+    const { data: updated, error: updateError } = await admin
+      .from("daily_reports")
+      .update({
+        hours_worked,
+        star_rating,
+        outreach_count,
+        wins: wins || null,
+        improvements: improvements || null,
+        submitted_at: now,
+      })
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ data: updated });
+  }
+
+  // Insert new report
+  const { data: report, error: insertError } = await admin
+    .from("daily_reports")
+    .insert({
+      student_id: profile.id,
+      date,
+      hours_worked,
+      star_rating,
+      outreach_count,
+      wins: wins || null,
+      improvements: improvements || null,
+      submitted_at: now,
+    })
+    .select()
+    .single();
+
+  if (insertError) {
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ data: report }, { status: 201 });
+}
