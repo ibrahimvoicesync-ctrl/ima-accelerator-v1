@@ -116,52 +116,52 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| AUTH-04 | — | Pending |
-| AUTH-05 | — | Pending |
-| AUTH-06 | — | Pending |
-| WORK-01 | — | Pending |
-| WORK-02 | — | Pending |
-| WORK-03 | — | Pending |
-| WORK-04 | — | Pending |
-| WORK-05 | — | Pending |
-| WORK-06 | — | Pending |
-| ROAD-01 | — | Pending |
-| ROAD-02 | — | Pending |
-| ROAD-03 | — | Pending |
-| REPT-01 | — | Pending |
-| REPT-02 | — | Pending |
-| REPT-03 | — | Pending |
-| AICHAT-01 | — | Pending |
-| COACH-01 | — | Pending |
-| COACH-02 | — | Pending |
-| COACH-03 | — | Pending |
-| COACH-04 | — | Pending |
-| COACH-05 | — | Pending |
-| COACH-06 | — | Pending |
-| OWNER-01 | — | Pending |
-| OWNER-02 | — | Pending |
-| OWNER-03 | — | Pending |
-| OWNER-04 | — | Pending |
-| OWNER-05 | — | Pending |
-| OWNER-06 | — | Pending |
-| OWNER-07 | — | Pending |
-| OWNER-08 | — | Pending |
-| OWNER-09 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| UI-04 | — | Pending |
-| UI-05 | — | Pending |
-| UI-06 | — | Pending |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| AUTH-04 | Phase 2 | Pending |
+| AUTH-05 | Phase 2 | Pending |
+| AUTH-06 | Phase 2 | Pending |
+| WORK-01 | Phase 3 | Pending |
+| WORK-02 | Phase 3 | Pending |
+| WORK-03 | Phase 3 | Pending |
+| WORK-04 | Phase 3 | Pending |
+| WORK-05 | Phase 3 | Pending |
+| WORK-06 | Phase 3 | Pending |
+| ROAD-01 | Phase 4 | Pending |
+| ROAD-02 | Phase 4 | Pending |
+| ROAD-03 | Phase 4 | Pending |
+| REPT-01 | Phase 5 | Pending |
+| REPT-02 | Phase 5 | Pending |
+| REPT-03 | Phase 5 | Pending |
+| AICHAT-01 | Phase 5 | Pending |
+| COACH-01 | Phase 6 | Pending |
+| COACH-02 | Phase 6 | Pending |
+| COACH-03 | Phase 6 | Pending |
+| COACH-04 | Phase 7 | Pending |
+| COACH-05 | Phase 7 | Pending |
+| COACH-06 | Phase 7 | Pending |
+| OWNER-01 | Phase 8 | Pending |
+| OWNER-02 | Phase 8 | Pending |
+| OWNER-03 | Phase 8 | Pending |
+| OWNER-04 | Phase 8 | Pending |
+| OWNER-05 | Phase 8 | Pending |
+| OWNER-06 | Phase 9 | Pending |
+| OWNER-07 | Phase 9 | Pending |
+| OWNER-08 | Phase 9 | Pending |
+| OWNER-09 | Phase 9 | Pending |
+| UI-01 | Phase 10 | Pending |
+| UI-02 | Phase 10 | Pending |
+| UI-03 | Phase 10 | Pending |
+| UI-04 | Phase 10 | Pending |
+| UI-05 | Phase 10 | Pending |
+| UI-06 | Phase 10 | Pending |
 
 **Coverage:**
 - v1 requirements: 37 total
-- Mapped to phases: 0
-- Unmapped: 37
+- Mapped to phases: 37
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-16*
-*Last updated: 2026-03-16 after initial definition*
+*Last updated: 2026-03-16 after roadmap creation — all 37 requirements mapped to phases 2-10*
