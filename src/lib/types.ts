@@ -159,7 +159,8 @@ export type Database = {
           started_at: string;
           completed_at: string | null;
           duration_minutes: number;
-          status: "in_progress" | "completed" | "abandoned";
+          status: "in_progress" | "completed" | "abandoned" | "paused";
+          paused_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -170,7 +171,8 @@ export type Database = {
           started_at: string;
           completed_at?: string | null;
           duration_minutes?: number;
-          status?: "in_progress" | "completed" | "abandoned";
+          status?: "in_progress" | "completed" | "abandoned" | "paused";
+          paused_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -181,7 +183,8 @@ export type Database = {
           started_at?: string;
           completed_at?: string | null;
           duration_minutes?: number;
-          status?: "in_progress" | "completed" | "abandoned";
+          status?: "in_progress" | "completed" | "abandoned" | "paused";
+          paused_at?: string | null;
           created_at?: string;
         };
         Relationships: [
