@@ -103,12 +103,12 @@ Plans:
   3. Student who has already submitted today's report sees a confirmation state and cannot submit again
   4. Student can view a list of their past daily reports
   5. Student can navigate to /student/ask and see the Ask Abu Lahya iframe embed (placeholder URL during development)
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 05-01: Daily report API routes (submit, list own reports — with hours auto-fill from sessions)
-- [ ] 05-02: Report form client island (react-hook-form + Zod validation, hours auto-fill display, submission confirmation state)
-- [ ] 05-03: Past reports page and AI chat page (report history server component, iframe embed component)
+- [ ] 05-01-PLAN.md — UI primitives (Card, Input, Textarea, Skeleton, StarRating) + POST /api/reports route with Zod validation and upsert logic
+- [ ] 05-02-PLAN.md — Report form page (ReportForm + ReportFormWrapper client islands, server page with date/hours/status, past reports history, dashboard card wiring)
+- [ ] 05-03-PLAN.md — AI chat page (AskIframe client component with skeleton loader + Coming Soon fallback, /student/ask server page)
 
 ### Phase 6: Coach Dashboard & Student Views
 **Goal**: A coach can see an overview of their assigned students and drill into any student's full activity history
