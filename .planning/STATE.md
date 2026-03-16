@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-student-roadmap/04-01-PLAN.md
-last_updated: "2026-03-16T20:41:21.210Z"
+stopped_at: Completed 04-student-roadmap/04-02-PLAN.md
+last_updated: "2026-03-16T20:47:21.412Z"
 last_activity: "2026-03-16 — Completed plan 03-02: WorkTimer SVG ring countdown, CycleCard status display, WorkTrackerClient orchestrator, /student/work server page"
 progress:
   total_phases: 10
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 ---
@@ -74,6 +74,7 @@ Progress: [█████████░] 89%
 | Phase 03-student-work-tracker P02 | 4 min | 2 tasks | 4 files |
 | Phase 03-student-work-tracker P03 | 2 min | 1 tasks | 1 files |
 | Phase 04-student-roadmap P01 | 2 min | 2 tasks | 7 files |
+| Phase 04-student-roadmap P02 | 15 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,8 @@ Recent decisions affecting current work:
 - [Phase 03-student-work-tracker]: Placeholder cards for Roadmap and Daily Report use simple layout — no data fetched in plan 03-03; data wired in Phase 4-5
 - [Phase 04-student-roadmap]: UI primitives ported verbatim from reference-old — all ima-* tokens are V1-valid, no changes needed
 - [Phase 04-student-roadmap]: PATCH /api/roadmap ported verbatim from reference-old — import paths match V1 lib structure exactly
+- [Phase 04-student-roadmap]: Lazy seeding runs server-side on roadmap page load — no separate API call, transparent to student, Step 1 auto-completed on first visit
+- [Phase 04-student-roadmap]: ToastProvider inside <main> in dashboard layout — scoped to dashboard pages, avoids noise on auth pages
 
 ### Pending Todos
 
@@ -128,6 +131,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T20:41:21.208Z
-Stopped at: Completed 04-student-roadmap/04-01-PLAN.md
+Last session: 2026-03-16T20:47:21.410Z
+Stopped at: Completed 04-student-roadmap/04-02-PLAN.md
 Resume file: None
