@@ -167,7 +167,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
 
     // Grace period check
     const elapsed = Date.now() - new Date(target.started_at).getTime();
-    if (elapsed < WORK_TRACKER.abandonGraceSeconds * 1000 && !showAbandonConfirm) {
+    if (elapsed > WORK_TRACKER.abandonGraceSeconds * 1000 && !showAbandonConfirm) {
       setShowAbandonConfirm(true);
       return;
     }
@@ -255,7 +255,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
           {/* Inline abandon confirmation */}
           {showAbandonConfirm && (
             <div className="bg-red-50 rounded-lg p-3 text-sm text-red-700 w-full max-w-sm text-center">
-              <p>Are you sure? Less than 5 minutes have passed.</p>
+              <p>Are you sure? You have significant progress on this cycle.</p>
               <div className="flex justify-center gap-3 mt-2">
                 <button
                   onClick={() => handleAbandon(activeSession.id)}
@@ -309,7 +309,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
           {/* Inline abandon confirmation for paused state */}
           {showAbandonConfirm && (
             <div className="bg-red-50 rounded-lg p-3 text-sm text-red-700 w-full max-w-sm">
-              <p>Are you sure? Less than 5 minutes have passed.</p>
+              <p>Are you sure? You have significant progress on this cycle.</p>
               <div className="flex justify-center gap-3 mt-2">
                 <button
                   onClick={() => handleAbandon(pausedSession.id)}

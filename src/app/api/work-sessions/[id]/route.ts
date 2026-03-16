@@ -96,13 +96,19 @@ export async function PATCH(
     update.started_at = newStartedAt;
     update.paused_at = null;
   } else if (newStatus === "abandoned") {
-    update.completed_at = new Date().toISOString();
-    // Calculate actual elapsed minutes for abandoned sessions
-    const elapsedMs = Date.now() - new Date(session.started_at).getTime();
-    update.duration_minutes = Math.min(
-      Math.floor(elapsedMs / 60000),
-      WORK_TRACKER.sessionMinutes
-    );
+    // Delete the session so the cycle slot is freed up for retry
+    const { error: deleteError } = await admin
+      .from("work_sessions")
+      .delete()
+      .eq("id", id)
+      .eq("student_id", profile.id);
+
+    if (deleteError) {
+      console.error("[work-sessions PATCH] Delete failed:", deleteError);
+      return NextResponse.json({ error: "Failed to abandon session" }, { status: 500 });
+    }
+
+    return NextResponse.json({ deleted: true });
   }
 
   const { data: updated, error: updateError } = await admin
