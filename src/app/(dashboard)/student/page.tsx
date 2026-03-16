@@ -1,9 +1,9 @@
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { WORK_TRACKER } from "@/lib/config";
-import { getGreeting, formatHours, getToday } from "@/lib/utils";
+import { WORK_TRACKER, ROADMAP_STEPS } from "@/lib/config";
+import { getGreeting, formatHours, getToday, cn } from "@/lib/utils";
 import Link from "next/link";
-import { Map, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import type { Database } from "@/lib/types";
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
@@ -26,15 +26,16 @@ export default async function StudentDashboard() {
   const admin = createAdminClient();
   const today = getToday();
 
-  const { data: sessions, error } = await admin
-    .from("work_sessions")
-    .select("*")
-    .eq("student_id", user.id)
-    .eq("date", today)
-    .order("cycle_number", { ascending: true });
+  const [{ data: sessions, error: sessionsError }, { data: roadmapRows, error: roadmapError }] = await Promise.all([
+    admin.from("work_sessions").select("*").eq("student_id", user.id).eq("date", today).order("cycle_number", { ascending: true }),
+    admin.from("roadmap_progress").select("step_number, status").eq("student_id", user.id).order("step_number", { ascending: true }),
+  ]);
 
-  if (error) {
-    console.error("[student dashboard] Failed to load sessions:", error);
+  if (sessionsError) {
+    console.error("[student dashboard] Failed to load sessions:", sessionsError);
+  }
+  if (roadmapError) {
+    console.error("[student dashboard] Failed to load roadmap:", roadmapError);
   }
 
   const todaySessions = (sessions ?? []) as WorkSession[];
@@ -49,6 +50,11 @@ export default async function StudentDashboard() {
   const firstName = user.name.split(" ")[0];
 
   const nextAction = getNextAction(completedCount, activeSession, pausedSession);
+
+  const roadmapCompleted = (roadmapRows ?? []).filter(r => r.status === "completed").length;
+  const activeRoadmapStep = (roadmapRows ?? []).find(r => r.status === "active");
+  const allRoadmapDone = roadmapCompleted === ROADMAP_STEPS.length && roadmapRows != null && roadmapRows.length > 0;
+  const roadmapPercent = roadmapRows && roadmapRows.length > 0 ? Math.round((roadmapCompleted / ROADMAP_STEPS.length) * 100) : 0;
 
   return (
     <div className="px-4">
@@ -92,18 +98,56 @@ export default async function StudentDashboard() {
 
       {/* Placeholder Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-        {/* Roadmap */}
+        {/* Roadmap Progress Card */}
         <div className="bg-ima-surface border border-ima-border rounded-xl p-6">
-          <Map className="h-8 w-8 text-ima-text-muted mb-3" aria-hidden="true" />
-          <h3 className="font-semibold text-ima-text">Roadmap</h3>
-          <p className="text-sm text-ima-text-secondary mt-1">
-            Track your 10-step program journey
-          </p>
+          <div className="flex justify-between items-center">
+            <h3 className="font-semibold text-ima-text">Roadmap</h3>
+            <span className="text-lg font-bold text-ima-primary">
+              {roadmapCompleted}/{ROADMAP_STEPS.length}
+            </span>
+          </div>
+          {roadmapRows && roadmapRows.length > 0 ? (
+            <>
+              <p className="text-sm text-ima-text-secondary mt-1">
+                {allRoadmapDone
+                  ? "All steps completed!"
+                  : activeRoadmapStep
+                    ? `Current: Step ${activeRoadmapStep.step_number}`
+                    : "Start your journey"}
+              </p>
+              <div
+                className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
+                role="progressbar"
+                aria-valuenow={roadmapCompleted}
+                aria-valuemin={0}
+                aria-valuemax={ROADMAP_STEPS.length}
+                aria-label="Roadmap progress"
+              >
+                <div
+                  className="bg-ima-success h-full rounded-full motion-safe:transition-all duration-500"
+                  style={{ width: `${roadmapPercent}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-ima-text-secondary mt-1">
+              Track your 10-step program journey
+            </p>
+          )}
           <Link
             href="/student/roadmap"
-            className="mt-3 inline-flex items-center text-sm font-medium text-ima-primary hover:underline min-h-[44px]"
+            className={cn(
+              "mt-3 inline-flex items-center justify-center w-full rounded-lg min-h-[44px] px-6 font-medium motion-safe:transition-colors text-sm",
+              allRoadmapDone
+                ? "bg-ima-success text-white hover:bg-ima-success/90"
+                : "bg-ima-surface-light text-ima-primary hover:bg-ima-surface-accent"
+            )}
           >
-            View Roadmap
+            {allRoadmapDone
+              ? "Roadmap Complete!"
+              : activeRoadmapStep
+                ? `Continue Step ${activeRoadmapStep.step_number}`
+                : "View Roadmap"}
           </Link>
         </div>
 

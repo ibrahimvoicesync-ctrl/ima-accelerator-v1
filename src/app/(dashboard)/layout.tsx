@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ToastProvider } from "@/components/ui/Toast";
 import { ROLES, type Role } from "@/lib/config";
 
 export default async function DashboardLayout({
@@ -41,7 +42,9 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-ima-bg">
       <Sidebar role={profile.role as Role} userName={profile.name} />
       <main id="main-content" className="min-h-screen pt-16 md:pt-0 md:ml-60">
-        <div className="p-4 md:p-8">{children}</div>
+        <ToastProvider>
+          <div className="p-4 md:p-8">{children}</div>
+        </ToastProvider>
       </main>
     </div>
   );
