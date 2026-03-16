@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-authentication-access/02-02-PLAN.md
-last_updated: "2026-03-16T16:57:40.954Z"
+stopped_at: Completed 02-authentication-access/02-03-PLAN.md
+last_updated: "2026-03-16T17:00:41.436Z"
 last_activity: "2026-03-16 — Completed plan 01-03: V1 config.ts, proxy.ts route guard, dashboard layout, Sidebar, placeholder pages"
 progress:
   total_phases: 10
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 ---
@@ -67,6 +67,7 @@ Progress: [███░░░░░░░] 33%
 *Updated after each plan completion*
 | Phase 02-authentication-access P01 | 3 | 2 tasks | 2 files |
 | Phase 02-authentication-access P02 | 3 min | 3 tasks | 7 files |
+| Phase 02-authentication-access P03 | 1 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Recent decisions affecting current work:
 - [Phase 02-authentication-access]: Admin client used throughout callback — bypasses RLS for reliable auth during session establishment
 - [Phase 02-authentication-access]: RegisterCard and MagicLinkCard extracted as separate client component files within route dirs to keep async server components free of use client directives
 - [Phase 02-authentication-access]: Google G SVG inlined in auth pages — no external image dependency, identical render across environments
+- [Phase 02-authentication-access]: Sign-out always redirects to /login even if signOut() errors — user intent is to leave
+- [Phase 02-authentication-access]: Per-page auth is defense-in-depth only — proxy.ts and layout.tsx already guard routes; page.tsx adds third layer and provides SessionUser object
 
 ### Pending Todos
 
@@ -107,6 +110,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:57:40.952Z
-Stopped at: Completed 02-authentication-access/02-02-PLAN.md
+Last session: 2026-03-16T17:00:41.434Z
+Stopped at: Completed 02-authentication-access/02-03-PLAN.md
 Resume file: None
