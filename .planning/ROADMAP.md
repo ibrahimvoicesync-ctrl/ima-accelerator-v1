@@ -53,12 +53,12 @@ Plans:
   4. User with a valid magic link can complete registration as an alternative to the invite code
   5. User who refreshes the browser remains logged in and stays on the correct dashboard
   6. User who navigates directly to /owner while authenticated as a student is redirected to /no-access
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: OAuth callback handler (Google OAuth exchange, invite consumption transaction, user creation, roadmap seeding)
-- [ ] 02-02: Auth pages (login page, register/[code] page, no-access page, magic link page)
-- [ ] 02-03: Session helpers and route guards (getSessionUser, per-page auth checks, role-based redirect logic)
+- [ ] 02-01-PLAN.md — OAuth callback handler + session helper (code exchange, invite consumption, magic link claim, roadmap seeding, getSessionUser)
+- [ ] 02-02-PLAN.md — Auth pages (login, register/[code], register magic link, no-access upgrade, auth layout)
+- [ ] 02-03-PLAN.md — Dashboard auth wiring (per-page auth checks with requireRole, sign-out endpoint)
 
 ### Phase 3: Student Work Tracker
 **Goal**: A student can run and track their daily 45-minute work cycles, and the timer survives navigation and browser refresh
