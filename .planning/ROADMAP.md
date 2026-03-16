@@ -87,11 +87,11 @@ Plans:
   2. Student can see all 10 steps with correct locked/active/completed visual states
   3. Student can click "Mark Complete" on their active step; the step moves to completed and the next step becomes active
   4. Student cannot interact with locked steps (no button, or button is disabled)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 04-01: Roadmap API route (mark step complete, with sequential unlock logic)
-- [ ] 04-02: Roadmap client island (step list with locked/active/completed states, mark-complete action, auto-complete Step 1 on signup)
+- [ ] 04-01-PLAN.md — UI primitives (Button, Badge, Modal, Toast, Spinner) + PATCH /api/roadmap route with sequential unlock logic
+- [ ] 04-02-PLAN.md — Roadmap page (RoadmapStep, RoadmapClient, server page with lazy seeding), dashboard live roadmap card, ToastProvider wiring
 
 ### Phase 5: Student Daily Reports & AI Chat
 **Goal**: A student can submit a daily report with hours auto-filled from their sessions, view past reports, and access the AI coach chat
