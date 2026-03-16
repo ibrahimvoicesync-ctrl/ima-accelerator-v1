@@ -22,7 +22,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **WORK-02**: Student can complete a work cycle
 - [x] **WORK-03**: Student can pause a work cycle (timer state saved, resumable)
 - [x] **WORK-04**: Student can track up to 4 cycles per day
-- [ ] **WORK-05**: Student sees today's cycle progress on dashboard
+- [x] **WORK-05**: Student sees today's cycle progress on dashboard
 - [x] **WORK-06**: Student can abandon a work cycle (5-min grace period)
 
 ### Student - Roadmap
@@ -126,7 +126,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WORK-02 | Phase 3 | Complete |
 | WORK-03 | Phase 3 | Complete |
 | WORK-04 | Phase 3 | Complete |
-| WORK-05 | Phase 3 | Pending |
+| WORK-05 | Phase 3 | Complete |
 | WORK-06 | Phase 3 | Complete |
 | ROAD-01 | Phase 4 | Pending |
 | ROAD-02 | Phase 4 | Pending |
