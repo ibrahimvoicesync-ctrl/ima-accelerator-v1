@@ -87,7 +87,7 @@ Plans:
   2. Student can see all 10 steps with correct locked/active/completed visual states
   3. Student can click "Mark Complete" on their active step; the step moves to completed and the next step becomes active
   4. Student cannot interact with locked steps (no button, or button is disabled)
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — UI primitives (Button, Badge, Modal, Toast, Spinner) + PATCH /api/roadmap route with sequential unlock logic
@@ -202,7 +202,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Foundation | 3/3 | Complete   | 2026-03-16 |
 | 2. Authentication & Access | 2/3 | In Progress|  |
 | 3. Student Work Tracker | 3/3 | Complete   | 2026-03-16 |
-| 4. Student Roadmap | 0/2 | Not started | - |
+| 4. Student Roadmap | 1/2 | In Progress|  |
 | 5. Student Daily Reports & AI Chat | 0/3 | Not started | - |
 | 6. Coach Dashboard & Student Views | 0/2 | Not started | - |
 | 7. Coach Report Review, Invites & Analytics | 0/3 | Not started | - |

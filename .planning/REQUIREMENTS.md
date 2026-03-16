@@ -28,7 +28,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Student - Roadmap
 
 - [ ] **ROAD-01**: Student sees 10-step roadmap with locked/active/completed states
-- [ ] **ROAD-02**: Student can mark active step as completed (unlocks next)
+- [x] **ROAD-02**: Student can mark active step as completed (unlocks next)
 - [ ] **ROAD-03**: Step 1 auto-completes on signup
 
 ### Student - Daily Report
@@ -129,7 +129,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WORK-05 | Phase 3 | Complete |
 | WORK-06 | Phase 3 | Complete |
 | ROAD-01 | Phase 4 | Pending |
-| ROAD-02 | Phase 4 | Pending |
+| ROAD-02 | Phase 4 | Complete |
 | ROAD-03 | Phase 4 | Pending |
 | REPT-01 | Phase 5 | Pending |
 | REPT-02 | Phase 5 | Pending |
