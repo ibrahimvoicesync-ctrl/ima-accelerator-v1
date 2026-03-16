@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Student Work Tracker** - 45-minute work cycles with timer state persistence (completed 2026-03-16)
 - [x] **Phase 4: Student Roadmap** - 10-step sequential roadmap with locked/active/completed states (completed 2026-03-16)
 - [ ] **Phase 5: Student Daily Reports & AI Chat** - Report submission with auto-filled hours and AI chat embed
-- [ ] **Phase 6: Coach Dashboard & Student Views** - Coach home, assigned student list, and student detail
+- [x] **Phase 6: Coach Dashboard & Student Views** - Coach home, assigned student list, and student detail (completed 2026-03-16)
 - [ ] **Phase 7: Coach Report Review, Invites & Analytics** - Report inbox, mark-as-reviewed, invite flow, basic analytics
 - [ ] **Phase 8: Owner Stats & People Management** - Platform stats dashboard and student/coach list views
 - [ ] **Phase 9: Owner Invites, Assignments & Alerts** - Invite system, coach-student assignments, alert system
@@ -119,7 +119,7 @@ Plans:
   2. Students who meet the at-risk threshold (3 days inactive or avg rating < 2) are visually flagged on the dashboard
   3. Coach can click a student to reach a detail page showing their roadmap progress, recent sessions, and submitted reports
   4. Coach sees only their own assigned students — no data from students assigned to other coaches
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 06-01-PLAN.md — Coach dashboard page (StudentCard component, server component with parallel data fetch, stat cards, at-risk banner, student card grid, /coach/students redirect)
@@ -204,7 +204,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. Student Work Tracker | 3/3 | Complete   | 2026-03-16 |
 | 4. Student Roadmap | 2/2 | Complete   | 2026-03-16 |
 | 5. Student Daily Reports & AI Chat | 2/3 | In Progress|  |
-| 6. Coach Dashboard & Student Views | 0/2 | Not started | - |
+| 6. Coach Dashboard & Student Views | 2/2 | Complete   | 2026-03-16 |
 | 7. Coach Report Review, Invites & Analytics | 0/3 | Not started | - |
 | 8. Owner Stats & People Management | 0/3 | Not started | - |
 | 9. Owner Invites, Assignments & Alerts | 0/3 | Not started | - |

@@ -45,7 +45,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **COACH-01**: Coach sees dashboard with assigned students overview
 - [ ] **COACH-02**: Coach can view list of assigned students
-- [ ] **COACH-03**: Coach can view individual student detail (reports, sessions, roadmap)
+- [x] **COACH-03**: Coach can view individual student detail (reports, sessions, roadmap)
 - [ ] **COACH-04**: Coach can review/acknowledge submitted reports
 - [ ] **COACH-05**: Coach can invite new students
 - [ ] **COACH-06**: Coach sees basic analytics (report submission rates, student activity)
@@ -137,7 +137,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AICHAT-01 | Phase 5 | Complete |
 | COACH-01 | Phase 6 | Pending |
 | COACH-02 | Phase 6 | Pending |
-| COACH-03 | Phase 6 | Pending |
+| COACH-03 | Phase 6 | Complete |
 | COACH-04 | Phase 7 | Pending |
 | COACH-05 | Phase 7 | Pending |
 | COACH-06 | Phase 7 | Pending |
