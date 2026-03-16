@@ -35,7 +35,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **REPT-01**: Student can submit daily report (hours, star rating 1-5, outreach count, wins, improvements)
 - [x] **REPT-02**: Hours auto-fill from completed work sessions
-- [ ] **REPT-03**: Student can view their own past reports
+- [x] **REPT-03**: Student can view their own past reports
 
 ### Student - AI Chat
 
@@ -133,7 +133,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROAD-03 | Phase 4 | Complete |
 | REPT-01 | Phase 5 | Complete |
 | REPT-02 | Phase 5 | Complete |
-| REPT-03 | Phase 5 | Pending |
+| REPT-03 | Phase 5 | Complete |
 | AICHAT-01 | Phase 5 | Complete |
 | COACH-01 | Phase 6 | Pending |
 | COACH-02 | Phase 6 | Pending |
