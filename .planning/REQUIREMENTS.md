@@ -39,7 +39,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Student - AI Chat
 
-- [ ] **AICHAT-01**: Student can access Ask Abu Lahya via iframe embed
+- [x] **AICHAT-01**: Student can access Ask Abu Lahya via iframe embed
 
 ### Coach
 
@@ -134,7 +134,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REPT-01 | Phase 5 | Complete |
 | REPT-02 | Phase 5 | Complete |
 | REPT-03 | Phase 5 | Pending |
-| AICHAT-01 | Phase 5 | Pending |
+| AICHAT-01 | Phase 5 | Complete |
 | COACH-01 | Phase 6 | Pending |
 | COACH-02 | Phase 6 | Pending |
 | COACH-03 | Phase 6 | Pending |

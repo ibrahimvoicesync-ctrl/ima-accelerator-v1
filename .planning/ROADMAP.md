@@ -103,7 +103,7 @@ Plans:
   3. Student who has already submitted today's report sees a confirmation state and cannot submit again
   4. Student can view a list of their past daily reports
   5. Student can navigate to /student/ask and see the Ask Abu Lahya iframe embed (placeholder URL during development)
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 05-01-PLAN.md — UI primitives (Card, Input, Textarea, Skeleton, StarRating) + POST /api/reports route with Zod validation and upsert logic
@@ -203,7 +203,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Authentication & Access | 2/3 | In Progress|  |
 | 3. Student Work Tracker | 3/3 | Complete   | 2026-03-16 |
 | 4. Student Roadmap | 2/2 | Complete   | 2026-03-16 |
-| 5. Student Daily Reports & AI Chat | 1/3 | In Progress|  |
+| 5. Student Daily Reports & AI Chat | 2/3 | In Progress|  |
 | 6. Coach Dashboard & Student Views | 0/2 | Not started | - |
 | 7. Coach Report Review, Invites & Analytics | 0/3 | Not started | - |
 | 8. Owner Stats & People Management | 0/3 | Not started | - |
