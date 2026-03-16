@@ -12,7 +12,7 @@ Build a three-role coaching platform (owner, coach, student) centered on a daily
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Project scaffold, schema, Supabase clients, config, and route proxy
+- [x] **Phase 1: Foundation** - Project scaffold, schema, Supabase clients, config, and route proxy (completed 2026-03-16)
 - [ ] **Phase 2: Authentication & Access** - Google OAuth login, invite registration, role-based routing
 - [ ] **Phase 3: Student Work Tracker** - 45-minute work cycles with timer state persistence
 - [ ] **Phase 4: Student Roadmap** - 10-step sequential roadmap with locked/active/completed states
@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `proxy.ts` redirects unauthenticated visitors to /login and wrong-role visitors to /no-access
   4. `createAdminClient()` is service-role guarded (server-only) and accessible from page components
   5. `lib/config.ts` exports all roles, routes, roadmap steps, thresholds, and validation rules with no runtime errors
-**Plans:** 3 plans (Wave 1: 01-01, Wave 2: 01-02, Wave 3: 01-03)
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 01-01-PLAN.md — Project scaffold (Next.js 16, TypeScript strict, Tailwind v4, ima-* tokens, all dependencies)
@@ -199,7 +199,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/3 | In progress | - |
+| 1. Foundation | 3/3 | Complete   | 2026-03-16 |
 | 2. Authentication & Access | 0/3 | Not started | - |
 | 3. Student Work Tracker | 0/3 | Not started | - |
 | 4. Student Roadmap | 0/2 | Not started | - |
