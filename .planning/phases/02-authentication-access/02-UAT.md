@@ -18,9 +18,7 @@ result: pass
 
 ### 2. Login Error Banner
 expected: Navigate to /login?error=access_denied. An error banner appears on the login page showing the error message.
-result: issue
-reported: "when I login I get redirected to /login?code=978107b8-... instead of /api/auth/callback - OAuth callback URL misconfigured in Supabase"
-severity: blocker
+result: pass
 
 ### 3. Invite Registration — Valid Code
 expected: Navigate to /register/INVITE-OPEN-002. Page shows the invited role as a badge, the email, and a Google sign-in button.
@@ -57,21 +55,11 @@ result: pass
 ## Summary
 
 total: 10
-passed: 9
-issues: 1
+passed: 10
+issues: 0
 pending: 0
 skipped: 0
 
 ## Gaps
 
-- truth: "Google OAuth login completes and redirects to /api/auth/callback"
-  status: failed
-  reason: "User reported: when I login I get redirected to /login?code=978107b8-... instead of /api/auth/callback - OAuth callback URL misconfigured in Supabase dashboard"
-  severity: blocker
-  test: 2
-  root_cause: "Supabase Auth redirect URL not configured — /api/auth/callback not in allowed redirect URLs on production (Vercel). Works on localhost after fixing Site URL."
-  artifacts: []
-  missing:
-    - "Add https://imaaccelerator.vercel.app/api/auth/callback to Supabase Auth > URL Configuration > Redirect URLs"
-    - "Add http://localhost:3000/api/auth/callback for local dev"
-  debug_session: ""
+[none — all tests passed]
