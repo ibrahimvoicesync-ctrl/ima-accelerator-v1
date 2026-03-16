@@ -9,12 +9,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Authentication & Access
 
-- [ ] **AUTH-01**: User can log in via Google OAuth
-- [ ] **AUTH-02**: User can register with invite code (invite-only)
-- [ ] **AUTH-03**: User can register via magic link
-- [ ] **AUTH-04**: User is routed to role-specific dashboard after login (owner/coach/student)
+- [x] **AUTH-01**: User can log in via Google OAuth
+- [x] **AUTH-02**: User can register with invite code (invite-only)
+- [x] **AUTH-03**: User can register via magic link
+- [x] **AUTH-04**: User is routed to role-specific dashboard after login (owner/coach/student)
 - [ ] **AUTH-05**: Unauthorized user sees no-access page
-- [ ] **AUTH-06**: User session persists across browser refresh
+- [x] **AUTH-06**: User session persists across browser refresh
 
 ### Student - Work Tracker
 
@@ -116,12 +116,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Complete |
+| AUTH-02 | Phase 2 | Complete |
+| AUTH-03 | Phase 2 | Complete |
+| AUTH-04 | Phase 2 | Complete |
 | AUTH-05 | Phase 2 | Pending |
-| AUTH-06 | Phase 2 | Pending |
+| AUTH-06 | Phase 2 | Complete |
 | WORK-01 | Phase 3 | Pending |
 | WORK-02 | Phase 3 | Pending |
 | WORK-03 | Phase 3 | Pending |

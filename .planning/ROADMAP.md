@@ -53,7 +53,7 @@ Plans:
   4. User with a valid magic link can complete registration as an alternative to the invite code
   5. User who refreshes the browser remains logged in and stays on the correct dashboard
   6. User who navigates directly to /owner while authenticated as a student is redirected to /no-access
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 02-01-PLAN.md — OAuth callback handler + session helper (code exchange, invite consumption, magic link claim, roadmap seeding, getSessionUser)
@@ -200,7 +200,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-03-16 |
-| 2. Authentication & Access | 0/3 | Not started | - |
+| 2. Authentication & Access | 2/3 | In Progress|  |
 | 3. Student Work Tracker | 0/3 | Not started | - |
 | 4. Student Roadmap | 0/2 | Not started | - |
 | 5. Student Daily Reports & AI Chat | 0/3 | Not started | - |
