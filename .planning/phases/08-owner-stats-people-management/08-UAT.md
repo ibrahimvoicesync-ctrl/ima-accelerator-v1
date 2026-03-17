@@ -1,5 +1,5 @@
 ---
-status: resolved
+status: complete
 phase: 08-owner-stats-people-management
 source: [08-01-SUMMARY.md, 08-02-SUMMARY.md, 08-03-SUMMARY.md]
 started: 2026-03-17T17:10:00Z
@@ -30,15 +30,11 @@ result: pass
 
 ### 5. Owner Student Detail
 expected: On /owner/students, click any student card. You should navigate to /owner/students/[id] and see a student header (name, email, avatar) with a back link to /owner/students. Below, you should see tabbed content: Work Sessions, Roadmap, and Reports tabs — clicking each tab shows the relevant data.
-result: issue
-reported: "i don't see an email but the rest is pass"
-severity: major
+result: pass (retest)
 
 ### 6. Owner Coaches List
 expected: Navigate to /owner/coaches. You should see all coaches in a card grid. Each coach card shows initials avatar, name, email, number of assigned students, and average 7-day rating.
-result: issue
-reported: "It is really compact and ugly, so you only see the beginning of the name + email but except this pass"
-severity: cosmetic
+result: pass (retest)
 
 ### 7. Owner Coach Detail
 expected: On /owner/coaches, click any coach card. You should navigate to /owner/coaches/[coachId] and see a header with the coach's name and a back link to /owner/coaches. Below, you should see 4 stat cards: Student Count, Avg Rating, Review Rate, and At-Risk. Below that, a grid of the coach's assigned students.
@@ -51,8 +47,8 @@ result: pass
 ## Summary
 
 total: 8
-passed: 6
-issues: 2
+passed: 8
+issues: 0
 pending: 0
 skipped: 0
 
