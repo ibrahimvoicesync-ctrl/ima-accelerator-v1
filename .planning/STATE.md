@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 08-owner-stats-people-management/08-03-PLAN.md
-last_updated: "2026-03-17T17:10:17.319Z"
+stopped_at: Completed 08-owner-stats-people-management/08-04-PLAN.md
+last_updated: "2026-03-17T17:33:33.407Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
   completed_phases: 8
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 24
+  completed_plans: 24
 ---
 
 ---
@@ -102,6 +102,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 08-owner-stats-people-management P02 | 2 min | 2 tasks | 4 files |
 | Phase 08-owner-stats-people-management P01 | 1min | 2 tasks | 2 files |
 | Phase 08-owner-stats-people-management P03 | 2 | 2 tasks | 3 files |
+| Phase 08-owner-stats-people-management P04 | 1 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -171,6 +172,7 @@ Recent decisions affecting current work:
 - [Phase 08]: Owner student list has no status filter — owner sees ALL students (active, inactive, suspended) for full platform visibility
 - [Phase 08-owner-stats-people-management]: StudentCard basePath defaults to /coach/students for backward compatibility; Active Today uses distinct student_id Set to avoid inflated session counts; display-only cards have no Link wrapper
 - [Phase 08-03]: CoachCard uses aria-label={coach.name} on Link; StudentCard basePath='/owner/students' for correct cross-role navigation; reviewRate has submittedCount > 0 division-by-zero guard
+- [Phase 08-04]: CoachCard stacked layout replaces horizontal single-row — gives name/email full width, eliminates truncation
 
 ### Pending Todos
 
@@ -184,6 +186,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T17:05:25.756Z
-Stopped at: Completed 08-owner-stats-people-management/08-03-PLAN.md
+Last session: 2026-03-17T17:33:33.405Z
+Stopped at: Completed 08-owner-stats-people-management/08-04-PLAN.md
 Resume file: None

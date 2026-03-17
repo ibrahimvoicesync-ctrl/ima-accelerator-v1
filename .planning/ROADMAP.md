@@ -152,7 +152,7 @@ Plans:
   3. Owner can click into any student's detail page and see their sessions, reports, and roadmap progress
   4. Owner can view a list of all coaches with their assigned student count and average student rating
   5. Owner can click into any coach's detail page and see their assigned students and performance metrics
-**Plans:** 4 plans (3 complete + 1 gap closure)
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 08-01-PLAN.md — Owner dashboard stats + StudentCard basePath (4 aggregate stat cards with admin queries, clickable Students/Coaches cards, display-only Active Today/Reports Today, basePath prop on StudentCard for cross-role reuse)
@@ -208,6 +208,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 5. Student Daily Reports & AI Chat | 2/3 | In Progress|  |
 | 6. Coach Dashboard & Student Views | 2/2 | Complete   | 2026-03-16 |
 | 7. Coach Report Review, Invites & Analytics | 4/4 | Complete   | 2026-03-17 |
-| 8. Owner Stats & People Management | 3/4 | In Progress   | - |
+| 8. Owner Stats & People Management | 4/4 | Complete   | 2026-03-17 |
 | 9. Owner Invites, Assignments & Alerts | 0/3 | Not started | - |
 | 10. UI Polish & Production Hardening | 0/3 | Not started | - |
