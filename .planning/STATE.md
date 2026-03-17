@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-owner-invites-assignments-alerts/09-05-PLAN.md
-last_updated: "2026-03-17T21:35:29.386Z"
+stopped_at: Completed 09-owner-invites-assignments-alerts/09-04-PLAN.md
+last_updated: "2026-03-17T21:36:19.087Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 29
-  completed_plans: 28
+  completed_plans: 29
 ---
 
 ---
@@ -107,6 +107,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 09-owner-invites-assignments-alerts P01 | 3 min | 2 tasks | 4 files |
 | Phase 09-owner-invites-assignments-alerts P03 | 5 min | 2 tasks | 7 files |
 | Phase 09-owner-invites-assignments-alerts P05 | 2 min | 2 tasks | 2 files |
+| Phase 09-owner-invites-assignments-alerts P04 | 2 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -185,6 +186,8 @@ Recent decisions affecting current work:
 - [Phase 09-03]: Student 7+ days = dropoff ONLY (exclusive if/else if) — never shown as both inactive and dropoff
 - [Phase 09-03]: Alert keys time-windowed: inactive=daily, dropoff=weekly, unreviewed=daily, coach=monthly — dismissed condition re-triggers in new window
 - [Phase 09-owner-invites-assignments-alerts]: joined_at grace period checks placed inline before alert key creation — avoids early-continue complexity, each threshold branch has its own guard
+- [Phase 09-04]: C:/Program Files/Git/owner/assignments is now a dedicated server-rendered page — overrides the original redirect (09-02 locked decision) following UAT finding (test 8)
+- [Phase 09-04]: liveCoachCounts recalculated from localAssignments state — coach capacity cards update immediately on dropdown change without waiting for router.refresh()
 
 ### Pending Todos
 
@@ -198,6 +201,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T21:35:29.383Z
-Stopped at: Completed 09-owner-invites-assignments-alerts/09-05-PLAN.md
+Last session: 2026-03-17T21:36:19.085Z
+Stopped at: Completed 09-owner-invites-assignments-alerts/09-04-PLAN.md
 Resume file: None
