@@ -45,6 +45,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Check if email already belongs to a registered user
+  const { data: existingUser } = await admin
+    .from("users")
+    .select("id")
+    .eq("email", parsed.data.email)
+    .maybeSingle();
+
+  if (existingUser) {
+    return NextResponse.json(
+      { error: "A user with this email is already registered" },
+      { status: 409 }
+    );
+  }
+
   const code = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
   const expiresAt = new Date(
     Date.now() + INVITE_CONFIG.codeExpiryHours * 60 * 60 * 1000
