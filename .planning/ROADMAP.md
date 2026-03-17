@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Student Roadmap** - 10-step sequential roadmap with locked/active/completed states (completed 2026-03-16)
 - [ ] **Phase 5: Student Daily Reports & AI Chat** - Report submission with auto-filled hours and AI chat embed
 - [x] **Phase 6: Coach Dashboard & Student Views** - Coach home, assigned student list, and student detail (completed 2026-03-16)
-- [ ] **Phase 7: Coach Report Review, Invites & Analytics** - Report inbox, mark-as-reviewed, invite flow, basic analytics
+- [x] **Phase 7: Coach Report Review, Invites & Analytics** - Report inbox, mark-as-reviewed, invite flow, basic analytics (completed 2026-03-17)
 - [ ] **Phase 8: Owner Stats & People Management** - Platform stats dashboard and student/coach list views
 - [ ] **Phase 9: Owner Invites, Assignments & Alerts** - Invite system, coach-student assignments, alert system
 - [ ] **Phase 10: UI Polish & Production Hardening** - Loading skeletons, error boundaries, empty states, mobile pass
@@ -134,7 +134,7 @@ Plans:
   2. Coach can mark a report as reviewed; it moves out of the unreviewed inbox
   3. Coach can generate a student invite link (72-hour expiry) from the coach dashboard
   4. Coach can see a summary of report submission rates and student activity trends for their cohort
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 07-01-PLAN.md — Report review API and inbox page (PATCH toggle review, report inbox with stat cards, filter tabs, expandable rows, optimistic review toggle)
@@ -205,7 +205,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Student Roadmap | 2/2 | Complete   | 2026-03-16 |
 | 5. Student Daily Reports & AI Chat | 2/3 | In Progress|  |
 | 6. Coach Dashboard & Student Views | 2/2 | Complete   | 2026-03-16 |
-| 7. Coach Report Review, Invites & Analytics | 0/3 | Not started | - |
+| 7. Coach Report Review, Invites & Analytics | 3/3 | Complete   | 2026-03-17 |
 | 8. Owner Stats & People Management | 0/3 | Not started | - |
 | 9. Owner Invites, Assignments & Alerts | 0/3 | Not started | - |
 | 10. UI Polish & Production Hardening | 0/3 | Not started | - |
