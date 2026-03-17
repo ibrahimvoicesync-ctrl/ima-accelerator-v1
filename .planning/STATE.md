@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-ui-polish-production-hardening/10-02-PLAN.md
-last_updated: "2026-03-17T22:57:22.232Z"
+stopped_at: Completed 10-ui-polish-production-hardening/10-04-PLAN.md
+last_updated: "2026-03-17T22:57:31.694Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
@@ -191,6 +191,8 @@ Recent decisions affecting current work:
 - [Phase 09-04]: C:/Program Files/Git/owner/assignments is now a dedicated server-rendered page — overrides the original redirect (09-02 locked decision) following UAT finding (test 8)
 - [Phase 09-04]: liveCoachCounts recalculated from localAssignments state — coach capacity cards update immediately on dropdown change without waiting for router.refresh()
 - [Phase 10]: loading.tsx files use Skeleton/SkeletonCard primitives exclusively — motion-safe:animate-pulse handled by primitive, not inline classes
+- [Phase 10-ui-polish-production-hardening]: ReportRow two-row mobile stacking: sm:contents collapses top-row flex on desktop; badge visible via sm:hidden on mobile and hidden sm:inline-flex on desktop
+- [Phase 10-ui-polish-production-hardening]: OwnerAssignmentsClient select: min-w-0 w-full on mobile (full-width in flex-col column), reverts to sm:min-w-[180px] sm:w-auto on desktop
 
 ### Pending Todos
 
@@ -204,6 +206,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T22:57:13.250Z
-Stopped at: Completed 10-ui-polish-production-hardening/10-02-PLAN.md
+Last session: 2026-03-17T22:57:31.691Z
+Stopped at: Completed 10-ui-polish-production-hardening/10-04-PLAN.md
 Resume file: None

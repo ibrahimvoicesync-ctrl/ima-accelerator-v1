@@ -67,8 +67,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **UI-01**: All pages have loading skeletons
 - [ ] **UI-02**: Error boundaries catch and display errors gracefully
 - [ ] **UI-03**: Empty states show motivating copy with action CTAs
-- [ ] **UI-04**: All pages are mobile responsive
-- [ ] **UI-05**: All interactive elements meet 44px touch target minimum
+- [x] **UI-04**: All pages are mobile responsive
+- [x] **UI-05**: All interactive elements meet 44px touch target minimum
 - [x] **UI-06**: Shared UI components match old codebase visual style (ima-* tokens, blue primary, Inter font)
 
 ## v2 Requirements
@@ -153,8 +153,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-01 | Phase 10 | Complete |
 | UI-02 | Phase 10 | Pending |
 | UI-03 | Phase 10 | Pending |
-| UI-04 | Phase 10 | Pending |
-| UI-05 | Phase 10 | Pending |
+| UI-04 | Phase 10 | Complete |
+| UI-05 | Phase 10 | Complete |
 | UI-06 | Phase 10 | Complete |
 
 **Coverage:**
