@@ -1,0 +1,299 @@
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Users } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
+import { COACH_CONFIG } from "@/lib/config";
+
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  coach_id: string | null;
+}
+
+interface Coach {
+  id: string;
+  name: string;
+  studentCount: number;
+}
+
+interface OwnerAssignmentsClientProps {
+  students: Student[];
+  coaches: Coach[];
+}
+
+type FilterTab = "all" | "assigned" | "unassigned";
+
+export function OwnerAssignmentsClient({ students, coaches }: OwnerAssignmentsClientProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  // Stable refs — prevent dep churn in callbacks
+  const routerRef = useRef(router);
+  const toastRef = useRef(toast);
+  routerRef.current = router;
+  toastRef.current = toast;
+
+  // Local assignment overrides — key: studentId, value: coachId | null
+  const [localAssignments, setLocalAssignments] = useState<Record<string, string | null>>({});
+  // Per-row saving state
+  const [savingRows, setSavingRows] = useState<Record<string, boolean>>({});
+
+  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
+  const [search, setSearch] = useState("");
+
+  // Compute effective coach_id for a student (local override takes precedence)
+  function getEffectiveCoachId(student: Student): string | null {
+    return localAssignments.hasOwnProperty(student.id)
+      ? localAssignments[student.id]
+      : student.coach_id;
+  }
+
+  // Live coach student counts based on local overrides
+  const liveCoachCounts: Record<string, number> = {};
+  for (const coach of coaches) {
+    liveCoachCounts[coach.id] = 0;
+  }
+  for (const student of students) {
+    const effectiveCoachId = getEffectiveCoachId(student);
+    if (effectiveCoachId && liveCoachCounts.hasOwnProperty(effectiveCoachId)) {
+      liveCoachCounts[effectiveCoachId]++;
+    }
+  }
+
+  const handleAssign = useCallback(
+    async (studentId: string, newCoachId: string | null, prevCoachId: string | null) => {
+      setSavingRows((prev) => ({ ...prev, [studentId]: true }));
+      setLocalAssignments((prev) => ({ ...prev, [studentId]: newCoachId }));
+
+      try {
+        const res = await fetch(`/api/assignments?studentId=${studentId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ coach_id: newCoachId }),
+        });
+
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          toastRef.current({
+            type: "error",
+            title: (json as { error?: string }).error ?? "Failed to update assignment",
+          });
+          // Revert local override
+          setLocalAssignments((prev) => ({ ...prev, [studentId]: prevCoachId }));
+          return;
+        }
+
+        toastRef.current({
+          type: "success",
+          title: newCoachId ? "Student assigned to coach" : "Student unassigned",
+        });
+        routerRef.current.refresh();
+      } catch (err) {
+        console.error("[OwnerAssignmentsClient] assignment error:", err);
+        toastRef.current({ type: "error", title: "Something went wrong" });
+        // Revert local override
+        setLocalAssignments((prev) => ({ ...prev, [studentId]: prevCoachId }));
+      } finally {
+        setSavingRows((prev) => ({ ...prev, [studentId]: false }));
+      }
+    },
+    []
+  );
+
+  // Filter logic
+  const filteredStudents = students.filter((student) => {
+    const effectiveCoachId = getEffectiveCoachId(student);
+
+    // Filter tab
+    if (activeFilter === "assigned" && !effectiveCoachId) return false;
+    if (activeFilter === "unassigned" && effectiveCoachId) return false;
+
+    // Search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const nameMatch = student.name.toLowerCase().includes(q);
+      const emailMatch = student.email.toLowerCase().includes(q);
+      if (!nameMatch && !emailMatch) return false;
+    }
+
+    return true;
+  });
+
+  // Tab counts (not affected by search)
+  const allCount = students.length;
+  const assignedCount = students.filter((s) => getEffectiveCoachId(s) !== null).length;
+  const unassignedCount = students.filter((s) => getEffectiveCoachId(s) === null).length;
+
+  const max = COACH_CONFIG.maxStudentsPerCoach;
+
+  function getProgressColor(count: number): string {
+    const ratio = count / max;
+    if (ratio > 0.95) return "bg-ima-error";
+    if (ratio >= 0.8) return "bg-ima-warning";
+    return "bg-ima-primary";
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Coach Capacity Cards */}
+      {coaches.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-wide text-ima-text-secondary font-semibold">
+            Coach Capacity
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {coaches.map((coach) => {
+              const count = liveCoachCounts[coach.id] ?? 0;
+              const pct = Math.min(100, Math.round((count / max) * 100));
+              return (
+                <Card key={coach.id}>
+                  <CardContent className="p-4">
+                    <p className="text-sm font-semibold text-ima-text truncate">{coach.name}</p>
+                    <p className="text-xs text-ima-text-secondary mt-0.5">
+                      {count} / {max} students
+                    </p>
+                    <div className="mt-2 h-2 rounded-full bg-ima-border overflow-hidden">
+                      <div
+                        role="progressbar"
+                        aria-valuenow={count}
+                        aria-valuemin={0}
+                        aria-valuemax={max}
+                        aria-label={`${coach.name}: ${count} of ${max} students`}
+                        className={`h-full rounded-full motion-safe:transition-all ${getProgressColor(count)}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            { key: "all", label: "All", count: allCount },
+            { key: "assigned", label: "Assigned", count: assignedCount },
+            { key: "unassigned", label: "Unassigned", count: unassignedCount },
+          ] as { key: FilterTab; label: string; count: number }[]
+        ).map(({ key, label, count }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setActiveFilter(key)}
+            className={`min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium motion-safe:transition-colors flex items-center gap-2 ${
+              activeFilter === key
+                ? "bg-ima-primary text-white"
+                : "bg-ima-surface text-ima-text-secondary border border-ima-border hover:text-ima-text"
+            }`}
+          >
+            {label}
+            <span
+              className={`text-xs rounded-full px-1.5 py-0.5 ${
+                activeFilter === key
+                  ? "bg-white/20 text-white"
+                  : "bg-ima-border text-ima-text-secondary"
+              }`}
+            >
+              {count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <Input
+        label="Search students"
+        placeholder="Search by name or email..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+
+      {/* Student Assignment Rows */}
+      {filteredStudents.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 flex flex-col items-center text-center gap-3">
+            <Users className="h-10 w-10 text-ima-text-secondary" aria-hidden="true" />
+            <p className="text-base font-semibold text-ima-text">No students found</p>
+            <p className="text-sm text-ima-text-secondary">
+              {search.trim()
+                ? "Try adjusting your search query."
+                : activeFilter === "unassigned"
+                ? "All students have been assigned a coach."
+                : activeFilter === "assigned"
+                ? "No students have been assigned a coach yet."
+                : "There are no active students on the platform."}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredStudents.map((student) => {
+            const effectiveCoachId = getEffectiveCoachId(student);
+            const isSaving = !!savingRows[student.id];
+            const hasLocalChange = localAssignments.hasOwnProperty(student.id);
+            const initial = student.name.charAt(0).toUpperCase();
+
+            return (
+              <Card key={student.id}>
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  {/* Left: Avatar + info */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-ima-primary flex items-center justify-center text-sm font-bold text-white shrink-0">
+                      {initial}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-ima-text truncate">{student.name}</p>
+                      <p className="text-xs text-ima-text-secondary truncate">{student.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Right: Coach dropdown */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <select
+                      value={effectiveCoachId ?? ""}
+                      onChange={(e) => {
+                        const val = e.target.value === "" ? null : e.target.value;
+                        const prev = effectiveCoachId;
+                        handleAssign(student.id, val, prev);
+                      }}
+                      disabled={isSaving}
+                      aria-label={`Assign ${student.name} to coach`}
+                      className={`rounded-lg border bg-ima-surface px-3 py-2 text-sm text-ima-text min-h-[44px] min-w-[180px] focus:outline-none focus:ring-2 focus:ring-ima-primary disabled:opacity-50 motion-safe:transition-colors ${
+                        hasLocalChange
+                          ? "border-ima-primary ring-1 ring-ima-primary/30"
+                          : "border-ima-border"
+                      }`}
+                    >
+                      <option value="">Unassigned</option>
+                      {coaches.map((c) => {
+                        const cnt = liveCoachCounts[c.id] ?? 0;
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.name} ({cnt} student{cnt !== 1 ? "s" : ""})
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {isSaving && (
+                      <span className="text-xs text-ima-text-secondary">Saving...</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
