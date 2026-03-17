@@ -1,12 +1,14 @@
 ---
-status: diagnosed
+status: complete
 phase: 07-coach-report-review-invites-analytics
-source: [07-01-SUMMARY.md, 07-02-SUMMARY.md, 07-03-SUMMARY.md]
+source: [07-01-SUMMARY.md, 07-02-SUMMARY.md, 07-03-SUMMARY.md, 07-04-SUMMARY.md]
 started: 2026-03-17T14:55:00Z
-updated: 2026-03-17T15:10:00Z
+updated: 2026-03-17T15:35:00Z
+retest_started: 2026-03-17T15:30:00Z
 ---
 
 ## Current Test
+<!-- OVERWRITE each test - shows where we are -->
 
 [testing complete]
 
@@ -18,9 +20,9 @@ result: pass
 
 ### 2. Report Filter Tabs and Student Dropdown
 expected: On /coach/reports, click the filter tabs (Unreviewed / Reviewed / All) — the report list updates to show only matching reports. Use the student dropdown to filter reports by a specific student.
-result: issue
-reported: "the filter is not working. I can see an unreviewed report in unreviewed and reviewed"
-severity: major
+result: pass (retest)
+original_issue: "the filter is not working. I can see an unreviewed report in unreviewed and reviewed"
+fix: "Key prop added to CoachReportsClient (07-04, commit 1d24ccc)"
 
 ### 3. Expand Report Row
 expected: Click on a report row to expand it. You should see the full report details including star rating display, wins, and improvements sections. Click again to collapse.
@@ -36,9 +38,9 @@ result: pass
 
 ### 6. Create Email Invite
 expected: On the Email Invite tab, enter a student's email address and submit. An invite code is generated. A "Copy" button copies the invite URL to your clipboard. The invite appears in the history list below with an "Active" badge.
-result: issue
-reported: "I am able to invite already existing email. I was able to invite ibrahimvoicesync@gmail.com, who already is in the system. This shouldn't be possible"
-severity: major
+result: pass (retest)
+original_issue: "I am able to invite already existing email. I was able to invite ibrahimvoicesync@gmail.com, who already is in the system. This shouldn't be possible"
+fix: "409 duplicate-email guard added to POST /api/invites (07-04, commit c2ba6ed)"
 
 ### 7. Generate Magic Link
 expected: On the Magic Link tab, click the generate button (no email needed). A shareable URL with an 8-character code is generated and displayed. Copy it to clipboard. The link appears in the magic link history.
@@ -59,8 +61,8 @@ result: pass
 ## Summary
 
 total: 10
-passed: 8
-issues: 2
+passed: 10
+issues: 0 (2 retested and passed)
 pending: 0
 skipped: 0
 
