@@ -169,12 +169,12 @@ Plans:
   2. Owner can assign or reassign any student to any coach from the student detail page
   3. Owner sees an alert list for: students inactive 3+ days, students who haven't logged in for 7+ days, unreviewed reports, and coaches with avg student rating below 2.5 for 14+ days
   4. Owner can acknowledge or dismiss an alert; dismissed alerts no longer appear in the list
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 09-01: Owner invite system (coach + student invite generation API, magic link generation, invite management UI)
-- [ ] 09-02: Coach-student assignment API and UI (assign/reassign flow on student detail page)
-- [ ] 09-03: Owner alert system (alert computation queries, alert list page, acknowledge/dismiss API and UI)
+- [ ] 09-01-PLAN.md — Owner invite system (extend invite/magic-link APIs for owner role, OwnerInvitesClient with role selector, /owner/invites page)
+- [ ] 09-02-PLAN.md — Coach-student assignment (PATCH /api/assignments, coach dropdown on student detail page, /owner/assignments redirect)
+- [ ] 09-03-PLAN.md — Owner alert system (alert_dismissals migration, POST /api/alerts/dismiss, computed alerts page with 4 alert types, OwnerAlertsClient with filter tabs and dismiss, sidebar badge)
 
 ### Phase 10: UI Polish & Production Hardening
 **Goal**: Every page has loading states, graceful error handling, motivating empty states, and works on mobile — and the production deployment is verified end-to-end
