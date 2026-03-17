@@ -169,7 +169,7 @@ Plans:
   2. Owner can assign or reassign any student to any coach from the student detail page
   3. Owner sees an alert list for: students inactive 3+ days, students who haven't logged in for 7+ days, unreviewed reports, and coaches with avg student rating below 2.5 for 14+ days
   4. Owner can acknowledge or dismiss an alert; dismissed alerts no longer appear in the list
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 09-01-PLAN.md — Owner invite system (extend invite/magic-link APIs for owner role, OwnerInvitesClient with role selector, /owner/invites page)
@@ -209,5 +209,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Coach Dashboard & Student Views | 2/2 | Complete   | 2026-03-16 |
 | 7. Coach Report Review, Invites & Analytics | 4/4 | Complete   | 2026-03-17 |
 | 8. Owner Stats & People Management | 4/4 | Complete   | 2026-03-17 |
-| 9. Owner Invites, Assignments & Alerts | 1/3 | In Progress|  |
+| 9. Owner Invites, Assignments & Alerts | 2/3 | In Progress|  |
 | 10. UI Polish & Production Hardening | 0/3 | Not started | - |

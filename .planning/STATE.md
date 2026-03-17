@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-owner-invites-assignments-alerts/09-02-PLAN.md
-last_updated: "2026-03-17T20:33:42.854Z"
+stopped_at: Completed 09-owner-invites-assignments-alerts/09-01-PLAN.md
+last_updated: "2026-03-17T20:33:58.312Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
@@ -104,6 +104,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 08-owner-stats-people-management P03 | 2 | 2 tasks | 3 files |
 | Phase 08-owner-stats-people-management P04 | 1 min | 2 tasks | 3 files |
 | Phase 09-owner-invites-assignments-alerts P02 | 3 min | 2 tasks | 4 files |
+| Phase 09-owner-invites-assignments-alerts P01 | 3 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -176,6 +177,8 @@ Recent decisions affecting current work:
 - [Phase 08-04]: CoachCard stacked layout replaces horizontal single-row — gives name/email full width, eliminates truncation
 - [Phase 09-02]: C:/Program Files/Git/owner/assignments is a redirect page — no dedicated assignments page per locked decision
 - [Phase 09-02]: coach_id validated as uuid().nullable() so null unassigns the student; student and coach existence verified before update
+- [Phase 09-01]: coach_id null when owner creates invite — platform-level invite not coach-assigned
+- [Phase 09-01]: Owner can toggle any magic link in PATCH — admin override pattern on ownership check
 
 ### Pending Todos
 
@@ -189,6 +192,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T20:33:27.976Z
-Stopped at: Completed 09-owner-invites-assignments-alerts/09-02-PLAN.md
+Last session: 2026-03-17T20:33:58.309Z
+Stopped at: Completed 09-owner-invites-assignments-alerts/09-01-PLAN.md
 Resume file: None
