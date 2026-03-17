@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-coach-report-review-invites-analytics/07-02-PLAN.md
-last_updated: "2026-03-17T13:58:04.129Z"
+stopped_at: Completed 07-coach-report-review-invites-analytics/07-04-PLAN.md
+last_updated: "2026-03-17T15:45:31.989Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 20
+  completed_plans: 20
 ---
 
 ---
@@ -98,6 +98,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 07-coach-report-review-invites-analytics P01 | 3 | 2 tasks | 4 files |
 | Phase 07-coach-report-review-invites-analytics P02 | 12 min | 2 tasks | 4 files |
 | Phase 07-coach-report-review-invites-analytics P03 | 4 min | 2 tasks | 3 files |
+| Phase 07-coach-report-review-invites-analytics P04 | 1 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -161,6 +162,8 @@ Recent decisions affecting current work:
 - [07-02]: Ownership check for PATCH reads created_by before update as defense-in-depth on top of RLS policies
 - [07-02]: CoachInvitesClient uses optimistic toggle update with automatic revert on error for immediate feedback
 - [07-02]: lastUrl state resets on tab switch to prevent confusion between email invite and magic link URLs
+- [Phase 07-04]: key prop on CoachReportsClient derived from searchParams forces React unmount/remount when filter or student changes, so useState(reports) always initializes from correctly filtered server prop
+- [Phase 07-04]: Existing-user check in POST /api/invites queries users table via admin client before code generation — returns 409 before any insert, no orphaned invite codes
 
 ### Pending Todos
 
@@ -174,6 +177,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:54:00Z
-Stopped at: Completed 07-coach-report-review-invites-analytics/07-02-PLAN.md
+Last session: 2026-03-17T15:45:31.986Z
+Stopped at: Completed 07-coach-report-review-invites-analytics/07-04-PLAN.md
 Resume file: None

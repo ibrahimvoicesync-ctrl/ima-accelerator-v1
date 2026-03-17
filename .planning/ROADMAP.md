@@ -134,7 +134,7 @@ Plans:
   2. Coach can mark a report as reviewed; it moves out of the unreviewed inbox
   3. Coach can generate a student invite link (72-hour expiry) from the coach dashboard
   4. Coach can see a summary of report submission rates and student activity trends for their cohort
-**Plans:** 4 plans (3 complete, 1 gap closure)
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 07-01-PLAN.md — Report review API and inbox page (PATCH toggle review, report inbox with stat cards, filter tabs, expandable rows, optimistic review toggle)
@@ -206,7 +206,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Student Roadmap | 2/2 | Complete   | 2026-03-16 |
 | 5. Student Daily Reports & AI Chat | 2/3 | In Progress|  |
 | 6. Coach Dashboard & Student Views | 2/2 | Complete   | 2026-03-16 |
-| 7. Coach Report Review, Invites & Analytics | 3/4 | Gap closure | - |
+| 7. Coach Report Review, Invites & Analytics | 4/4 | Complete   | 2026-03-17 |
 | 8. Owner Stats & People Management | 0/3 | Not started | - |
 | 9. Owner Invites, Assignments & Alerts | 0/3 | Not started | - |
 | 10. UI Polish & Production Hardening | 0/3 | Not started | - |
