@@ -15,9 +15,10 @@ interface StudentCardProps {
     todayReportSubmitted: boolean;
     currentRoadmapStep: number;   // highest completed or active step number (1-10)
   };
+  basePath?: string;
 }
 
-export function StudentCard({ student }: StudentCardProps) {
+export function StudentCard({ student, basePath = "/coach/students" }: StudentCardProps) {
   const initials = student.name
     .split(" ")
     .map((n) => n[0] ?? "")
@@ -26,7 +27,7 @@ export function StudentCard({ student }: StudentCardProps) {
     .toUpperCase();
 
   return (
-    <Link href={`/coach/students/${student.id}`} aria-label={student.name}>
+    <Link href={`${basePath}/${student.id}`} aria-label={student.name}>
       <Card
         interactive
         className={cn(student.isAtRisk && "ring-2 ring-ima-error/30")}
