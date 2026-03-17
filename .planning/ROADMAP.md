@@ -169,12 +169,14 @@ Plans:
   2. Owner can assign or reassign any student to any coach from the student detail page
   3. Owner sees an alert list for: students inactive 3+ days, students who haven't logged in for 7+ days, unreviewed reports, and coaches with avg student rating below 2.5 for 14+ days
   4. Owner can acknowledge or dismiss an alert; dismissed alerts no longer appear in the list
-**Plans:** 3/3 plans complete
+**Plans:** 5 plans (3 complete + 2 gap closure)
 
 Plans:
-- [ ] 09-01-PLAN.md — Owner invite system (extend invite/magic-link APIs for owner role, OwnerInvitesClient with role selector, /owner/invites page)
-- [ ] 09-02-PLAN.md — Coach-student assignment (PATCH /api/assignments, coach dropdown on student detail page, /owner/assignments redirect)
-- [ ] 09-03-PLAN.md — Owner alert system (alert_dismissals migration, POST /api/alerts/dismiss, computed alerts page with 4 alert types, OwnerAlertsClient with filter tabs and dismiss, sidebar badge)
+- [x] 09-01-PLAN.md — Owner invite system (extend invite/magic-link APIs for owner role, OwnerInvitesClient with role selector, /owner/invites page)
+- [x] 09-02-PLAN.md — Coach-student assignment (PATCH /api/assignments, coach dropdown on student detail page, /owner/assignments redirect)
+- [x] 09-03-PLAN.md — Owner alert system (alert_dismissals migration, POST /api/alerts/dismiss, computed alerts page with 4 alert types, OwnerAlertsClient with filter tabs and dismiss, sidebar badge)
+- [ ] 09-04-PLAN.md — UAT gap closure: dedicated assignments page (replace redirect with full page, coach capacity cards, student list with inline coach dropdowns, filter by coach/unassigned)
+- [ ] 09-05-PLAN.md — UAT gap closure: fix new student false-positive dropoff alerts (add joined_at grace period to alert classification and sidebar badge)
 
 ### Phase 10: UI Polish & Production Hardening
 **Goal**: Every page has loading states, graceful error handling, motivating empty states, and works on mobile — and the production deployment is verified end-to-end
@@ -209,5 +211,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Coach Dashboard & Student Views | 2/2 | Complete   | 2026-03-16 |
 | 7. Coach Report Review, Invites & Analytics | 4/4 | Complete   | 2026-03-17 |
 | 8. Owner Stats & People Management | 4/4 | Complete   | 2026-03-17 |
-| 9. Owner Invites, Assignments & Alerts | 3/3 | Complete   | 2026-03-17 |
+| 9. Owner Invites, Assignments & Alerts | 3/5 | Gap closure | 2026-03-17 |
 | 10. UI Polish & Production Hardening | 0/3 | Not started | - |
