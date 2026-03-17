@@ -2,7 +2,9 @@ import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatHours } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui";
-import { Star, ArrowLeft } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonVariants } from "@/components/ui";
+import { Star, ArrowLeft, FileText } from "lucide-react";
 import Link from "next/link";
 import type { Database } from "@/lib/types";
 
@@ -52,17 +54,16 @@ export default async function ReportHistoryPage() {
       {/* Empty state */}
       {reportList.length === 0 && (
         <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-ima-text-secondary">
-              No reports submitted yet. Start tracking your progress!
-            </p>
-            <Link
-              href="/student/report"
-              className="mt-3 inline-flex items-center text-sm font-medium text-ima-primary hover:underline min-h-[44px]"
-            >
-              Submit Your First Report
-            </Link>
-          </CardContent>
+          <EmptyState
+            icon={<FileText className="h-6 w-6" />}
+            title="No reports submitted yet"
+            description="Start tracking your progress by submitting your first daily report."
+            action={
+              <Link href="/student/report" className={buttonVariants({ variant: "primary" })}>
+                Submit Your First Report
+              </Link>
+            }
+          />
         </Card>
       )}
 

@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
 import { getToday } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonVariants } from "@/components/ui";
 import {
   BarChart3,
   Star,
@@ -13,6 +15,7 @@ import {
   UserX,
   UserPlus,
 } from "lucide-react";
+import Link from "next/link";
 
 export default async function CoachAnalyticsPage() {
   const user = await requireRole("coach");
@@ -52,18 +55,16 @@ export default async function CoachAnalyticsPage() {
         </p>
         <div className="mt-6">
           <Card>
-            <CardContent className="p-8 text-center">
-              <BarChart3
-                className="h-10 w-10 text-ima-text-secondary mx-auto mb-3"
-                aria-hidden="true"
-              />
-              <p className="text-sm font-medium text-ima-text">
-                No students assigned
-              </p>
-              <p className="text-xs text-ima-text-secondary mt-1">
-                Analytics will appear once students join your cohort.
-              </p>
-            </CardContent>
+            <EmptyState
+              icon={<BarChart3 className="h-6 w-6" />}
+              title="No students assigned"
+              description="Analytics will appear once students join your cohort."
+              action={
+                <Link href="/coach/invites" className={buttonVariants({ variant: "primary" })}>
+                  Invite Students
+                </Link>
+              }
+            />
           </Card>
         </div>
       </div>

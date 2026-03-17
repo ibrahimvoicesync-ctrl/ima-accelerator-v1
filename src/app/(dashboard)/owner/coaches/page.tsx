@@ -3,7 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
 import { getToday } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Shield } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonVariants } from "@/components/ui";
+import { Shield, Users } from "lucide-react";
+import Link from "next/link";
 import { CoachCard } from "@/components/owner/CoachCard";
 
 export default async function OwnerCoachesPage() {
@@ -91,16 +94,16 @@ export default async function OwnerCoachesPage() {
       {enrichedCoaches.length === 0 ? (
         <div className="mt-6">
           <Card>
-            <CardContent className="p-8 text-center">
-              <Shield
-                className="h-10 w-10 text-ima-text-secondary mx-auto mb-3"
-                aria-hidden="true"
-              />
-              <p className="text-sm font-medium text-ima-text">No coaches yet</p>
-              <p className="text-xs text-ima-text-secondary mt-1">
-                Coaches will appear here once they join the platform.
-              </p>
-            </CardContent>
+            <EmptyState
+              icon={<Users className="h-6 w-6" />}
+              title="No coaches yet"
+              description="Coaches will appear here once invited and registered."
+              action={
+                <Link href="/owner/invites" className={buttonVariants({ variant: "primary" })}>
+                  Invite Coaches
+                </Link>
+              }
+            />
           </Card>
         </div>
       ) : (

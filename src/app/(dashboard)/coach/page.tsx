@@ -5,6 +5,8 @@ import { getGreeting, getToday } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StudentCard } from "@/components/coach/StudentCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonVariants } from "@/components/ui";
 import { Users, AlertTriangle, FileText, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -352,18 +354,17 @@ export default async function CoachDashboard() {
         </h2>
         {enrichedStudents.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <Users
-                className="h-10 w-10 text-ima-text-secondary mx-auto mb-3"
-                aria-hidden="true"
-              />
-              <p className="text-sm font-medium text-ima-text">
-                No students assigned yet
-              </p>
-              <p className="text-xs text-ima-text-secondary mt-1">
-                Students will appear here once assigned to you.
-              </p>
-            </CardContent>
+            <EmptyState
+              variant="compact"
+              icon={<Users className="h-5 w-5" />}
+              title="No students assigned yet"
+              description="Students will appear here once the owner assigns them to you."
+              action={
+                <Link href="/coach/invites" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  Invite Students
+                </Link>
+              }
+            />
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -4,7 +4,10 @@ import { COACH_CONFIG } from "@/lib/config";
 import { getToday } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/Card";
 import { StudentCard } from "@/components/coach/StudentCard";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonVariants } from "@/components/ui";
 import { Users } from "lucide-react";
+import Link from "next/link";
 
 type EnrichedStudent = {
   id: string;
@@ -201,18 +204,16 @@ export default async function CoachStudentsPage() {
       <div className="mt-6">
         {enrichedStudents.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <Users
-                className="h-10 w-10 text-ima-text-secondary mx-auto mb-3"
-                aria-hidden="true"
-              />
-              <p className="text-sm font-medium text-ima-text">
-                No students assigned yet
-              </p>
-              <p className="text-xs text-ima-text-secondary mt-1">
-                Students will appear here once assigned to you.
-              </p>
-            </CardContent>
+            <EmptyState
+              icon={<Users className="h-6 w-6" />}
+              title="No students assigned yet"
+              description="Students will appear here once the owner assigns them to you."
+              action={
+                <Link href="/coach/invites" className={buttonVariants({ variant: "primary" })}>
+                  Invite Students
+                </Link>
+              }
+            />
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

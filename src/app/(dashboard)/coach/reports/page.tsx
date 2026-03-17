@@ -4,7 +4,10 @@ import { COACH_CONFIG } from "@/lib/config";
 import { getToday } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/Card";
 import { CoachReportsClient } from "@/components/coach/CoachReportsClient";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonVariants } from "@/components/ui";
 import { FileText, Clock, CheckCircle, Timer } from "lucide-react";
+import Link from "next/link";
 
 export default async function CoachReportsPage({
   searchParams,
@@ -48,18 +51,16 @@ export default async function CoachReportsPage({
         </p>
         <div className="mt-6">
           <Card>
-            <CardContent className="p-8 text-center">
-              <FileText
-                className="h-10 w-10 text-ima-text-secondary mx-auto mb-3"
-                aria-hidden="true"
-              />
-              <p className="text-sm font-medium text-ima-text">
-                No students assigned yet
-              </p>
-              <p className="text-xs text-ima-text-secondary mt-1">
-                Reports will appear here once students are assigned to you.
-              </p>
-            </CardContent>
+            <EmptyState
+              icon={<FileText className="h-6 w-6" />}
+              title="No students assigned yet"
+              description="Reports will appear here once students are assigned to you."
+              action={
+                <Link href="/coach/invites" className={buttonVariants({ variant: "primary" })}>
+                  Invite Students
+                </Link>
+              }
+            />
           </Card>
         </div>
       </div>
