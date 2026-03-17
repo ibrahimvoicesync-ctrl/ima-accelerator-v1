@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 08-owner-stats-people-management
 source: [08-01-SUMMARY.md, 08-02-SUMMARY.md, 08-03-SUMMARY.md]
 started: 2026-03-17T17:10:00Z
@@ -63,17 +63,28 @@ skipped: 0
   reason: "User reported: i don't see an email but the rest is pass"
   severity: major
   test: 5
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Email prop is passed to OwnerStudentDetailClient but never rendered in JSX — rendering omission at lines 93-97"
+  artifacts:
+    - path: "src/components/owner/OwnerStudentDetailClient.tsx"
+      issue: "student.email never rendered in header JSX (lines 93-97)"
+    - path: "src/components/coach/StudentHeader.tsx"
+      issue: "Same omission — email declared in interface but not rendered"
+  missing:
+    - "Add <p> rendering student.email between name and join date in OwnerStudentDetailClient"
+    - "Add <p> rendering email in StudentHeader for coach view consistency"
+  debug_session: ".planning/debug/owner-student-detail-missing-email.md"
 
 - truth: "Coach cards in owner coaches list show full name, email, student count, and avg rating without truncation"
   status: failed
   reason: "User reported: It is really compact and ugly, so you only see the beginning of the name + email but except this pass"
   severity: cosmetic
   test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Single-row flex layout packs avatar+name+email+stats horizontally with truncate class — only ~134px left for name/email column"
+  artifacts:
+    - path: "src/components/owner/CoachCard.tsx"
+      issue: "truncate class on lines 34/37 forces text cutoff; all 4 sections in one flex row"
+    - path: "src/app/(dashboard)/owner/coaches/page.tsx"
+      issue: "md:grid-cols-2 halves card width, compounding truncation"
+  missing:
+    - "Restructure CoachCard to stacked layout (name/email top, stats bottom) or remove truncate and allow wrapping"
+  debug_session: ".planning/debug/coach-card-compact-truncated.md"
