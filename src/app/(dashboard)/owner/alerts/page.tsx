@@ -35,7 +35,7 @@ export default async function OwnerAlertsPage() {
 
   // --- Parallel data fetches ---
   const [studentsResult, coachesResult, dismissalsResult] = await Promise.all([
-    admin.from("users").select("id, name, coach_id").eq("role", "student").eq("status", "active"),
+    admin.from("users").select("id, name, coach_id, joined_at").eq("role", "student").eq("status", "active"),
     admin.from("users").select("id, name").eq("role", "coach").eq("status", "active"),
     admin.from("alert_dismissals").select("alert_key").eq("owner_id", user.id),
   ]);
@@ -80,8 +80,14 @@ export default async function OwnerAlertsPage() {
     // Classify students — EXCLUSIVE: dropoff (7+) OR inactive (3-6), never both
     for (const student of students) {
       const last = lastActive[student.id];
+
+      // Grace period: skip alerts for students whose account is younger than the threshold
+      const accountAgeMs = nowMs - new Date(student.joined_at).getTime();
+      const accountAgeDays = accountAgeMs / 86400000;
+
       if (!last || last < dropoffCutoff) {
-        // Dropoff: 7+ days or never active
+        // Dropoff: 7+ days or never active — BUT skip if account < 7 days old
+        if (accountAgeDays < thresholds.studentDropoffDays) continue;
         const key = `student_dropoff:${student.id}:${isoWeek}`;
         const daysInactive = last
           ? Math.floor((nowMs - new Date(last + "T00:00:00Z").getTime()) / 86400000)
@@ -100,7 +106,8 @@ export default async function OwnerAlertsPage() {
           dismissed: dismissedKeys.has(key),
         });
       } else if (last < inactiveCutoff) {
-        // Inactive: 3-6 days
+        // Inactive: 3-6 days — BUT skip if account < 3 days old
+        if (accountAgeDays < thresholds.studentInactiveDays) continue;
         const key = `student_inactive:${student.id}:${today}`;
         const daysInactive = Math.floor((nowMs - new Date(last + "T00:00:00Z").getTime()) / 86400000);
         alerts.push({
