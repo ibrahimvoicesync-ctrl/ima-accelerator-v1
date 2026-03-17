@@ -53,8 +53,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Owner - Management
 
 - [x] **OWNER-01**: Owner sees platform-wide stats dashboard
-- [ ] **OWNER-02**: Owner can view/search all students
-- [ ] **OWNER-03**: Owner can view individual student detail
+- [x] **OWNER-02**: Owner can view/search all students
+- [x] **OWNER-03**: Owner can view individual student detail
 - [ ] **OWNER-04**: Owner can view all coaches with stats
 - [ ] **OWNER-05**: Owner can view individual coach detail (assigned students, performance)
 - [ ] **OWNER-06**: Owner can send invite codes (coach + student)
@@ -142,8 +142,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COACH-05 | Phase 7 | Complete |
 | COACH-06 | Phase 7 | Complete |
 | OWNER-01 | Phase 8 | Complete |
-| OWNER-02 | Phase 8 | Pending |
-| OWNER-03 | Phase 8 | Pending |
+| OWNER-02 | Phase 8 | Complete |
+| OWNER-03 | Phase 8 | Complete |
 | OWNER-04 | Phase 8 | Pending |
 | OWNER-05 | Phase 8 | Pending |
 | OWNER-06 | Phase 9 | Pending |
