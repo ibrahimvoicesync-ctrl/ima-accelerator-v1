@@ -56,77 +56,87 @@ export function ReportRow({
       <details>
         <summary className="list-none cursor-pointer">
           <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-3 min-h-[44px]">
-              {/* Student name + date */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ima-text truncate">
-                  {studentName}
-                </p>
-                <p className="text-xs text-ima-text-secondary">
-                  {formatDate(report.date)}
-                </p>
-              </div>
-
-              {/* Stars */}
-              <StarDisplay rating={report.star_rating} />
-
-              {/* Hours + Outreach */}
-              <div className="flex items-center gap-3 text-xs text-ima-text-secondary">
-                <span>
-                  <span className="font-medium text-ima-text">
-                    {typeof report.hours_worked === "number"
-                      ? report.hours_worked.toFixed(1)
-                      : "0.0"}
-                  </span>
-                  h
-                </span>
-                <span>
-                  <span className="font-medium text-ima-text">
-                    {report.outreach_count}
-                  </span>{" "}
-                  outreach
-                </span>
-              </div>
-
-              {/* Review status + toggle */}
-              <div className="flex items-center gap-2 shrink-0">
-                {isReviewed ? (
-                  <>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 min-h-[44px]">
+              {/* Row 1 on mobile: student name + date + review status badge */}
+              <div className="flex items-center justify-between gap-3 sm:contents">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ima-text truncate">
+                    {studentName}
+                  </p>
+                  <p className="text-xs text-ima-text-secondary">
+                    {formatDate(report.date)}
+                  </p>
+                </div>
+                {/* Show badge on mobile only in this row */}
+                <div className="sm:hidden shrink-0">
+                  {isReviewed && (
                     <Badge variant="success" size="sm">
-                      <CheckCircle
-                        className="h-3 w-3 mr-1"
-                        aria-hidden="true"
-                      />
+                      <CheckCircle className="h-3 w-3 mr-1" aria-hidden="true" />
                       Reviewed
                     </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 2 on mobile: stars + metrics + action */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <StarDisplay rating={report.star_rating} />
+                <div className="flex items-center gap-3 text-xs text-ima-text-secondary">
+                  <span>
+                    <span className="font-medium text-ima-text">
+                      {typeof report.hours_worked === "number"
+                        ? report.hours_worked.toFixed(1)
+                        : "0.0"}
+                    </span>
+                    h
+                  </span>
+                  <span>
+                    <span className="font-medium text-ima-text">
+                      {report.outreach_count}
+                    </span>{" "}
+                    outreach
+                  </span>
+                </div>
+
+                {/* Review status + toggle (desktop shows badge here, mobile shows in row 1) */}
+                <div className="flex items-center gap-2 shrink-0 ml-auto">
+                  {isReviewed ? (
+                    <>
+                      <span className="hidden sm:inline-flex">
+                        <Badge variant="success" size="sm">
+                          <CheckCircle className="h-3 w-3 mr-1" aria-hidden="true" />
+                          Reviewed
+                        </Badge>
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={isReviewing}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onToggleReview(report.id, true);
+                        }}
+                        aria-label="Un-review this report"
+                      >
+                        Un-review
+                      </Button>
+                    </>
+                  ) : (
                     <Button
-                      variant="ghost"
+                      variant="primary"
                       size="sm"
                       disabled={isReviewing}
+                      loading={isReviewing}
                       onClick={(e) => {
                         e.preventDefault();
-                        onToggleReview(report.id, true);
+                        onToggleReview(report.id, false);
                       }}
-                      aria-label="Un-review this report"
+                      aria-label="Mark this report as reviewed"
                     >
-                      Un-review
+                      Mark Reviewed
                     </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={isReviewing}
-                    loading={isReviewing}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onToggleReview(report.id, false);
-                    }}
-                    aria-label="Mark this report as reviewed"
-                  >
-                    Mark Reviewed
-                  </Button>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>

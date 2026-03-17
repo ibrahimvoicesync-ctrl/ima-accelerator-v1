@@ -130,9 +130,9 @@ export function CoachReportsClient({
   return (
     <div className="mt-6">
       {/* Filter controls */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         {/* Tab buttons */}
-        <div className="flex gap-1">
+        <div className="flex gap-2 flex-wrap">
           {tabs.map((tab) => {
             const isActive = currentFilter === tab.value;
             return (
