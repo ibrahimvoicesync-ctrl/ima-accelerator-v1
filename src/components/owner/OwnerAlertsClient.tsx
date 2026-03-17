@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
@@ -171,15 +172,11 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
 
       {/* Alert Cards */}
       {filteredAlerts.length === 0 ? (
-        <Card variant="warm">
-          <CardContent className="p-8 text-center">
-            <Bell className="h-10 w-10 text-ima-text-secondary mx-auto mb-3" aria-hidden="true" />
-            <p className="text-sm font-medium text-ima-text">{EMPTY_MESSAGES[filter]}</p>
-            {filter === "all" && (
-              <p className="text-xs text-ima-text-secondary mt-1">No alerts have been triggered. Keep up the great work!</p>
-            )}
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Bell className="h-6 w-6" />}
+          title={EMPTY_MESSAGES[filter]}
+          description={filter === "all" ? "No alerts have been triggered. Keep up the great work!" : undefined}
+        />
       ) : (
         <div className="space-y-3">
           {filteredAlerts.map((alert) => {

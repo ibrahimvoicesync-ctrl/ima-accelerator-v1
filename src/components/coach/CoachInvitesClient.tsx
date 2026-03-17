@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { UserPlus, Link2, Copy, Mail, Clock } from "lucide-react";
 
 type InviteItem = {
@@ -297,13 +298,11 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
         <h2 className="text-base font-semibold text-ima-text mb-3">Invite History</h2>
         {localInvites.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <UserPlus className="h-10 w-10 text-ima-text-secondary mx-auto mb-3" aria-hidden="true" />
-              <p className="text-sm font-medium text-ima-text">No invites sent yet</p>
-              <p className="text-xs text-ima-text-secondary mt-1">
-                Generate an email invite above to get started.
-              </p>
-            </CardContent>
+            <EmptyState
+              icon={<UserPlus className="h-6 w-6" />}
+              title="No invites sent yet"
+              description="Generate an email invite above to get started."
+            />
           </Card>
         ) : (
           <div className="space-y-2">
@@ -346,13 +345,11 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
         <h2 className="text-base font-semibold text-ima-text mb-3">Magic Links</h2>
         {localMagicLinks.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <Link2 className="h-10 w-10 text-ima-text-secondary mx-auto mb-3" aria-hidden="true" />
-              <p className="text-sm font-medium text-ima-text">No magic links created yet</p>
-              <p className="text-xs text-ima-text-secondary mt-1">
-                Generate a magic link above to share with multiple students.
-              </p>
-            </CardContent>
+            <EmptyState
+              icon={<Link2 className="h-6 w-6" />}
+              title="No magic links created yet"
+              description="Generate a magic link above to share with multiple students."
+            />
           </Card>
         ) : (
           <div className="space-y-2">

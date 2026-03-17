@@ -2,10 +2,10 @@ import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
 import { getToday } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
-import { Shield, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import Link from "next/link";
 import { CoachCard } from "@/components/owner/CoachCard";
 

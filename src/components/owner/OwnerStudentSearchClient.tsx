@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonVariants } from "@/components/ui";
 import { Users } from "lucide-react";
 
 interface Student {
@@ -56,15 +58,18 @@ export function OwnerStudentSearchClient({
 
       {students.length === 0 ? (
         <div className="mt-4">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Users className="h-10 w-10 text-ima-text-secondary mx-auto mb-3" aria-hidden="true" />
-              <p className="text-sm font-medium text-ima-text">No students found</p>
-              <p className="text-xs text-ima-text-secondary mt-1">
-                {search ? "Try a different search term" : "No students have joined the platform yet"}
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<Users className="h-6 w-6" />}
+            title="No students found"
+            description={search ? "Try a different search term." : "No students have joined the platform yet."}
+            action={
+              !search ? (
+                <Link href="/owner/invites" className={buttonVariants({ variant: "primary" })}>
+                  Invite Students
+                </Link>
+              ) : undefined
+            }
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">

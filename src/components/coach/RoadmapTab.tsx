@@ -1,8 +1,9 @@
 "use client";
 
-import { CheckCircle2, Lock, Circle } from "lucide-react";
+import { CheckCircle2, Lock, Circle, Route } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROADMAP_STEPS } from "@/lib/config";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type RoadmapProgressRow = { step_number: number; status: "locked" | "active" | "completed" };
 
@@ -14,7 +15,12 @@ export function RoadmapTab({ roadmap }: RoadmapTabProps) {
   if (roadmap.length === 0) {
     return (
       <div role="tabpanel" id="tabpanel-roadmap" aria-labelledby="tab-roadmap">
-        <p className="text-sm text-ima-text-muted py-8 text-center">No roadmap progress recorded yet.</p>
+        <EmptyState
+          variant="compact"
+          icon={<Route className="h-5 w-5" />}
+          title="No roadmap progress yet"
+          description="This student hasn't started their roadmap."
+        />
       </div>
     );
   }

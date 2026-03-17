@@ -3,8 +3,9 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { ReportRow } from "@/components/coach/ReportRow";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { FileText } from "lucide-react";
 
 export type ReportItem = {
@@ -171,18 +172,11 @@ export function CoachReportsClient({
       {/* Report list */}
       {localReports.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center">
-            <FileText
-              className="h-10 w-10 text-ima-text-secondary mx-auto mb-3"
-              aria-hidden="true"
-            />
-            <p className="text-sm font-medium text-ima-text">
-              No reports found
-            </p>
-            <p className="text-xs text-ima-text-secondary mt-1">
-              Reports matching your filters will appear here.
-            </p>
-          </CardContent>
+          <EmptyState
+            icon={<FileText className="h-6 w-6" />}
+            title="No reports found"
+            description="Reports matching your filters will appear here."
+          />
         </Card>
       ) : (
         <div className="space-y-3">

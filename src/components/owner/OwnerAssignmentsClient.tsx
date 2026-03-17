@@ -2,10 +2,13 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { buttonVariants } from "@/components/ui";
 import { COACH_CONFIG } from "@/lib/config";
 
 interface Student {
@@ -221,19 +224,24 @@ export function OwnerAssignmentsClient({ students, coaches }: OwnerAssignmentsCl
       {/* Student Assignment Rows */}
       {filteredStudents.length === 0 ? (
         <Card>
-          <CardContent className="p-8 flex flex-col items-center text-center gap-3">
-            <Users className="h-10 w-10 text-ima-text-secondary" aria-hidden="true" />
-            <p className="text-base font-semibold text-ima-text">No students found</p>
-            <p className="text-sm text-ima-text-secondary">
-              {search.trim()
-                ? "Try adjusting your search query."
-                : activeFilter === "unassigned"
+          <EmptyState
+            icon={<Users className="h-6 w-6" />}
+            title="No students found"
+            description={
+              activeFilter === "unassigned"
                 ? "All students have been assigned a coach."
                 : activeFilter === "assigned"
-                ? "No students have been assigned a coach yet."
-                : "There are no active students on the platform."}
-            </p>
-          </CardContent>
+                  ? "No students have been assigned to this coach yet."
+                  : "No students have joined the platform yet."
+            }
+            action={
+              !search.trim() && activeFilter !== "assigned" && activeFilter !== "unassigned" ? (
+                <Link href="/owner/invites" className={buttonVariants({ variant: "primary" })}>
+                  Invite Students
+                </Link>
+              ) : undefined
+            }
+          />
         </Card>
       ) : (
         <div className="space-y-3">

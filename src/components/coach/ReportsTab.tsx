@@ -3,6 +3,7 @@
 import { FileText, Clock, Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type DailyReportRow = {
   id: string;
@@ -38,9 +39,15 @@ function StarDisplay({ rating }: { rating: number | null }) {
 export function ReportsTab({ reports }: ReportsTabProps) {
   if (reports.length === 0) {
     return (
-      <div role="tabpanel" id="tabpanel-reports" aria-labelledby="tab-reports" className="py-8 text-center">
-        <FileText className="h-8 w-8 text-ima-text-muted mx-auto mb-2" aria-hidden="true" />
-        <p className="text-sm font-medium text-ima-text">No reports submitted yet</p>
+      <div role="tabpanel" id="tabpanel-reports" aria-labelledby="tab-reports">
+        <Card>
+          <EmptyState
+            variant="compact"
+            icon={<FileText className="h-5 w-5" />}
+            title="No reports submitted yet"
+            description="This student hasn't submitted any reports."
+          />
+        </Card>
       </div>
     );
   }
