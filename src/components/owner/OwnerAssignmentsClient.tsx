@@ -268,7 +268,7 @@ export function OwnerAssignmentsClient({ students, coaches }: OwnerAssignmentsCl
                       }}
                       disabled={isSaving}
                       aria-label={`Assign ${student.name} to coach`}
-                      className={`rounded-lg border bg-ima-surface px-3 py-2 text-sm text-ima-text min-h-[44px] min-w-[180px] focus:outline-none focus:ring-2 focus:ring-ima-primary disabled:opacity-50 motion-safe:transition-colors ${
+                      className={`rounded-lg border bg-ima-surface px-3 py-2 text-sm text-ima-text min-h-[44px] min-w-0 w-full sm:min-w-[180px] sm:w-auto focus:outline-none focus:ring-2 focus:ring-ima-primary disabled:opacity-50 motion-safe:transition-colors ${
                         hasLocalChange
                           ? "border-ima-primary ring-1 ring-ima-primary/30"
                           : "border-ima-border"

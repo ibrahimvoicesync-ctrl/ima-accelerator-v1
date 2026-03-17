@@ -329,8 +329,8 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
               const status = getInviteStatus(invite);
               return (
                 <Card key={invite.id}>
-                  <CardContent className="p-4 flex items-center justify-between gap-3 min-h-[44px]">
-                    <div className="min-w-0">
+                  <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 min-h-[44px]">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-ima-text truncate">{invite.email}</p>
                       <p className="text-xs text-ima-text-secondary">
                         <span className="capitalize">{invite.role}</span>
@@ -342,14 +342,16 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
                         )}
                       </p>
                     </div>
-                    <Badge
-                      variant={
-                        status === "used" ? "success" :
-                        status === "expired" ? "warning" : "info"
-                      }
-                    >
-                      {status === "used" ? "Used" : status === "expired" ? "Expired" : "Active"}
-                    </Badge>
+                    <div className="shrink-0">
+                      <Badge
+                        variant={
+                          status === "used" ? "success" :
+                          status === "expired" ? "warning" : "info"
+                        }
+                      >
+                        {status === "used" ? "Used" : status === "expired" ? "Expired" : "Active"}
+                      </Badge>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -375,12 +377,12 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
           <div className="space-y-2">
             {localMagicLinks.map((link) => (
               <Card key={link.id}>
-                <CardContent className="p-4 flex items-center justify-between gap-3 min-h-[44px]">
-                  <div className="min-w-0">
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3 min-h-[44px]">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-mono text-ima-text truncate" title={link.code}>
                       {link.code}
                     </p>
-                    <p className="text-xs text-ima-text-secondary flex items-center gap-2">
+                    <p className="text-xs text-ima-text-secondary flex items-center gap-2 flex-wrap">
                       <Clock className="h-3 w-3" aria-hidden="true" />
                       <span className="capitalize">{link.role}</span>
                       <span>&middot;</span>
@@ -390,7 +392,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
                       {link.max_uses !== null && <span>/ {link.max_uses}</span>}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="shrink-0 flex items-center gap-2">
                     <Badge variant={link.is_active ? "success" : "default"}>
                       {link.is_active ? "Active" : "Inactive"}
                     </Badge>
