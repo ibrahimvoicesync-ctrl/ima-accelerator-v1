@@ -6,6 +6,7 @@ import { INVITE_CONFIG, APP_CONFIG, VALIDATION } from "@/lib/config";
 
 const inviteSchema = z.object({
   email: z.string().email().max(VALIDATION.email.max),
+  role: z.enum(["coach", "student"]).optional().default("student"),
 });
 
 export async function POST(request: NextRequest) {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "User profile not found" }, { status: 404 });
   }
 
-  if (profile.role !== "coach") {
+  if (profile.role !== "coach" && profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -43,6 +44,11 @@ export async function POST(request: NextRequest) {
       { error: parsed.error.issues[0]?.message ?? "Validation failed" },
       { status: 400 }
     );
+  }
+
+  // Coaches can only invite students
+  if (profile.role === "coach" && parsed.data.role !== "student") {
+    return NextResponse.json({ error: "Coaches can only invite students" }, { status: 403 });
   }
 
   // Check if email already belongs to a registered user
@@ -68,9 +74,9 @@ export async function POST(request: NextRequest) {
     .from("invites")
     .insert({
       email: parsed.data.email,
-      role: "student",
+      role: parsed.data.role,
       invited_by: profile.id,
-      coach_id: profile.id, // CRITICAL: auto-assign coach so student is assigned on registration
+      coach_id: profile.role === "coach" ? profile.id : null,
       code,
       expires_at: expiresAt,
     })

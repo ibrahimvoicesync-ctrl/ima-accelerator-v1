@@ -15,7 +15,7 @@ const patchSchema = z.object({
   is_active: z.boolean(),
 });
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {
@@ -33,8 +33,27 @@ export async function POST() {
     return NextResponse.json({ error: "User profile not found" }, { status: 404 });
   }
 
-  if (profile.role !== "coach") {
+  if (profile.role !== "coach" && profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let magicRole: "coach" | "student" = "student";
+  try {
+    const body = await request.json();
+    const roleSchema = z.object({
+      role: z.enum(["coach", "student"]).optional().default("student"),
+    });
+    const parsed = roleSchema.safeParse(body);
+    if (parsed.success) {
+      magicRole = parsed.data.role;
+    }
+  } catch {
+    // Empty body is fine — default to "student"
+  }
+
+  // Coaches can only create student magic links
+  if (profile.role === "coach" && magicRole !== "student") {
+    return NextResponse.json({ error: "Coaches can only invite students" }, { status: 403 });
   }
 
   const code = generateMagicCode();
@@ -43,7 +62,7 @@ export async function POST() {
     .from("magic_links")
     .insert({
       code,
-      role: "student",
+      role: magicRole,
       created_by: profile.id,
       expires_at: null,  // magic links don't expire by default
       max_uses: null,    // unlimited uses by default
@@ -80,7 +99,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "User profile not found" }, { status: 404 });
   }
 
-  if (profile.role !== "coach") {
+  if (profile.role !== "coach" && profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -115,7 +134,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Magic link not found" }, { status: 404 });
   }
 
-  if (link.created_by !== profile.id) {
+  if (link.created_by !== profile.id && profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
