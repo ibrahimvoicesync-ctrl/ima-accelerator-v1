@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { useToast } from "@/components/ui/Toast";
 import { StudentDetailTabs, type TabKey } from "@/components/coach/StudentDetailTabs";
 import { WorkSessionsTab } from "@/components/coach/WorkSessionsTab";
 import { RoadmapTab } from "@/components/coach/RoadmapTab";
@@ -42,6 +44,8 @@ interface OwnerStudentDetailClientProps {
   }[];
   initialTab?: string;
   studentId: string;
+  coaches: { id: string; name: string; studentCount: number }[];
+  currentCoachId: string | null;
 }
 
 export function OwnerStudentDetailClient({
@@ -53,15 +57,54 @@ export function OwnerStudentDetailClient({
   reports,
   initialTab,
   studentId,
+  coaches,
+  currentCoachId,
 }: OwnerStudentDetailClientProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  // Stable refs to prevent dep churn in callbacks
+  const routerRef = useRef(router);
+  const toastRef = useRef(toast);
+  routerRef.current = router;
+  toastRef.current = toast;
+
   const [activeTab, setActiveTab] = useState<TabKey>(
     (initialTab as TabKey) || "work"
   );
+  const [assignedCoachId, setAssignedCoachId] = useState<string | null>(currentCoachId);
+  const [isSaving, setIsSaving] = useState(false);
 
   function handleTabChange(tab: TabKey) {
     setActiveTab(tab);
     window.history.replaceState(null, "", `/owner/students/${studentId}?tab=${tab}`);
   }
+
+  const handleAssign = useCallback(async (newCoachId: string | null) => {
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/assignments?studentId=${studentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coach_id: newCoachId }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toastRef.current({ type: "error", title: (json as { error?: string }).error ?? "Failed to update assignment" });
+        setAssignedCoachId(currentCoachId); // revert on error
+        return;
+      }
+      setAssignedCoachId(newCoachId);
+      toastRef.current({ type: "success", title: newCoachId ? "Student assigned to coach" : "Student unassigned" });
+      routerRef.current.refresh();
+    } catch (err) {
+      console.error("[OwnerStudentDetailClient] assignment error:", err);
+      toastRef.current({ type: "error", title: "Something went wrong" });
+      setAssignedCoachId(currentCoachId); // revert on error
+    } finally {
+      setIsSaving(false);
+    }
+  }, [studentId, currentCoachId]);
 
   const initial = student.name.charAt(0).toUpperCase();
   const joinDate = new Date(student.joined_at).toLocaleDateString("en-US", {
@@ -83,7 +126,7 @@ export function OwnerStudentDetailClient({
         </Link>
 
         {/* Student info */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           {/* Avatar */}
           <div className="w-14 h-14 rounded-full bg-ima-primary flex items-center justify-center text-xl font-bold text-white shrink-0">
             {initial}
@@ -99,6 +142,37 @@ export function OwnerStudentDetailClient({
             {student.status === "suspended" && (
               <Badge variant="warning" size="sm" className="mt-1">Suspended</Badge>
             )}
+          </div>
+
+          {/* Coach Assignment */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="coach-assign" className="text-xs font-medium text-ima-text-secondary">
+              Assigned Coach
+            </label>
+            <div className="flex items-center gap-2">
+              <select
+                id="coach-assign"
+                value={assignedCoachId ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value === "" ? null : e.target.value;
+                  setAssignedCoachId(val);
+                  handleAssign(val);
+                }}
+                disabled={isSaving}
+                className="rounded-lg border border-ima-border bg-ima-surface px-3 py-2 text-sm text-ima-text min-h-[44px] min-w-[200px] focus:outline-none focus:ring-2 focus:ring-ima-primary disabled:opacity-50"
+                aria-label="Assign student to coach"
+              >
+                <option value="">Unassigned</option>
+                {coaches.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.studentCount} student{c.studentCount !== 1 ? "s" : ""})
+                  </option>
+                ))}
+              </select>
+              {isSaving && (
+                <span className="text-xs text-ima-text-secondary">Saving...</span>
+              )}
+            </div>
           </div>
 
           {/* At-risk badge */}

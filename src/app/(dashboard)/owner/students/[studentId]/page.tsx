@@ -33,7 +33,7 @@ export default async function OwnerStudentDetailPage({
   }
 
   // Parallel fetch enrichment data
-  const [sessionsResult, roadmapResult, reportsResult] = await Promise.all([
+  const [sessionsResult, roadmapResult, reportsResult, coachesResult, studentCountsResult] = await Promise.all([
     admin
       .from("work_sessions")
       .select("id, date, cycle_number, status, duration_minutes")
@@ -51,6 +51,18 @@ export default async function OwnerStudentDetailPage({
       .eq("student_id", student.id)
       .order("date", { ascending: false })
       .limit(20),
+    admin
+      .from("users")
+      .select("id, name")
+      .eq("role", "coach")
+      .eq("status", "active")
+      .order("name"),
+    admin
+      .from("users")
+      .select("coach_id")
+      .eq("role", "student")
+      .eq("status", "active")
+      .not("coach_id", "is", null),
   ]);
 
   if (sessionsResult.error) {
@@ -62,10 +74,33 @@ export default async function OwnerStudentDetailPage({
   if (reportsResult.error) {
     console.error("[owner student detail] Failed to load reports:", reportsResult.error);
   }
+  if (coachesResult.error) {
+    console.error("[owner student detail] Failed to load coaches:", coachesResult.error);
+  }
+  if (studentCountsResult.error) {
+    console.error("[owner student detail] Failed to load student counts:", studentCountsResult.error);
+  }
 
   const sessions = sessionsResult.data ?? [];
   const roadmap = roadmapResult.data ?? [];
   const reports = reportsResult.data ?? [];
+
+  const coachesList = coachesResult.data ?? [];
+  const studentCounts = (studentCountsResult.data ?? []).reduce<Record<string, number>>(
+    (acc, row) => {
+      if (row.coach_id) {
+        acc[row.coach_id] = (acc[row.coach_id] ?? 0) + 1;
+      }
+      return acc;
+    },
+    {}
+  );
+
+  const coachOptions = coachesList.map((c) => ({
+    id: c.id,
+    name: c.name,
+    studentCount: studentCounts[c.id] ?? 0,
+  }));
 
   // Compute at-risk status
   const latestSessionDate = sessions.length > 0 ? sessions[0].date : null;
@@ -116,6 +151,8 @@ export default async function OwnerStudentDetailPage({
       reports={reports}
       initialTab={typeof tab === "string" ? tab : undefined}
       studentId={student.id}
+      coaches={coachOptions}
+      currentCoachId={student.coach_id ?? null}
     />
   );
 }
