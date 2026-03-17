@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-owner-invites-assignments-alerts/09-03-PLAN.md
-last_updated: "2026-03-17T20:47:36.649Z"
+stopped_at: Completed 09-owner-invites-assignments-alerts/09-05-PLAN.md
+last_updated: "2026-03-17T21:35:29.386Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
-  completed_phases: 9
-  total_plans: 27
-  completed_plans: 27
+  completed_phases: 8
+  total_plans: 29
+  completed_plans: 28
 ---
 
 ---
@@ -106,6 +106,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 09-owner-invites-assignments-alerts P02 | 3 min | 2 tasks | 4 files |
 | Phase 09-owner-invites-assignments-alerts P01 | 3 min | 2 tasks | 4 files |
 | Phase 09-owner-invites-assignments-alerts P03 | 5 min | 2 tasks | 7 files |
+| Phase 09-owner-invites-assignments-alerts P05 | 2 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -183,6 +184,7 @@ Recent decisions affecting current work:
 - [Phase 09-03]: alert_dismissals UNIQUE(owner_id, alert_key) — upsert with ignoreDuplicates: true makes re-dismiss idempotent
 - [Phase 09-03]: Student 7+ days = dropoff ONLY (exclusive if/else if) — never shown as both inactive and dropoff
 - [Phase 09-03]: Alert keys time-windowed: inactive=daily, dropoff=weekly, unreviewed=daily, coach=monthly — dismissed condition re-triggers in new window
+- [Phase 09-owner-invites-assignments-alerts]: joined_at grace period checks placed inline before alert key creation — avoids early-continue complexity, each threshold branch has its own guard
 
 ### Pending Todos
 
@@ -196,6 +198,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T20:42:37.199Z
-Stopped at: Completed 09-owner-invites-assignments-alerts/09-03-PLAN.md
+Last session: 2026-03-17T21:35:29.383Z
+Stopped at: Completed 09-owner-invites-assignments-alerts/09-05-PLAN.md
 Resume file: None
