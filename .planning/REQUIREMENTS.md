@@ -48,7 +48,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **COACH-03**: Coach can view individual student detail (reports, sessions, roadmap)
 - [x] **COACH-04**: Coach can review/acknowledge submitted reports
 - [ ] **COACH-05**: Coach can invite new students
-- [ ] **COACH-06**: Coach sees basic analytics (report submission rates, student activity)
+- [x] **COACH-06**: Coach sees basic analytics (report submission rates, student activity)
 
 ### Owner - Management
 
@@ -140,7 +140,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COACH-03 | Phase 6 | Complete |
 | COACH-04 | Phase 7 | Complete |
 | COACH-05 | Phase 7 | Pending |
-| COACH-06 | Phase 7 | Pending |
+| COACH-06 | Phase 7 | Complete |
 | OWNER-01 | Phase 8 | Pending |
 | OWNER-02 | Phase 8 | Pending |
 | OWNER-03 | Phase 8 | Pending |

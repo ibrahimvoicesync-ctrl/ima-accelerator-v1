@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-coach-report-review-invites-analytics/07-01-PLAN.md
-last_updated: "2026-03-17T13:52:41.908Z"
+stopped_at: Completed 07-coach-report-review-invites-analytics/07-03-PLAN.md
+last_updated: "2026-03-17T13:52:47.769Z"
 last_activity: "2026-03-16 — Completed plan 03-02: WorkTimer SVG ring countdown, CycleCard status display, WorkTrackerClient orchestrator, /student/work server page"
 progress:
   total_phases: 10
@@ -139,6 +139,7 @@ Recent decisions affecting current work:
 - [Phase 07-coach-report-review-invites-analytics]: ReportItem.submitted_at typed as string|null to match DB type (filtered .not at runtime guarantees non-null)
 - [Phase 07-coach-report-review-invites-analytics]: HTML details/summary for expandable report rows — no React state needed, fully accessible
 - [Phase 07-coach-report-review-invites-analytics]: badgeCounts computed in DashboardLayout server component — single source of truth for all nav badge counts
+- [Phase 07-coach-report-review-invites-analytics]: layout.tsx profile select extended to include id field to avoid second auth_id lookup for badge computation
 
 ### Pending Todos
 
@@ -152,6 +153,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T13:52:29.210Z
-Stopped at: Completed 07-coach-report-review-invites-analytics/07-01-PLAN.md
+Last session: 2026-03-17T13:52:47.767Z
+Stopped at: Completed 07-coach-report-review-invites-analytics/07-03-PLAN.md
 Resume file: None
