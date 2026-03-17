@@ -195,6 +195,7 @@ export default async function CoachReportsPage({
 
       {/* Report inbox client component */}
       <CoachReportsClient
+        key={`${sp.reviewed ?? "all"}-${sp.student_id ?? ""}`}
         reports={filteredReports}
         students={studentList}
         studentMap={studentMap}
