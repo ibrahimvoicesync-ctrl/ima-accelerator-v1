@@ -26,29 +26,30 @@ export function CoachCard({ coach }: CoachCardProps) {
       className="min-h-[44px] block"
     >
       <Card interactive>
-        <CardContent className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-ima-primary flex items-center justify-center text-sm font-semibold text-white shrink-0">
-            {initials}
+        <CardContent className="p-4 flex flex-col gap-3">
+          {/* Top row: avatar + name/email */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-ima-primary flex items-center justify-center text-sm font-semibold text-white shrink-0">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ima-text">{coach.name}</p>
+              <p className="text-xs text-ima-text-secondary">{coach.email}</p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-ima-text truncate">
-              {coach.name}
-            </p>
-            <p className="text-xs text-ima-text-secondary truncate">
-              {coach.email}
-            </p>
-          </div>
-          <div className="text-right shrink-0">
-            <p className="text-sm font-semibold text-ima-text">
-              {coach.studentCount}
-            </p>
-            <p className="text-xs text-ima-text-secondary">students</p>
-          </div>
-          <div className="text-right shrink-0 ml-2">
-            <p className="text-sm font-semibold text-ima-text">
-              {coach.avgRating !== null ? coach.avgRating.toFixed(1) : "—"}
-            </p>
-            <p className="text-xs text-ima-text-secondary">avg rating</p>
+
+          {/* Stats row */}
+          <div className="flex items-center justify-between text-xs border-t border-ima-border pt-3">
+            <div className="flex items-center gap-1">
+              <span className="font-semibold text-sm text-ima-text">{coach.studentCount}</span>
+              <span className="text-ima-text-secondary">students</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-semibold text-sm text-ima-text">
+                {coach.avgRating !== null ? coach.avgRating.toFixed(1) : "\u2014"}
+              </span>
+              <span className="text-ima-text-secondary">avg rating</span>
+            </div>
           </div>
         </CardContent>
       </Card>
