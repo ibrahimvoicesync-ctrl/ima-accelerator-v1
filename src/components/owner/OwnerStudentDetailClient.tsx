@@ -92,6 +92,7 @@ export function OwnerStudentDetailClient({
           {/* Name and join date */}
           <div className="flex-1">
             <h1 className="text-xl font-bold text-ima-text">{student.name}</h1>
+            <p className="text-sm text-ima-text-secondary">{student.email}</p>
             <p className="text-sm text-ima-text-secondary">
               Joined {joinDate}
             </p>
