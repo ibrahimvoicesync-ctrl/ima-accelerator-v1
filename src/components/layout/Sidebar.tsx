@@ -47,7 +47,15 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   ChevronRight,
 };
 
-export function Sidebar({ role, userName }: { role: Role; userName: string }) {
+export function Sidebar({
+  role,
+  userName,
+  badgeCounts = {},
+}: {
+  role: Role;
+  userName: string;
+  badgeCounts?: Record<string, number>;
+}) {
   const pathname = usePathname();
   const prefersReducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -248,10 +256,10 @@ export function Sidebar({ role, userName }: { role: Role; userName: string }) {
                         />
                       )}
                       <span className="truncate">{item.label}</span>
-                      {/* Badge placeholder — shows badge key until server data is wired */}
-                      {item.badge && (
+                      {/* Badge — only rendered when count > 0 */}
+                      {item.badge && (badgeCounts[item.badge] ?? 0) > 0 && (
                         <span className="ml-auto text-xs font-medium px-1.5 py-0.5 rounded-full bg-ima-primary/10 text-ima-primary shrink-0">
-                          (badge)
+                          {badgeCounts[item.badge]}
                         </span>
                       )}
                       {active && !item.badge && (
