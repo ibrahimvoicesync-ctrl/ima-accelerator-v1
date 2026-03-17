@@ -152,12 +152,12 @@ Plans:
   3. Owner can click into any student's detail page and see their sessions, reports, and roadmap progress
   4. Owner can view a list of all coaches with their assigned student count and average student rating
   5. Owner can click into any coach's detail page and see their assigned students and performance metrics
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 08-01: Owner dashboard stats page (platform-wide aggregate queries, stats display with recharts)
-- [ ] 08-02: Owner student list and detail pages (searchable student list, student detail server component)
-- [ ] 08-03: Owner coach list and detail pages (coach list with stats, coach detail with students and performance)
+- [ ] 08-01-PLAN.md — Owner dashboard stats + StudentCard basePath (4 aggregate stat cards with admin queries, clickable Students/Coaches cards, display-only Active Today/Reports Today, basePath prop on StudentCard for cross-role reuse)
+- [ ] 08-02-PLAN.md — Owner student list and detail pages (searchable student list with debounced URL param search, student detail with tabbed view reusing coach tab components, /owner path prefix)
+- [ ] 08-03-PLAN.md — Owner coach list and detail pages (coach card grid with student count and avg 7-day rating, coach detail with 4 stat cards and assigned students via StudentCard basePath)
 
 ### Phase 9: Owner Invites, Assignments & Alerts
 **Goal**: The owner can onboard coaches and students via invites, assign students to coaches, and be alerted to at-risk situations
@@ -196,7 +196,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
