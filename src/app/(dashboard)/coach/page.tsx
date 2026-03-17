@@ -276,7 +276,7 @@ export default async function CoachDashboard() {
                 {pendingReviewCount}
               </p>
               <p className="text-xs text-ima-text-secondary">
-                Reports Pending Review
+                Reports Pending
               </p>
             </div>
           </CardContent>
