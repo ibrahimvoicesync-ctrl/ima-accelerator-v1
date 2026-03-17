@@ -82,7 +82,7 @@ export default async function DashboardLayout({
 
     // Get all active students
     const { data: allStudents } = await admin
-      .from("users").select("id").eq("role", "student").eq("status", "active");
+      .from("users").select("id, joined_at").eq("role", "student").eq("status", "active");
     const studentIds = (allStudents ?? []).map((s) => s.id);
 
     let alertCount = 0;
@@ -111,11 +111,17 @@ export default async function DashboardLayout({
       }
 
       // Count inactive (3-6 days) and dropoff (7+ days) — exclusive ranges
-      for (const sid of studentIds) {
-        const last = lastActive[sid];
+      // Grace period: skip new students whose account age is below the threshold
+      for (const s of (allStudents ?? [])) {
+        const last = lastActive[s.id];
+        const accountAgeMs = nowMs - new Date(s.joined_at).getTime();
+        const accountAgeDays = accountAgeMs / 86400000;
+
         if (!last || last < dropoffCutoff) {
+          if (accountAgeDays < thresholds.studentDropoffDays) continue;
           alertCount++; // dropoff
         } else if (last < inactiveCutoff) {
+          if (accountAgeDays < thresholds.studentInactiveDays) continue;
           alertCount++; // inactive
         }
       }
