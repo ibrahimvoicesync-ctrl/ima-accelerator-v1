@@ -59,8 +59,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **OWNER-05**: Owner can view individual coach detail (assigned students, performance)
 - [x] **OWNER-06**: Owner can send invite codes (coach + student)
 - [x] **OWNER-07**: Owner can assign/reassign students to coaches
-- [ ] **OWNER-08**: Owner sees alerts (inactive 3d, dropoff 7d, unreviewed reports, coach underperformance)
-- [ ] **OWNER-09**: Owner can acknowledge/dismiss alerts
+- [x] **OWNER-08**: Owner sees alerts (inactive 3d, dropoff 7d, unreviewed reports, coach underperformance)
+- [x] **OWNER-09**: Owner can acknowledge/dismiss alerts
 
 ### UI & Polish
 
@@ -148,8 +148,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OWNER-05 | Phase 8 | Complete |
 | OWNER-06 | Phase 9 | Complete |
 | OWNER-07 | Phase 9 | Complete |
-| OWNER-08 | Phase 9 | Pending |
-| OWNER-09 | Phase 9 | Pending |
+| OWNER-08 | Phase 9 | Complete |
+| OWNER-09 | Phase 9 | Complete |
 | UI-01 | Phase 10 | Pending |
 | UI-02 | Phase 10 | Pending |
 | UI-03 | Phase 10 | Pending |

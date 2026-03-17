@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Coach Dashboard & Student Views** - Coach home, assigned student list, and student detail (completed 2026-03-16)
 - [x] **Phase 7: Coach Report Review, Invites & Analytics** - Report inbox, mark-as-reviewed, invite flow, basic analytics (completed 2026-03-17)
 - [x] **Phase 8: Owner Stats & People Management** - Platform stats dashboard and student/coach list views (completed 2026-03-17)
-- [ ] **Phase 9: Owner Invites, Assignments & Alerts** - Invite system, coach-student assignments, alert system
+- [x] **Phase 9: Owner Invites, Assignments & Alerts** - Invite system, coach-student assignments, alert system (completed 2026-03-17)
 - [ ] **Phase 10: UI Polish & Production Hardening** - Loading skeletons, error boundaries, empty states, mobile pass
 
 ## Phase Details
@@ -169,7 +169,7 @@ Plans:
   2. Owner can assign or reassign any student to any coach from the student detail page
   3. Owner sees an alert list for: students inactive 3+ days, students who haven't logged in for 7+ days, unreviewed reports, and coaches with avg student rating below 2.5 for 14+ days
   4. Owner can acknowledge or dismiss an alert; dismissed alerts no longer appear in the list
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 09-01-PLAN.md — Owner invite system (extend invite/magic-link APIs for owner role, OwnerInvitesClient with role selector, /owner/invites page)
@@ -209,5 +209,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. Coach Dashboard & Student Views | 2/2 | Complete   | 2026-03-16 |
 | 7. Coach Report Review, Invites & Analytics | 4/4 | Complete   | 2026-03-17 |
 | 8. Owner Stats & People Management | 4/4 | Complete   | 2026-03-17 |
-| 9. Owner Invites, Assignments & Alerts | 2/3 | In Progress|  |
+| 9. Owner Invites, Assignments & Alerts | 3/3 | Complete   | 2026-03-17 |
 | 10. UI Polish & Production Hardening | 0/3 | Not started | - |
