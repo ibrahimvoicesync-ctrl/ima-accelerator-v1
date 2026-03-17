@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const assignSchema = z.object({
-  coach_id: z.string().uuid().nullable(),
+  coach_id: z.string().guid().nullable(),
 });
 
 export async function PATCH(request: NextRequest) {

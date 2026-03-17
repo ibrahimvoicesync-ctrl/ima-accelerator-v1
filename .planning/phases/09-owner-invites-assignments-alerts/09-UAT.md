@@ -1,9 +1,10 @@
 ---
-status: diagnosed
+status: complete
 phase: 09-owner-invites-assignments-alerts
-source: [09-01-SUMMARY.md, 09-02-SUMMARY.md, 09-03-SUMMARY.md]
-started: 2026-03-17T12:00:00Z
-updated: 2026-03-17T12:10:00Z
+source: [09-01-SUMMARY.md, 09-02-SUMMARY.md, 09-03-SUMMARY.md, 09-04-SUMMARY.md, 09-05-SUMMARY.md]
+started: 2026-03-17T12:15:00Z
+updated: 2026-03-17T12:15:00Z
+prior_session: "diagnosed (10 passed, 2 issues → fixed in plans 04, 05)"
 ---
 
 ## Current Test
@@ -12,90 +13,47 @@ updated: 2026-03-17T12:10:00Z
 
 ## Tests
 
-### 1. Cold Start Smoke Test
-expected: Kill any running dev server. Run `npm run dev` from scratch. Server boots without errors, no migration or build failures. Navigate to the app in browser — homepage or dashboard loads with live data.
+### 1. Dedicated Assignments Page (Fix Verification)
+expected: Navigate to /owner/assignments via sidebar. A full page loads (NOT a redirect to /owner/students). You see stat cards (Total Students, Assigned, Unassigned), a coach capacity grid with color-coded progress bars, and a student list below.
 result: pass
 
-### 2. Owner Invites Page — Role Selector & Email Invite
-expected: Navigate to /owner/invites. Page shows 4 stat cards (Total Invites, Used, Active Links, Expired/Inactive). A role selector dropdown with "student" and "coach" options appears above tabs, defaulting to "student". Select "coach", switch to Email tab, enter an email and submit. Invite is created successfully for coach role.
-result: pass
-
-### 3. Owner Magic Link Creation with Role
-expected: On /owner/invites, select a role (student or coach) from the dropdown, switch to the Magic Link tab, and generate a link. A magic link URL appears with a copy-to-clipboard button. The link is created for the selected role.
-result: pass
-
-### 4. Owner Magic Link Toggle
-expected: On /owner/invites in the Magic Links history section, click the activate/deactivate toggle on an existing magic link. The link status changes immediately (optimistic update). The toggle persists on page refresh.
-result: pass
-
-### 5. Invite & Link History Shows Role Labels
-expected: On /owner/invites, the invite history and magic links history tables display a role label (student/coach) for each row, distinguishing which role the invite or link was created for.
-result: pass
-
-### 6. Owner Student Detail — Coach Assignment Dropdown
-expected: Navigate to /owner/students and click into a student's detail page. A coach assignment dropdown appears in the header area showing available coaches in "Coach Name (N students)" format, with the currently assigned coach pre-selected (or "Unassigned" if none).
-result: pass
-
-### 7. Coach Assignment Change
-expected: On the owner student detail page, change the coach dropdown selection. The assignment updates immediately with a success toast. On page refresh, the new coach is still selected. Changing to "Unassigned" removes the coach assignment.
-result: pass
-
-### 8. /owner/assignments Navigation Redirect
-expected: Click "Assignments" in the owner sidebar navigation. The browser redirects to /owner/students (no dedicated assignments page).
+### 2. Assignments Search and Filter
+expected: On /owner/assignments, filter tabs show All/Assigned/Unassigned with count badges. Clicking a tab filters the student list. The search input filters students by name or email as you type.
 result: issue
-reported: "this does make no sense there should be a dedicated page"
-severity: major
+reported: "when I want to assign a student to a coach who isn't ibrahim Awwad I get Invalid UUID"
+severity: blocker
 
-### 9. Owner Alerts Page — Alert Cards
-expected: Navigate to /owner/alerts. Alert cards display for at-risk conditions: inactive students (3-6 days, warning), dropoff students (7+ days, critical), unreviewed daily reports (summary with count), and/or coach underperformance (avg rating < 2.5). Each card shows severity icon, badge, time-ago info, and a "View Details" link.
-result: issue
-reported: "when someone is new he automatically is a drop off and that shouldn't be the case"
-severity: major
-
-### 10. Dismiss an Alert
-expected: On /owner/alerts, click "Dismiss" on an active alert card. The alert moves to dismissed state immediately (optimistic). On page refresh, the alert remains dismissed. The sidebar badge count decreases.
+### 3. Inline Coach Assignment on Assignments Page
+expected: On /owner/assignments, change a student's coach via the inline dropdown. The coach capacity progress bars update immediately without full page reload. A success toast appears. The modified row shows a visual indicator (blue border/ring).
 result: pass
 
-### 11. Alert Filter Tabs
-expected: On /owner/alerts, three filter tabs appear: All, Active, Dismissed. "Active" tab shows an active count badge. Clicking each tab filters the alert cards accordingly — Active shows only undismissed alerts, Dismissed shows only dismissed ones, All shows everything.
+### 4. Grace Period — No False Dropoff Alerts (Fix Verification)
+expected: On /owner/alerts, students who joined within the last 7 days should NOT appear as "dropoff" alerts. Students who joined within the last 3 days should NOT appear as "inactive" alerts — even if they have zero activity logged.
 result: pass
 
-### 12. Sidebar Alerts Badge
-expected: The owner sidebar shows a numeric badge next to "Alerts" indicating the count of active (undismissed) alerts. When all alerts are dismissed, the badge disappears or shows 0.
+### 5. Sidebar Badge Matches Grace Period
+expected: The sidebar "Alerts" badge count should NOT include new students (< 7 days for dropoff, < 3 days for inactive). The badge count should match the active alerts count shown on the /owner/alerts page.
 result: pass
 
 ## Summary
 
-total: 12
-passed: 10
-issues: 2
+total: 5
+passed: 4
+issues: 1
 pending: 0
 skipped: 0
 
 ## Gaps
 
-- truth: "Assignments should have a dedicated page, not redirect to /owner/students"
+- truth: "Assigning a student to any coach should work, not just Ibrahim Awwad"
   status: failed
-  reason: "User reported: this does make no sense there should be a dedicated page"
-  severity: major
-  test: 8
-  root_cause: "/owner/assignments is a redirect-only page per locked decision in 09-02. Assignment functionality is embedded in student detail view but has no standalone management page."
+  reason: "User reported: when I want to assign a student to a coach who isn't ibrahim Awwad I get Invalid UUID"
+  severity: blocker
+  test: 2
+  root_cause: "Zod v4's z.string().uuid() enforces strict RFC 4122 validation (version nibble [1-8], variant nibble [89ab]). Seed data coaches use non-compliant UUIDs (00000000-0000-0000-0000-00000000000X) which fail this check. Ibrahim Awwad works because his UUID was generated by Postgres gen_random_uuid() (real v4)."
   artifacts:
-    - path: "src/app/(dashboard)/owner/assignments/page.tsx"
-      issue: "Contains only a redirect to /owner/students"
+    - path: "src/app/api/assignments/route.ts"
+      issue: "Line 7: z.string().uuid() rejects non-RFC seed UUIDs"
   missing:
-    - "Build dedicated assignments page showing all students with coach dropdown, filter by coach/unassigned, coach load balancing view"
-  debug_session: ""
-
-- truth: "New students should not be flagged as dropoff alerts"
-  status: failed
-  reason: "User reported: when someone is new he automatically is a drop off and that shouldn't be the case"
-  severity: major
-  test: 9
-  root_cause: "Dropoff alert logic checks !last (no activity) without checking account age. Students with no work_sessions get last=undefined, triggering dropoff with 999 days inactive. No grace period for newly created accounts."
-  artifacts:
-    - path: "src/app/(dashboard)/owner/alerts/page.tsx"
-      issue: "Lines 81-88: !last condition classifies new students as dropoff without checking created_at"
-  missing:
-    - "Add created_at to student query, skip dropoff alert if account age < studentDropoffDays (7 days)"
-  debug_session: ""
+    - "Change z.string().uuid() to z.string().guid() which accepts any 8-4-4-4-12 hex format"
+  debug_session: ".planning/debug/assignments-invalid-uuid.md"
