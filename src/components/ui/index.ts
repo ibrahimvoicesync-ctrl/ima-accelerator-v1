@@ -7,3 +7,4 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export { Input } from "./Input";
 export { Textarea } from "./Textarea";
 export { Skeleton, SkeletonCard } from "./Skeleton";
+export { EmptyState } from "./EmptyState";
