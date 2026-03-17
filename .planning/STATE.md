@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-17T16:04:20.113Z"
+stopped_at: Completed 08-owner-stats-people-management/08-01-PLAN.md
+last_updated: "2026-03-17T16:59:38.044Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 20
-  completed_plans: 20
+  total_plans: 23
+  completed_plans: 22
 ---
 
 ---
@@ -99,6 +99,8 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 07-coach-report-review-invites-analytics P02 | 12 min | 2 tasks | 4 files |
 | Phase 07-coach-report-review-invites-analytics P03 | 4 min | 2 tasks | 3 files |
 | Phase 07-coach-report-review-invites-analytics P04 | 1 min | 2 tasks | 2 files |
+| Phase 08-owner-stats-people-management P02 | 2 min | 2 tasks | 4 files |
+| Phase 08-owner-stats-people-management P01 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -164,6 +166,9 @@ Recent decisions affecting current work:
 - [07-02]: lastUrl state resets on tab switch to prevent confusion between email invite and magic link URLs
 - [Phase 07-04]: key prop on CoachReportsClient derived from searchParams forces React unmount/remount when filter or student changes, so useState(reports) always initializes from correctly filtered server prop
 - [Phase 07-04]: Existing-user check in POST /api/invites queries users table via admin client before code generation — returns 409 before any insert, no orphaned invite codes
+- [Phase 08]: OwnerStudentDetailClient uses inline header instead of importing StudentHeader — avoids back-link coupling (/coach hardcoded in StudentHeader)
+- [Phase 08]: Owner student list has no status filter — owner sees ALL students (active, inactive, suspended) for full platform visibility
+- [Phase 08-owner-stats-people-management]: StudentCard basePath defaults to /coach/students for backward compatibility; Active Today uses distinct student_id Set to avoid inflated session counts; display-only cards have no Link wrapper
 
 ### Pending Todos
 
@@ -177,6 +182,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T16:04:20.111Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-owner-stats-people-management/08-CONTEXT.md
+Last session: 2026-03-17T16:59:38.042Z
+Stopped at: Completed 08-owner-stats-people-management/08-01-PLAN.md
+Resume file: None
