@@ -134,12 +134,12 @@ Plans:
   2. Coach can mark a report as reviewed; it moves out of the unreviewed inbox
   3. Coach can generate a student invite link (72-hour expiry) from the coach dashboard
   4. Coach can see a summary of report submission rates and student activity trends for their cohort
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 07-01: Report review API and inbox page (mark-as-reviewed API route, report inbox server component scoped to last 7 days)
-- [ ] 07-02: Coach invite flow (invite generation API, invite link display UI)
-- [ ] 07-03: Coach analytics page (report rates and activity summary queries, display component)
+- [ ] 07-01-PLAN.md — Report review API and inbox page (PATCH toggle review, report inbox with stat cards, filter tabs, expandable rows, optimistic review toggle)
+- [ ] 07-02-PLAN.md — Coach invite flow (POST /api/invites, POST+PATCH /api/magic-links, invite page with email invite form, magic link generation, clipboard copy, invite history)
+- [ ] 07-03-PLAN.md — Coach analytics and sidebar badge (analytics page with 4 metric stat cards and student breakdown, sidebar badge wiring for unreviewed report count)
 
 ### Phase 8: Owner Stats & People Management
 **Goal**: The owner can see platform-wide health metrics and navigate any student or coach's profile
