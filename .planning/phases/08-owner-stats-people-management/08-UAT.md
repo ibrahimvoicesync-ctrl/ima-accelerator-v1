@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 08-owner-stats-people-management
 source: [08-01-SUMMARY.md, 08-02-SUMMARY.md, 08-03-SUMMARY.md]
 started: 2026-03-17T17:10:00Z
-updated: 2026-03-17T17:25:00Z
+updated: 2026-03-17T18:00:00Z
 ---
 
 ## Current Test
@@ -59,7 +59,7 @@ skipped: 0
 ## Gaps
 
 - truth: "Owner student detail header shows student name, email, and avatar"
-  status: failed
+  status: resolved
   reason: "User reported: i don't see an email but the rest is pass"
   severity: major
   test: 5
@@ -75,7 +75,7 @@ skipped: 0
   debug_session: ".planning/debug/owner-student-detail-missing-email.md"
 
 - truth: "Coach cards in owner coaches list show full name, email, student count, and avg rating without truncation"
-  status: failed
+  status: resolved
   reason: "User reported: It is really compact and ugly, so you only see the beginning of the name + email but except this pass"
   severity: cosmetic
   test: 6
