@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-ui-polish-production-hardening/10-04-PLAN.md
-last_updated: "2026-03-17T22:57:31.694Z"
+stopped_at: Completed 10-ui-polish-production-hardening/10-01-PLAN.md
+last_updated: "2026-03-17T22:58:33.624Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 33
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 ---
@@ -110,6 +110,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 09-owner-invites-assignments-alerts P04 | 2 min | 2 tasks | 2 files |
 | Phase 10-ui-polish-production-hardening P02 | 2 min | 2 tasks | 20 files |
 | Phase 10-ui-polish-production-hardening P04 | 2 min | 2 tasks | 5 files |
+| Phase 10-ui-polish-production-hardening P01 | 3 min | 2 tasks | 23 files |
 
 ## Accumulated Context
 
@@ -193,6 +194,8 @@ Recent decisions affecting current work:
 - [Phase 10]: loading.tsx files use Skeleton/SkeletonCard primitives exclusively — motion-safe:animate-pulse handled by primitive, not inline classes
 - [Phase 10-ui-polish-production-hardening]: ReportRow two-row mobile stacking: sm:contents collapses top-row flex on desktop; badge visible via sm:hidden on mobile and hidden sm:inline-flex on desktop
 - [Phase 10-ui-polish-production-hardening]: OwnerAssignmentsClient select: min-w-0 w-full on mobile (full-width in flex-col column), reverts to sm:min-w-[180px] sm:w-auto on desktop
+- [Phase 10-ui-polish-production-hardening]: Error boundaries use role-appropriate Go Home links (student->/student, coach->/coach, owner->/owner) for UX continuity
+- [Phase 10-ui-polish-production-hardening]: Per-route error.tsx uses simpler copy vs dashboard-level fallback which includes support contact language
 
 ### Pending Todos
 
@@ -206,6 +209,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T22:57:31.691Z
-Stopped at: Completed 10-ui-polish-production-hardening/10-04-PLAN.md
+Last session: 2026-03-17T22:58:33.621Z
+Stopped at: Completed 10-ui-polish-production-hardening/10-01-PLAN.md
 Resume file: None
