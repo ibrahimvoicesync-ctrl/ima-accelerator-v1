@@ -231,7 +231,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Students",    href: "/owner/students",    icon: "Users" },
     { label: "Invites",     href: "/owner/invites",     icon: "UserPlus",      separator: true },
     { label: "Assignments", href: "/owner/assignments", icon: "ArrowLeftRight" },
-    { label: "Alerts",      href: "/owner/alerts",      icon: "Bell" },
+    { label: "Alerts",      href: "/owner/alerts",      icon: "Bell",          badge: "active_alerts" },
   ],
   coach: [
     { label: "Dashboard",       href: "/coach",           icon: "LayoutDashboard" },
