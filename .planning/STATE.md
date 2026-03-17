@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 9 context gathered
-last_updated: "2026-03-17T19:19:39.920Z"
+stopped_at: Completed 09-owner-invites-assignments-alerts/09-02-PLAN.md
+last_updated: "2026-03-17T20:33:42.854Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 10
   completed_phases: 8
-  total_plans: 24
-  completed_plans: 24
+  total_plans: 27
+  completed_plans: 26
 ---
 
 ---
@@ -103,6 +103,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 08-owner-stats-people-management P01 | 1min | 2 tasks | 2 files |
 | Phase 08-owner-stats-people-management P03 | 2 | 2 tasks | 3 files |
 | Phase 08-owner-stats-people-management P04 | 1 min | 2 tasks | 3 files |
+| Phase 09-owner-invites-assignments-alerts P02 | 3 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,8 @@ Recent decisions affecting current work:
 - [Phase 08-owner-stats-people-management]: StudentCard basePath defaults to /coach/students for backward compatibility; Active Today uses distinct student_id Set to avoid inflated session counts; display-only cards have no Link wrapper
 - [Phase 08-03]: CoachCard uses aria-label={coach.name} on Link; StudentCard basePath='/owner/students' for correct cross-role navigation; reviewRate has submittedCount > 0 division-by-zero guard
 - [Phase 08-04]: CoachCard stacked layout replaces horizontal single-row — gives name/email full width, eliminates truncation
+- [Phase 09-02]: C:/Program Files/Git/owner/assignments is a redirect page — no dedicated assignments page per locked decision
+- [Phase 09-02]: coach_id validated as uuid().nullable() so null unassigns the student; student and coach existence verified before update
 
 ### Pending Todos
 
@@ -186,6 +189,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T19:19:39.917Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-owner-invites-assignments-alerts/09-CONTEXT.md
+Last session: 2026-03-17T20:33:27.976Z
+Stopped at: Completed 09-owner-invites-assignments-alerts/09-02-PLAN.md
+Resume file: None
