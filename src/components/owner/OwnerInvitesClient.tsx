@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { UserPlus, Link2, Copy, Mail, Clock } from "lucide-react";
+import { UserPlus, Link2, Copy, Mail, Clock, CheckCircle } from "lucide-react";
 
 type InviteItem = {
   id: string;
@@ -53,6 +53,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastUrl, setLastUrl] = useState<string | null>(null);
+  const [lastWhitelistedEmail, setLastWhitelistedEmail] = useState<string | null>(null);
   const [localInvites, setLocalInvites] = useState<InviteItem[]>(invites);
   const [localMagicLinks, setLocalMagicLinks] = useState<MagicLinkItem[]>(magicLinks);
 
@@ -72,11 +73,12 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
         toastRef.current({ type: "error", title: (json as { error?: string }).error ?? "Failed to create invite" });
         return;
       }
-      const { data, registerUrl } = await res.json() as { data: InviteItem; registerUrl: string };
-      setLastUrl(registerUrl);
+      const { data } = await res.json() as { data: InviteItem };
+      setLastWhitelistedEmail(data.email);
+      setLastUrl(null); // Clear any magic link URL
       setLocalInvites(prev => [data, ...prev]);
       setEmail("");
-      toastRef.current({ type: "success", title: "Invite created!" });
+      toastRef.current({ type: "success", title: "Email whitelisted!" });
     } catch (err) {
       console.error("[OwnerInvitesClient] create invite error:", err);
       toastRef.current({ type: "error", title: "Something went wrong" });
@@ -198,7 +200,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
       <div className="flex gap-2 border-b border-ima-border">
         <button
           type="button"
-          onClick={() => { setActiveTab("email"); setLastUrl(null); }}
+          onClick={() => { setActiveTab("email"); setLastUrl(null); setLastWhitelistedEmail(null); }}
           className={`px-4 py-2.5 text-sm font-medium min-h-[44px] border-b-2 motion-safe:transition-colors ${
             activeTab === "email"
               ? "border-ima-primary text-ima-primary"
@@ -212,7 +214,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => { setActiveTab("magic"); setLastUrl(null); }}
+          onClick={() => { setActiveTab("magic"); setLastUrl(null); setLastWhitelistedEmail(null); }}
           className={`px-4 py-2.5 text-sm font-medium min-h-[44px] border-b-2 motion-safe:transition-colors ${
             activeTab === "magic"
               ? "border-ima-primary text-ima-primary"
@@ -232,7 +234,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
           <CardContent className="p-5">
             <h2 className="text-base font-semibold text-ima-text mb-1">Generate Email Invite</h2>
             <p className="text-xs text-ima-text-secondary mb-4">
-              The {selectedRole} must register with the exact email you enter. Link expires in 72 hours.
+              Whitelist an email address. The {selectedRole} can then sign in with Google to create their account. Expires in 72 hours.
             </p>
             <form onSubmit={handleCreateInvite} className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
@@ -284,8 +286,27 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
         </Card>
       )}
 
+      {/* Whitelist confirmation */}
+      {lastWhitelistedEmail && (
+        <Card variant="accent">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-ima-success/10 flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle className="h-4 w-4 text-ima-success" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-ima-text">Email whitelisted</p>
+                <p className="text-xs text-ima-text-secondary mt-1">
+                  <span className="font-medium">{lastWhitelistedEmail}</span> can now sign in with Google at the login page. Their account will be created automatically.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Copy URL display */}
-      {lastUrl && (
+      {lastUrl && activeTab === "magic" && (
         <Card variant="accent">
           <CardContent className="p-4">
             <p className="text-xs font-medium text-ima-text-secondary mb-2">Generated invite link:</p>
