@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? APP_CONFIG.url;
-  const registerUrl = `${baseUrl}/register?code=${code}`;
+  const registerUrl = `${baseUrl}/register/${code}`;
 
   return NextResponse.json({ data: invite, registerUrl }, { status: 201 });
 }
