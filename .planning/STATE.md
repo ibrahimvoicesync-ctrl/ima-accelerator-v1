@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 11-fix-invite-registration-url/11-01-PLAN.md
-last_updated: "2026-03-18T15:01:25.825Z"
+stopped_at: Completed 11-fix-invite-registration-url/11-02-PLAN.md
+last_updated: "2026-03-18T16:23:20.123Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 12
-  completed_phases: 11
-  total_plans: 34
-  completed_plans: 34
+  completed_phases: 10
+  total_plans: 36
+  completed_plans: 35
 ---
 
 ---
@@ -113,6 +113,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 10-ui-polish-production-hardening P01 | 3 min | 2 tasks | 23 files |
 | Phase 10-ui-polish-production-hardening P03 | 6 min | 2 tasks | 15 files |
 | Phase 11-fix-invite-registration-url P01 | 1 min | 1 tasks | 1 files |
+| Phase 11-fix-invite-registration-url P02 | 1 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -201,6 +202,8 @@ Recent decisions affecting current work:
 - [Phase 10-ui-polish-production-hardening]: Used Route icon instead of Map for RoadmapTab empty state — Map collides with JavaScript's built-in Map global causing TypeScript errors
 - [Phase 10-ui-polish-production-hardening]: EmptyState compact variant for inline section empty states; default variant for full-page standalone empty states
 - [Phase 11-fix-invite-registration-url]: registerUrl uses path-segment format /register/${code} (not query-param ?code=) because /register/[code]/page.tsx reads code from params not searchParams
+- [Phase 11-fix-invite-registration-url]: Use .ilike() not .eq(email.toLowerCase()) for whitelist invite lookup — Postgres = is case-sensitive; ILIKE handles legacy mixed-case invites without data migration
+- [Phase 11-fix-invite-registration-url]: registerUrl removed from POST /api/invites response — invite model is now pure whitelist; code column preserved for audit trail and /register/[code] fallback
 
 ### Pending Todos
 
@@ -214,6 +217,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T14:59:09.534Z
-Stopped at: Completed 11-fix-invite-registration-url/11-01-PLAN.md
+Last session: 2026-03-18T16:23:20.121Z
+Stopped at: Completed 11-fix-invite-registration-url/11-02-PLAN.md
 Resume file: None
