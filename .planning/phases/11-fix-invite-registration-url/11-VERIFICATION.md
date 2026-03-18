@@ -1,17 +1,27 @@
 ---
 phase: 11-fix-invite-registration-url
-verified: 2026-03-18T16:00:00Z
+verified: 2026-03-18T18:00:00Z
 status: passed
-score: 4/4 must-haves verified
-re_verification: false
+score: 5/5 must-haves verified
+re_verification:
+  previous_status: passed
+  previous_score: 4/4
+  previous_scope: "Plans 01 only (path-segment URL fix). New success criteria cover the whitelist architecture added by Plans 02 and 03."
+  gaps_closed:
+    - "POST /api/invites no longer returns registerUrl — invites are pure whitelists"
+    - "Auth callback checks for unexpired unused invite by email (ilike) BEFORE /no-access redirect and auto-registers"
+    - "Invite UI shows Email whitelisted confirmation card instead of copy-link card"
+    - "Magic link tab still shows copyable link card (unchanged)"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 11: Fix Invite Registration URL — Verification Report
 
-**Phase Goal:** Fix the broken invite registration URL format so copied invite links route to the correct registration page
-**Verified:** 2026-03-18T16:00:00Z
+**Phase Goal:** Email invites work as pure email whitelists — no link is generated, auth callback auto-registers whitelisted users on Google sign-in
+**Verified:** 2026-03-18T18:00:00Z
 **Status:** passed
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — previous verification covered Plan 01 only (path-segment URL fix). This verification covers the full whitelist architecture from Plans 02 and 03 against revised success criteria.
 
 ---
 
@@ -21,12 +31,13 @@ re_verification: false
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | POST /api/invites returns registerUrl with path-segment format /register/{code}, not query-param format /register?code={code} | VERIFIED | `src/app/api/invites/route.ts` line 92: `` `${baseUrl}/register/${code}` `` — no `register?code=` pattern found anywhere in src/ |
-| 2 | Coach-generated invite URL routes to /register/[code]/page.tsx (RegisterCard), not /register/page.tsx (MagicLinkCard) | VERIFIED | Path-segment URL `/register/${code}` is the only format returned; `src/app/(auth)/register/[code]/page.tsx` exists and reads code from `params` (not searchParams); RegisterCard is rendered from that page |
-| 3 | Owner-generated invite URL routes to /register/[code]/page.tsx (RegisterCard), not /register/page.tsx (MagicLinkCard) | VERIFIED | Same endpoint `POST /api/invites` handles both coach and owner roles (lines 30-32 check `profile.role !== "coach" && profile.role !== "owner"`); same path-segment URL is returned for both |
-| 4 | Magic link URL format /register?magic={code} remains unchanged and still routes to /register/page.tsx | VERIFIED | `src/app/api/magic-links/route.ts` line 79: `` `${baseUrl}/register?magic=${code}` `` — unchanged; `src/app/(auth)/register/page.tsx` reads `searchParams.magic` |
+| 1 | POST /api/invites does NOT return registerUrl — invites are whitelists, not link generators | VERIFIED | `src/app/api/invites/route.ts` line 93: `return NextResponse.json({ data: invite }, { status: 201 })` — no `registerUrl` field. Zero grep matches for `registerUrl` or `APP_CONFIG` in this file. |
+| 2 | Auth callback checks for unexpired unused invite matching user email BEFORE redirecting to /no-access, and auto-registers if found | VERIFIED | `src/app/api/auth/callback/route.ts` lines 338-446: whitelist lookup block using `.ilike("email", user.email).eq("used", false).gt("expires_at", ...)` inserted before the final `/no-access` redirect on line 446. Atomic consume + profile insert + roadmap seed all present. |
+| 3 | After creating an email invite, the UI shows "Email whitelisted" confirmation — NOT a copyable URL card | VERIFIED | `OwnerInvitesClient.tsx` line 81: toast title `"Email whitelisted!"`; lines 290-306: `{lastWhitelistedEmail && <Card variant="accent">...<p>Email whitelisted</p>...}`. `CoachInvitesClient.tsx` identical pattern. The copy-link card at line 309 (Owner) and 291 (Coach) is gated by `lastUrl && activeTab === "magic"` — it cannot appear for email invites. |
+| 4 | Magic link tab continues to show copyable link card (unchanged) | VERIFIED | `OwnerInvitesClient.tsx` line 105: `handleCreateMagicLink` still extracts `registerUrl` from `/api/magic-links` response and calls `setLastUrl(registerUrl)`. Copy card at line 309 renders when `lastUrl && activeTab === "magic"`. Magic-links route line 79: `` `${baseUrl}/register?magic=${code}` `` is unchanged. |
+| 5 | Invite UI page descriptions say "Whitelist emails" not "Generate invite links" | VERIFIED | Owner page line 47: `"Whitelist emails and generate magic links for new coaches and students"`. Coach page line 47: `"Whitelist emails and generate magic links for new students"`. No occurrence of `"Generate invite links"` in either page. |
 
-**Score:** 4/4 truths verified
+**Score:** 5/5 truths verified
 
 ---
 
@@ -34,10 +45,12 @@ re_verification: false
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `src/app/api/invites/route.ts` | Invite creation API with corrected registerUrl format, containing `register/${code}` | VERIFIED | File exists, 95 lines, contains the path-segment format on line 92, no stub patterns |
-| `src/app/(auth)/register/[code]/page.tsx` | Path-segment invite registration page (RegisterCard) | VERIFIED | File exists, 91 lines, reads `code` from `params`, renders `RegisterCard` |
-| `src/app/(auth)/register/page.tsx` | Magic link registration page (MagicLinkCard) — unchanged | VERIFIED | File exists, 100 lines, reads `magic` from `searchParams`, renders `MagicLinkCard` |
-| `src/app/api/magic-links/route.ts` | Magic link API — unchanged, still uses query-param format | VERIFIED | File exists, 155 lines, line 79 still returns `register?magic=${code}` |
+| `src/app/api/invites/route.ts` | Invite creation API — no registerUrl, email normalized to lowercase | VERIFIED | 94 lines. Line 49: `normalizedEmail = parsed.data.email.toLowerCase()`. Lines 60, 78: uses `normalizedEmail` for DB lookup and insert. Line 93: response is `{ data: invite }` only. No `APP_CONFIG` import. |
+| `src/app/api/auth/callback/route.ts` | Auth callback with whitelist lookup before /no-access | VERIFIED | 447 lines. Lines 338-443: complete whitelist lookup block. `.ilike()` on line 346, `.eq("used", false)` on 347, `.gt("expires_at", ...)` on 348. Atomic consume on lines 355-361. Profile insert on lines 387-397. Roadmap seed on lines 417-434. Final `/no-access` on line 446 is the last resort. |
+| `src/components/owner/OwnerInvitesClient.tsx` | Owner invite UI with whitelist confirmation, no copy-link for email invites | VERIFIED | 436 lines. `lastWhitelistedEmail` state on line 56. Whitelist confirmation card lines 289-306. Copy card gated `lastUrl && activeTab === "magic"` on line 309. `handleCreateInvite` parses `{ data }` only (no `registerUrl`). `CheckCircle` imported line 11. |
+| `src/components/coach/CoachInvitesClient.tsx` | Coach invite UI with whitelist confirmation, no copy-link for email invites | VERIFIED | 414 lines. Same pattern as OwnerInvitesClient: `lastWhitelistedEmail` state line 55, whitelist card lines 271-288, copy card gated `lastUrl && activeTab === "magic"` line 291. |
+| `src/app/(dashboard)/owner/invites/page.tsx` | Owner invites page with updated description copy | VERIFIED | Line 47: `"Whitelist emails and generate magic links for new coaches and students"` |
+| `src/app/(dashboard)/coach/invites/page.tsx` | Coach invites page with updated description copy | VERIFIED | Line 47: `"Whitelist emails and generate magic links for new students"` |
 
 ---
 
@@ -45,18 +58,23 @@ re_verification: false
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| `src/app/api/invites/route.ts` | `src/app/(auth)/register/[code]/page.tsx` | registerUrl path segment | WIRED | Line 92: `` `${baseUrl}/register/${code}` `` — path-segment format routes Next.js App Router to the `[code]` dynamic route, not `register/page.tsx` |
+| `src/app/api/auth/callback/route.ts` | `invites` table | `admin.from("invites").ilike("email", user.email)` | WIRED | Lines 343-351: query for unexpired unused invite. Pattern `from.*invites.*ilike` confirmed on line 343-346. |
+| `src/app/api/auth/callback/route.ts` | `users` table | `admin.from("users").insert(...)` for auto-registration | WIRED | Lines 387-397: inserts user profile with `auth_id`, `email`, `name`, `role`, `coach_id`. Result checked on line 399. |
+| `src/components/owner/OwnerInvitesClient.tsx` | `/api/invites` | `fetch POST` — response no longer has registerUrl | WIRED | Line 66-76: `fetch("/api/invites", { method: "POST" })`, parses `{ data }` only. No `registerUrl` extraction from invite response. |
+| `src/components/coach/CoachInvitesClient.tsx` | `/api/invites` | `fetch POST` — response no longer has registerUrl | WIRED | Lines 65-75: `fetch("/api/invites", { method: "POST" })`, parses `{ data }` only. |
+| `src/components/owner/OwnerInvitesClient.tsx` | `/api/magic-links` | `fetch POST` — response still has registerUrl for magic links | WIRED | Lines 95-106: `handleCreateMagicLink` parses `{ data, registerUrl }`. `setLastUrl(registerUrl)` preserved. |
+| `src/components/coach/CoachInvitesClient.tsx` | `/api/magic-links` | `fetch POST` — response still has registerUrl for magic links | WIRED | Lines 94-105: same pattern. |
 
 ---
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
-|-------------|-------------|-------------|--------|----------|
-| COACH-05 | 11-01-PLAN.md | Coach can invite new students | SATISFIED | `POST /api/invites` returns path-segment `registerUrl` for coach role (lines 30-32 permit coach role); commit f141975 confirms the fix |
-| OWNER-06 | 11-01-PLAN.md | Owner can send invite codes (coach + student) | SATISFIED | Same `POST /api/invites` endpoint permits owner role (lines 30-32); path-segment URL applies equally to owner-generated invites |
+|-------------|------------|-------------|--------|----------|
+| COACH-05 | 11-01-PLAN.md, 11-02-PLAN.md, 11-03-PLAN.md | Coach can invite new students | SATISFIED | `POST /api/invites` permits `profile.role === "coach"` (line 30). Email normalized and stored. Auth callback whitelist lookup auto-registers the invited student when they sign in with Google. Coach invite UI shows whitelist confirmation. REQUIREMENTS.md line 142: marked Complete / Phase 11. |
+| OWNER-06 | 11-01-PLAN.md, 11-02-PLAN.md, 11-03-PLAN.md | Owner can send invite codes (coach + student) | SATISFIED | Same `POST /api/invites` permits `profile.role === "owner"` (line 30). Owner can invite both coach and student roles (line 52 blocks only coaches from inviting coach roles, not owners). Owner invite UI shows whitelist confirmation. REQUIREMENTS.md line 149: marked Complete / Phase 11. |
 
-Both requirements are mapped to Phase 11 in REQUIREMENTS.md (confirmed by grep), and the REQUIREMENTS.md tracking table shows both as "Complete" with "Phase 11" as the phase.
+No orphaned requirements — REQUIREMENTS.md maps only COACH-05 and OWNER-06 to Phase 11, both claimed by all three plans.
 
 ---
 
@@ -64,49 +82,45 @@ Both requirements are mapped to Phase 11 in REQUIREMENTS.md (confirmed by grep),
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| — | — | None | — | No TODO/FIXME/PLACEHOLDER/stub patterns found in the modified file |
+| — | — | None | — | No TODO/FIXME/PLACEHOLDER/stub patterns found in any modified file. No empty handlers. No responses ignoring DB results. All catch blocks log errors or toast. All fetch calls check `response.ok` before parsing JSON. |
 
 ---
 
 ### Human Verification Required
 
-The following behaviors require a live environment to fully validate. All automated checks pass.
+#### 1. End-to-end whitelist registration via Google OAuth
 
-**1. End-to-end invite link navigation**
+**Test:** As a coach or owner, create an email invite for a test email address. Do NOT copy any link. Open a private browser window, navigate to `/login`, and sign in with Google using the whitelisted email.
+**Expected:** Auth callback finds the invite by email (ilike lookup), atomically marks it used, creates the user profile with the correct role, seeds roadmap progress if student, and redirects to the role dashboard. No `/no-access` page appears.
+**Why human:** Requires a live Supabase instance, a real Google OAuth credential matching the whitelisted email, and a running Next.js server to execute the auth callback flow.
 
-Test: As a coach or owner, call POST /api/invites, copy the returned `registerUrl`, and paste it into a browser.
-Expected: The browser renders the RegisterCard page (invite registration with "Sign in with Google"), not the "No Magic Link Provided" error from MagicLinkCard.
-Why human: Requires a live Supabase instance and valid authenticated session to call the API. URL routing behavior must be confirmed in a real browser.
+#### 2. Non-whitelisted email still hits /no-access
 
-**2. Google OAuth completion via invite link**
+**Test:** Attempt Google sign-in with an email that has NOT been invited and has no existing profile.
+**Expected:** Auth callback falls through the whitelist lookup (no matching invite), reaches line 446, and redirects to `/no-access`.
+**Why human:** Requires live environment and a Google account not in the database.
 
-Test: Click "Sign in with Google" on the RegisterCard page reached via a copied invite link.
-Expected: OAuth completes, user profile is created with the invited role, and the user is redirected to their role dashboard.
-Why human: Requires real Google OAuth credentials, a live Supabase instance, and end-to-end OAuth callback execution.
+#### 3. Magic link tab copy card unchanged
 
----
-
-### Commit Verification
-
-| Commit | Message | Files Changed | Status |
-|--------|---------|---------------|--------|
-| f141975 | fix(11-01): correct registerUrl to path-segment format in POST /api/invites | `src/app/api/invites/route.ts` (1 insertion, 1 deletion) | VERIFIED — commit exists, diff matches plan |
+**Test:** As a coach or owner, switch to the Magic Link tab and generate a magic link.
+**Expected:** A copyable URL card appears with the magic link URL. No whitelist confirmation card appears.
+**Why human:** Requires verifying tab state rendering and that the two card types do not interfere — automated checks confirm the conditional logic is correct but cannot render the React component.
 
 ---
 
 ### Gaps Summary
 
-No gaps. All 4 must-have truths are verified against actual code. The single-line fix was applied exactly as specified:
+No gaps. All 5 observable truths are verified against the actual codebase.
 
-- Line 92 of `src/app/api/invites/route.ts` was changed from `` `${baseUrl}/register?code=${code}` `` to `` `${baseUrl}/register/${code}` ``
-- No other files were modified
-- The magic-links route is untouched at its correct value `` `${baseUrl}/register?magic=${code}` ``
-- Both COACH-05 and OWNER-06 requirements are satisfied by this one-line change
-- No anti-patterns, stubs, or orphaned artifacts introduced
+The full whitelist architecture is implemented across three plans:
 
-The only items remaining are the two human-verification tests which require a live environment (Google OAuth + real Supabase). These do not block the phase from being marked complete.
+- **Plan 01** — Fixed `registerUrl` to path-segment format (superseded by Plan 02 which removes `registerUrl` entirely).
+- **Plan 02** — Auth callback now performs case-insensitive whitelist lookup (`.ilike()`) before the `/no-access` redirect. Atomically consumes invite, creates user profile with correct role and `coach_id`, seeds roadmap for students. `POST /api/invites` normalizes email to lowercase and returns `{ data: invite }` without `registerUrl`. `APP_CONFIG` import removed.
+- **Plan 03** — Both invite client components replaced copy-link card with `"Email whitelisted"` confirmation card driven by `lastWhitelistedEmail` state. Copy-link card gated to `lastUrl && activeTab === "magic"`. Tab switch clears both states. Page descriptions updated to `"Whitelist emails and generate magic links"`.
+
+Both COACH-05 and OWNER-06 are fully satisfied by this implementation.
 
 ---
 
-_Verified: 2026-03-18T16:00:00Z_
+_Verified: 2026-03-18T18:00:00Z_
 _Verifier: Claude (gsd-verifier)_

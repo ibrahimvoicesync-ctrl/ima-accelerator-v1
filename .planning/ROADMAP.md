@@ -250,5 +250,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. Owner Stats & People Management | 4/4 | Complete   | 2026-03-17 |
 | 9. Owner Invites, Assignments & Alerts | 5/5 | Complete   | 2026-03-17 |
 | 10. UI Polish & Production Hardening | 4/4 | Complete    | 2026-03-17 |
-| 11. Fix Invite Registration URL | 3/3 | Complete   | 2026-03-18 |
+| 11. Fix Invite Registration URL | 3/3 | Complete    | 2026-03-18 |
 | 12. CLAUDE.md Hard Rule Compliance | 0/2 | Pending | |
