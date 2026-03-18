@@ -27,7 +27,7 @@ export function StudentCard({ student, basePath = "/coach/students" }: StudentCa
     .toUpperCase();
 
   return (
-    <Link href={`${basePath}/${student.id}`} aria-label={student.name}>
+    <Link href={`${basePath}/${student.id}`} aria-label={student.name} className="block min-h-[44px]">
       <Card
         interactive
         className={cn(student.isAtRisk && "ring-2 ring-ima-error/30")}
