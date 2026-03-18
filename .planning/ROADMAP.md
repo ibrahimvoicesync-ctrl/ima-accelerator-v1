@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Owner Stats & People Management** - Platform stats dashboard and student/coach list views (completed 2026-03-17)
 - [x] **Phase 9: Owner Invites, Assignments & Alerts** - Invite system, coach-student assignments, alert system (completed 2026-03-17)
 - [x] **Phase 10: UI Polish & Production Hardening** - Loading skeletons, error boundaries, empty states, mobile pass (completed 2026-03-17)
-- [x] **Phase 11: Fix Invite Registration URL** - Fix broken invite URL format that prevents email invite registration flow (completed 2026-03-18)
+- [ ] **Phase 11: Fix Invite Registration URL** - Fix invite architecture: whitelist model, auth callback auto-registration, remove link generation from invites
 - [ ] **Phase 12: CLAUDE.md Hard Rule Compliance** - Replace raw Tailwind tokens with ima-* tokens, fix response.ok checks, touch targets, UTC date bug
 
 ## Phase Details
@@ -199,18 +199,22 @@ Plans:
 - [ ] 10-03: Empty states and mobile pass (empty state components with copy/CTAs, responsive layout audit across all pages, touch target audit)
 
 ### Phase 11: Fix Invite Registration URL
-**Goal**: Email invite registration works end-to-end — clicking a copied invite URL lands on the correct registration page
+**Goal**: Email invites work as pure email whitelists — no link is generated, auth callback auto-registers whitelisted users on Google sign-in
 **Depends on**: Phase 7, Phase 9 (invite system)
 **Requirements**: COACH-05, OWNER-06
-**Gap Closure:** Closes requirement, integration, and flow gaps from v1.0 audit
+**Gap Closure:** Closes requirement, integration, and flow gaps from v1.0 audit and UAT
 **Success Criteria** (what must be TRUE):
   1. `POST /api/invites` returns `registerUrl` with path-segment format `/register/{code}` (not query param)
-  2. Coach-generated invite URL lands on `/register/[code]/page.tsx` (not magic link page)
-  3. Owner-generated invite URL lands on `/register/[code]/page.tsx` (not magic link page)
-**Plans:** 1/1 plans complete
+  2. Auth callback checks for unexpired unused invite matching user email BEFORE redirecting to /no-access, and auto-registers if found
+  3. `POST /api/invites` does NOT return `registerUrl` in response — invites are whitelists, not link generators
+  4. Invite UI shows "Email whitelisted" confirmation instead of copyable link card
+  5. Magic link tab continues to show copyable link card (unchanged)
+**Plans:** 3 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Fix registerUrl format in invite API route
+- [x] 11-01-PLAN.md — Fix registerUrl format in invite API route
+- [ ] 11-02-PLAN.md — UAT gap closure: auth callback whitelist lookup + remove registerUrl from invite API
+- [ ] 11-03-PLAN.md — UAT gap closure: update invite UI to whitelist confirmation model
 
 ### Phase 12: CLAUDE.md Hard Rule Compliance
 **Goal**: All code complies with CLAUDE.md hard rules — no raw Tailwind color tokens, all fetches check response.ok, all interactive elements have 44px touch targets
@@ -246,5 +250,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. Owner Stats & People Management | 4/4 | Complete   | 2026-03-17 |
 | 9. Owner Invites, Assignments & Alerts | 5/5 | Complete   | 2026-03-17 |
 | 10. UI Polish & Production Hardening | 4/4 | Complete    | 2026-03-17 |
-| 11. Fix Invite Registration URL | 1/1 | Complete    | 2026-03-18 |
+| 11. Fix Invite Registration URL | 1/3 | In Progress | |
 | 12. CLAUDE.md Hard Rule Compliance | 0/2 | Pending | |
