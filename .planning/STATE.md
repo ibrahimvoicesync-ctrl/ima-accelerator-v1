@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 11-fix-invite-registration-url/11-01-PLAN.md
-last_updated: "2026-03-18T14:59:09.537Z"
+last_updated: "2026-03-18T15:01:25.825Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
   total_phases: 12
