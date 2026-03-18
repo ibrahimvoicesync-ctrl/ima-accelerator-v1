@@ -14,10 +14,10 @@ export function CycleCard({ cycleNumber, status, timeInfo, onResume }: CycleCard
     <div className="rounded-xl border border-ima-border bg-ima-surface p-4 flex items-center gap-3">
       {/* Status icon */}
       <div aria-hidden="true">
-        {status === "completed" && <Check className="h-5 w-5 text-green-600" aria-hidden="true" />}
+        {status === "completed" && <Check className="h-5 w-5 text-ima-success" aria-hidden="true" />}
         {status === "in_progress" && <Play className="h-5 w-5 text-ima-primary" aria-hidden="true" />}
-        {status === "paused" && <Pause className="h-5 w-5 text-amber-500" aria-hidden="true" />}
-        {status === "abandoned" && <X className="h-5 w-5 text-red-500" aria-hidden="true" />}
+        {status === "paused" && <Pause className="h-5 w-5 text-ima-warning" aria-hidden="true" />}
+        {status === "abandoned" && <X className="h-5 w-5 text-ima-error" aria-hidden="true" />}
         {status === "pending" && <Circle className="h-5 w-5 text-ima-text-muted" aria-hidden="true" />}
       </div>
 

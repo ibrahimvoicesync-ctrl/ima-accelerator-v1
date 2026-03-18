@@ -40,7 +40,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
     if (staleSessions.length === 0) return;
 
     const abandonStale = async () => {
-      await Promise.all(
+      const results = await Promise.all(
         staleSessions.map((s) =>
           fetch(`/api/work-sessions/${s.id}`, {
             method: "PATCH",
@@ -49,6 +49,10 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
           })
         )
       );
+      const allOk = results.every((r) => r.ok);
+      if (!allOk) {
+        console.error("[WorkTrackerClient] Some stale sessions failed to abandon");
+      }
       router.refresh();
     };
 
@@ -199,12 +203,12 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
     <div>
       {/* All-complete celebration */}
       {allComplete && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center mb-6">
-          <h2 className="text-xl font-bold text-green-800">All 4 cycles complete!</h2>
-          <p className="text-green-700 mt-1">
+        <div className="bg-ima-success/10 border border-ima-success/30 rounded-xl p-6 text-center mb-6">
+          <h2 className="text-xl font-bold text-ima-success">All 4 cycles complete!</h2>
+          <p className="text-ima-success mt-1">
             You worked {formatHours(totalMinutesWorked)} today. Outstanding effort!
           </p>
-          <p className="text-sm text-green-600 mt-2">
+          <p className="text-sm text-ima-success mt-2">
             Great work! Don&apos;t forget to submit your daily report.
           </p>
           <Link
@@ -232,21 +236,21 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
             <button
               onClick={() => handlePause(activeSession.id)}
               disabled={isLoading}
-              className="bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg px-6 min-h-[44px] font-medium disabled:opacity-50 motion-safe:transition-colors"
+              className="bg-ima-warning/15 text-ima-warning hover:bg-ima-warning/25 rounded-lg px-6 min-h-[44px] font-medium disabled:opacity-50 motion-safe:transition-colors"
             >
               Pause
             </button>
             <button
               onClick={() => handleComplete(activeSession.id)}
               disabled={isLoading}
-              className="bg-green-600 text-white hover:bg-green-700 rounded-lg px-6 min-h-[44px] font-medium disabled:opacity-50 motion-safe:transition-colors"
+              className="bg-ima-success text-white hover:bg-ima-success/90 rounded-lg px-6 min-h-[44px] font-medium disabled:opacity-50 motion-safe:transition-colors"
             >
               Complete
             </button>
             <button
               onClick={() => handleAbandon(activeSession.id)}
               disabled={isLoading}
-              className="text-red-600 hover:bg-red-50 rounded-lg px-4 min-h-[44px] text-sm motion-safe:transition-colors"
+              className="text-ima-error hover:bg-ima-error/10 rounded-lg px-4 min-h-[44px] text-sm motion-safe:transition-colors"
             >
               Abandon
             </button>
@@ -254,12 +258,12 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
 
           {/* Inline abandon confirmation */}
           {showAbandonConfirm && (
-            <div className="bg-red-50 rounded-lg p-3 text-sm text-red-700 w-full max-w-sm text-center">
+            <div className="bg-ima-error/10 rounded-lg p-3 text-sm text-ima-error w-full max-w-sm text-center">
               <p>Are you sure? You have significant progress on this cycle.</p>
               <div className="flex justify-center gap-3 mt-2">
                 <button
                   onClick={() => handleAbandon(activeSession.id)}
-                  className="bg-red-600 text-white rounded-lg px-4 min-h-[44px] font-medium hover:bg-red-700 motion-safe:transition-colors"
+                  className="bg-ima-error text-white rounded-lg px-4 min-h-[44px] font-medium hover:bg-ima-error/90 motion-safe:transition-colors"
                 >
                   Confirm Abandon
                 </button>
@@ -300,7 +304,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
             <button
               onClick={() => handleAbandon(pausedSession.id)}
               disabled={isLoading}
-              className="text-red-600 hover:bg-red-50 rounded-lg px-4 min-h-[44px] text-sm motion-safe:transition-colors"
+              className="text-ima-error hover:bg-ima-error/10 rounded-lg px-4 min-h-[44px] text-sm motion-safe:transition-colors"
             >
               Abandon
             </button>
@@ -308,12 +312,12 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
 
           {/* Inline abandon confirmation for paused state */}
           {showAbandonConfirm && (
-            <div className="bg-red-50 rounded-lg p-3 text-sm text-red-700 w-full max-w-sm">
+            <div className="bg-ima-error/10 rounded-lg p-3 text-sm text-ima-error w-full max-w-sm">
               <p>Are you sure? You have significant progress on this cycle.</p>
               <div className="flex justify-center gap-3 mt-2">
                 <button
                   onClick={() => handleAbandon(pausedSession.id)}
-                  className="bg-red-600 text-white rounded-lg px-4 min-h-[44px] font-medium hover:bg-red-700 motion-safe:transition-colors"
+                  className="bg-ima-error text-white rounded-lg px-4 min-h-[44px] font-medium hover:bg-ima-error/90 motion-safe:transition-colors"
                 >
                   Confirm Abandon
                 </button>
