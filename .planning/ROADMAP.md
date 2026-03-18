@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Owner Stats & People Management** - Platform stats dashboard and student/coach list views (completed 2026-03-17)
 - [x] **Phase 9: Owner Invites, Assignments & Alerts** - Invite system, coach-student assignments, alert system (completed 2026-03-17)
 - [x] **Phase 10: UI Polish & Production Hardening** - Loading skeletons, error boundaries, empty states, mobile pass (completed 2026-03-17)
-- [ ] **Phase 11: Fix Invite Registration URL** - Fix invite architecture: whitelist model, auth callback auto-registration, remove link generation from invites
+- [x] **Phase 11: Fix Invite Registration URL** - Fix invite architecture: whitelist model, auth callback auto-registration, remove link generation from invites (completed 2026-03-18)
 - [ ] **Phase 12: CLAUDE.md Hard Rule Compliance** - Replace raw Tailwind tokens with ima-* tokens, fix response.ok checks, touch targets, UTC date bug
 
 ## Phase Details
@@ -209,7 +209,7 @@ Plans:
   3. `POST /api/invites` does NOT return `registerUrl` in response — invites are whitelists, not link generators
   4. Invite UI shows "Email whitelisted" confirmation instead of copyable link card
   5. Magic link tab continues to show copyable link card (unchanged)
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 11-01-PLAN.md — Fix registerUrl format in invite API route
@@ -250,5 +250,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. Owner Stats & People Management | 4/4 | Complete   | 2026-03-17 |
 | 9. Owner Invites, Assignments & Alerts | 5/5 | Complete   | 2026-03-17 |
 | 10. UI Polish & Production Hardening | 4/4 | Complete    | 2026-03-17 |
-| 11. Fix Invite Registration URL | 2/3 | In Progress|  |
+| 11. Fix Invite Registration URL | 3/3 | Complete   | 2026-03-18 |
 | 12. CLAUDE.md Hard Rule Compliance | 0/2 | Pending | |
