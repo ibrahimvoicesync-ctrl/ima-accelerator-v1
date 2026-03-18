@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { INVITE_CONFIG, APP_CONFIG, VALIDATION } from "@/lib/config";
+import { INVITE_CONFIG, VALIDATION } from "@/lib/config";
 
 const inviteSchema = z.object({
   email: z.string().email().max(VALIDATION.email.max),
@@ -46,6 +46,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const normalizedEmail = parsed.data.email.toLowerCase();
+
   // Coaches can only invite students
   if (profile.role === "coach" && parsed.data.role !== "student") {
     return NextResponse.json({ error: "Coaches can only invite students" }, { status: 403 });
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
   const { data: existingUser } = await admin
     .from("users")
     .select("id")
-    .eq("email", parsed.data.email)
+    .eq("email", normalizedEmail)
     .maybeSingle();
 
   if (existingUser) {
@@ -73,7 +75,7 @@ export async function POST(request: NextRequest) {
   const { data: invite, error } = await admin
     .from("invites")
     .insert({
-      email: parsed.data.email,
+      email: normalizedEmail,
       role: parsed.data.role,
       invited_by: profile.id,
       coach_id: profile.role === "coach" ? profile.id : null,
@@ -88,8 +90,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? APP_CONFIG.url;
-  const registerUrl = `${baseUrl}/register/${code}`;
-
-  return NextResponse.json({ data: invite, registerUrl }, { status: 201 });
+  return NextResponse.json({ data: invite }, { status: 201 });
 }
