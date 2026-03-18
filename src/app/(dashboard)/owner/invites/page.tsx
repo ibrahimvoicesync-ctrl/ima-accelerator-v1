@@ -44,7 +44,7 @@ export default async function OwnerInvitesPage() {
     <div className="px-4">
       <h1 className="text-2xl font-bold text-ima-text">Invite Members</h1>
       <p className="mt-1 text-ima-text-secondary">
-        Generate invite links for new coaches and students to join the platform
+        Whitelist emails and generate magic links for new coaches and students
       </p>
 
       {/* Stat cards */}
