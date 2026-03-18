@@ -3,14 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 11-fix-invite-registration-url/11-03-PLAN.md
-last_updated: "2026-03-18T16:31:41.602Z"
-last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
+stopped_at: Completed 12-claude-md-hard-rule-compliance/12-02-PLAN.md
+last_updated: "2026-03-18T17:05:59.769Z"
 progress:
   total_phases: 12
   completed_phases: 11
-  total_plans: 36
-  completed_plans: 36
+  total_plans: 38
+  completed_plans: 37
 ---
 
 ---
@@ -51,20 +50,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 7 — Coach Report Review, Invites, Analytics (executing)
+**Current focus:** Phase 12 — claude-md-hard-rule-compliance
 
 ## Current Position
 
-Phase: 7 of 10 (Coach Report Review, Invites, Analytics) — In Progress
-Plan: 2 of 3 complete in current phase
-Status: Executing
-Last activity: 2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient
-
-Progress: [██████████] 100% (within phase: 2/3)
+Phase: 12 (claude-md-hard-rule-compliance) — EXECUTING
+Plan: 1 of 2
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 7
 - Average duration: 4 min
 - Total execution time: 0.5 hours
@@ -78,6 +74,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | 03-student-work-tracker | 1 | 1 min | 1 min |
 
 **Recent Trend:**
+
 - Last 5 plans: 01-03 (3 min), 02-01 (3 min), 02-02 (3 min), 02-03 (1 min), 03-01 (1 min)
 - Trend: fast
 
@@ -115,6 +112,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 11-fix-invite-registration-url P01 | 1 min | 1 tasks | 1 files |
 | Phase 11-fix-invite-registration-url P02 | 1 min | 2 tasks | 2 files |
 | Phase 11-fix-invite-registration-url P03 | 2 min | 2 tasks | 4 files |
+| Phase 12-claude-md-hard-rule-compliance P02 | 3 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -207,6 +205,8 @@ Recent decisions affecting current work:
 - [Phase 11-fix-invite-registration-url]: registerUrl removed from POST /api/invites response — invite model is now pure whitelist; code column preserved for audit trail and /register/[code] fallback
 - [Phase 11-fix-invite-registration-url]: Copy URL card conditioned on activeTab === magic to prevent it showing after email invites
 - [Phase 11-fix-invite-registration-url]: lastWhitelistedEmail cleared on tab switch alongside lastUrl to avoid stale confirmation cards
+- [Phase 12-claude-md-hard-rule-compliance]: block display required on Link so min-h-[44px] is respected — inline elements ignore min-height
+- [Phase 12-claude-md-hard-rule-compliance]: getToday() uses getFullYear/getMonth/getDate (local time) not toISOString() (UTC) to prevent wrong date for UAE users between midnight and 04:00
 
 ### Pending Todos
 
@@ -220,6 +220,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T16:28:16.715Z
-Stopped at: Completed 11-fix-invite-registration-url/11-03-PLAN.md
+Last session: 2026-03-18T17:05:59.766Z
+Stopped at: Completed 12-claude-md-hard-rule-compliance/12-02-PLAN.md
 Resume file: None
