@@ -47,7 +47,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **COACH-02**: Coach can view list of assigned students
 - [x] **COACH-03**: Coach can view individual student detail (reports, sessions, roadmap)
 - [x] **COACH-04**: Coach can review/acknowledge submitted reports
-- [ ] **COACH-05**: Coach can invite new students
+- [x] **COACH-05**: Coach can invite new students
 - [x] **COACH-06**: Coach sees basic analytics (report submission rates, student activity)
 
 ### Owner - Management
@@ -57,7 +57,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **OWNER-03**: Owner can view individual student detail
 - [x] **OWNER-04**: Owner can view all coaches with stats
 - [x] **OWNER-05**: Owner can view individual coach detail (assigned students, performance)
-- [ ] **OWNER-06**: Owner can send invite codes (coach + student)
+- [x] **OWNER-06**: Owner can send invite codes (coach + student)
 - [x] **OWNER-07**: Owner can assign/reassign students to coaches
 - [x] **OWNER-08**: Owner sees alerts (inactive 3d, dropoff 7d, unreviewed reports, coach underperformance)
 - [x] **OWNER-09**: Owner can acknowledge/dismiss alerts
@@ -139,14 +139,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COACH-02 | Phase 6 | Complete |
 | COACH-03 | Phase 6 | Complete |
 | COACH-04 | Phase 7 | Complete |
-| COACH-05 | Phase 11 | Pending |
+| COACH-05 | Phase 11 | Complete |
 | COACH-06 | Phase 7 | Complete |
 | OWNER-01 | Phase 8 | Complete |
 | OWNER-02 | Phase 8 | Complete |
 | OWNER-03 | Phase 8 | Complete |
 | OWNER-04 | Phase 8 | Complete |
 | OWNER-05 | Phase 8 | Complete |
-| OWNER-06 | Phase 11 | Pending |
+| OWNER-06 | Phase 11 | Complete |
 | OWNER-07 | Phase 9 | Complete |
 | OWNER-08 | Phase 9 | Complete |
 | OWNER-09 | Phase 9 | Complete |

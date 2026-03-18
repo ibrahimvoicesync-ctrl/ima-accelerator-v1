@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-ui-polish-production-hardening/10-03-PLAN.md
-last_updated: "2026-03-17T23:10:15.922Z"
+stopped_at: Completed 11-fix-invite-registration-url/11-01-PLAN.md
+last_updated: "2026-03-18T14:59:09.537Z"
 last_activity: "2026-03-17 — Completed plan 07-02: POST /api/invites, POST+PATCH /api/magic-links, /coach/invites page, CoachInvitesClient"
 progress:
-  total_phases: 10
-  completed_phases: 10
-  total_plans: 33
-  completed_plans: 33
+  total_phases: 12
+  completed_phases: 11
+  total_plans: 34
+  completed_plans: 34
 ---
 
 ---
@@ -112,6 +112,7 @@ Progress: [██████████] 100% (within phase: 2/3)
 | Phase 10-ui-polish-production-hardening P04 | 2 min | 2 tasks | 5 files |
 | Phase 10-ui-polish-production-hardening P01 | 3 min | 2 tasks | 23 files |
 | Phase 10-ui-polish-production-hardening P03 | 6 min | 2 tasks | 15 files |
+| Phase 11-fix-invite-registration-url P01 | 1 min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -199,6 +200,7 @@ Recent decisions affecting current work:
 - [Phase 10-ui-polish-production-hardening]: Per-route error.tsx uses simpler copy vs dashboard-level fallback which includes support contact language
 - [Phase 10-ui-polish-production-hardening]: Used Route icon instead of Map for RoadmapTab empty state — Map collides with JavaScript's built-in Map global causing TypeScript errors
 - [Phase 10-ui-polish-production-hardening]: EmptyState compact variant for inline section empty states; default variant for full-page standalone empty states
+- [Phase 11-fix-invite-registration-url]: registerUrl uses path-segment format /register/${code} (not query-param ?code=) because /register/[code]/page.tsx reads code from params not searchParams
 
 ### Pending Todos
 
@@ -212,6 +214,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T23:05:49.823Z
-Stopped at: Completed 10-ui-polish-production-hardening/10-03-PLAN.md
+Last session: 2026-03-18T14:59:09.534Z
+Stopped at: Completed 11-fix-invite-registration-url/11-01-PLAN.md
 Resume file: None
