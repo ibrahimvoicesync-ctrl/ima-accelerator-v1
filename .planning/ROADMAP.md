@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Owner Invites, Assignments & Alerts** - Invite system, coach-student assignments, alert system (completed 2026-03-17)
 - [x] **Phase 10: UI Polish & Production Hardening** - Loading skeletons, error boundaries, empty states, mobile pass (completed 2026-03-17)
 - [x] **Phase 11: Fix Invite Registration URL** - Fix invite architecture: whitelist model, auth callback auto-registration, remove link generation from invites (completed 2026-03-18)
-- [ ] **Phase 12: CLAUDE.md Hard Rule Compliance** - Replace raw Tailwind tokens with ima-* tokens, fix response.ok checks, touch targets, UTC date bug
+- [x] **Phase 12: CLAUDE.md Hard Rule Compliance** - Replace raw Tailwind tokens with ima-* tokens, fix response.ok checks, touch targets, UTC date bug (completed 2026-03-18)
 
 ## Phase Details
 
@@ -227,7 +227,7 @@ Plans:
   3. `WorkTrackerClient.tsx` stale-session abandon fetch checks `response.ok` before proceeding
   4. `StudentCard` Link wrapper has explicit `min-h-[44px]` class
   5. `getToday()` returns local date, not UTC
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 12-01-PLAN.md — Replace raw Tailwind tokens with ima-* tokens across work tracker, cycle cards, and auth pages; fix response.ok in stale-session abandon
@@ -251,4 +251,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 9. Owner Invites, Assignments & Alerts | 5/5 | Complete   | 2026-03-17 |
 | 10. UI Polish & Production Hardening | 4/4 | Complete    | 2026-03-17 |
 | 11. Fix Invite Registration URL | 3/3 | Complete    | 2026-03-18 |
-| 12. CLAUDE.md Hard Rule Compliance | 1/2 | In Progress|  |
+| 12. CLAUDE.md Hard Rule Compliance | 2/2 | Complete   | 2026-03-18 |

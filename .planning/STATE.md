@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 12-claude-md-hard-rule-compliance/12-02-PLAN.md
-last_updated: "2026-03-18T17:05:59.769Z"
+stopped_at: Completed 12-claude-md-hard-rule-compliance/12-01-PLAN.md
+last_updated: "2026-03-18T17:07:59.976Z"
 progress:
   total_phases: 12
-  completed_phases: 11
+  completed_phases: 12
   total_plans: 38
-  completed_plans: 37
+  completed_plans: 38
 ---
 
 ---
@@ -113,6 +113,7 @@ Plan: 1 of 2
 | Phase 11-fix-invite-registration-url P02 | 1 min | 2 tasks | 2 files |
 | Phase 11-fix-invite-registration-url P03 | 2 min | 2 tasks | 4 files |
 | Phase 12-claude-md-hard-rule-compliance P02 | 3 | 1 tasks | 2 files |
+| Phase 12-claude-md-hard-rule-compliance P01 | 3 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -207,6 +208,8 @@ Recent decisions affecting current work:
 - [Phase 11-fix-invite-registration-url]: lastWhitelistedEmail cleared on tab switch alongside lastUrl to avoid stale confirmation cards
 - [Phase 12-claude-md-hard-rule-compliance]: block display required on Link so min-h-[44px] is respected — inline elements ignore min-height
 - [Phase 12-claude-md-hard-rule-compliance]: getToday() uses getFullYear/getMonth/getDate (local time) not toISOString() (UTC) to prevent wrong date for UAE users between midnight and 04:00
+- [Phase 12-claude-md-hard-rule-compliance]: ima-success/10 and /30 opacity modifiers replace bg-green-50/border-green-200 for celebration banner
+- [Phase 12-claude-md-hard-rule-compliance]: abandonStale checks results.every(r.ok) and logs error but always calls router.refresh() — best-effort cleanup
 
 ### Pending Todos
 
@@ -220,6 +223,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T17:05:59.766Z
-Stopped at: Completed 12-claude-md-hard-rule-compliance/12-02-PLAN.md
+Last session: 2026-03-18T17:07:59.973Z
+Stopped at: Completed 12-claude-md-hard-rule-compliance/12-01-PLAN.md
 Resume file: None
