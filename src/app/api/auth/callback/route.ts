@@ -335,6 +335,113 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${dest}`);
   }
 
+  // No invite_code or magic_code param — check if email is whitelisted via invite
+  // IMPORTANT: Use .ilike() for case-insensitive email matching.
+  // Postgres = (via .eq) is case-sensitive. Google may return "user@example.com"
+  // while the invite was stored as "User@Example.com". ilike maps to Postgres
+  // ILIKE which handles this correctly.
+  const { data: whitelistInvite } = await admin
+    .from("invites")
+    .select("id, email, role, coach_id, used, expires_at")
+    .ilike("email", user.email)
+    .eq("used", false)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (whitelistInvite) {
+    // Atomically mark invite as used (prevents race condition)
+    const { data: consumed } = await admin
+      .from("invites")
+      .update({ used: true })
+      .eq("id", whitelistInvite.id)
+      .eq("used", false)
+      .select("id")
+      .single();
+
+    if (consumed) {
+      // Validate invite role
+      const wlValidRoles = Object.keys(ROLE_REDIRECTS);
+      if (!wlValidRoles.includes(whitelistInvite.role)) {
+        console.error("[auth callback] Invalid whitelist invite role:", whitelistInvite.role);
+        // Rollback
+        await admin
+          .from("invites")
+          .update({ used: false })
+          .eq("id", whitelistInvite.id);
+        return NextResponse.redirect(`${origin}/no-access`);
+      }
+
+      // Extract and truncate user name
+      const wlRawName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email.split("@")[0];
+      const wlUserName =
+        typeof wlRawName === "string"
+          ? wlRawName.slice(0, VALIDATION.name.max)
+          : user.email.split("@")[0];
+
+      // Create user profile
+      const { data: wlNewUser, error: wlInsertError } = await admin
+        .from("users")
+        .insert({
+          auth_id: user.id,
+          email: user.email,
+          name: wlUserName,
+          role: whitelistInvite.role as Role,
+          coach_id: whitelistInvite.coach_id,
+        })
+        .select("id")
+        .single();
+
+      if (wlInsertError || !wlNewUser) {
+        console.error("[auth callback] Failed to create user via whitelist invite:", wlInsertError);
+        // Rollback invite consumption
+        const { error: rollbackError } = await admin
+          .from("invites")
+          .update({ used: false })
+          .eq("id", whitelistInvite.id);
+        if (rollbackError) {
+          console.error(
+            "[auth callback] CRITICAL: Failed to rollback whitelist invite consumption for invite",
+            whitelistInvite.id,
+            rollbackError
+          );
+        }
+        return NextResponse.redirect(`${origin}/no-access`);
+      }
+
+      // If student, seed roadmap progress
+      if (whitelistInvite.role === "student") {
+        const wlRoadmapRows = ROADMAP_STEPS.map((step) => ({
+          student_id: wlNewUser.id,
+          step_number: step.step,
+          step_name: step.title,
+          status:
+            step.step === 1
+              ? ("completed" as const)
+              : step.step === 2
+                ? ("active" as const)
+                : ("locked" as const),
+          completed_at: step.step === 1 ? new Date().toISOString() : null,
+        }));
+
+        const { error: roadmapError } = await admin
+          .from("roadmap_progress")
+          .insert(wlRoadmapRows);
+
+        if (roadmapError) {
+          console.error("[auth callback] Failed to seed roadmap for whitelist invite:", roadmapError);
+        }
+      }
+
+      const dest = ROLE_REDIRECTS[whitelistInvite.role as Role];
+      return NextResponse.redirect(`${origin}${dest}`);
+    }
+  }
+
   // No invite code or magic code — no profile — needs invite
   return NextResponse.redirect(`${origin}/no-access`);
 }
