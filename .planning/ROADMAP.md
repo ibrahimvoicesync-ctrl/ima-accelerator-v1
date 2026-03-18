@@ -227,11 +227,11 @@ Plans:
   3. `WorkTrackerClient.tsx` stale-session abandon fetch checks `response.ok` before proceeding
   4. `StudentCard` Link wrapper has explicit `min-h-[44px]` class
   5. `getToday()` returns local date, not UTC
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Replace raw Tailwind tokens with ima-* tokens across work tracker, cycle cards, and auth pages
-- [ ] 12-02-PLAN.md — Fix response.ok check, StudentCard touch target, and getToday() UTC bug
+- [ ] 12-01-PLAN.md — Replace raw Tailwind tokens with ima-* tokens across work tracker, cycle cards, and auth pages; fix response.ok in stale-session abandon
+- [ ] 12-02-PLAN.md — Fix StudentCard touch target and getToday() UTC bug
 
 ## Progress
 
