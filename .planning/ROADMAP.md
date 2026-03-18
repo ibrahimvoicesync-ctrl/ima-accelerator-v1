@@ -207,7 +207,7 @@ Plans:
   1. `POST /api/invites` returns `registerUrl` with path-segment format `/register/{code}` (not query param)
   2. Coach-generated invite URL lands on `/register/[code]/page.tsx` (not magic link page)
   3. Owner-generated invite URL lands on `/register/[code]/page.tsx` (not magic link page)
-**Plans:** TBD
+**Plans:** 1 plan
 
 Plans:
 - [ ] 11-01-PLAN.md — Fix registerUrl format in invite API route
