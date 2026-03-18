@@ -22,6 +22,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Owner Stats & People Management** - Platform stats dashboard and student/coach list views (completed 2026-03-17)
 - [x] **Phase 9: Owner Invites, Assignments & Alerts** - Invite system, coach-student assignments, alert system (completed 2026-03-17)
 - [x] **Phase 10: UI Polish & Production Hardening** - Loading skeletons, error boundaries, empty states, mobile pass (completed 2026-03-17)
+- [ ] **Phase 11: Fix Invite Registration URL** - Fix broken invite URL format that prevents email invite registration flow
+- [ ] **Phase 12: CLAUDE.md Hard Rule Compliance** - Replace raw Tailwind tokens with ima-* tokens, fix response.ok checks, touch targets, UTC date bug
 
 ## Phase Details
 
@@ -196,6 +198,37 @@ Plans:
 - [ ] 10-02: Loading skeletons and error boundaries (Suspense wrappers on all data-fetching pages, error.tsx files, ErrorBoundary components)
 - [ ] 10-03: Empty states and mobile pass (empty state components with copy/CTAs, responsive layout audit across all pages, touch target audit)
 
+### Phase 11: Fix Invite Registration URL
+**Goal**: Email invite registration works end-to-end — clicking a copied invite URL lands on the correct registration page
+**Depends on**: Phase 7, Phase 9 (invite system)
+**Requirements**: COACH-05, OWNER-06
+**Gap Closure:** Closes requirement, integration, and flow gaps from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `POST /api/invites` returns `registerUrl` with path-segment format `/register/{code}` (not query param)
+  2. Coach-generated invite URL lands on `/register/[code]/page.tsx` (not magic link page)
+  3. Owner-generated invite URL lands on `/register/[code]/page.tsx` (not magic link page)
+**Plans:** TBD
+
+Plans:
+- [ ] 11-01-PLAN.md — Fix registerUrl format in invite API route
+
+### Phase 12: CLAUDE.md Hard Rule Compliance
+**Goal**: All code complies with CLAUDE.md hard rules — no raw Tailwind color tokens, all fetches check response.ok, all interactive elements have 44px touch targets
+**Depends on**: Phase 3, Phase 2, Phase 8 (affected code)
+**Requirements**: (no direct requirement IDs — closes tech debt from audit)
+**Gap Closure:** Closes tech debt items from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. `WorkTrackerClient.tsx` and `CycleCard.tsx` use only ima-* design tokens (no raw bg-green-50, text-red-600, etc.)
+  2. Auth pages (login, register) use ima-* tokens for error states (no raw bg-red-50/text-red-700)
+  3. `WorkTrackerClient.tsx` stale-session abandon fetch checks `response.ok` before proceeding
+  4. `StudentCard` Link wrapper has explicit `min-h-[44px]` class
+  5. `getToday()` returns local date, not UTC
+**Plans:** TBD
+
+Plans:
+- [ ] 12-01-PLAN.md — Replace raw Tailwind tokens with ima-* tokens across work tracker, cycle cards, and auth pages
+- [ ] 12-02-PLAN.md — Fix response.ok check, StudentCard touch target, and getToday() UTC bug
+
 ## Progress
 
 **Execution Order:**
@@ -213,3 +246,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 8. Owner Stats & People Management | 4/4 | Complete   | 2026-03-17 |
 | 9. Owner Invites, Assignments & Alerts | 5/5 | Complete   | 2026-03-17 |
 | 10. UI Polish & Production Hardening | 4/4 | Complete    | 2026-03-17 |
+| 11. Fix Invite Registration URL | 0/1 | Pending | |
+| 12. CLAUDE.md Hard Rule Compliance | 0/2 | Pending | |
