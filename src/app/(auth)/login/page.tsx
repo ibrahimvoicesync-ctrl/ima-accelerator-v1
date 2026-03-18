@@ -83,7 +83,7 @@ function LoginContent() {
           {errorMessage && (
             <div
               role="alert"
-              className="mt-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700"
+              className="mt-4 rounded-lg bg-ima-error/10 border border-ima-error/30 p-3 text-sm text-ima-error"
             >
               {errorMessage}
             </div>

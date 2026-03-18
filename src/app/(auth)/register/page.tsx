@@ -13,7 +13,7 @@ function ErrorCard({ heading, message }: ErrorCardProps) {
     <main className="flex min-h-screen items-center justify-center bg-ima-bg px-4">
       <div className="w-full max-w-md rounded-xl bg-ima-surface p-8 shadow-sm border border-ima-border text-center">
         <XCircle
-          className="mx-auto h-12 w-12 text-red-500"
+          className="mx-auto h-12 w-12 text-ima-error"
           aria-hidden="true"
         />
         <h1 className="mt-4 text-xl font-bold text-ima-text">{heading}</h1>
