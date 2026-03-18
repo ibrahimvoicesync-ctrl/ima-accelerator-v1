@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A student performance and coaching management platform for Abu Lahya's halal influencer marketing mentorship program. Three roles — owner (platform admin), coaches (mentors), and students (aspiring influencer marketing agents) — each with dedicated dashboards to track work sessions, roadmap progress, daily reports, and coaching relationships. This is a clean rebuild from a more complex previous version, stripped down to essentials.
+A student performance and coaching management platform for Abu Lahya's halal influencer marketing mentorship program. Three roles — owner (platform admin), coaches (mentors), and students (aspiring influencer marketing agents) — each with dedicated dashboards to track work sessions, roadmap progress, daily reports, and coaching relationships. Built as a clean rebuild from a more complex previous version, shipped as v1.0 with full accountability loop.
 
 ## Core Value
 
@@ -12,32 +12,32 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 ### Validated
 
-<!-- Shipped and confirmed valuable. -->
+<!-- Shipped and confirmed working in v1.0. -->
 
-(None yet — ship to validate)
+- ✓ Google OAuth login with invite-only registration — v1.0
+- ✓ Role-based routing and access control (owner/coach/student) — v1.0
+- ✓ Student work tracker (45-min cycles, 4 per day, start/complete/abandon) — v1.0
+- ✓ Student 10-step roadmap (locked → active → completed progression) — v1.0
+- ✓ Student daily reports (hours, star rating 1-5, outreach count, wins, improvements) — v1.0
+- ✓ Ask Abu Lahya AI chat (iframe embed, Coming Soon state) — v1.0
+- ✓ Coach dashboard with assigned students overview — v1.0
+- ✓ Coach report review (mark reports as reviewed) — v1.0
+- ✓ Coach student invites (email whitelist model) — v1.0
+- ✓ Coach basic analytics (report rates, student activity) — v1.0
+- ✓ Owner platform-wide stats dashboard — v1.0
+- ✓ Owner student and coach management (list, detail, search) — v1.0
+- ✓ Owner invite system (coach + student invites, magic links) — v1.0
+- ✓ Owner coach-student assignments — v1.0
+- ✓ Owner alerts (inactive students, unreviewed reports, coach underperformance) — v1.0
+- ✓ Shared UI components matching old codebase visual style — v1.0
+- ✓ Loading skeletons, error boundaries, empty states — v1.0
+- ✓ Mobile responsiveness and accessibility (44px touch targets, ARIA) — v1.0
 
 ### Active
 
-<!-- Current scope. Building toward these. -->
+<!-- Current scope. Building toward these for next milestone. -->
 
-- [ ] Google OAuth login with invite-only registration
-- [ ] Role-based routing and access control (owner/coach/student)
-- [ ] Student work tracker (45-min cycles, 4 per day, start/complete/abandon)
-- [ ] Student 10-step roadmap (locked → active → completed progression)
-- [ ] Student daily reports (hours, star rating 1-5, outreach count, wins, improvements)
-- [ ] Ask Abu Lahya AI chat (iframe embed, URL TBD)
-- [ ] Coach dashboard with assigned students overview
-- [ ] Coach report review (mark reports as reviewed)
-- [ ] Coach student invites
-- [ ] Coach basic analytics (report rates, student activity)
-- [ ] Owner platform-wide stats dashboard
-- [ ] Owner student and coach management (list, detail, search)
-- [ ] Owner invite system (coach + student invites, magic links)
-- [ ] Owner coach-student assignments
-- [ ] Owner alerts (inactive students, unreviewed reports, coach underperformance)
-- [ ] Shared UI components matching old codebase visual style
-- [ ] Loading skeletons, error boundaries, empty states
-- [ ] Mobile responsiveness and accessibility (44px touch targets, ARIA)
+(None yet — define during next milestone planning)
 
 ### Out of Scope
 
@@ -59,63 +59,26 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 ## Context
 
-**Previous version:** A full-featured codebase exists in `reference-old/` with complete implementation of all cut features. Reference it for visual patterns, component structure, and implementation approaches — but don't copy wholesale.
+**Shipped v1.0** on 2026-03-18 with 12,742 LOC TypeScript across 298 files.
+Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind CSS 4, TypeScript strict.
+12 phases, 38 plans, 218 commits over 3 days.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
-**Roadmap steps (from config):**
-1. Join the Course (auto-complete on signup)
-2. Plan Your Work
-3. Pick Your Niche
-4. Build Your Website
-5. Send Your First Email
-6. Get Your First Response
-7. Close Your First Influencer
-8. Close 5 Influencers
-9. Brand Outreach
-10. Close Your First Brand Deal
+**Invite system (v1.0):** Email whitelist model — no registration URL generated. Coach/owner enters email, auth callback auto-registers whitelisted users on Google sign-in. Magic links available as alternative.
 
-**Work tracker rules:**
-- 45-minute sessions with 15-minute breaks
-- 4 cycles per day (4-hour daily goal)
-- Sessions can be started, completed, or abandoned
-- 5-minute grace period before abandon
-
-**Daily report fields:**
-- Hours worked (auto-filled from work sessions)
-- Star rating (1-5, required)
-- Outreach count (required)
-- Wins (optional, max 500 chars)
-- Improvements (optional, max 500 chars)
-- Deadline: 11 PM
-
-**Invite system:**
-- Invite codes expire after 72 hours
-- Owner can invite coaches and students
-- Coaches can invite students only
-- Students cannot invite anyone
-- Magic links as alternative registration path
-
-**Alert triggers (owner):**
-- Student inactive: no work session for 3 days
-- Student dropoff: no login for 7 days
-- Coach underperforming: avg student rating < 2.5 for 14 days
-- Unreviewed reports
-
-**AI chat:** Existing hosted chatbot — embed via iframe. URL to be provided later, use placeholder for now.
-
-**Coach config:**
-- At-risk threshold: 3 days inactive or rating < 2
-- Max 50 students per coach
-- Report inbox shows last 7 days
+**Known pending items:**
+- AI chat iframe URL not yet provided by Abu Lahya (infra wired, Coming Soon displayed)
+- `types.ts` is hand-crafted placeholder (regenerate when Docker + local Supabase running)
+- `POST /api/auth/signout` is dead code (Sidebar uses client SDK signOut directly)
 
 ## Constraints
 
-- **Tech stack**: Next.js App Router + Supabase + Tailwind CSS + TypeScript strict — matching old codebase stack
-- **Auth**: Google OAuth only, no password flows — Supabase Auth handles OAuth, credentials in Supabase Dashboard
+- **Tech stack**: Next.js App Router + Supabase + Tailwind CSS + TypeScript strict
+- **Auth**: Google OAuth only, no password flows — Supabase Auth handles OAuth
 - **Architecture**: Server components for all reads (async pages, no useEffect), small "use client" components only for interactivity, createAdminClient() for server queries
-- **Database**: Supabase Postgres with RLS + server-side user ID filtering (defense in depth), 6 tables only (users, invites, magic_links, work_sessions, roadmap_progress, daily_reports)
-- **Styling**: Must match old codebase visual style — light theme, blue primary (#2563EB), Inter font, ima-* design tokens, CVA-based UI primitives
+- **Database**: Supabase Postgres with RLS + server-side user ID filtering (defense in depth), 6 tables (users, invites, magic_links, work_sessions, roadmap_progress, daily_reports) + alert_dismissals
+- **Styling**: Light theme, blue primary (#2563EB), Inter font, ima-* design tokens, CVA-based UI primitives
 - **Validation**: Zod on all API inputs, safeParse pattern
 - **Access**: Invite-only registration, role-based route guards via proxy (not middleware)
 
@@ -125,12 +88,16 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Clean rebuild vs. migrate old code | Old codebase too tangled with cut features; rebuild is faster and cleaner | — Pending |
-| 6 tables only (cut 5 from old schema) | Removed deals, influencers, call_schedule, notifications, leaderboard_snapshots to match V1 scope | — Pending |
-| Google OAuth only | Simplifies auth flow, no password management needed | — Pending |
-| Iframe for AI chat | Abu Lahya has existing chatbot, just embed it | — Pending |
-| Match old visual style | Continuity for users, proven design patterns in reference-old/ | — Pending |
-| Supabase CLI for local dev | Version-controlled migrations, local Postgres + Auth + Studio | — Pending |
+| Clean rebuild vs. migrate old code | Old codebase too tangled with cut features; rebuild is faster and cleaner | ✓ Good — 3-day build, clean architecture |
+| 6 tables only (cut 5 from old schema) | Removed deals, influencers, call_schedule, notifications, leaderboard_snapshots to match V1 scope | ✓ Good — minimal schema, all V1 features supported |
+| Google OAuth only | Simplifies auth flow, no password management needed | ✓ Good — single auth path, no security surface area |
+| Iframe for AI chat | Abu Lahya has existing chatbot, just embed it | ✓ Good — infra wired, awaiting URL |
+| Match old visual style | Continuity for users, proven design patterns in reference-old/ | ✓ Good — ima-* tokens consistent throughout |
+| Supabase CLI for local dev | Version-controlled migrations, local Postgres + Auth + Studio | ✓ Good — single migration file covers all V1 |
+| Email whitelist model for invites | Avoids broken registration URLs; auth callback auto-registers | ✓ Good — simplified flow, resolved Phase 11 gap |
+| proxy.ts not middleware.ts | Next.js 16 breaking change; route guard runs in proxy | ✓ Good — works correctly with App Router |
+| Resume shifts started_at forward | Client timer needs no elapsed accumulator; Date.now() - started_at always equals active work time | ✓ Good — simple timer math |
+| alert_dismissals with time-windowed keys | Dismissed alerts re-trigger in new window (daily/weekly/monthly) | ✓ Good — prevents stale dismissals masking new issues |
 
 ---
-*Last updated: 2026-03-18 — Phase 12 complete (CLAUDE.md hard rule compliance)*
+*Last updated: 2026-03-18 after v1.0 milestone*

@@ -107,6 +107,14 @@ None - no external service configuration required.
 - The /register/[code] fallback path remains functional for any invite_code flows still in use
 - Both COACH-05 and OWNER-06 requirements are fulfilled
 
+## Self-Check: PASSED
+
+- FOUND: src/app/api/auth/callback/route.ts
+- FOUND: src/app/api/invites/route.ts
+- FOUND: .planning/phases/11-fix-invite-registration-url/11-02-SUMMARY.md
+- FOUND: commit 3b80edc (Task 1)
+- FOUND: commit 1109f2a (Task 2)
+
 ---
 *Phase: 11-fix-invite-registration-url*
 *Completed: 2026-03-18*

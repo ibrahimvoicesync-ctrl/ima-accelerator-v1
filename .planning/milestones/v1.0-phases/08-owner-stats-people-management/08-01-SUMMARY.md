@@ -108,3 +108,11 @@ None - no external service configuration required.
 ---
 *Phase: 08-owner-stats-people-management*
 *Completed: 2026-03-17*
+
+## Self-Check: PASSED
+
+- FOUND: src/app/(dashboard)/owner/page.tsx
+- FOUND: src/components/coach/StudentCard.tsx
+- FOUND: .planning/phases/08-owner-stats-people-management/08-01-SUMMARY.md
+- FOUND: 40cd75c (Task 1 commit)
+- FOUND: fe1b974 (Task 2 commit)
