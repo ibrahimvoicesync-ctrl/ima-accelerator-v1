@@ -14,7 +14,7 @@ export const APP_CONFIG = {
   slug: "ima-accelerator",
   version: "1.0.0",
   description: "Student Performance & Coaching Management Platform",
-  url: "https://app.imaccelerator.com",
+  url: "https://ima-accelerator-v1.vercel.app",
   supportEmail: "support@imaccelerator.com",
   timezone: "UTC",
   locale: "en",
@@ -105,6 +105,10 @@ export const WORK_TRACKER = {
   abandonGraceSeconds: 300,
   sessionDurationOptions: [30, 45, 60] as const,
   defaultSessionMinutes: 45,
+  breakOptions: {
+    short: { label: "Short Break", presets: [5, 10] as const },
+    long: { label: "Long Break", presets: [10, 15, 20, 30] as const },
+  } as const,
 } as const;
 
 // ---------------------------------------------------------------------------

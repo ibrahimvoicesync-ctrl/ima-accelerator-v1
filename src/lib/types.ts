@@ -159,6 +159,7 @@ export type Database = {
           started_at: string;
           completed_at: string | null;
           duration_minutes: number;
+          session_minutes: number;
           status: "in_progress" | "completed" | "abandoned" | "paused";
           paused_at: string | null;
           created_at: string;
@@ -171,6 +172,7 @@ export type Database = {
           started_at: string;
           completed_at?: string | null;
           duration_minutes?: number;
+          session_minutes: number;
           status?: "in_progress" | "completed" | "abandoned" | "paused";
           paused_at?: string | null;
           created_at?: string;
@@ -183,6 +185,7 @@ export type Database = {
           started_at?: string;
           completed_at?: string | null;
           duration_minutes?: number;
+          session_minutes?: number;
           status?: "in_progress" | "completed" | "abandoned" | "paused";
           paused_at?: string | null;
           created_at?: string;

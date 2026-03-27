@@ -46,6 +46,16 @@ export function formatHours(minutes: number): string {
   return `${hours}h`;
 }
 
+/** Format total minutes as human-readable duration: 90 -> "1h 30m", 60 -> "1h", 5 -> "5m", 0 -> "0m" */
+export function formatHoursMinutes(minutes: number): string {
+  if (minutes <= 0) return "0m";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 /** Time-of-day greeting */
 export function getGreeting(): string {
   const hour = new Date().getHours();
