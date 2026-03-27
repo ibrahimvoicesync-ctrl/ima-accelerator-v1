@@ -1,280 +1,297 @@
 # Pitfalls Research
 
-**Domain:** Next.js App Router + Supabase multi-role coaching platform
-**Researched:** 2026-03-16
-**Confidence:** HIGH (most pitfalls verified via official Supabase docs + GitHub discussions + Vercel blog)
+**Domain:** Adding flexible work sessions, granular outreach KPIs, calendar view, and roadmap deadlines to existing Next.js 16 + Supabase coaching platform (v1.1)
+**Researched:** 2026-03-27
+**Confidence:** HIGH — based on direct codebase analysis of all affected files
+
+> **Scope:** This document covers pitfalls specific to the v1.1 feature additions. For v1.0 foundation pitfalls (OAuth, RLS setup, cookie handler), see git history. These are integration pitfalls — mistakes that arise from adding features to an existing system, not building from scratch.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: OAuth Redirect URL Mismatch (localhost vs. production)
+### Pitfall 1: Break Timer Invalidates the "Resume Shifts started_at" Invariant
 
 **What goes wrong:**
-After Google OAuth login in local development, the user gets redirected to the production URL instead of `localhost:3000`. Or after deploying, the production app still redirects to `localhost:3000`. Both break the auth flow entirely.
+The existing WorkTimer reads `Date.now() - new Date(startedAt).getTime()` to compute elapsed time. This works because the resume handler in the PATCH route shifts `started_at` forward so elapsed always equals active work time. Adding a break timer introduces a second "pause" state — but break pause is automatic and temporary. If break pause reuses the existing `paused_at` column, the resume-shift logic will incorrectly subtract break time as if it were user-pause time. The timer jumps forward when the break ends, shortening the remaining cycle duration by the length of the break.
 
 **Why it happens:**
-Supabase's `signInWithOAuth` has a `redirectTo` option. If you don't set it dynamically, Supabase falls back to the hardcoded **Site URL** configured in the Supabase Dashboard — which will be wrong for whichever environment you're NOT currently using. Separately, Google Cloud Console requires you to whitelist every Authorized JavaScript Origin and Redirect URI; it does not support wildcards, so `localhost:3000` and your production domain are both required separately.
-
-A secondary trigger: `localhost` and `127.0.0.1` are treated as different origins by both Google OAuth and Supabase, causing auth failures even after correct configuration.
-
-**How to avoid:**
-1. Always pass a dynamic `redirectTo` in `signInWithOAuth`:
-   ```typescript
-   const redirectTo = `${window.location.origin}/api/auth/callback`;
-   supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
-   ```
-2. In Supabase Dashboard → Auth → URL Configuration: set Site URL to production URL, add `http://localhost:3000/**` to Additional Redirect URLs.
-3. In Google Cloud Console: add both `http://localhost:3000` and your production domain to Authorized JavaScript Origins, and both `http://localhost:3000/api/auth/callback` and `https://yourdomain.com/api/auth/callback` to Authorized Redirect URIs.
-4. Use `localhost` consistently (not `127.0.0.1`) in local dev.
-
-**Warning signs:**
-- Login redirects to wrong domain after OAuth
-- "redirect_uri_mismatch" error from Google
-- Auth works in one environment but not the other
-- `getUser()` returns null immediately after OAuth callback
-
-**Phase to address:** Phase 1 — Foundation (auth flow setup)
-
----
-
-### Pitfall 2: Using `getSession()` Instead of `getUser()` in Server Code
-
-**What goes wrong:**
-Session appears valid on the server, but the data can be spoofed. A malicious user can craft a cookie that passes `getSession()` but would be rejected by `getUser()`. This breaks route protection completely — any user can access any protected route.
-
-**Why it happens:**
-`getSession()` reads directly from the cookie without making a network request to Supabase Auth servers. It trusts the cookie data at face value. `getUser()` sends a request to Supabase Auth servers on every call to revalidate the token, making it the only trustworthy check in server-side code.
-
-This is extremely common because `getSession()` looks equivalent to `getUser()` in the API surface, and it's faster (no network call). Developers reach for it first.
-
-**How to avoid:**
-Use `supabase.auth.getUser()` for ALL server-side auth checks — in middleware, server components, and API route handlers. Only use `getSession()` in client components where the UX just needs to display something non-sensitive.
-
-```typescript
-// CORRECT — server component or middleware
-const { data: { user }, error } = await supabase.auth.getUser();
-if (!user) redirect('/login');
-
-// WRONG — server component or middleware
-const { data: { session } } = await supabase.auth.getSession(); // Do not use
+The PATCH route (`src/app/api/work-sessions/[id]/route.ts`, lines 91-97) computes:
 ```
+elapsedBeforePause = pausedAt - startedAt
+newStartedAt = Date.now() - elapsedBeforePause
+```
+This was designed for one type of pause. A break that writes to `paused_at` will cause resume to eat the break duration as if it were active work time.
+
+**How to avoid:**
+Track break state client-side only. A break is between cycles, not within a cycle — it does not need to survive page refresh. Use a separate React state variable (`breakEndsAt: number | null`) in WorkTrackerClient and keep it entirely in the browser. Never write break state to the database. If a break must survive refresh, add a separate `break_started_at` column to `work_sessions` so the existing `paused_at` column remains exclusively for user-initiated pause.
 
 **Warning signs:**
-- Auth check code uses `getSession()` in any file without `"use client"`
-- Route protection "seems to work" in testing but hasn't been tested with manipulated cookies
-- Middleware passes even with an expired or invalid session token
+- Timer shows less remaining time after a break ends than expected
+- Completed sessions have `duration_minutes` less than the selected session length
+- `started_at` timestamps that are in the future (break logic shifted them past now)
 
-**Phase to address:** Phase 1 — Foundation (auth flow + middleware setup)
+**Phase to address:** Flexible work sessions phase — design break timer state model before writing any component code.
 
 ---
 
-### Pitfall 3: Storing Role in `user_metadata` (Updateable by Users)
+### Pitfall 2: Removing cyclesPerDay Cap Breaks Five Hardcoded References
 
 **What goes wrong:**
-A student can promote themselves to `coach` or `owner` by calling `supabase.auth.updateUser({ data: { role: 'owner' } })` from the browser. RLS policies that rely on `auth.jwt() -> 'user_metadata' -> 'role'` are then bypassed by any authenticated user.
+`WORK_TRACKER.cyclesPerDay` (value: 4) appears in five places. Removing the cap without touching all five causes cascading failures: the POST route rejects cycle numbers above 4 (Zod `max(WORK_TRACKER.cyclesPerDay)` on line 9 of `work-sessions/route.ts`), WorkTrackerClient's `allComplete` fires at 4 regardless of user goal, the student dashboard progress bar denominator stays at 4 (showing 125% if 5 cycles complete), WorkTimer announces "Cycle N of 4" for screen readers, and the student dashboard's `getNextAction` returns "Submit Report" after 4 cycles even if the student has more to do.
 
 **Why it happens:**
-`user_metadata` (`raw_user_meta_data`) is specifically designed to be updated by authenticated users. It is not a secure place for authorization data. Many tutorials store the role in `user_metadata` for convenience, without flagging the security risk. The subtle part: even official Supabase examples sometimes put role there for quickstart purposes.
-
-The platform has a `users` table with a `role` column — this is the right pattern. The pitfall is RLS policies that check the JWT's `user_metadata.role` instead of cross-referencing the `users` table.
+`cyclesPerDay: 4` looks like a display constant but is also a validation bound and a business logic gate. Developers update the display without realizing the API schema and state machine logic also depend on it.
 
 **How to avoid:**
-Store roles ONLY in the `users` table (already correct per the schema). In RLS policies, check role by joining against the `users` table, not by reading JWT claims:
+Audit all references before changing config: `grep -r "cyclesPerDay" src/`. Separate the concepts: (a) a daily goal (can be unlimited/user-set), (b) an abuse guard for the API (should remain as a generous maximum like 20), and (c) display strings. Update all five locations atomically in the same plan. The DB constraint `cycle_number BETWEEN 1 AND 4` (migration line 89) is a sixth reference that requires its own migration.
 
+**Warning signs:**
+- HTTP 400 from POST when `cycle_number` exceeds 4
+- Progress bar shows more than 100% for a productive student
+- `allComplete` fires early, showing "submit report" before student is done
+- TypeScript type errors if the DB constraint check changes without a migration
+
+**Phase to address:** Flexible work sessions phase — run `grep -r "cyclesPerDay"` and update all references before the first commit.
+
+---
+
+### Pitfall 3: NOT NULL Column on Live Table Fails Without Backfill Step
+
+**What goes wrong:**
+Adding `ALTER TABLE work_sessions ADD COLUMN duration_target_minutes integer NOT NULL` to a migration fails on the live database with `ERROR: column "duration_target_minutes" contains null values` because existing rows have no value for the new column. Even `ADD COLUMN ... NOT NULL DEFAULT 45` is safe on Postgres 15 (Supabase's version) for constant defaults — but developers may misapply this and use a function like `now()` as the default, which forces a full table rewrite.
+
+**Why it happens:**
+The local development database has no existing data — `supabase db reset` runs migrations against a clean slate. Migrations that would fail on a live populated table pass locally, creating false confidence before deployment.
+
+**How to avoid:**
+Always use the three-step pattern for adding non-null columns to tables with existing data:
+1. `ALTER TABLE work_sessions ADD COLUMN duration_target_minutes integer;`
+2. `UPDATE work_sessions SET duration_target_minutes = 45 WHERE duration_target_minutes IS NULL;`
+3. `ALTER TABLE work_sessions ALTER COLUMN duration_target_minutes SET NOT NULL;`
+
+All three steps belong in a single migration file. Test the migration against a database seeded with representative data (not just a clean reset).
+
+**Warning signs:**
+- Migration passes locally (`supabase db reset` = clean slate) but fails on Supabase dashboard push
+- New column has `DEFAULT now()` or any other volatile function
+- Migration was written without first checking if live rows exist in the target table
+
+**Phase to address:** Database schema migration phase — use the three-step pattern and add a "tested against seeded DB" checkbox to the phase plan.
+
+---
+
+### Pitfall 4: Unique Index on (student_id, date, cycle_number) Blocks Flexible Session Patterns
+
+**What goes wrong:**
+`idx_work_sessions_student_date_cycle` is a UNIQUE constraint on `(student_id, date, cycle_number)` (migration line 97). The current design assigns each cycle a fixed number 1-4 and deletes abandoned sessions. With flexible sessions, if the UX changes to soft-delete abandoned rows (keeping them for calendar history), a student who abandons cycle 2 and starts a new cycle 2 on the same day will hit a unique constraint violation (HTTP 409, code "23505" in the POST route error handler at line 80).
+
+**Why it happens:**
+The unique constraint was designed for the fixed-slot model. Flexible sessions may want to record all attempts, including abandoned ones, for the calendar view. These two requirements conflict if the same column tracks both "slot identity" and "attempt sequence."
+
+**How to avoid:**
+Decide the semantics of `cycle_number` for v1.1 before writing migrations. If cycles remain sequentially numbered (1, 2, 3... as a simple counter of sessions started today), keep the current delete-on-abandon behavior — the constraint still works. If the UX switches to soft-delete (keeping abandoned rows for calendar history), replace the unique constraint with a partial unique index: `CREATE UNIQUE INDEX ... WHERE status != 'abandoned'`. Document this decision in the phase plan before touching the schema.
+
+**Warning signs:**
+- HTTP 409 when a student starts a second session after abandoning one on the same day
+- `insertError.code === "23505"` in the POST route triggered by non-duplicate reasons
+- Calendar view shows gaps where abandoned sessions should appear
+
+**Phase to address:** Database schema migration phase — decide cycle_number semantics before writing any migration.
+
+---
+
+### Pitfall 5: N+1 Aggregate for Lifetime Outreach via JavaScript reduce()
+
+**What goes wrong:**
+The KPI banner needs lifetime outreach total (sum of all `outreach_count` across `daily_reports`) and today's daily total. The naive implementation fetches all reports and sums in JavaScript. The coach/owner student detail page already fetches reports with `.limit(20)` — insufficient for lifetime totals. A student active for 6 months has 180+ daily reports. Fetching all of them to sum client-side returns a large JSON payload and a slow page load.
+
+**Why it happens:**
+Supabase's TypeScript client doesn't surface SQL aggregates obviously, so developers write `.select("outreach_count").eq("student_id", id)` and sum in JavaScript. This pattern is visible in the student dashboard where `totalMinutesWorked` is computed with `.reduce()` over today's sessions — fine for a handful of records, but it scales to all reports for the lifetime total.
+
+**How to avoid:**
+Use a Postgres aggregate. Supabase JS v2 supports `select("outreach_count.sum()")` for simple aggregates. For the combined lifetime+daily query, use an RPC:
 ```sql
--- CORRECT: join against users table
-CREATE POLICY "students can view own sessions"
-ON work_sessions FOR SELECT
-USING (
-  student_id = auth.uid()
-  AND EXISTS (
-    SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'student'
-  )
-);
-
--- WRONG: trust JWT user_metadata
-USING (auth.jwt() -> 'user_metadata' ->> 'role' = 'student');
+CREATE OR REPLACE FUNCTION get_outreach_kpis(p_student_id uuid, p_today date)
+RETURNS TABLE(lifetime_total bigint, today_total bigint)
+LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT
+    COALESCE(SUM(outreach_count), 0) AS lifetime_total,
+    COALESCE(SUM(CASE WHEN date = p_today THEN outreach_count ELSE 0 END), 0) AS today_total
+  FROM daily_reports
+  WHERE student_id = p_student_id;
+$$;
 ```
-
-If performance requires avoiding the join, use `app_metadata` (not `user_metadata`) via a Custom Access Token Hook — `app_metadata` cannot be modified by users.
+Never fetch all rows to sum in application code.
 
 **Warning signs:**
-- RLS policies contain `user_metadata` anywhere
-- Role is set in Supabase's built-in `raw_user_meta_data` field during signup
-- No validation that the role in the JWT matches the `users` table at auth time
+- Network response for the KPI banner contains full report rows (wins/improvements text included)
+- Page load time exceeds 400ms on the student dashboard for students with 100+ reports
+- The aggregate query uses `.select("*")` or `.select("outreach_count")` without `.limit()` or aggregate syntax
 
-**Phase to address:** Phase 1 — Foundation (schema + RLS policy design)
+**Phase to address:** Progress KPI / outreach tracking phase — write the aggregate function before building the banner component.
 
 ---
 
-### Pitfall 4: RLS Enabled But Policies Silently Return Empty Results
+### Pitfall 6: Calendar View Over-fetches Due to Missing Month Date Bounds
 
 **What goes wrong:**
-After enabling RLS on a table, all queries return empty arrays instead of the expected data. No error is thrown — empty results are valid SQL responses. The feature appears completely broken, and the root cause is non-obvious because there's no error to debug.
+The existing coach student detail page fetches `.limit(120)` for sessions (lines 40-43 of `coach/students/[studentId]/page.tsx`). A calendar month view needs all sessions and reports for the visible month. If the calendar derives its data from this same prop, a student active for 4+ months will have 120+ sessions total — the limit is hit and months beyond the most recent ~4 are silently empty. The calendar appears to show no activity for older months, which is misleading.
 
 **Why it happens:**
-Supabase's default when RLS is enabled is "deny all." A missing policy means zero rows match, not an error. This is intentional security behavior but causes significant confusion during development. The anon key client and the service_role key client behave differently (service_role bypasses RLS), which can make it appear to work in Supabase Studio's Table Editor while failing in the app.
+Server components fetch all data upfront with a catch-all limit. The calendar component then filters client-side to the visible month. This works until the limit is hit. Month navigation is client-side, so there is no mechanism to fetch different data when navigating to a different month.
 
 **How to avoid:**
-1. Write all RLS policies in migrations immediately alongside `ENABLE ROW LEVEL SECURITY`
-2. Test every policy with the actual anon key client (not service_role) before marking a feature complete
-3. Use the Supabase Dashboard's SQL Editor with `SET ROLE authenticated; SET request.jwt.claims TO '{"sub":"<user-uuid>"}';` to test policies manually
-4. Always verify the policy covers ALL operations your app needs: SELECT, INSERT, UPDATE, DELETE — a missing operation silently fails
-
-**Warning signs:**
-- Queries return empty arrays but data exists in the table
-- Feature works when tested in Supabase Dashboard (using service_role) but not in the app
-- New table added without explicit policy definition
-- RLS is enabled on a table but the migration has no corresponding `CREATE POLICY` statement
-
-**Phase to address:** Phase 1 — Foundation (schema + RLS policies)
-
----
-
-### Pitfall 5: Cross-Role Data Leakage via RLS Policies
-
-**What goes wrong:**
-A coach can query work sessions, reports, or roadmap progress for students NOT assigned to them. Or a student can read another student's daily reports. The three-role model (owner/coach/student) requires precise RLS policies for each role, and missing a policy edge case exposes data across role boundaries.
-
-**Why it happens:**
-The naive policy `student_id = auth.uid()` only locks down student-to-student. It does not address what a coach can see. If a coach's SELECT policy is `true` (or missing entirely), coaches can access all student data. The `coach_id` relationship on the `users` table must be used in RLS policies for coach-scope access.
-
-For the owner role, the temptation is to write `role = 'owner'` in the JWT — but as per Pitfall 3, this is insecure. The join against `users` table is required.
-
-**How to avoid:**
-Design policies per table per role explicitly. For this project's schema, every policy needs three clauses — one per role:
-
-```sql
--- work_sessions: students see own, coaches see assigned students', owner sees all
-CREATE POLICY "role-based access on work_sessions"
-ON work_sessions FOR SELECT
-USING (
-  -- Student: own sessions only
-  student_id = (SELECT id FROM users WHERE auth_id = auth.uid() AND role = 'student')
-  OR
-  -- Coach: only their assigned students
-  EXISTS (
-    SELECT 1 FROM users coach
-    WHERE coach.auth_id = auth.uid()
-    AND coach.role = 'coach'
-    AND student_id IN (
-      SELECT id FROM users WHERE coach_id = coach.id
-    )
-  )
-  OR
-  -- Owner: all sessions
-  EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'owner')
-);
-```
-
-**Warning signs:**
-- Policies written as a single simple expression without role branching
-- A coach can see a student from another coach's roster
-- No end-to-end test that verifies coach A cannot access coach B's students
-
-**Phase to address:** Phase 1 — Foundation (RLS policies), verified again in Phase 3 (coach pages)
-
----
-
-### Pitfall 6: Invite-Only Registration Race Condition and State Mismatches
-
-**What goes wrong:**
-An invite code is valid when the user clicks the link, but by the time they complete Google OAuth and the callback runs, the code has expired or been used. The user gets a confusing error after completing OAuth. Alternatively, a code is consumed before the user's Supabase Auth account is created (if the callback errors mid-flight), leaving an orphaned used=true invite with no corresponding user.
-
-**Why it happens:**
-The invite flow involves multiple systems: the invite code in the `invites` table, the Google OAuth flow (external round-trip), and the `users` table insert. These are not atomic. The Supabase Auth `onAuthStateChange` callback happens after the OAuth redirect, which is after the user has already authenticated with Google — if anything fails between these steps, state diverges.
-
-A specific failure mode: the custom registration logic runs in the `/api/auth/callback` handler, which marks `invites.used = true`. If the `users` table INSERT fails after that (e.g., a constraint violation), the invite is consumed but the user doesn't exist.
-
-**How to avoid:**
-1. Validate and reserve the invite code BEFORE redirecting to Google OAuth (store `invite_code` in the OAuth `state` parameter or a short-lived session)
-2. Mark `invites.used = true` and insert into `users` in a single Postgres transaction in the callback handler
-3. Use a Supabase `before_user_created` Auth Hook to validate the invite before Supabase creates the auth user — this keeps the check closest to the creation point
-4. Handle the "invite expired after OAuth" case with a clear error page that explains what happened (not a generic auth error)
-5. Store invite code in `redirectTo` URL state parameter through the OAuth flow so it's still accessible at the callback
-
-**Warning signs:**
-- Callback handler marks invite used before inserting the user row
-- No transaction wrapping the invite consumption + user creation
-- Error page for invite failures shows a generic "authentication error"
-- No cleanup path for orphaned in_progress OAuth sessions with expired invites
-
-**Phase to address:** Phase 1 — Foundation (auth flow + invite registration)
-
----
-
-### Pitfall 7: Work Session Timer State Lost on Navigation or Refresh
-
-**What goes wrong:**
-A student starts a 45-minute work session, navigates to the roadmap page or refreshes the browser, and the timer is gone. The session shows as `in_progress` in the database forever. The student's daily cycle count is wrong. On the next session start, the UI may allow starting a second `in_progress` session, creating duplicates.
-
-**Why it happens:**
-The timer is a client-side React state using `setInterval`. When the user navigates away in Next.js App Router (which uses client-side routing), the component unmounts and the interval is cleared. The `started_at` timestamp IS persisted in the database, but the UI-side countdown and `in_progress` status have no persistence. On return, there is no logic to detect an existing `in_progress` session and resume the countdown.
-
-**How to avoid:**
-1. On the work session page load (server component), always check for an existing `in_progress` session. If one exists, calculate the elapsed time from `started_at` and pass the remaining seconds to the client timer component.
-2. The timer component must accept a `initialRemainingSeconds` prop and start counting from that value, not from 2700 (45 min).
-3. Handle the case where an `in_progress` session has exceeded 45 minutes (likely abandoned): auto-mark as abandoned on page load if `started_at` is more than 45+ grace minutes ago.
-4. Store only one `in_progress` session per student per day per cycle. Enforce this with a database constraint: `UNIQUE(student_id, date, cycle_number)`.
-5. Clean up `setInterval` in the useEffect return to prevent duplicate timers.
-
-**Warning signs:**
-- `work_sessions` table accumulates multiple `in_progress` rows for the same student
-- Timer starts from 45:00 instead of the remaining time when re-opening the page
-- No detection of stale `in_progress` sessions on the work tracker page load
-- Timer continues running in the background while user is on roadmap or report page
-
-**Phase to address:** Phase 2 — Student Pages (work tracker)
-
----
-
-### Pitfall 8: `createServerClient` Cookie Handler Using Deprecated `get/set/remove` API
-
-**What goes wrong:**
-Auth sessions silently fail in server components. `getUser()` returns null despite a valid cookie in the browser. Or cookie refreshes don't persist, causing users to be logged out unexpectedly after token expiry.
-
-**Why it happens:**
-The `@supabase/ssr` package requires using only `getAll` and `setAll` methods for the cookie handler. The older pattern using individual `get`, `set`, `remove` methods is deprecated and causes session token refresh to fail silently. Many tutorials and AI-generated code still use the old pattern.
-
-Additionally, in Next.js 15+, `cookies()` from `next/headers` is async and must be awaited. Forgetting this causes a runtime error or stale cookie reads.
-
-**How to avoid:**
-Use the current `@supabase/ssr` pattern exactly:
-
+Pass `?month=YYYY-MM` as a URL search parameter. Read it in the server component and scope queries:
 ```typescript
-// server client (server-components.ts)
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-
-export async function createClient() {
-  const cookieStore = await cookies(); // await in Next.js 15+
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); }, // getAll only, not get
-        setAll(cookiesToSet) {                      // setAll only, not set/remove
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-}
+const { month } = await searchParams; // e.g., "2026-02"
+const firstDay = `${month}-01`;
+const lastDay = new Date(new Date(firstDay).getFullYear(), new Date(firstDay).getMonth() + 1, 0).toISOString().split("T")[0];
+// Then: .gte("date", firstDay).lte("date", lastDay)
 ```
-
-Never import `@supabase/auth-helpers-nextjs` — it is deprecated and will conflict with `@supabase/ssr`.
+Next.js App Router triggers a server re-render when search params change, so month navigation via `router.push("?month=YYYY-MM")` fetches fresh bounded data automatically. Do not adapt the existing sessions prop for calendar rendering.
 
 **Warning signs:**
-- Cookie handler uses `get()`, `set()`, `remove()` methods
-- `@supabase/auth-helpers-nextjs` appears in `package.json`
-- Users get logged out after an hour (token refresh failing silently)
-- `getUser()` returns null in server component despite active browser session
+- Calendar shows no sessions for months older than ~4 months
+- Month navigation causes noticeable delay (re-fetching) but no loading state
+- Sessions prop has more than 100 items (limit being hit is likely)
 
-**Phase to address:** Phase 1 — Foundation (Supabase client setup)
+**Phase to address:** Calendar view phase — scope all queries with `month` search param from day one.
+
+---
+
+### Pitfall 7: Sticky KPI Banner Conflicts With Sidebar Z-Index and Mobile Layout
+
+**What goes wrong:**
+The sidebar is `fixed inset-y-0 left-0 z-50` (Sidebar.tsx line 168). The mobile menu toggle button is `fixed top-4 left-4 z-50`. The `<main>` element has `pt-16 md:pt-0 md:ml-60` (layout.tsx line 188). A sticky KPI banner placed with `position: fixed` will overlap the sidebar on desktop (it has no left offset), and will be covered by or overlap the mobile hamburger button at the top. A banner with `sticky top-0` used inside a `<div>` that has `overflow: hidden` (a common card pattern) will not stick at all.
+
+**Why it happens:**
+Sticky banners in top-nav layouts use `sticky top-[64px]` to sit below the nav bar. This codebase has no top nav bar — the sidebar is vertical. Developers copy the sticky-banner pattern without adapting the offset logic.
+
+**How to avoid:**
+Use `sticky top-0` within the main content flow (inside `<main>`), not `position: fixed`. The banner pins to the top of the scrollable content area, not the viewport — no z-index conflict with the sidebar is possible. If `position: fixed` is required for any reason: apply `left-0 md:left-60 right-0 top-16 md:top-0` to account for both the mobile hamburger height and the desktop sidebar width. Set the banner's z-index to `z-30` (below the sidebar's `z-50`). Never use `z-50` on content elements.
+
+**Warning signs:**
+- Banner is invisible on desktop (hidden behind sidebar)
+- Banner overlaps the mobile hamburger button (top-left corner)
+- Banner does not stick when inside a card container with `overflow: hidden`
+
+**Phase to address:** Progress KPI / sticky banner phase — verify layout on 375px mobile viewport with sidebar open before marking complete.
+
+---
+
+### Pitfall 8: outreach_count Rename Breaks the Coach Report Update Trigger
+
+**What goes wrong:**
+The `restrict_coach_report_update()` trigger (migration lines 411-428) explicitly resets `NEW.outreach_count := OLD.outreach_count` to prevent coaches from modifying student outreach data. If `outreach_count` is renamed to add granularity (e.g., `email_outreach_count`), the trigger references a column that no longer exists. Every coach attempt to mark a report as reviewed will fail with `ERROR: column "outreach_count" of relation "daily_reports" does not exist`. Coaches will be silently blocked from reviewing reports — the core accountability loop breaks.
+
+**Why it happens:**
+Trigger functions are defined in migration SQL and are easy to forget during feature work on application code. The trigger function body is not visible when reading component or API route code. The failure only surfaces at runtime when a coach tries to mark a report reviewed, not at migration time.
+
+**How to avoid:**
+When modifying `daily_reports` columns, update `restrict_coach_report_update` in the same migration that changes the column. The migration order must be: (1) add new columns, (2) update trigger function to reference new column names, (3) backfill data if needed, (4) drop old columns only after verifying no application code references them. Search `src/` for `outreach_count` before removing it from any migration.
+
+**Warning signs:**
+- Coaches receive 500 errors when clicking "Mark Reviewed"
+- `/api/reports/[id]/review` route succeeds (200) but database update silently fails
+- `supabase db push` migration succeeds but coach review functionality is broken post-deploy
+
+**Phase to address:** Daily report / outreach schema migration phase — include trigger update in the same migration as any `daily_reports` column change.
+
+---
+
+### Pitfall 9: Timezone Mismatch in joined_at + target_days Deadline Computation
+
+**What goes wrong:**
+`users.joined_at` is stored as `timestamptz NOT NULL DEFAULT now()` — a UTC timestamp. Computing "Step 3 must complete within 30 days of joining" by doing `new Date(joined_at).getTime() + 30 * 86400000` gives the correct UTC moment, but comparing that to `getToday()` (which returns a local-time date string, see `utils.ts` lines 8-15) creates an off-by-one bug for users in UTC+ timezones. A student in UTC+5 late at night will see a step marked "overdue" hours before a UTC student with the same deadline. The existing codebase uses mixed timezone approaches: `getToday()` returns local date, but `joined_at` is UTC.
+
+**Why it happens:**
+`getToday()` in `utils.ts` uses `new Date()` local date methods (not `.toISOString()` which is UTC). `joined_at` is UTC. When server-computed deadline strings are compared against client-rendered "today" strings, the timezone mismatch causes boundary-day errors.
+
+**How to avoid:**
+Compute deadlines entirely on the server (Next.js server components run in the Node.js process timezone, which on Vercel is UTC). Pass deadline date strings as ISO dates from server to client. Add a `getTodayUTC()` utility: `new Date().toISOString().split("T")[0]` and use it exclusively for all deadline comparisons. Never compare a UTC-derived deadline against a local-time "today" string.
+
+**Warning signs:**
+- Students in UTC+5 see "overdue" one day before UTC students with the same deadline
+- Deadline status changes at midnight UTC, not midnight local time
+- Unit tests for deadline logic pass in UTC CI but fail in developer local timezone
+
+**Phase to address:** Roadmap date KPIs phase — add `getTodayUTC()` to utils.ts before writing any deadline comparison logic.
+
+---
+
+### Pitfall 10: New Tables Added Without All Three Role RLS Policies
+
+**What goes wrong:**
+If v1.1 adds a new table (e.g., `outreach_events` for per-type tracking), running `ALTER TABLE outreach_events ENABLE ROW LEVEL SECURITY` without writing policies causes all queries from authenticated users to return empty arrays silently. No error is thrown — Postgres default-deny with RLS enabled filters all rows when no policy matches. The feature appears broken with an empty state, and the root cause is non-obvious because the admin client (service role key, bypasses RLS) works fine in testing.
+
+**Why it happens:**
+Developers write the student SELECT and INSERT policies but forget the coach SELECT policy (needed for coach/owner KPI visibility) and the owner SELECT policy. Or they test exclusively with the admin client which bypasses RLS entirely.
+
+**How to avoid:**
+For any new table, write all role policies in the same migration:
+- `owner_select_[table]` — `(select get_user_role()) = 'owner'`
+- `coach_select_[table]` — `(select get_user_role()) = 'coach' AND student_id IN (SELECT id FROM users WHERE coach_id = (select get_user_id()))`
+- `student_select_[table]` — `(select get_user_role()) = 'student' AND student_id = (select get_user_id())`
+- `student_insert_[table]` — matching student INSERT policy
+
+Use the existing `(select get_user_role())` initplan wrapper pattern (not inline function calls) for performance — this is established in migration line 183+.
+
+**Warning signs:**
+- Admin client query succeeds; authenticated client query returns `[]` with no error
+- Supabase Studio table editor shows rows; app shows empty state
+- New table migration has `ENABLE ROW LEVEL SECURITY` with no following `CREATE POLICY` statements
+
+**Phase to address:** Any phase adding a new table — include all four role policies in the same CREATE TABLE migration block.
+
+---
+
+### Pitfall 11: Config.ts Changes Without TypeScript Audit Break API Route Validation
+
+**What goes wrong:**
+`WORK_TRACKER.cyclesPerDay` is used in the work-sessions POST route Zod schema as `max(WORK_TRACKER.cyclesPerDay)` (line 9 of `work-sessions/route.ts`). Removing or renaming `cyclesPerDay` from config.ts causes a TypeScript compilation error, but `npm run dev` (Next.js dev server) transpiles without full type checking and may not surface this immediately. The production build (`npm run build`) will catch it, but only after wasted development time. Additionally, if the field is removed but the API validation is forgotten, cycle numbers above 4 will be accepted without validation, allowing arbitrary large values.
+
+**Why it happens:**
+Config is the single source of truth per CLAUDE.md rule 1, but consumers are spread across API routes, components, and pages. The Zod schema reference is easy to miss because it is not a display string — it's a runtime validation bound.
+
+**How to avoid:**
+Before removing or renaming any config field, run: `grep -r "WORK_TRACKER\." src/ --include="*.ts" --include="*.tsx"`. Run `npx tsc --noEmit` immediately after every config change, before writing any feature code. When deprecating a field, keep it as a computed re-export first rather than deleting it immediately.
+
+**Warning signs:**
+- Config change merged without a `npx tsc --noEmit` pass
+- API routes accept unexpectedly high `cycle_number` values
+- TypeScript errors surfaced only at build time, not dev time
+
+**Phase to address:** Flexible work sessions phase — `npx tsc --noEmit` as part of every sub-task completion before the next task starts.
+
+---
+
+### Pitfall 12: Roadmap Seeding Sets Step 1 completed_at to First Page Visit, Not Join Date
+
+**What goes wrong:**
+`roadmap_progress` already has a `completed_at timestamptz` column (migration line 107). The roadmap page's lazy-seeding code sets `completed_at: step.step === 1 ? now : null` (roadmap/page.tsx lines 43-51). `now` here is the moment the student first visits the roadmap page, not their actual join date. The v1.1 "roadmap completion date logging" feature will display `completed_at` for each step — for Step 1 ("Join the Course"), this will show the roadmap page visit date rather than the join date, which is semantically wrong and potentially days off.
+
+**Why it happens:**
+The seed was written before completion dates were a visible feature. Using `now()` was acceptable when the field wasn't displayed. Now that it becomes a user-visible data point, the wrong value surfaces.
+
+**How to avoid:**
+Fix the seed to use `user.joined_at` for Step 1's `completed_at`. The `requireRole("student")` call at the top of the roadmap page already returns the user object with `joined_at`. This is a one-line fix in the seeding block. Apply it before v1.1 ships — existing rows may also need a one-time backfill migration:
+```sql
+UPDATE roadmap_progress rp
+SET completed_at = u.joined_at
+FROM users u
+WHERE rp.student_id = u.id
+  AND rp.step_number = 1
+  AND rp.status = 'completed';
+```
+
+**Warning signs:**
+- Step 1 "completed" date differs from user's join date shown elsewhere in the UI
+- Students who joined but didn't visit roadmap for 2 weeks show Step 1 completed 2 weeks after join
+- Inconsistency between the "Member since X" display and Step 1 completion timestamp
+
+**Phase to address:** Roadmap date KPIs phase — run the backfill migration AND fix the seed before adding the completed_at display.
 
 ---
 
@@ -282,12 +299,11 @@ Never import `@supabase/auth-helpers-nextjs` — it is deprecated and will confl
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Skip RLS, use service_role for all server queries | Faster initial development, no policy debugging | Any server-side bug exposes full database access; can never add client-side queries safely | Never — this project explicitly requires defense-in-depth |
-| Put role in `user_metadata` for quick JWT access | Avoids table join in RLS policies | Students can promote themselves to owner; full auth bypass | Never — use `users` table join or `app_metadata` |
-| Use `getSession()` instead of `getUser()` in server | No network RTT per auth check | Spoofable sessions; route protection ineffective | Never in server code — acceptable only in display-only client components |
-| Single `in_progress` session allowed (no constraint) | Simpler insert logic | Multiple orphaned sessions accumulate; cycle count wrong | Never — enforce at DB level with unique constraint |
-| Hardcode redirectTo URL in OAuth | Simpler setup code | Auth breaks in one environment or the other | Never — always make redirectTo dynamic |
-| Skip migrations, use Supabase Dashboard UI for schema changes | Faster iteration on schema | Schema drift between local/production; changes not reproducible | Never for production schema — acceptable only for pure local exploration |
+| Track break state client-only (no DB write) | No schema change, no API round-trip | Break timer resets on page refresh mid-break | Acceptable — break is between cycles; a page refresh mid-break is a recoverable edge case |
+| Compute lifetime outreach via JS reduce over fetched rows | No stored function needed | Slow and large payloads at 100+ reports | Never — use Postgres SUM from day one |
+| Derive calendar data from existing sessions prop (no date param) | No URL change, simpler component | Shows empty data for months beyond the 120-row limit | Never — correctness is compromised |
+| Keep cyclesPerDay = 4 in config but ignore it in UI logic | No schema migration | Config lies about behavior; confuses future developers | Only as a transient state during the same plan that updates all consumers |
+| Use getToday() (local time) for deadline comparisons | Works correctly in UTC and UTC- timezones | Off-by-one for UTC+ users late at night | Never — use getTodayUTC() for deadline logic |
 
 ---
 
@@ -295,13 +311,12 @@ Never import `@supabase/auth-helpers-nextjs` — it is deprecated and will confl
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Supabase Auth + Google OAuth | Not adding both localhost and production to Google Console Authorized Redirect URIs | Add all environments to both Google Console AND Supabase Additional Redirect URLs |
-| Supabase Auth + Next.js middleware | Calling `getSession()` in middleware for auth check | Always use `getUser()` in middleware; `getSession()` is insecure server-side |
-| Supabase Admin Client | Using admin client in client-side code with `NEXT_PUBLIC_` service role key | Admin client must only exist in server files; service_role key must never be prefixed with `NEXT_PUBLIC_` |
-| Supabase CLI + Docker | Running `supabase start` without Docker Desktop running | Verify Docker is running first; `supabase start` will hang silently if Docker is off |
-| Supabase CLI + local-to-prod migrations | Manual schema edits via Dashboard bypassing migration files | All schema changes through migration files only; never edit prod directly via Dashboard |
-| Next.js `cookies()` + Supabase SSR | Not awaiting `cookies()` in Next.js 15+ | `const cookieStore = await cookies()` — it is async in Next.js 15+ |
-| Google OAuth local dev | App running on `127.0.0.1:3000` instead of `localhost:3000` | Ensure dev server binds to `localhost`, match exactly what's in Google Console |
+| Supabase aggregate queries | `.select("outreach_count").then(rows => rows.reduce(...))` | `.rpc("get_outreach_kpis", {...})` or `.select("outreach_count.sum()")` |
+| Supabase migrations on live data | `ADD COLUMN x integer NOT NULL` without DEFAULT | `ADD COLUMN x integer`, backfill, `SET NOT NULL` in same migration |
+| Supabase RLS on new tables | Create table + enable RLS, but no policies | Write all role policies in the same migration |
+| Next.js search params for month navigation | Using client state for selected month | Pass `?month=YYYY-MM` as URL search param; server component reads it for data fetching |
+| Supabase trigger functions after column rename | Trigger references old column name post-rename | Update trigger function in same migration as column rename |
+| Supabase admin client in coach/owner KPI views | Fetching student KPI data via RLS-bound client in server component | Always use `createAdminClient()` in server components, then filter by coach_id in application code |
 
 ---
 
@@ -309,11 +324,11 @@ Never import `@supabase/auth-helpers-nextjs` — it is deprecated and will confl
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| RLS policies with unindexed `student_id`, `coach_id` foreign keys | Slow page loads; queries take 200-500ms even for simple row reads | Add BTREE indexes on all columns referenced in RLS policies (`student_id`, `coach_id`, `auth_id`) | With 50+ students and frequent queries — this project's scale, not hypothetical |
-| RLS policy calling `auth.uid()` on every row (not wrapped in SELECT) | Query plans show repeated function calls; scales linearly with row count | Wrap in subselect: `(SELECT auth.uid())` to allow Postgres to cache per statement | After ~1,000 rows — will affect this app's `work_sessions` and `daily_reports` tables |
-| RLS subquery JOIN direction wrong | Same symptoms as above; EXPLAIN shows nested loop | Structure as `table.field IN (SELECT field FROM lookup WHERE user = auth.uid())` not the reverse | After ~500 rows |
-| Server component fetching data already fetched in parent layout | Doubled database queries per page load; waterfall requests | Use React's `cache()` or pass data as props from parent | From day 1 — visible in Network tab |
-| N+1 queries in coach dashboard (one query per student for their stats) | Coach dashboard with 10+ students becomes slow | Aggregate queries with JOIN instead of per-student fetches | Coach with 10+ students |
+| JS-side lifetime outreach sum | 400ms+ page load; large JSON payload | Postgres SUM via RPC or `.select("outreach_count.sum()")` | ~50+ daily reports (~2 months of activity) |
+| Calendar fetch without date bounds (120-row limit) | Old months show empty calendar; no error | `?month` search param + `gte`/`lte` date filter | Student with 120+ total sessions (~4 months active) |
+| Layout.tsx badge count queries — adding sequential awaits | Owner/coach layout slow to load | All badge queries are in existing `Promise.all`; do not add more sequential awaits above the parallel block | Immediate if a new `await` is added before the `Promise.all` |
+| Daily reports SELECT * for KPI computation | Large payload; wins/improvements text wastes bandwidth | Select only `outreach_count, date` for aggregates | ~30+ reports (text fields inflate payload significantly) |
+| Calendar tab re-fetching same month on every tab switch | Double network round-trip when user switches away and back | Cache month data in React state keyed by `"YYYY-MM"` string | Every tab switch without caching |
 
 ---
 
@@ -321,12 +336,10 @@ Never import `@supabase/auth-helpers-nextjs` — it is deprecated and will confl
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| `SUPABASE_SERVICE_ROLE_KEY` prefixed with `NEXT_PUBLIC_` | Full database read/write/delete for anyone — bypasses all RLS | Never use `NEXT_PUBLIC_` prefix on service role key; only access in server-side files |
-| RLS policies checking `user_metadata.role` from JWT | Any user can escalate their own role | Use `users` table join for role checks, not JWT `user_metadata` |
-| Invite code validation only client-side | Attacker can bypass client checks and register without a valid invite | Validate invite code server-side in the callback handler — never trust client-supplied code alone |
-| Admin API route without role verification | Coaches or students can call owner-only endpoints | Every API route must verify both authentication (getUser) and authorization (role from users table) |
-| Coach viewing any student's data by guessing UUID | Data leakage — coach A reads coach B's students | RLS policies must scope coach access to `users WHERE coach_id = coach.id`; verify in integration test |
-| Marking invite as used before creating user (non-atomic) | Invite consumed, user creation fails, invite is permanently used with no account | Wrap invite consumption + user insert in a database transaction |
+| New outreach columns added without updating `restrict_coach_report_update` trigger | Coaches can modify student outreach data by accident via the review PATCH path | Add new outreach columns to trigger's explicit reset list in same migration |
+| KPI data for coach/owner views fetched with RLS-bound authenticated client | Coach sees data for their own students only if RLS works; empty results if policy has edge case | Always use `createAdminClient()` in server components for coach/owner data reads, then filter by `coach_id` in application code |
+| `duration_target_minutes` accepted from client without server validation | Client sends 999 to inflate tracked time stats | Validate against exact allowed values in Zod: `z.union([z.literal(30), z.literal(45), z.literal(60)])` |
+| Lifetime outreach RPC callable by any authenticated user for any student_id | Coach queries KPI for a student not assigned to them | Add `p_student_id IN (SELECT id FROM users WHERE coach_id = get_user_id())` guard inside the function, or enforce in the calling server component |
 
 ---
 
@@ -334,27 +347,26 @@ Never import `@supabase/auth-helpers-nextjs` — it is deprecated and will confl
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Timer showing 45:00 on return to work tracker page | Student loses track of active session; thinks timer reset; may start a duplicate cycle | Detect existing `in_progress` session on page load, restore remaining time |
-| Generic "Authentication Error" for expired invite | User has no idea what went wrong, cannot self-serve | Detect invite expiry specifically, show "Your invite link has expired. Contact your coach." |
-| Daily report form doesn't pre-fill hours from work sessions | Student manually re-enters hours they already tracked; inconsistency between tracker and report | Auto-calculate hours from completed work sessions for the day on report form load |
-| Role-based redirect after login shows flash of wrong dashboard | Users see a flash of incorrect content before redirect | Determine role on the server in the OAuth callback and redirect immediately; never redirect on the client after hydration |
-| "4 cycles done" shows even if a session was abandoned | Misleads student about actual work completed | Only count `status = 'completed'` sessions toward daily cycle count |
-| Empty coach analytics page with no explanation | Coach doesn't know if it's loading or genuinely empty | Always show empty state with context ("No data yet — students need to submit reports") |
+| Sticky banner with `position: fixed` on mobile | Banner overlaps content; main nav toggle (top-left) may be covered | Use `sticky top-0` in normal document flow inside `<main>` |
+| Calendar month navigation full page reload | Jarring; full spinner on every month change | Soft navigation with `router.push("?month=YYYY-MM")` — Next.js handles as partial re-render |
+| Break timer in a modal or separate overlay | Student closes modal, loses break awareness | Break state shown inline in the work tracker card, same visual hierarchy as the cycle timer |
+| Roadmap deadline "overdue" in red on the day it is due | Students feel penalized for same-day completion | "Overdue" triggers only the day AFTER the deadline; "due today" is a distinct warning state |
+| KPI banner visible on every page including the work tracker | Anxiety about targets during focused work | Show sticky banner on dashboard only; on work tracker page, show a compact inline stat |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Google OAuth**: Works locally AND in production — tested both; redirect URLs confirmed in both Google Console and Supabase Dashboard
-- [ ] **Invite registration**: Invite validation is server-side in the callback, not just client-side; expired invite shows a clear error (not a generic one)
-- [ ] **Work session timer**: Restores remaining time when navigating back to the page; does not allow two `in_progress` sessions on the same cycle
-- [ ] **Role-based routing**: Tested that a student URL (`/student/work`) returns 403 or redirect when accessed as a coach or owner — not just a redirect for unauthenticated users
-- [ ] **RLS policies**: All policies tested with anon-key client (not service_role); queried from outside the app to verify no data leaks
-- [ ] **Service role key**: Confirm `SUPABASE_SERVICE_ROLE_KEY` does NOT appear in any `NEXT_PUBLIC_` env var; confirm it only exists in server files
-- [ ] **Daily report auto-hours**: Hours field in the report form reflects actual completed work sessions, not whatever the student types (or it's clearly a manual override)
-- [ ] **Coach scope**: Coach A cannot access a student assigned to Coach B — verified by query with Coach A's credentials
-- [ ] **Middleware refresh**: Token refresh middleware runs on all protected routes; users are not silently logged out after JWT expiry (default 1 hour)
-- [ ] **Migration parity**: `supabase db diff` shows no drift between local and production schema before deploying Phase 1
+- [ ] **Flexible sessions:** Cycle number cap removed in BOTH the Zod schema (POST route) AND the DB `CHECK` constraint — verify both independently
+- [ ] **Break timer:** Complete a session with a break and verify `duration_minutes` matches the selected session duration exactly (break time not subtracted)
+- [ ] **Outreach KPIs:** Verify lifetime total uses Postgres SUM, not JS reduce — check network payload contains only aggregate values, not full report rows
+- [ ] **Sticky banner:** Test on 375px Chrome DevTools mobile with sidebar open — banner must not overlap sidebar or the hamburger toggle
+- [ ] **Roadmap dates:** Step 1 `completed_at` matches `joined_at`, not first roadmap page visit — verify in DB for a student who joined before visiting roadmap
+- [ ] **Coach KPI view:** A coach can see their own student's KPI data, but cannot see data for a student assigned to a different coach
+- [ ] **Calendar view:** Navigate to a month 5+ months ago for an active student — correct sessions displayed (not empty due to row limit)
+- [ ] **outreach_count trigger:** If any `daily_reports` column is renamed, verify coaches can still mark reports reviewed after migration (no 500 error)
+- [ ] **New RLS tables:** Any new table has all role SELECT policies — verify by querying as an authenticated student role, not service role
+- [ ] **TypeScript:** `npx tsc --noEmit` passes after every `config.ts` change — confirmed before moving to the next plan
 
 ---
 
@@ -362,13 +374,13 @@ Never import `@supabase/auth-helpers-nextjs` — it is deprecated and will confl
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| OAuth redirect loops in production | LOW | Update Site URL in Supabase Dashboard + redeploy env vars |
-| RLS blocking all queries (policies missing) | LOW | Add missing policies via migration; no data loss |
-| Role stored in user_metadata (discovered post-launch) | HIGH | Migrate all logic to users table join; audit all existing RLS policies; re-test all auth paths |
-| Service role key exposed in client bundle | CRITICAL | Immediately rotate key in Supabase Dashboard; update all environments; audit access logs |
-| Work sessions table has orphaned `in_progress` rows | LOW-MEDIUM | Write a one-time migration to mark stale sessions as `abandoned` where `started_at` is >2 hours old |
-| Schema drift (prod diverged from migrations) | MEDIUM | Use `supabase db diff` to identify drift; write a catch-up migration; never edit prod directly again |
-| Invite codes permanently consumed by failed registrations | LOW-MEDIUM | Add an admin endpoint to reset `used = false` on orphaned invites; add the transaction fix to prevent recurrence |
+| Break timer corrupted `started_at` for active sessions | MEDIUM | Migration: recalculate affected sessions using `completed_at - duration_minutes`; mark sessions with impossible timestamps as abandoned |
+| NOT NULL migration failed midway on live data | HIGH | Roll back migration; add column as nullable; backfill in separate step; add constraint last |
+| `outreach_count` rename broke `restrict_coach_report_update` trigger | LOW | Hotfix migration updating trigger function to reference new column name; no data loss |
+| Calendar showing empty data due to 120-row limit | LOW | Add `?month` param and date-bounded queries; no data migration needed |
+| Step 1 `completed_at` shows wrong date for all existing students | LOW | One-time backfill: `UPDATE roadmap_progress SET completed_at = users.joined_at WHERE step_number = 1` |
+| Lifetime outreach sum causing timeouts | MEDIUM | Add Postgres RPC function; update server component query; no data migration needed |
+| New table has RLS enabled but no policies (empty results) | LOW | Add missing policies via migration; no data loss; no schema change |
 
 ---
 
@@ -376,38 +388,37 @@ Never import `@supabase/auth-helpers-nextjs` — it is deprecated and will confl
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| OAuth redirect URL mismatch | Phase 1 | Test login flow locally AND from production URL |
-| `getSession()` vs `getUser()` in server | Phase 1 | Code review all server files; grep for `getSession` |
-| Role in `user_metadata` | Phase 1 | Inspect all RLS policies for `user_metadata` references |
-| RLS enabled with no policies | Phase 1 | Every `ENABLE ROW LEVEL SECURITY` in migration has corresponding `CREATE POLICY` |
-| Cross-role data leakage | Phase 1 (design) + Phase 3 (coach) | Test coach A cannot read coach B's students with raw SQL |
-| Invite race condition / orphan state | Phase 1 | Test: start OAuth, let invite expire before callback, verify clean error |
-| Work session timer lost on navigation | Phase 2 | Navigate away mid-session and return; verify timer resumes correctly |
-| Deprecated `get/set/remove` cookie handler | Phase 1 | Use only `getAll/setAll` from day one; verify no `auth-helpers-nextjs` in package.json |
-| RLS performance (missing indexes) | Phase 1 | All FK columns indexed in initial migration |
-| Service role key exposure | Phase 1 | `grep -r NEXT_PUBLIC_SUPABASE_SERVICE` returns no results |
-| Schema drift local-to-production | Phase 1 + Phase 5 | `supabase db diff` run before every production push |
+| Break timer invalidates resume math | Flexible work sessions | Manual test: start session, take break, resume, complete — `duration_minutes` matches selected duration |
+| `cyclesPerDay` cap breaks 5+ references | Flexible work sessions | `grep -r "cyclesPerDay"` shows 0 un-updated references; `npx tsc --noEmit` passes |
+| NOT NULL column migration fails on live data | DB schema migration | Test migration against a DB seeded with existing work_sessions rows |
+| Unique index blocks flexible sessions | DB schema migration | Start, abandon, restart same cycle slot on same day — no 409 error |
+| N+1 outreach aggregate | Progress KPI / outreach tracking | Network payload for KPI banner is under 200 bytes even for students with 200+ reports |
+| Calendar over-fetch (120-row limit) | Calendar view | Navigate to 6-month-old month — correct data shown, no empty-due-to-limit |
+| Sticky banner z-index conflict | Progress KPI / sticky banner | Mobile test with sidebar open — no overlap with sidebar or hamburger |
+| `outreach_count` deprecation breaks trigger | Daily report schema migration | Coach marks report reviewed after migration — HTTP 200, no 500 error |
+| Timezone mismatch in deadline computation | Roadmap date KPIs | Deadline status same for UTC+5 and UTC-5 test accounts on same calendar day |
+| RLS missing on new tables | Any phase adding a new table | Authenticated student query returns owned data; non-owned student data blocked |
+| Config.ts change breaks TypeScript | Flexible work sessions | `npx tsc --noEmit` passes before each plan is marked complete |
+| Seed sets wrong Step 1 `completed_at` | Roadmap date KPIs | Step 1 `completed_at` in DB matches `users.joined_at` for all students |
 
 ---
 
 ## Sources
 
-- [Supabase: Setting up Server-Side Auth for Next.js](https://supabase.com/docs/guides/auth/server-side/nextjs) — cookie handler `getAll/setAll` pattern
-- [Supabase: RLS Performance and Best Practices](https://supabase.com/docs/guides/troubleshooting/rls-performance-and-best-practices-Z5Jjwv) — index optimization, subquery direction
-- [Supabase: Custom Claims & RBAC](https://supabase.com/docs/guides/database/postgres/custom-claims-and-role-based-access-control-rbac) — role storage security
-- [Supabase: Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls) — OAuth redirect configuration
-- [Supabase GitHub Discussion: Google OAuth not working locally #20353](https://github.com/orgs/supabase/discussions/20353) — localhost vs 127.0.0.1 issue
-- [Supabase GitHub Discussion: Always redirects to localhost despite correct redirect URLs #26483](https://github.com/orgs/supabase/discussions/26483) — dynamic redirectTo pattern
-- [Supabase GitHub Issue: AuthSessionMissingError in Next.js 14.2+/15 despite valid cookie #107](https://github.com/supabase/ssr/issues/107) — SSR cookie handler failures
-- [Supabase GitHub Discussion: Magic Link Expiration - Invite User #13527](https://github.com/orgs/supabase/discussions/13527) — invite expiry edge cases
-- [Supabase GitHub Discussion: OTP expiration setting vs Email invite expiration #23444](https://github.com/orgs/supabase/discussions/23444) — invite system timing issues
-- [Vercel Blog: Common mistakes with the Next.js App Router and how to fix them](https://vercel.com/blog/common-mistakes-with-the-next-js-app-router-and-how-to-fix-them) — server component patterns
-- [Supabase: Token Security and Row Level Security](https://supabase.com/docs/guides/auth/oauth-server/token-security) — JWT `user_metadata` vulnerability
-- [Supabase: Before User Created Hook](https://supabase.com/docs/guides/auth/auth-hooks/before-user-created-hook) — invite validation at auth creation
-- [Supabase GitHub Discussion: Sync local and prod schemas when they're out of sync #18483](https://github.com/orgs/supabase/discussions/18483) — schema drift recovery
-- [GitHub: @supabase/ssr AuthSessionMissingError #107](https://github.com/supabase/ssr/issues/107) — verified getUser vs getSession behavior
-- [LogRocket: React Server Components performance pitfalls](https://blog.logrocket.com/react-server-components-performance-mistakes) — N+1 and hydration issues
+- Direct codebase analysis: `src/app/api/work-sessions/route.ts` (Zod `max(cyclesPerDay)` bound)
+- Direct codebase analysis: `src/app/api/work-sessions/[id]/route.ts` (resume shift logic lines 91-97, abandon delete lines 99-110)
+- Direct codebase analysis: `src/components/student/WorkTrackerClient.tsx` (allComplete logic, cyclesPerDay references)
+- Direct codebase analysis: `src/components/student/WorkTimer.tsx` (startedAt-based elapsed computation)
+- Direct codebase analysis: `supabase/migrations/00001_create_tables.sql` (unique index line 97, NOT NULL constraints, trigger functions lines 391-432, RLS policies)
+- Direct codebase analysis: `src/app/(dashboard)/layout.tsx` (sidebar z-50, main pt-16/ml-60 offsets)
+- Direct codebase analysis: `src/components/layout/Sidebar.tsx` (z-50 usage, mobile overlay)
+- Direct codebase analysis: `src/app/(dashboard)/coach/students/[studentId]/page.tsx` (120-row sessions limit, 20-row reports limit)
+- Direct codebase analysis: `src/app/(dashboard)/student/roadmap/page.tsx` (lazy seed sets completed_at = now() for step 1)
+- Direct codebase analysis: `src/lib/config.ts` (cyclesPerDay: 4, all WORK_TRACKER references)
+- Direct codebase analysis: `src/lib/utils.ts` (getToday local-time behavior)
+- Postgres documentation: `ADD COLUMN NOT NULL` behavior in Postgres 11+ (metadata-only for constant DEFAULTs, Postgres 15 on Supabase)
+- Supabase documentation: RLS policy behavior (default-deny; silent empty result when no policy matches)
 
 ---
-*Pitfalls research for: Next.js App Router + Supabase multi-role coaching platform (IMA Accelerator V1)*
-*Researched: 2026-03-16*
+*Pitfalls research for: IMA Accelerator v1.1 — flexible sessions, outreach KPIs, calendar view, roadmap deadlines added to existing platform*
+*Researched: 2026-03-27*

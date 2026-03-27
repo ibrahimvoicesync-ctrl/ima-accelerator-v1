@@ -1,264 +1,219 @@
 # Project Research Summary
 
-**Project:** IMA Accelerator V1 — Influencer Marketing Academy Coaching Platform
-**Domain:** Multi-role coaching / student accountability platform
-**Researched:** 2026-03-16
+**Project:** IMA Accelerator v1.1 — Flexible Sessions, KPI Banner, Calendar View, Roadmap Deadlines
+**Domain:** Student performance and coaching platform (Next.js App Router + Supabase)
+**Researched:** 2026-03-27
 **Confidence:** HIGH
 
 ## Executive Summary
 
-IMA Accelerator V1 is a three-role coaching platform (owner, coach, student) built around a daily accountability loop: students track 45-minute work sessions, submit daily reports, and advance through a structured 10-step roadmap. Coaches monitor assigned students and review reports. The owner (Abu Lahya) monitors program health and intervenes proactively via an alert system. All research is HIGH confidence — derived from a working reference codebase (`reference-old/`), verified npm versions, official Supabase and Next.js documentation, and cross-validated against competitor platforms.
+IMA Accelerator v1.1 is an incremental feature release on top of a validated v1.0 coaching platform. The work is entirely additive — no new route groups, no new layout layers, no new auth patterns. All five feature areas (flexible work sessions, outreach KPI banner, coach/owner KPI visibility, calendar view, roadmap deadline tracking) integrate cleanly into the existing server-component-first architecture. The recommended build strategy is strict dependency order: schema and config first, shared library second, student-facing features third, then coach/owner views, and calendar last. The entire release requires only one new npm dependency (`react-day-picker@^9.14.0`).
 
-The recommended approach is a server-first Next.js 16 + Supabase monolith. Pages are async server components that fetch all data before render, passing populated state to small `"use client"` islands for interactivity. All mutations go through API route handlers. This eliminates client-side loading waterfalls and keeps auth token handling secure on the server. The stack — Next.js 16.1.6, React 19, Tailwind v4, Supabase (hosted), `@supabase/ssr`, Zod v4, react-hook-form — is exactly what the reference codebase used in production and is pinned to current stable releases.
+The primary architectural principle is to keep computation on the server. Lifetime outreach totals must use a Postgres SUM aggregate — never a JavaScript `.reduce()` over fetched rows. Calendar month data should be fetched with `?month=YYYY-MM` search params so the server scopes queries with `gte`/`lte` date bounds, rather than over-fetching with a row limit and filtering client-side. Break countdowns live entirely in React client state and must never be persisted to the database. These three patterns, done wrong, represent the highest implementation risk in this release — two of them cause silent data loss that only appears weeks later at scale.
 
-The critical risk category is authentication security: the platform requires defense-in-depth auth (proxy + server page + API route), role storage in the `users` table (never JWT `user_metadata`), `getUser()` over `getSession()` in all server code, and atomic invite-code consumption. Five of the eight documented critical pitfalls are Phase 1 concerns — the foundation must be built correctly or every subsequent feature inherits the flaw. The work session timer (Phase 2) has a non-obvious state-restoration requirement that is the top Phase 2 risk.
-
----
+The most critical pre-implementation action is to audit and update all references to `WORK_TRACKER.cyclesPerDay` before writing any feature code. This single config field has six consumers spread across API routes, client components, and a database CHECK constraint. Missing any one of them produces silent runtime failures that are difficult to trace. A `grep -r "cyclesPerDay" src/` audit and a `npx tsc --noEmit` check must gate entry into the flexible sessions phase. The timezone pitfall in roadmap deadline comparisons — mixing UTC `joined_at` timestamps with local-time `getToday()` calls — is the second highest risk and is addressed by adding a `getTodayUTC()` utility before writing any deadline comparison logic.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack is established and verified against the working reference codebase. No speculative or unproven technology is required. Next.js 16 introduced breaking changes from 15 (`middleware.ts` is now `proxy.ts`, `serverRuntimeConfig` removed, `next lint` removed, Node 20.9+ required) — these are all already accounted for in the architecture. Tailwind v4 uses CSS-first config via `@theme` in `globals.css`; there is no `tailwind.config.js`. Zod v4 should be imported from `"zod"` not `"zod/v4"`.
+The v1.0 stack is unchanged and remains appropriate. The only new dependency for v1.1 is `react-day-picker@^9.14.0`, which provides the month-grid calendar with WCAG 2.1 AA compliance, 24 swappable component slots for custom day rendering, and uses `date-fns` (already installed) as a peer dependency. Circular progress rings use SVG `<circle>` with `strokeDashoffset` animated via `motion.circle` (motion is already installed). Break countdown timers use the same `setInterval` + `useEffect` pattern already in `WorkTrackerClient`. Date arithmetic for deadlines uses `addDays` / `differenceInDays` from `date-fns v4`. Schema additions use `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` with constant defaults.
 
 **Core technologies:**
-- **Next.js 16.1.6**: Full-stack React framework — LTS release with Turbopack default, App Router + Server Components, `proxy.ts` replaces `middleware.ts`
-- **React 19.2.3**: Ships with Next.js 16; no separate install decision
-- **TypeScript 5.9.x (strict)**: Required by Next.js 16 (min 5.1); strict mode is non-negotiable per project constraints
-- **Supabase (hosted)**: Postgres + Auth + RLS + Realtime — managed, zero infra ops, Google OAuth first-class
-- **`@supabase/ssr` v0.9.0**: Cookie-based auth for SSR — replaces deprecated `auth-helpers-nextjs`; use `getAll/setAll` cookie handlers only
-- **Tailwind CSS v4.2.1**: CSS-first config via `@theme` — no `tailwind.config.js`; `@tailwindcss/postcss` replaces old PostCSS plugin
-- **Zod v4.3.6**: Schema validation — 14x faster string parsing; import from `"zod"`, never `"zod/v4"`
-- **react-hook-form v7.71.2 + @hookform/resolvers v5.2.2**: Form state — resolvers v5+ required for Zod v4 compatibility
-- **class-variance-authority v0.7.1**: CVA variant system for all UI primitives
-- **date-fns v4.1.0**: Date formatting and threshold calculations (3-day, 7-day, 14-day inactivity windows)
-- **recharts v3.7.0**: Owner analytics dashboard charts only
-- **server-only v0.0.1**: Build-time guard preventing admin client from entering client bundles
+- `Next.js 16.1.6`: Full-stack framework — route protection via `src/proxy.ts`, not `middleware.ts`
+- `React 19.2.3` + `TypeScript ^5 (5.9.x)`: strict mode; Server/Client Component boundary discipline required
+- `Supabase (hosted)`: Postgres + Auth + RLS; admin client (service role) for all server-side cross-user reads
+- `Tailwind CSS ^4 (4.2.1)`: ima-* token system via `@theme` in `globals.css`; never hardcoded hex
+- `motion@^12.37.0`: `motion.circle` for animated SVG KPI rings; all animate-* classes use `motion-safe:`
+- `date-fns@^4.1.0`: all deadline arithmetic (`addDays`, `differenceInDays`, `isSameDay`, `startOfMonth`, etc.)
+- `react-day-picker@^9.14.0` (NEW): month-grid calendar with custom `DayButton` slot for dot indicators
+
+**Critical version notes:**
+- `react-day-picker` React 19 compatibility fixed in v9.4.3; require `^9.14.0`
+- Zod: always `import { z } from "zod"` — never `"zod/v4"`
+- Supabase migrations: use `IF NOT EXISTS` on every `ADD COLUMN` for idempotency on re-run
+- Postgres 15 (Supabase): `ADD COLUMN ... NOT NULL DEFAULT <constant>` is metadata-only (no table rewrite); volatile defaults like `now()` still require a full rewrite
 
 Full version manifest and alternatives considered: see `.planning/research/STACK.md`.
 
----
-
 ### Expected Features
 
-The core product is an accountability loop: session tracking feeds daily reports, daily reports feed coach review, coach review feeds owner alerts. Every feature either supports this loop directly or is deferred.
+All six v1.1 features are in scope and sufficiently interdependent that shipping them together is lower risk than a partial release.
 
-**Must have (table stakes — ship at V1 launch):**
-- Google OAuth login with invite-only registration — the gate to everything
-- Role-based access control (owner/coach/student) with RLS enforcement — unsafe without it
-- Owner invite system (coach + student invites, magic links, 72h expiry) — prerequisite for onboarding
-- Owner coach-student assignment — prerequisite for any coaching features
-- Student work session tracker (45-min cycles, 4/day, start/complete/abandon with grace period) — core daily habit
-- Student 10-step roadmap (locked/active/completed sequential progression) — structural progress artifact
-- Student daily report submission (hours auto-filled from sessions, star rating, outreach count, wins, improvements, 11 PM deadline) — the accountability loop
-- Coach dashboard with assigned student overview and at-risk flags — coaches need situational awareness
-- Coach report review (mark as reviewed) — closes the accountability loop
-- Owner platform-wide stats dashboard — Abu Lahya needs program health visibility
-- Owner alert system (3-day inactivity, 7-day no-login, coach avg rating < 2.5 for 14 days, unreviewed reports) — proactive intervention
-- Ask Abu Lahya AI chat (iframe embed of existing chatbot) — async coaching presence
-- Mobile-responsive UI, loading states, error boundaries, empty states — table-stakes polish
+**Must have (table stakes — P1):**
+- Flexible work sessions: duration selector (30/45/60 min), break countdown after session completion, skip break, remove 4-cycle daily cap
+- KPI progress banner: sticky lifetime (0/2,500) and daily (0/50) outreach bars with RAG color coding on student dashboard
+- Coach/owner KPI visibility: read-only KPI summary card on student detail pages for both roles
+- Calendar month grid: 7-column grid on coach/owner student detail pages, session/report dot indicators, prev/next navigation
+- Calendar day detail panel: sessions list and daily report for the selected date in a panel below the grid
+- Roadmap deadline status chips: on-track/due-soon/overdue per step, days remaining, completed_at display on student roadmap and coach/owner roadmap tab
 
-**Should have (competitive differentiators, add after core loop validated):**
-- Coach basic analytics (report rates, activity trends over time)
-- Email notifications via Resend — add only after users confirm they want email nudges
+**Should have (P2 — add within v1.1 scope):**
+- Granular outreach breakdown: new `brands_contacted` / `influencers_contacted` fields on daily reports, updated report form, updated KPI banner
+- Break duration proportional to session length (shorter sessions get shorter breaks; break = session / 3 rounded to 5 min)
+- Session count badge replacing the "4/4 cycles" display
 
-**Defer to V2+:**
-- Gamification tiers (Bronze/Silver/Gold) — demotivates bottom 90% of cohort; roadmap steps already provide progression
-- Leaderboards / rankings — anxiety-inducing; at-risk alerts surface struggling students privately instead
-- In-app notification system — disproportionate complexity for V1
-- CRM deal/influencer pipeline — premature for students at Steps 2-4
-- Streak tracking — requires cron infrastructure; punishes absences twice
+**Defer to v1.2+:**
+- Days-to-target projection on KPI banner (needs 7+ days of data to be meaningful)
+- Roadmap completion velocity label
+- Session volume intensity shading on calendar (GitHub heat-map style)
+- Year/heat-map calendar view
 
-Key dependency chain: Google OAuth → invite registration → role assignment → all dashboards → work tracker → daily reports → coach review → owner alerts. Roadmap progression is independent and can be built in parallel.
+Key dependency: the `cycle_number UNIQUE` constraint on `work_sessions` and the Zod `max(cyclesPerDay)` in the POST route both block flexible sessions — schema and API route changes are strict prerequisites for all student-facing work.
 
-Full feature matrix, dependency graph, and competitor analysis: see `.planning/research/FEATURES.md`.
-
----
+Full feature matrix, UX patterns, and dependency graph: see `.planning/research/FEATURES.md`.
 
 ### Architecture Approach
 
-The architecture follows a strict server-first pattern: async server components fetch all page data using `Promise.all()`, then pass the pre-populated data as props to small `"use client"` islands. Mutations from client islands go exclusively through `/api/*` route handlers — no client component ever calls Supabase directly. Route protection runs in three layers: `proxy.ts` (navigation guard), `getSessionUser()` (per-page server check), and explicit auth+role check at the top of every API route handler. `createAdminClient()` (service role) is used for all server-side DB queries with explicit user-ID filters applied on every query even though RLS is also active.
+v1.1 makes no structural changes to the application. Every new feature follows the existing pattern: async server component reads data via `createAdminClient()`, computes derived values, passes typed props down to "use client" islands for interactivity. The two new display components (`ProgressBanner`, `StudentKPIBar`) are server-renderable — no `"use client"` needed. The one genuinely interactive new component (`CalendarTab`) owns only UI state (current month, selected day) and performs zero network requests after initial page load. The existing at-risk computation logic duplicated between coach and owner detail pages is extracted into a new shared pure-function library at `src/lib/kpi.ts` — v1.1 is the right moment to eliminate this duplication before it diverges further.
 
-**Major components and responsibilities:**
-1. **`proxy.ts`**: Route guard on every non-static request — reads auth cookie, checks role via admin client, redirects wrong-role or unauthenticated requests
-2. **`api/auth/callback`**: OAuth exchange + profile creation + roadmap seeding — the most complex single handler; must use a DB transaction for invite consumption + user insert
-3. **`(auth)` route group**: Login, register/[code], no-access pages — full-screen layout, no sidebar, invite-gated
-4. **`(dashboard)` layout**: Sidebar shell for all authenticated pages — server component, calls `getSessionUser()`
-5. **`createAdminClient()`**: Service-role DB client — `server-only` guarded; used in all server pages and API routes
-6. **`lib/config.ts`**: Single source of truth — all roles, routes, roadmap steps, thresholds, validation rules; safe to import in both server and client
-7. **Client islands** (`WorkTrackerClient`, `RoadmapClient`, `ReportForm`, etc.): Interactive UI — receive `initialData` as props; all mutations via `fetch()` to API routes
+**Major components:**
+1. `src/lib/kpi.ts` (new) — pure functions: `computeAtRisk`, `computeLifetimeOutreach`, `computeRoadmapDeadlineStatus`; shared by coach and owner pages
+2. `src/components/student/ProgressBanner.tsx` (new) — sticky outreach KPI bar, server-rendered, inserted in `(dashboard)/layout.tsx` for student role only
+3. `src/components/shared/StudentKPIBar.tsx` (new) — read-only KPI summary rendered in coach/owner student detail page headers
+4. `src/components/coach/CalendarTab.tsx` (new) — month grid + day detail panel; replaces `WorkSessionsTab` + `ReportsTab`
+5. `WorkTrackerClient.tsx` (modified) — duration selector, break timer in React state, dynamic cycle grid without cap
+6. `RoadmapStep.tsx` (modified) — deadline status badge + completed_at timestamp display
+7. `(dashboard)/layout.tsx` (modified) — adds two Postgres SUM aggregate queries + ProgressBanner for student role
+8. Migrations 00006 + 00007 — additive schema changes for flexible sessions and outreach KPI columns
 
-Architecture has a natural build order: Foundation (schema, config, Supabase clients, proxy) → Auth Shell (callback, auth pages, dashboard layout, UI primitives) → Student Features → Coach Features → Owner Features. Deviating from this order creates blocking dependencies.
+**Data flow principles:**
+- Aggregate queries: use PostgREST `outreach_count.sum()` — never JS `.reduce()` over full result sets
+- Calendar data: fetch all sessions + reports (no limit) once on page load; filter client-side for month navigation; zero network requests on month change
+- Break timer: client-only `useState` + `useEffect` countdown; never write break state to the database
+- KPI targets in `config.ts` as `KPI_TARGETS = { lifetimeOutreach: 2500, dailyOutreach: 50 }`; never hardcoded in components
 
-Full architecture with data flow diagrams, code examples, anti-patterns, and scaling notes: see `.planning/research/ARCHITECTURE.md`.
-
----
+Full architecture with migration SQL, component-by-component integration analysis, anti-patterns, and suggested build order: see `.planning/research/ARCHITECTURE.md`.
 
 ### Critical Pitfalls
 
-Eight critical pitfalls documented; five must be addressed in Phase 1 before any feature work begins.
+Twelve pitfalls documented; the following five are the highest-impact risks for v1.1.
 
-1. **OAuth redirect URL mismatch** — Always pass dynamic `redirectTo: ${window.location.origin}/api/auth/callback` in `signInWithOAuth`. Add both localhost and production to Google Console Authorized Redirect URIs AND Supabase Additional Redirect URLs. Use `localhost` consistently, not `127.0.0.1`.
+1. **Break timer corrupts `started_at` resume math** — The PATCH route shifts `started_at` forward to preserve elapsed time on resume. A break that touches `paused_at` will cause resume logic to subtract break duration from remaining work time, making sessions appear shorter than selected. Track break state entirely in React state (`breakSecondsRemaining`). Never write break state to the DB. Verification: after a break completes, `duration_minutes` on the completed session must exactly match the selected session duration.
 
-2. **`getSession()` instead of `getUser()` in server code** — `getSession()` reads cookies without re-validating with Supabase Auth servers; it can be spoofed. Use `getUser()` everywhere server-side. `getSession()` is only acceptable in display-only client components.
+2. **`cyclesPerDay` cap has six consumers** — The config field `WORK_TRACKER.cyclesPerDay: 4` drives a Zod `max()` in the POST route, `allComplete` logic, a progress bar denominator, a WorkTimer ARIA label, a `getNextAction` state machine branch, and a DB CHECK constraint `cycle_number BETWEEN 1 AND 4`. All six must be updated atomically. Run `grep -r "cyclesPerDay" src/` and enumerate every location before writing the first line of flexible sessions code.
 
-3. **Role stored in JWT `user_metadata`** — `user_metadata` is user-editable; any student can promote themselves to owner. Store roles only in the `users` table. RLS policies must join against the `users` table for role checks, never read `auth.jwt() -> 'user_metadata' -> 'role'`.
+3. **NOT NULL migration fails on live data** — `ADD COLUMN ... NOT NULL` without a constant default fails on the populated production database (passes locally because `supabase db reset` starts clean). Use the three-step pattern in a single migration: add as nullable, backfill with `UPDATE`, then `ALTER COLUMN SET NOT NULL`. Alternatively, use `NOT NULL DEFAULT <constant>` for constant defaults only — no functions like `now()` or `gen_random_uuid()`.
 
-4. **RLS enabled with missing or incomplete policies** — Supabase default is "deny all" when RLS is enabled; missing policies return empty arrays with no error. Write all policies in migrations immediately alongside `ENABLE ROW LEVEL SECURITY`. Test with the anon-key client, not service_role.
+4. **Calendar silently shows empty data beyond the 120-row limit** — The coach detail page fetches sessions with `.limit(120)`. Students active 4+ months exceed this. Month navigation is client-side, so there is no second-chance fetch. Solution: pass `?month=YYYY-MM` as a URL search param; server component reads it and applies `gte`/`lte` date bounds. Next.js App Router triggers a server re-render when search params change.
 
-5. **Cross-role data leakage in RLS policies** — Each table needs per-role policy clauses: student sees own data, coach sees assigned students' data only, owner sees all. The naive `student_id = auth.uid()` does not prevent coach-scoped access. Enforce `coach_id` relationship in all coach-facing policies.
+5. **Timezone mismatch in deadline comparisons** — `users.joined_at` is `timestamptz` (UTC). The existing `getToday()` utility returns a local-time date string using `new Date()` local methods. Comparing a UTC deadline against a local "today" creates off-by-one errors for students in UTC+ timezones. Add `getTodayUTC()` — `new Date().toISOString().split("T")[0]` — and use it exclusively for all deadline comparisons. Compute deadlines entirely on the server (Vercel runs in UTC).
 
-6. **Invite race condition / orphaned state** — Mark `invites.used = true` and insert into `users` in a single Postgres transaction in the callback handler. Store invite code in OAuth `state` parameter through the Google round-trip so it is still available at the callback.
+Additional pitfalls to review: `restrict_coach_report_update` trigger must be updated in the same migration as any `daily_reports` column change (Pitfall 8); Step 1 `completed_at` seed must use `user.joined_at` not `Date.now()` (Pitfall 12); sticky banner must use `sticky top-0` inside `<main>`, not `position: fixed` (Pitfall 7).
 
-7. **Work session timer lost on navigation or refresh** — On page load, detect existing `in_progress` sessions and restore remaining time from `started_at`. Auto-abandon sessions where `started_at` exceeds 45 min + grace period. Enforce `UNIQUE(student_id, date, cycle_number)` DB constraint to prevent duplicate in-progress sessions.
-
-8. **Deprecated `get/set/remove` cookie handler in `@supabase/ssr`** — Use only `getAll` and `setAll` methods. The old individual `get/set/remove` API causes silent session refresh failures. Await `cookies()` from `next/headers` in Next.js 15+.
-
-Full pitfall detail with warning signs, recovery strategies, and security checklists: see `.planning/research/PITFALLS.md`.
-
----
+Full pitfall list with code-level citations, warning signs, and recovery strategies: see `.planning/research/PITFALLS.md`.
 
 ## Implications for Roadmap
 
-The architecture research defines a natural 5-layer build order. Features research confirms what belongs in each layer. Pitfalls research identifies which phases carry the most security and data-integrity risk. These combine into a clear phase structure.
+The architecture research defines a clear dependency graph that maps directly to phases. Build order is non-negotiable — later phases have hard dependencies on earlier ones completing correctly. The ARCHITECTURE.md build order is the recommended phase sequence.
 
-### Phase 1: Foundation + Auth
+### Phase 1: Schema and Config Foundation
 
-**Rationale:** Everything downstream depends on a correct, secure foundation. Five of the eight critical pitfalls are Phase 1 concerns. A flaw here (insecure RLS, wrong cookie handler, role in user_metadata) propagates to every subsequent feature and is expensive to fix after coach and student pages are built.
+**Rationale:** All UI, API, and library work depends on the correct database schema. Running schema changes last is the most common cause of blocked work mid-feature. Config changes must precede API route updates to avoid TypeScript compilation failures.
+**Delivers:** Migration 00006 (flexible sessions: `session_minutes` column, relaxed `cycle_number` CHECK, added `paused` to status CHECK), Migration 00007 (5 new outreach KPI columns on `daily_reports` + updated `restrict_coach_report_update` trigger), `config.ts` updated with `sessionDurationOptions`, `defaultSessionMinutes`, `KPI_TARGETS`, `target_days` per roadmap step, and `VALIDATION.outreachKpi.max`.
+**Addresses:** Flexible sessions schema, outreach KPI columns, roadmap deadline config.
+**Avoids:** Pitfalls 2 (cyclesPerDay audit), 3 (NOT NULL migration pattern — three-step), 4 (unique index semantics decision before writing migration), 8 (trigger update in same migration as column additions).
 
-**Delivers:** Working Google OAuth login, invite-only registration, role assignment, route protection, Supabase schema with RLS, and a navigable but empty dashboard shell for all three roles.
+### Phase 2: API Route Updates
 
-**Addresses (from FEATURES.md):** Google OAuth + invite registration, role-based access control, owner invite system (initial), `(auth)` pages, `(dashboard)` layout shell.
+**Rationale:** API routes are the contract between client and database. Updating them immediately after schema migrations lets all subsequent UI work target the correct API surface from the start.
+**Delivers:** `POST /api/work-sessions` accepting `session_minutes: z.union([z.literal(30), z.literal(45), z.literal(60)])` and auto-computing `cycle_number` server-side via `MAX(cycle_number) + 1`; `PATCH /api/work-sessions/[id]` reading stored `session.session_minutes` for `duration_minutes` on completion; `POST /api/reports` accepting and storing all 5 new KPI fields.
+**Avoids:** Pitfall 2 (Zod `max(cyclesPerDay)` removed from POST route; API validation now uses literal union), Pitfall 11 (TypeScript audit via `npx tsc --noEmit` after every config reference change).
 
-**Avoids (from PITFALLS.md):** Pitfalls 1, 2, 3, 4, 5, 6, 8 — all auth/schema/RLS pitfalls must be resolved here.
+### Phase 3: Shared KPI Library
 
-**Architecture components (from ARCHITECTURE.md):** Layer 1 (schema, config, types, Supabase clients, session helper, proxy) + Layer 2 (auth callback, auth pages, dashboard layout, UI primitives).
+**Rationale:** `src/lib/kpi.ts` is a pure-function module with zero dependencies on other new features. Extracting it before building UI eliminates the current at-risk logic duplication and gives all subsequent UI phases a tested, shared utility. `getTodayUTC()` is established here for all deadline logic.
+**Delivers:** `computeAtRisk`, `computeLifetimeOutreach`, `computeRoadmapDeadlineStatus` pure functions; `getTodayUTC()` added to `src/lib/utils.ts`.
+**Avoids:** Pitfall 9 (timezone mismatch — `getTodayUTC()` established here, not improvised per-component).
 
----
+### Phase 4: Student-Facing Features
 
-### Phase 2: Student Features
+**Rationale:** Student-facing features (work tracker, report form, roadmap) are independent of coach/owner views and calendar infrastructure. They can be built in focused sequence after Phase 3 without blockers.
+**Delivers:** `WorkTrackerClient` with duration selector (30/45/60 min), break timer in React state, dynamic cycle grid without cap; `ReportForm` with 5 new KPI number inputs (grouped as "Outreach KPIs" section); `RoadmapStep` + `RoadmapClient` with deadline status badges and completed_at display; `student/roadmap/page.tsx` passing `user.joined_at` to `RoadmapClient`.
+**Addresses:** Flexible sessions UX, granular outreach form fields, roadmap deadline visibility for students.
+**Avoids:** Pitfall 1 (break timer in React state only, never touches `paused_at`), Pitfall 12 (Step 1 `completed_at` seed fixed to use `user.joined_at` + backfill migration applied before deadline display ships).
 
-**Rationale:** Students are the primary users and their data is the input to all coach and owner features. Coach pages are meaningless without student session and report data to read. The work tracker is the most complex client island and carries the timer state-restoration pitfall — it needs focused attention.
+### Phase 5: Progress Banner
 
-**Delivers:** A fully functional student experience — work session tracking with timer, 10-step roadmap with gated progression, daily report submission with auto-filled hours from sessions, and the Ask Abu Lahya AI chat embed.
+**Rationale:** The banner lives in the dashboard layout and requires the aggregate query pattern established in Phase 3. It is architecturally simple but must be placed correctly in `layout.tsx` to avoid z-index conflicts with the sidebar.
+**Delivers:** `ProgressBanner` component (`src/components/student/ProgressBanner.tsx`, server-rendered); `(dashboard)/layout.tsx` modified to run two Postgres SUM aggregate queries in `Promise.all` for student role; `sticky top-0` placement inside `<main>`, not `position: fixed`; `KPI_TARGETS` from config drives all thresholds.
+**Implements:** Server-side aggregate pattern; RAG color utility (reused by Phase 6 coach views).
+**Avoids:** Pitfall 5 (Postgres SUM aggregate, not JS `.reduce()`), Pitfall 7 (sticky placement verified on 375px mobile with sidebar open before marking complete).
 
-**Addresses (from FEATURES.md):** Student work session tracker, student 10-step roadmap, student daily report submission, Ask Abu Lahya AI chat, mobile-responsive UI with loading/empty states.
+### Phase 6: Coach/Owner KPI Visibility and Roadmap Tab Updates
 
-**Avoids (from PITFALLS.md):** Pitfall 7 (timer state lost on navigation) — detect in-progress sessions and restore remaining time on page load; auto-abandon stale sessions; enforce unique constraint on `(student_id, date, cycle_number)`.
+**Rationale:** Coach/owner detail pages need `lib/kpi.ts` utilities from Phase 3, the RAG color logic from Phase 5, and `completed_at` / `joined_at` threading from Phase 4. This is the convergence point before adding the calendar view.
+**Delivers:** `StudentKPIBar` component; coach and owner student detail pages updated with lifetime aggregate queries, `lib/kpi.ts` at-risk computation replacing inline logic, `StudentKPIBar` rendered in student header area; `RoadmapTab` accepting `completed_at` and `joined_at` for deadline display on coach/owner views.
+**Implements:** Coach/owner KPI visibility; at-risk duplication eliminated.
 
-**Architecture components (from ARCHITECTURE.md):** Layer 3 — student dashboard, work tracker client island, roadmap client island, report form, AI iframe.
+### Phase 7: Calendar View
 
----
-
-### Phase 3: Coach Features
-
-**Rationale:** Coach features are the second layer of the accountability loop — they close the loop that students open. Coach pages read from the student data built in Phase 2 and require the coach-student assignment infrastructure from Phase 1 (invites). Cross-role RLS correctness for coach-scoped access must be verified here.
-
-**Delivers:** Coach dashboard with assigned student overview and at-risk flags, student list and detail view, report inbox with mark-as-reviewed, coach invite flow, and basic coach analytics.
-
-**Addresses (from FEATURES.md):** Coach dashboard with student overview, coach report review, coach basic analytics, coach at-risk threshold configuration, report inbox scoped to last 7 days.
-
-**Avoids (from PITFALLS.md):** Pitfall 5 (cross-role data leakage) — verify Coach A cannot access Coach B's students via raw SQL test; verify RLS coach policies scope to `users WHERE coach_id = coach.id`.
-
-**Architecture components (from ARCHITECTURE.md):** Layer 4 — coach dashboard, coach student list + detail, coach reports inbox, coach analytics, coach invites.
-
----
-
-### Phase 4: Owner Features
-
-**Rationale:** Owner features aggregate across all users and coaches, making them dependent on data from all prior phases. Owner alert computation requires accumulated student activity data. This is also the most read-heavy phase — owner dashboard queries scan the full users, work_sessions, and daily_reports tables.
-
-**Delivers:** Owner platform-wide stats dashboard, full student and coach management (list + detail + assignments), owner invite system for coach invites, and owner alert system for proactive intervention.
-
-**Addresses (from FEATURES.md):** Owner platform-wide stats dashboard, owner alerts (inactive/drop-off/unreviewed/coach underperformance), owner coach-student assignment, owner student and coach lists.
-
-**Uses (from STACK.md):** recharts for owner analytics charts; date-fns for threshold window calculations (3-day, 7-day, 14-day).
-
-**Architecture components (from ARCHITECTURE.md):** Layer 5 — owner dashboard, owner student/coach lists, owner invites, owner assignments, owner alerts (computed on server at render time from derived queries; no separate alerts storage in V1).
-
-**Performance note:** Owner dashboard stats queries scan full tables. Add `unstable_cache()` with short TTL or a DB view if page load is slow — do not optimize prematurely but flag this for measurement after Phase 4 ships.
-
----
-
-### Phase 5: Polish + Production Hardening
-
-**Rationale:** Final phase addresses cross-cutting concerns that can only be validated after the full feature set exists: schema migration parity between local and production, complete auth flow testing in the production environment, RLS audit with anon-key queries, and UI consistency pass.
-
-**Delivers:** Production-ready deployment, verified OAuth flows in both environments, confirmed schema parity (`supabase db diff`), full "Looks Done But Isn't" checklist from PITFALLS.md verified, and any critical UX polish items (empty states, error boundaries, mobile layout).
-
-**Addresses (from PITFALLS.md):** Full checklist — OAuth in production tested, invite registration with expired invites tested, role-based routing tested with wrong-role credentials, RLS policies tested with anon-key from outside the app, `SUPABASE_SERVICE_ROLE_KEY` confirmed not in any `NEXT_PUBLIC_` env var.
-
----
+**Rationale:** Calendar depends on the query changes in Phase 6 (which remove hard row limits on sessions/reports fetches) and on `session_minutes` being in the schema (Phase 1). Tab structure changes here — `WorkSessionsTab` and `ReportsTab` are deleted in this phase, not earlier, to avoid leaving dead code during development.
+**Delivers:** `CalendarTab.tsx` with MonthGrid + DayDetailPanel; `StudentDetailTabs` tab structure updated to `calendar | roadmap`; `StudentDetailClient` and `OwnerStudentDetailClient` updated; `WorkSessionsTab.tsx` and `ReportsTab.tsx` deleted; `?month=YYYY-MM` search param architecture for bounded server queries.
+**Addresses:** Full calendar view feature area with day detail panel, multi-indicator cells, month navigation.
+**Avoids:** Pitfall 6 (calendar over-fetch via `?month` param + `gte`/`lte` date bounds, not limited prop filtering).
 
 ### Phase Ordering Rationale
 
-- **Auth before features:** Auth is not a feature — it is the precondition for all features. OAuth redirect misconfigurations and insecure RLS cannot be retrofitted cheaply.
-- **Student before coach:** Coach features are read-only views into student data. A coach dashboard built before student data exists will be empty during development, making it harder to validate.
-- **Coach before owner:** Owner features aggregate across coaches and students. Full data model needs to be populated before owner aggregation queries make sense.
-- **Schema decisions are Phase 1, not Phase 3:** RLS policy design for cross-role access must be decided at schema creation time. Retrofitting `coach_id`-scoped RLS policies after coach pages are built requires a migration and re-testing.
-- **Roadmap is independent of reports:** Per FEATURES.md dependency graph, roadmap progression advances by explicit student action independent of daily reports or sessions. It can be built any time in Phase 2 without blocking the report flow.
-
----
+- Schema before everything: Postgres constraints are enforced at runtime; an unmodified CHECK constraint will reject valid requests the moment flexible sessions UI ships
+- Config update atomic with schema: TypeScript compilation breaks if a config field is removed without updating all consumers; doing both in Phase 1 prevents mid-phase build failures
+- `lib/kpi.ts` before any UI that uses it: three separate diverging implementations of at-risk logic is the current problem; one shared utility prevents the same divergence on deadline logic
+- `getTodayUTC()` established in Phase 3: if it's added per-component in Phase 4 or 7, it will be inconsistent; establishing it in the shared library phase forces consistency
+- Calendar query changes happen in Phase 6: the row-limit removal on sessions/reports is a prerequisite for correct calendar display; Phase 7 can rely on complete data without worrying about the 120-row truncation
+- Break timer, aggregate queries, and sticky banner placement are the three highest-risk implementation areas — each has an explicit verification step in the PITFALLS.md "Looks Done But Isn't" checklist
 
 ### Research Flags
 
-Phases where deeper research may be needed during planning:
+Phases with well-documented patterns (standard implementation — skip `research-phase`):
+- **Phase 1 (Schema + Config):** Standard Postgres DDL. Three-step NOT NULL migration pattern and `IF NOT EXISTS` pattern fully documented in PITFALLS.md and STACK.md.
+- **Phase 2 (API Routes):** Direct mechanical update following existing patterns. Zod schema changes are straightforward.
+- **Phase 3 (KPI Library):** Pure TypeScript functions with no external dependencies or integration complexity.
+- **Phase 5 (Progress Banner):** PostgREST aggregate syntax confirmed in ARCHITECTURE.md. Placement pattern specified with exact code.
+- **Phase 6 (Coach/Owner KPI):** Follows established server component + admin client pattern. `StudentKPIBar` is a read-only display component.
 
-- **Phase 1 (Foundation + Auth):** The invite registration flow — specifically the atomic invite consumption + user creation transaction pattern and the Before User Created Auth Hook — may need implementation-time research. The pattern is documented in PITFALLS.md but Supabase's exact hook API should be verified at build time.
-- **Phase 4 (Owner Features):** Alert computation logic — the exact SQL queries to derive "inactive 3 days," "no login 7 days," and "coach avg rating < 2.5 over 14 days" from the schema should be prototyped early. These are read-only derived queries, not stored state, but correctness requires SQL planning.
-
-Phases with well-documented patterns (can skip `research-phase`):
-
-- **Phase 2 (Student Features):** All patterns are fully documented in the reference codebase with code examples. Work tracker, roadmap, and report form follow the server-first + client island pattern with no ambiguity.
-- **Phase 3 (Coach Features):** Reads from existing student data using the same established patterns. No new integration points.
-- **Phase 5 (Polish + Hardening):** Checklist-driven phase; no research needed.
-
----
+Phases that may benefit from targeted research during planning:
+- **Phase 4 (Flexible Sessions — break timer state model):** The interaction between the existing `paused_at` resume-shift logic and the new break state is non-obvious. Re-read `PATCH /api/work-sessions/[id]/route.ts` lines 91-97 before writing any timer code. The break timer must use a separate state variable (`breakSecondsRemaining`) that is entirely independent of `paused_at`.
+- **Phase 7 (Calendar — search param navigation):** Verify that `router.push("?month=YYYY-MM")` on the coach/owner student detail page does not trigger `proxy.ts` to re-evaluate auth on every month change. Next.js 16 App Router search param behavior with `proxy.ts` should be smoke-tested early in the phase.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All versions verified against working reference codebase (`reference-old/package.json`) and current npm stable releases. Breaking changes from Next.js 15→16 are enumerated and accounted for. |
-| Features | HIGH | Cross-validated against 4 competitor platforms and project requirements. Anti-features documented with rationale to prevent scope creep under pressure. Feature dependency graph is explicit. |
-| Architecture | HIGH | Derived directly from reference codebase source inspection (not inference). All patterns have working code examples from production. Five architectural anti-patterns documented. |
-| Pitfalls | HIGH | Most pitfalls verified via official Supabase docs, Supabase GitHub discussions, and Vercel blog. Pitfall-to-phase mapping and recovery cost/steps provided for all 8 critical pitfalls. |
+| Stack | HIGH | All versions verified against npm and official changelogs. react-day-picker React 19 compat confirmed via changelog. One new dependency only. All other v1.1 features use existing libraries. |
+| Features | MEDIUM | UX patterns cross-validated against Pomofocus, CoachAccountable, GitHub calendar, ClearPoint RAG standards. Primary source is v1.0 codebase inspection and project requirements. Target day values for roadmap steps are placeholders — need owner confirmation. |
+| Architecture | HIGH | Derived entirely from direct codebase inspection of all affected files with file-and-line citations. Component-by-component integration analysis complete. No inferred patterns — all observed from source. |
+| Pitfalls | HIGH | All 12 pitfalls identified through direct codebase analysis. Not inferred from general knowledge — each has a specific file and line number reference in the source. |
 
-**Overall confidence: HIGH**
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **AI chat iframe URL:** The `Ask Abu Lahya` feature embeds an existing hosted chatbot via iframe. The URL is not defined in research — it must be obtained from the owner and configured in `lib/config.ts` before the ask page is shipped. This is not a technical gap but an operational dependency.
-- **Email invite delivery mechanism:** The invite system generates invite codes and magic links, but how those codes are communicated to invited users is not specified. V1 likely uses manual distribution (owner/coach copies the link). If email delivery is needed at V1 launch, Resend integration should be scoped explicitly — research puts this at P2 (add after validation), not P1.
-- **Owner alert thresholds (exact SQL):** The alert computation logic (queries for inactivity windows, avg rating calculations, unreviewed report counts) is specified in terms of business logic but the exact Supabase SQL was not prototyped. These should be drafted as part of Phase 4 planning or Phase 1 schema design to confirm the schema supports them with reasonable query plans.
-- **Supabase plan selection:** Research assumes Supabase free tier is sufficient for V1 (0-500 users per architecture scaling notes). If the cohort is larger at launch, connection pooling (pgBouncer) may be needed from day one. Confirm cohort size before deploying.
-
----
+- **Roadmap `target_days` values need Abu Lahya confirmation:** The specific day values per step (Step 3 = 7 days, Step 7 = 60 days, etc.) in ARCHITECTURE.md are architectural placeholders. The `config.ts` structure is ready to receive real values, but the program timeline must be confirmed by the owner before the roadmap deadline feature ships. This is not a technical gap — it is an operational dependency.
+- **Granular outreach breakdown (P2) — scope decision pending:** FEATURES.md identified `brands_contacted` / `influencers_contacted` as P2. Migration 00007 adds these columns. The daily report form update and KPI banner breakdown display are open scope questions — whether they ship in v1.1 or are deferred depends on owner priority.
+- **Calendar `?month` search param + `proxy.ts` interaction:** Confirm that search param changes on student detail pages do not cause the route guard to re-evaluate auth in a way that adds latency or triggers unexpected redirects. Low risk but worth a smoke test at the start of Phase 7.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `reference-old/package.json` — exact working versions from previous production codebase
-- `reference-old/src/proxy.ts`, `session.ts`, `admin.ts`, `callback/route.ts`, `config.ts` — direct source inspection of all major architectural patterns
-- [Next.js 16 Blog Post](https://nextjs.org/blog/next-16) + [16.1 Blog Post](https://nextjs.org/blog/next-16-1) — release notes, breaking changes, Turbopack status
-- [Next.js v16 Upgrade Guide](https://nextjs.org/docs/app/guides/upgrading/version-16) — `proxy.ts` rename, async API changes, Node.js 20.9+ requirement
-- [Supabase SSR Docs](https://supabase.com/docs/guides/auth/server-side/nextjs) — `getAll/setAll` cookie handler pattern, `getUser()` vs `getSession()`
-- [Supabase RLS Performance Docs](https://supabase.com/docs/guides/troubleshooting/rls-performance-and-best-practices-Z5Jjwv) — index requirements, subquery direction
-- [Supabase Custom Claims / RBAC](https://supabase.com/docs/guides/database/postgres/custom-claims-and-role-based-access-control-rbac) — role storage security (`user_metadata` vs `users` table)
-- [Tailwind CSS v4.0 Blog](https://tailwindcss.com/blog/tailwindcss-v4) — CSS-first config, `@theme` directive
-- [Zod v4 Release Notes](https://zod.dev/v4) — import path, performance improvements
+- Direct codebase inspection: `src/app/api/work-sessions/route.ts`, `[id]/route.ts`, `src/components/student/WorkTrackerClient.tsx`, `WorkTimer.tsx`, `supabase/migrations/00001_create_tables.sql`, `src/lib/config.ts`, `src/lib/utils.ts`, `src/app/(dashboard)/layout.tsx`, `src/components/layout/Sidebar.tsx`, `src/components/coach/StudentDetailClient.tsx`, `src/components/coach/StudentDetailTabs.tsx`, `src/components/coach/WorkSessionsTab.tsx`, `src/components/coach/ReportsTab.tsx`, `src/components/owner/OwnerStudentDetailClient.tsx`, coach and owner student detail pages, `student/roadmap/page.tsx`, `RoadmapClient.tsx`
+- react-day-picker changelog (daypicker.dev) — v9.14.0 confirmed latest (2026-02-26); React 19 compat fixed in v9.4.3
+- react-day-picker custom components guide — `DayButton` slot confirmed; 24 component slots available
+- PostgreSQL docs: ALTER TABLE — constant DEFAULT = metadata-only operation on Postgres 11+ (no table rewrite)
+- motion SVG animation docs (motion.dev) — `motion.circle`, `pathLength`, `strokeDashoffset` fully supported in motion v12
+- date-fns npm — v4.1.0 current stable, 100% TypeScript, `differenceInDays`, `addDays`, `isSameDay`, `startOfMonth`, `endOfMonth` all available
 
 ### Secondary (MEDIUM confidence)
-- [CoachAccountable](https://www.coachaccountable.com/), [GoalsWon](https://www.goalswon.com/), [Together Platform](https://www.togetherplatform.com/) — competitor feature analysis
-- [Growth Engineering: Dark Side of Gamification](https://www.growthengineering.co.uk/dark-side-of-gamification/) — anti-feature rationale for leaderboards
-- [Vercel Blog: Common mistakes with Next.js App Router](https://vercel.com/blog/common-mistakes-with-the-next-js-app-router-and-how-to-fix-them) — server component patterns
-- [Supabase GitHub Discussion #20353](https://github.com/orgs/supabase/discussions/20353) — localhost vs 127.0.0.1 OAuth issue
-- [Supabase GitHub Discussion #26483](https://github.com/orgs/supabase/discussions/26483) — dynamic `redirectTo` pattern
-- [Supabase GitHub Issue #107 (ssr)](https://github.com/supabase/ssr/issues/107) — `getUser` vs `getSession` behavior in SSR
+- ClearPoint Strategy: RAG Status Thresholds — amber at 80% of target used for daily outreach threshold
+- UX Patterns for Developers: Calendar View Pattern — month grid with dot indicators is dominant pattern
+- Zapier: Best Pomodoro Timer Apps 2025 — duration selector and break/skip UX conventions
+- Pomofocus.io — break countdown visual differentiation and skip break button UX observed directly
+- Qooper / Simply.Coach / CoachAccountable — read-only coach progress view patterns
+- Eleken: Calendar UI Examples — day detail panel conventions (slide-in on desktop, bottom sheet on mobile)
 
-### Tertiary (LOW confidence)
-- [Futuremarketinsights: Coaching Platform Market 2026](https://www.futuremarketinsights.com/reports/coaching-platform-market) — market sizing context only, not used for feature decisions
+### Tertiary (LOW confidence, corroborated by primary sources)
+- WebSearch: react-day-picker React 19 compatibility — multiple sources confirm; elevated to MEDIUM via changelog verification
+- WebSearch: circular SVG progress React pattern — community implementations confirm `strokeDashoffset` approach without additional library
 
 ---
-*Research completed: 2026-03-16*
+*Research completed: 2026-03-27*
 *Ready for roadmap: yes*
