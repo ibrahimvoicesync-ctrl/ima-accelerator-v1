@@ -2,11 +2,9 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { WORK_TRACKER } from "@/lib/config";
 
 const patchSchema = z.object({
   status: z.enum(["completed", "abandoned", "paused", "in_progress"]),
-  duration_minutes: z.number().int().min(0).max(60).optional(),
 });
 
 export async function PATCH(
@@ -60,7 +58,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
-  const { status: newStatus, duration_minutes } = parsed.data;
+  const { status: newStatus } = parsed.data;
 
   // State transition validation
   // Valid transitions:
@@ -84,7 +82,7 @@ export async function PATCH(
 
   if (newStatus === "completed") {
     update.completed_at = new Date().toISOString();
-    update.duration_minutes = duration_minutes ?? WORK_TRACKER.sessionMinutes;
+    update.duration_minutes = session.session_minutes;
   } else if (newStatus === "paused") {
     update.paused_at = new Date().toISOString();
   } else if (newStatus === "in_progress" && session.status === "paused") {

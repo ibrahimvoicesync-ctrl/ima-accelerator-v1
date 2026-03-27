@@ -6,7 +6,11 @@ import { WORK_TRACKER } from "@/lib/config";
 
 const postSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  cycle_number: z.number().int().min(1).max(WORK_TRACKER.cyclesPerDay),
+  cycle_number: z.number().int().min(1),
+  session_minutes: z.number().int().refine(
+    (v) => (WORK_TRACKER.sessionDurationOptions as readonly number[]).includes(v),
+    { message: "session_minutes must be 30, 45, or 60" }
+  ),
 });
 
 export async function POST(request: Request) {
@@ -43,7 +47,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { date, cycle_number } = parsed.data;
+  const { date, cycle_number, session_minutes } = parsed.data;
 
   // Check for existing in_progress or paused session for this student on this date
   const { data: activeSession } = await admin
@@ -69,6 +73,7 @@ export async function POST(request: Request) {
       student_id: profile.id,
       date,
       cycle_number,
+      session_minutes,
       started_at: new Date().toISOString(),
       status: "in_progress",
     })
