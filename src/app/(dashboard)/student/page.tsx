@@ -1,7 +1,7 @@
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER, ROADMAP_STEPS } from "@/lib/config";
-import { getGreeting, formatHours, getToday, cn } from "@/lib/utils";
+import { getGreeting, getToday, cn, formatHoursMinutes } from "@/lib/utils";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 import type { Database } from "@/lib/types";
@@ -10,13 +10,14 @@ type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
 
 function getNextAction(
   completedCount: number,
+  totalMinutesWorked: number,
   activeSession: WorkSession | undefined,
   pausedSession: WorkSession | undefined,
 ): { label: string; href: string } {
-  if (activeSession) return { label: "Continue Cycle", href: "/student/work" };
-  if (pausedSession) return { label: "Resume Cycle", href: "/student/work" };
-  if (completedCount < WORK_TRACKER.cyclesPerDay) {
-    return { label: `Start Cycle ${completedCount + 1}`, href: "/student/work" };
+  if (activeSession) return { label: "Continue Session", href: "/student/work" };
+  if (pausedSession) return { label: "Resume Session", href: "/student/work" };
+  if (totalMinutesWorked < WORK_TRACKER.dailyGoalHours * 60) {
+    return { label: `Start Session ${completedCount + 1}`, href: "/student/work" };
   }
   return { label: "Submit Report", href: "/student/report" };
 }
@@ -56,10 +57,11 @@ export default async function StudentDashboard() {
     .reduce((sum, s) => sum + s.duration_minutes, 0);
   const activeSession = todaySessions.find(s => s.status === "in_progress");
   const pausedSession = todaySessions.find(s => s.status === "paused");
-  const progressPercent = Math.round((completedCount / WORK_TRACKER.cyclesPerDay) * 100);
+  const dailyGoalMinutes = WORK_TRACKER.dailyGoalHours * 60;
+  const progressPercent = Math.min(100, Math.round((totalMinutesWorked / dailyGoalMinutes) * 100));
   const firstName = user.name.split(" ")[0];
 
-  const nextAction = getNextAction(completedCount, activeSession, pausedSession);
+  const nextAction = getNextAction(completedCount, totalMinutesWorked, activeSession, pausedSession);
 
   const roadmapCompleted = (roadmapRows ?? []).filter(r => r.status === "completed").length;
   const activeRoadmapStep = (roadmapRows ?? []).find(r => r.status === "active");
@@ -79,19 +81,19 @@ export default async function StudentDashboard() {
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-ima-text">Today&apos;s Work</h2>
           <span className="text-2xl font-bold text-ima-primary">
-            {completedCount}/{WORK_TRACKER.cyclesPerDay}
+            {formatHoursMinutes(totalMinutesWorked)} / {WORK_TRACKER.dailyGoalHours}h
           </span>
         </div>
         <p className="text-sm text-ima-text-secondary mt-1">
-          {formatHours(totalMinutesWorked)} worked today
+          {completedCount} session{completedCount !== 1 ? "s" : ""} completed
         </p>
         <div
           className="bg-ima-bg rounded-full h-3 mt-4 overflow-hidden"
           role="progressbar"
-          aria-valuenow={completedCount}
+          aria-valuenow={totalMinutesWorked}
           aria-valuemin={0}
-          aria-valuemax={WORK_TRACKER.cyclesPerDay}
-          aria-label="Daily cycle progress"
+          aria-valuemax={dailyGoalMinutes}
+          aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
         >
           <div
             className="bg-ima-primary h-full rounded-full motion-safe:transition-all duration-500"
