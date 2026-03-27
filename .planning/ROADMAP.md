@@ -130,7 +130,7 @@ Plans:
 | 11. Fix Invite Registration URL | v1.0 | 3/3 | Complete | 2026-03-18 |
 | 12. CLAUDE.md Hard Rule Compliance | v1.0 | 2/2 | Complete | 2026-03-18 |
 | 13. Schema & Config Foundation | v1.1 | 2/2 | Complete    | 2026-03-27 |
-| 14. Flexible Work Sessions | v1.1 | 3/3 | Complete   | 2026-03-27 |
+| 14. Flexible Work Sessions | v1.1 | 3/3 | Complete    | 2026-03-27 |
 | 15. Outreach KPI Banner | v1.1 | 0/? | Not started | - |
 | 16. Coach/Owner KPI Visibility | v1.1 | 0/? | Not started | - |
 | 17. Calendar View | v1.1 | 0/? | Not started | - |
