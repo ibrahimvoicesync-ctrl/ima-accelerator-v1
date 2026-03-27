@@ -45,7 +45,7 @@ Requirements for milestone v1.1 (V2 Feature Build). Each maps to roadmap phases.
 
 ### Roadmap
 
-- [ ] **ROAD-01**: Each roadmap step has target_days in config; deadline = joined_at + target_days
+- [x] **ROAD-01**: Each roadmap step has target_days in config; deadline = joined_at + target_days
 - [ ] **ROAD-02**: Status chips on each step: on track (green), due soon (amber, within 2 days), overdue (red), completed (with date)
 - [ ] **ROAD-03**: Completed steps display their completed_at date
 - [ ] **ROAD-04**: Deadline status visible on student roadmap view
@@ -115,7 +115,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CAL-02 | Phase 17 | Pending |
 | CAL-03 | Phase 17 | Pending |
 | CAL-04 | Phase 17 | Pending |
-| ROAD-01 | Phase 13 | Pending |
+| ROAD-01 | Phase 13 | Complete |
 | ROAD-02 | Phase 18 | Pending |
 | ROAD-03 | Phase 18 | Pending |
 | ROAD-04 | Phase 18 | Pending |

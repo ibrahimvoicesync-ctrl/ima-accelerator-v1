@@ -27,7 +27,7 @@
 
 **v1.1 V2 Feature Build**
 
-- [ ] **Phase 13: Schema & Config Foundation** — DB migrations for flexible sessions and KPI columns; config additions for duration options, KPI targets, and roadmap target days
+- [x] **Phase 13: Schema & Config Foundation** — DB migrations for flexible sessions and KPI columns; config additions for duration options, KPI targets, and roadmap target days (completed 2026-03-27)
 - [ ] **Phase 14: Flexible Work Sessions** — Student-selectable durations (30/45/60 min), break countdown between cycles, unlimited daily sessions
 - [ ] **Phase 15: Outreach KPI Banner** — Granular outreach fields on daily report form, sticky progress banner with lifetime/daily targets and RAG color coding
 - [ ] **Phase 16: Coach/Owner KPI Visibility** — Read-only KPI summary card with RAG status on coach and owner student detail pages
@@ -46,10 +46,10 @@
   3. `config.ts` exports `sessionDurationOptions` (30/45/60), `defaultSessionMinutes`, and `KPI_TARGETS` (`{ lifetimeOutreach: 2500, dailyOutreach: 50 }`)
   4. Each roadmap step in `config.ts` has a `target_days` value; `getTodayUTC()` utility exists in `src/lib/utils.ts`
   5. `npx tsc --noEmit` passes with zero errors after all config changes
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 13-01-PLAN.md — V1.1 database migration (session_minutes, constraint drop, KPI columns, trigger update)
-- [ ] 13-02-PLAN.md — Config and utility additions (duration options, KPI targets, roadmap target_days, getTodayUTC)
+- [x] 13-02-PLAN.md — Config and utility additions (duration options, KPI targets, roadmap target_days, getTodayUTC)
 
 ### Phase 14: Flexible Work Sessions
 **Goal**: Students can choose their session duration, take timed breaks between cycles, and run unlimited sessions per day
@@ -125,7 +125,7 @@ Plans:
 | 10. UI Polish & Production Hardening | v1.0 | 4/4 | Complete | 2026-03-17 |
 | 11. Fix Invite Registration URL | v1.0 | 3/3 | Complete | 2026-03-18 |
 | 12. CLAUDE.md Hard Rule Compliance | v1.0 | 2/2 | Complete | 2026-03-18 |
-| 13. Schema & Config Foundation | v1.1 | 1/2 | In Progress|  |
+| 13. Schema & Config Foundation | v1.1 | 2/2 | Complete   | 2026-03-27 |
 | 14. Flexible Work Sessions | v1.1 | 0/? | Not started | - |
 | 15. Outreach KPI Banner | v1.1 | 0/? | Not started | - |
 | 16. Coach/Owner KPI Visibility | v1.1 | 0/? | Not started | - |
