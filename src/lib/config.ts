@@ -103,22 +103,34 @@ export const WORK_TRACKER = {
   cyclesPerDay: 4,
   dailyGoalHours: 4,
   abandonGraceSeconds: 300,
+  sessionDurationOptions: [30, 45, 60] as const,
+  defaultSessionMinutes: 45,
+} as const;
+
+// ---------------------------------------------------------------------------
+// 5.5 KPI TARGETS
+// ---------------------------------------------------------------------------
+export const KPI_TARGETS = {
+  lifetimeOutreach: 2500,
+  dailyOutreach: 50,
 } as const;
 
 // ---------------------------------------------------------------------------
 // 6. ROADMAP MILESTONES (10 steps)
+// target_days = cumulative days from student's joined_at date
+// TODO: Confirm target_days values with Abu Lahya before Phase 18 ships
 // ---------------------------------------------------------------------------
 export const ROADMAP_STEPS = [
-  { step: 1, title: "Join the Course", description: "Complete your onboarding and set up your profile", autoComplete: true },
-  { step: 2, title: "Plan Your Work", description: "Set up your daily schedule and commit to 4 hours of focused work per day" },
-  { step: 3, title: "Pick Your Niche", description: "Choose the influencer niche you will focus on (fitness, lifestyle, tech, etc.)" },
-  { step: 4, title: "Build Your Website", description: "Create your agency website — your professional face to brands and influencers" },
-  { step: 5, title: "Send Your First Email", description: "Reach out to your first influencer with a personalized pitch" },
-  { step: 6, title: "Get Your First Response", description: "Receive a reply from an influencer — positive or negative, it counts" },
-  { step: 7, title: "Close Your First Influencer", description: "Sign your first influencer to your roster — you are officially an agent" },
-  { step: 8, title: "Close 5 Influencers", description: "Build your roster to 5 signed influencers ready for brand deals" },
-  { step: 9, title: "Brand Outreach", description: "Start pitching brands with your roster — send your first brand proposals" },
-  { step: 10, title: "Close Your First Brand Deal", description: "Negotiate and close your first paid brand deal — this is where it all pays off" },
+  { step: 1, title: "Join the Course", description: "Complete your onboarding and set up your profile", autoComplete: true, target_days: 1 },
+  { step: 2, title: "Plan Your Work", description: "Set up your daily schedule and commit to 4 hours of focused work per day", target_days: 3 },
+  { step: 3, title: "Pick Your Niche", description: "Choose the influencer niche you will focus on (fitness, lifestyle, tech, etc.)", target_days: 7 },
+  { step: 4, title: "Build Your Website", description: "Create your agency website — your professional face to brands and influencers", target_days: 14 },
+  { step: 5, title: "Send Your First Email", description: "Reach out to your first influencer with a personalized pitch", target_days: 21 },
+  { step: 6, title: "Get Your First Response", description: "Receive a reply from an influencer — positive or negative, it counts", target_days: 28 },
+  { step: 7, title: "Close Your First Influencer", description: "Sign your first influencer to your roster — you are officially an agent", target_days: 35 },
+  { step: 8, title: "Close 5 Influencers", description: "Build your roster to 5 signed influencers ready for brand deals", target_days: 42 },
+  { step: 9, title: "Brand Outreach", description: "Start pitching brands with your roster — send your first brand proposals", target_days: 49 },
+  { step: 10, title: "Close Your First Brand Deal", description: "Negotiate and close your first paid brand deal — this is where it all pays off", target_days: 56 },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -259,6 +271,11 @@ export const VALIDATION = {
   reportWins: { max: 500 },
   reportImprovements: { max: 500 },
   outreachCount: { min: 0, max: 500 },
+  outreachBrands: { min: 0, max: 500 },
+  outreachInfluencers: { min: 0, max: 500 },
+  brandsContacted: { min: 0, max: 500 },
+  influencersContacted: { min: 0, max: 500 },
+  callsJoined: { min: 0, max: 100 },
   starRating: { min: 1, max: 5 },
 } as const;
 
@@ -272,6 +289,7 @@ const config = {
   routes: ROUTES,
   roleRedirects: ROLE_REDIRECTS,
   workTracker: WORK_TRACKER,
+  kpiTargets: KPI_TARGETS,
   roadmap: ROADMAP_STEPS,
   dailyReport: DAILY_REPORT,
   coach: COACH_CONFIG,
