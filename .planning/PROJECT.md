@@ -35,9 +35,14 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 ### Active
 
-<!-- Current scope. Building toward these for next milestone. -->
+<!-- Current scope. Building toward these for v1.1. -->
 
-(None yet — define during next milestone planning)
+- [ ] Flexible work sessions — student-selectable durations (30/45/60 min), breaks between cycles, no cycle cap
+- [ ] Progress tracker / email KPIs — granular outreach tracking, sticky progress banner, 2,500 lifetime / 50 daily targets
+- [ ] Coach/owner student KPI visibility — read-only progress on coach and owner detail pages
+- [ ] Calendar view — month grid replacing work sessions + reports tabs on student detail pages
+- [ ] Roadmap date KPIs — target deadlines per step relative to joined_at, on-track/due-soon/overdue status
+- [ ] Roadmap completion date logging — display completed_at timestamps on roadmap steps
 
 ### Out of Scope
 
@@ -99,5 +104,34 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | Resume shifts started_at forward | Client timer needs no elapsed accumulator; Date.now() - started_at always equals active work time | ✓ Good — simple timer math |
 | alert_dismissals with time-windowed keys | Dismissed alerts re-trigger in new window (daily/weekly/monthly) | ✓ Good — prevents stale dismissals masking new issues |
 
+## Current Milestone: v1.1 V2 Feature Build
+
+**Goal:** Add flexible work sessions, granular outreach KPIs, coach/owner KPI visibility, calendar view, and roadmap deadline tracking.
+
+**Target features:**
+- Flexible work sessions (student-selectable durations, breaks, no cycle cap)
+- Progress tracker / email KPIs (granular outreach, sticky banner, 2,500/50 targets)
+- Coach/owner student KPI visibility (read-only progress views)
+- Calendar view (month grid on student detail pages)
+- Roadmap date KPIs (deadlines relative to joined_at)
+- Roadmap completion date logging (completed_at display)
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-18 after v1.0 milestone*
+*Last updated: 2026-03-27 after v1.1 milestone start*
