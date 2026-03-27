@@ -6,10 +6,11 @@ interface CycleCardProps {
   cycleNumber: number;
   status: "completed" | "in_progress" | "paused" | "abandoned" | "pending";
   timeInfo: string;
+  sessionMinutes?: number;
   onResume?: () => void;
 }
 
-export function CycleCard({ cycleNumber, status, timeInfo, onResume }: CycleCardProps) {
+export function CycleCard({ cycleNumber, status, timeInfo, sessionMinutes, onResume }: CycleCardProps) {
   return (
     <div className="rounded-xl border border-ima-border bg-ima-surface p-4 flex items-center gap-3">
       {/* Status icon */}
@@ -23,7 +24,9 @@ export function CycleCard({ cycleNumber, status, timeInfo, onResume }: CycleCard
 
       {/* Text area */}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-ima-text">Cycle {cycleNumber}</p>
+        <p className="font-medium text-ima-text">
+          Session {cycleNumber}{sessionMinutes ? ` \u2014 ${sessionMinutes} min` : ""}
+        </p>
         <p className="text-sm text-ima-text-secondary">{timeInfo}</p>
       </div>
 
@@ -32,7 +35,7 @@ export function CycleCard({ cycleNumber, status, timeInfo, onResume }: CycleCard
         <button
           onClick={onResume}
           className="min-h-[44px] min-w-[44px] px-3 py-2 text-sm font-medium text-ima-primary hover:bg-ima-bg rounded-lg"
-          aria-label={`Resume cycle ${cycleNumber}`}
+          aria-label={`Resume session ${cycleNumber}`}
         >
           Resume
         </button>

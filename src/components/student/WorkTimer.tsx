@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { WORK_TRACKER } from "@/lib/config";
 
 interface WorkTimerProps {
   sessionId: string;
@@ -75,14 +74,14 @@ export function WorkTimer({
   // Announce every 15 seconds for screen readers
   const announceText =
     remainingSeconds > 0 && remainingSeconds % 15 === 0
-      ? `${minutes} minutes ${seconds} seconds remaining in Cycle ${cycleNumber} of ${WORK_TRACKER.cyclesPerDay}`
+      ? `${minutes} minutes ${seconds} seconds remaining in Session ${cycleNumber}`
       : "";
 
   return (
     <div
       className="flex flex-col items-center gap-4"
       role="timer"
-      aria-label={`${minutes} minutes and ${seconds} seconds remaining in Cycle ${cycleNumber} of ${WORK_TRACKER.cyclesPerDay}`}
+      aria-label={`${minutes} minutes and ${seconds} seconds remaining in Session ${cycleNumber}`}
     >
       {/* Screen reader live region */}
       <div aria-live="polite" className="sr-only">
@@ -126,7 +125,7 @@ export function WorkTimer({
             {timeStr}
           </span>
           <span className="text-sm text-ima-text-secondary mt-1">
-            Cycle {cycleNumber} of {WORK_TRACKER.cyclesPerDay}
+            Session {cycleNumber}
           </span>
         </div>
       </div>

@@ -25,7 +25,7 @@ export default async function WorkPage() {
     <div className="max-w-2xl mx-auto px-4">
       <h1 className="text-2xl font-bold text-ima-text mb-1">Work Tracker</h1>
       <p className="text-sm text-ima-text-secondary mb-6">
-        Track your daily 45-minute work cycles
+        Track your daily work sessions
       </p>
       <WorkTrackerClient initialSessions={(sessions ?? []) as WorkSession[]} />
     </div>
