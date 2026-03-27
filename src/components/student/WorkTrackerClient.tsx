@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { WorkTimer } from "@/components/student/WorkTimer";
 import { CycleCard } from "@/components/student/CycleCard";
 import { WORK_TRACKER, ROUTES } from "@/lib/config";
-import { getToday, formatPausedRemaining, formatHours } from "@/lib/utils";
+import { getToday, formatPausedRemaining, formatHoursMinutes } from "@/lib/utils";
 import type { Database } from "@/lib/types";
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
+
+type TrackerPhase =
+  | { kind: "idle" }
+  | { kind: "setup" }
+  | { kind: "working" }
+  | { kind: "break"; secondsRemaining: number };
 
 interface WorkTrackerClientProps {
   initialSessions: WorkSession[];
@@ -22,6 +28,13 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
   const [sessions, setSessions] = useState<WorkSession[]>(initialSessions);
   const [isLoading, setIsLoading] = useState(false);
   const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
+
+  // State machine phase
+  const [phase, setPhase] = useState<TrackerPhase>({ kind: "idle" });
+  const [selectedMinutes, setSelectedMinutes] = useState<number>(WORK_TRACKER.defaultSessionMinutes);
+  const [breakType, setBreakType] = useState<"short" | "long">("short");
+  const [breakMinutes, setBreakMinutes] = useState<number>(WORK_TRACKER.breakOptions.short.presets[0]);
+  const [showAllSessions, setShowAllSessions] = useState(false);
 
   // Keep sessions in sync when server re-renders with fresh initialSessions
   useEffect(() => {
@@ -64,45 +77,81 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
   const completedCount = sessions.filter((s) => s.status === "completed").length;
   const activeSession = sessions.find((s) => s.status === "in_progress");
   const pausedSession = sessions.find((s) => s.status === "paused");
-  const allComplete = completedCount >= WORK_TRACKER.cyclesPerDay;
-  const nextCycleNumber = Math.min(completedCount + 1, WORK_TRACKER.cyclesPerDay);
+  const nextCycleNumber = completedCount + 1;
   const totalMinutesWorked = sessions
     .filter((s) => s.status === "completed")
     .reduce((sum, s) => sum + s.duration_minutes, 0);
+  const dailyGoalMinutes = WORK_TRACKER.dailyGoalHours * 60;
+  const progressPercent = Math.min(100, Math.round((totalMinutesWorked / dailyGoalMinutes) * 100));
+
+  // Phase initialization — sync phase with session state
+  useEffect(() => {
+    if (activeSession) {
+      setPhase({ kind: "working" });
+    } else if (pausedSession) {
+      setPhase({ kind: "working" }); // paused is still "working" phase
+    } else if (phase.kind === "working") {
+      // Session just ended — handled by handleComplete
+    } else if (phase.kind !== "setup" && phase.kind !== "break") {
+      setPhase({ kind: "idle" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSession, pausedSession]);
+
+  // Break countdown — client state only, never touches DB
+  useEffect(() => {
+    if (phase.kind !== "break") return;
+    if (phase.secondsRemaining <= 0) {
+      setPhase({ kind: "idle" });
+      return;
+    }
+    const id = setInterval(() => {
+      setPhase((prev) => {
+        if (prev.kind !== "break") return prev;
+        const next = prev.secondsRemaining - 1;
+        if (next <= 0) return { kind: "idle" };
+        return { kind: "break", secondsRemaining: next };
+      });
+    }, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase.kind, phase.kind === "break" ? phase.secondsRemaining : 0]);
 
   // --- Mutation handlers ---
 
-  async function handleStart() {
+  const handleStart = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/work-sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: getToday(), cycle_number: nextCycleNumber }),
+        body: JSON.stringify({
+          date: getToday(),
+          cycle_number: nextCycleNumber,
+          session_minutes: selectedMinutes,
+        }),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         console.error("[WorkTrackerClient] Failed to start session:", err);
         return;
       }
+      setPhase({ kind: "working" });
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handleStart error:", err);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [nextCycleNumber, selectedMinutes, router]);
 
-  async function handleComplete(sessionId: string) {
+  const handleComplete = useCallback(async (sessionId: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/work-sessions/${sessionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "completed",
-          duration_minutes: WORK_TRACKER.sessionMinutes,
-        }),
+        body: JSON.stringify({ status: "completed" }),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -114,15 +163,23 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         console.error("[WorkTrackerClient] Failed to complete session:", err);
         return;
       }
+      // After completion: trigger break if this was NOT the first session
+      // completedCount is stale here (pre-refresh), so +1 for just-completed
+      const newCompletedCount = completedCount + 1;
+      if (newCompletedCount >= 2) {
+        setPhase({ kind: "break", secondsRemaining: breakMinutes * 60 });
+      } else {
+        setPhase({ kind: "idle" });
+      }
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handleComplete error:", err);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [completedCount, breakMinutes, router]);
 
-  async function handlePause(sessionId: string) {
+  const handlePause = useCallback(async (sessionId: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/work-sessions/${sessionId}`, {
@@ -141,9 +198,9 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [router]);
 
-  async function handleResume(sessionId: string) {
+  const handleResume = useCallback(async (sessionId: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/work-sessions/${sessionId}`, {
@@ -162,9 +219,9 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [router]);
 
-  async function handleAbandon(sessionId: string) {
+  const handleAbandon = useCallback(async (sessionId: string) => {
     // Look up target session by ID — safe for both active and paused states
     const target = sessions.find((s) => s.id === sessionId);
     if (!target) return;
@@ -189,34 +246,148 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         return;
       }
       setShowAbandonConfirm(false);
+      setPhase({ kind: "idle" });
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handleAbandon error:", err);
     } finally {
       setIsLoading(false);
     }
+  }, [sessions, showAbandonConfirm, router]);
+
+  function handleSkipBreak() {
+    setPhase({ kind: "idle" });
   }
 
   // --- Render ---
 
   return (
     <div>
-      {/* All-complete celebration */}
-      {allComplete && (
-        <div className="bg-ima-success/10 border border-ima-success/30 rounded-xl p-6 text-center mb-6">
-          <h2 className="text-xl font-bold text-ima-success">All 4 cycles complete!</h2>
-          <p className="text-ima-success mt-1">
-            You worked {formatHours(totalMinutesWorked)} today. Outstanding effort!
-          </p>
-          <p className="text-sm text-ima-success mt-2">
-            Great work! Don&apos;t forget to submit your daily report.
-          </p>
-          <Link
-            href={ROUTES.student.report}
-            className="inline-flex items-center justify-center mt-4 bg-ima-primary text-white rounded-lg px-6 min-h-[44px] font-medium hover:bg-ima-primary-hover motion-safe:transition-colors"
+      {/* Hours progress bar — per D-05, D-06, D-07, D-08 */}
+      <div className="mb-6">
+        <div className="flex justify-between items-baseline mb-1">
+          <span className="text-sm font-medium text-ima-text">
+            {formatHoursMinutes(totalMinutesWorked)} / {WORK_TRACKER.dailyGoalHours}h
+          </span>
+          <span className="text-xs text-ima-text-secondary">
+            {completedCount} session{completedCount !== 1 ? "s" : ""} completed
+          </span>
+        </div>
+        <div
+          className="bg-ima-bg rounded-full h-3 overflow-hidden"
+          role="progressbar"
+          aria-valuenow={totalMinutesWorked}
+          aria-valuemin={0}
+          aria-valuemax={dailyGoalMinutes}
+          aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
+        >
+          <div
+            className="bg-ima-primary h-full rounded-full motion-safe:transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Break countdown — per WORK-04, WORK-05 */}
+      {phase.kind === "break" && (
+        <div className="flex flex-col items-center gap-4 mb-6 text-center">
+          <p className="text-sm text-ima-text-secondary">Break Time</p>
+          <p
+            className="text-4xl font-mono font-bold text-ima-text"
+            role="timer"
+            aria-label={`Break: ${Math.floor(phase.secondsRemaining / 60)} minutes ${phase.secondsRemaining % 60} seconds remaining`}
           >
-            Submit Daily Report
-          </Link>
+            {String(Math.floor(phase.secondsRemaining / 60)).padStart(2, "0")}:
+            {String(phase.secondsRemaining % 60).padStart(2, "0")}
+          </p>
+          <p className="text-sm text-ima-text-secondary">
+            Next session will be Session {nextCycleNumber}
+          </p>
+          <button
+            onClick={handleSkipBreak}
+            className="bg-ima-primary text-white rounded-lg px-6 min-h-[44px] font-medium hover:bg-ima-primary-hover motion-safe:transition-colors"
+          >
+            Skip Break
+          </button>
+        </div>
+      )}
+
+      {/* Setup phase — duration picker and break selection — per WORK-01, WORK-02, WORK-03 */}
+      {phase.kind === "setup" && (
+        <div className="flex flex-col items-center gap-6 mb-6">
+          {/* Duration picker — per WORK-01 */}
+          <div className="text-center">
+            <p className="text-sm font-medium text-ima-text mb-3">Session Duration</p>
+            <div className="flex gap-2 justify-center">
+              {WORK_TRACKER.sessionDurationOptions.map((min) => (
+                <button
+                  key={min}
+                  onClick={() => setSelectedMinutes(min)}
+                  className={`min-h-[44px] min-w-[44px] px-4 rounded-lg font-medium motion-safe:transition-colors ${
+                    selectedMinutes === min
+                      ? "bg-ima-primary text-white"
+                      : "bg-ima-surface border border-ima-border text-ima-text hover:bg-ima-bg"
+                  }`}
+                  aria-pressed={selectedMinutes === min}
+                >
+                  {min} min
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Break selection — only if this is NOT the first session (WORK-03) */}
+          {completedCount > 0 && (
+            <div className="text-center">
+              <p className="text-sm font-medium text-ima-text mb-3">Break Before Next Session</p>
+              {/* Break type toggle */}
+              <div className="flex gap-2 justify-center mb-3">
+                {(Object.keys(WORK_TRACKER.breakOptions) as Array<"short" | "long">).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => {
+                      setBreakType(type);
+                      setBreakMinutes(WORK_TRACKER.breakOptions[type].presets[0]);
+                    }}
+                    className={`min-h-[44px] px-4 rounded-lg font-medium motion-safe:transition-colors ${
+                      breakType === type
+                        ? "bg-ima-primary text-white"
+                        : "bg-ima-surface border border-ima-border text-ima-text hover:bg-ima-bg"
+                    }`}
+                    aria-pressed={breakType === type}
+                  >
+                    {WORK_TRACKER.breakOptions[type].label}
+                  </button>
+                ))}
+              </div>
+              {/* Break duration presets */}
+              <div className="flex gap-2 justify-center">
+                {WORK_TRACKER.breakOptions[breakType].presets.map((min) => (
+                  <button
+                    key={min}
+                    onClick={() => setBreakMinutes(min)}
+                    className={`min-h-[44px] min-w-[44px] px-3 rounded-lg text-sm font-medium motion-safe:transition-colors ${
+                      breakMinutes === min
+                        ? "bg-ima-primary/15 text-ima-primary border border-ima-primary"
+                        : "bg-ima-surface border border-ima-border text-ima-text-secondary hover:bg-ima-bg"
+                    }`}
+                    aria-pressed={breakMinutes === min}
+                  >
+                    {min}m
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Start button */}
+          <button
+            onClick={handleStart}
+            disabled={isLoading}
+            className="bg-ima-primary text-white rounded-xl px-8 min-h-[56px] text-lg font-semibold hover:bg-ima-primary-hover disabled:opacity-50 motion-safe:transition-colors"
+          >
+            {isLoading ? "Starting..." : `Start Session ${nextCycleNumber}`}
+          </button>
         </div>
       )}
 
@@ -227,7 +398,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
             sessionId={activeSession.id}
             startedAt={activeSession.started_at}
             cycleNumber={activeSession.cycle_number}
-            totalSeconds={WORK_TRACKER.sessionMinutes * 60}
+            totalSeconds={(activeSession.session_minutes ?? WORK_TRACKER.defaultSessionMinutes) * 60}
             onComplete={() => handleComplete(activeSession.id)}
           />
 
@@ -283,13 +454,13 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
       {pausedSession && !activeSession && (
         <div className="flex flex-col items-center gap-4 mb-6 text-center">
           <p className="text-ima-text-secondary text-sm">
-            Cycle {pausedSession.cycle_number} paused
+            Session {pausedSession.cycle_number} paused &mdash; {pausedSession.session_minutes} min
           </p>
           <p className="text-3xl font-mono font-bold text-ima-text">
             {formatPausedRemaining(
               pausedSession.started_at,
               pausedSession.paused_at!,
-              WORK_TRACKER.sessionMinutes
+              pausedSession.session_minutes ?? WORK_TRACKER.defaultSessionMinutes
             )}{" "}
             remaining
           </p>
@@ -299,7 +470,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
               disabled={isLoading}
               className="bg-ima-primary text-white rounded-lg px-6 min-h-[44px] font-medium hover:bg-ima-primary-hover disabled:opacity-50 motion-safe:transition-colors"
             >
-              Resume Cycle {pausedSession.cycle_number}
+              Resume Session {pausedSession.cycle_number}
             </button>
             <button
               onClick={() => handleAbandon(pausedSession.id)}
@@ -334,82 +505,105 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
       )}
 
       {/* Idle: no active or paused session */}
-      {!activeSession && !pausedSession && !allComplete && (
+      {phase.kind === "idle" && !activeSession && !pausedSession && (
         <div className="flex flex-col items-center gap-3 mb-6 text-center">
           <p className="text-lg font-semibold text-ima-text">
-            Start Cycle {nextCycleNumber}
-          </p>
-          <p className="text-sm text-ima-text-secondary">
-            {completedCount} of {WORK_TRACKER.cyclesPerDay} cycles done
+            Ready for Session {nextCycleNumber}
           </p>
           <button
-            onClick={handleStart}
+            onClick={() => setPhase({ kind: "setup" })}
             disabled={isLoading}
             className="bg-ima-primary text-white rounded-xl px-8 min-h-[56px] text-lg font-semibold hover:bg-ima-primary-hover disabled:opacity-50 motion-safe:transition-colors"
           >
-            {isLoading ? "Starting…" : `Start Cycle ${nextCycleNumber}`}
+            Set Up Session
           </button>
         </div>
       )}
 
-      {/* Cycle progress grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-        {Array.from({ length: WORK_TRACKER.cyclesPerDay }, (_, i) => i + 1).map(
-          (cycleNum) => {
-            const session = sessions.find((s) => s.cycle_number === cycleNum);
+      {/* Daily report link — shown when at least one session complete */}
+      {completedCount > 0 && !activeSession && !pausedSession && phase.kind !== "break" && (
+        <div className="text-center mb-4">
+          <Link
+            href={ROUTES.student.report}
+            className="inline-flex items-center justify-center text-sm text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
+          >
+            Submit Daily Report
+          </Link>
+        </div>
+      )}
 
-            if (!session) {
-              return (
-                <CycleCard
-                  key={cycleNum}
-                  cycleNumber={cycleNum}
-                  status="pending"
-                  timeInfo="Pending"
-                />
-              );
-            }
+      {/* Session history — dynamic list, newest first (D-01, D-03) */}
+      {(() => {
+        const visibleSessions = [...sessions]
+          .filter((s) => s.status !== "abandoned")
+          .sort((a, b) => b.cycle_number - a.cycle_number);
+        const DEFAULT_VISIBLE = 4;
+        const displayed = showAllSessions ? visibleSessions : visibleSessions.slice(0, DEFAULT_VISIBLE);
+        const hiddenCount = visibleSessions.length - DEFAULT_VISIBLE;
 
-            let timeInfo: string;
-            let onResume: (() => void) | undefined;
+        if (visibleSessions.length === 0) return null;
 
-            if (session.status === "completed") {
-              timeInfo = `${WORK_TRACKER.sessionMinutes} min`;
-            } else if (session.status === "in_progress") {
-              // Compute remaining from started_at
-              const elapsed = Math.floor(
-                (Date.now() - new Date(session.started_at).getTime()) / 1000
-              );
-              const remainingSecs = Math.max(
-                0,
-                WORK_TRACKER.sessionMinutes * 60 - elapsed
-              );
-              const mins = Math.floor(remainingSecs / 60);
-              const secs = remainingSecs % 60;
-              timeInfo = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")} left`;
-            } else if (session.status === "paused") {
-              timeInfo = `${formatPausedRemaining(
-                session.started_at,
-                session.paused_at!,
-                WORK_TRACKER.sessionMinutes
-              )} left`;
-              onResume = () => handleResume(session.id);
-            } else {
-              // abandoned
-              timeInfo = "Abandoned";
-            }
+        return (
+          <div className="mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {displayed.map((session) => {
+                let timeInfo: string;
+                let onResume: (() => void) | undefined;
 
-            return (
-              <CycleCard
-                key={session.id}
-                cycleNumber={cycleNum}
-                status={session.status}
-                timeInfo={timeInfo}
-                onResume={onResume}
-              />
-            );
-          }
-        )}
-      </div>
+                if (session.status === "completed") {
+                  timeInfo = `${session.session_minutes ?? WORK_TRACKER.defaultSessionMinutes} min`;
+                } else if (session.status === "in_progress") {
+                  const elapsed = Math.floor(
+                    (Date.now() - new Date(session.started_at).getTime()) / 1000
+                  );
+                  const totalSecs = (session.session_minutes ?? WORK_TRACKER.defaultSessionMinutes) * 60;
+                  const remainingSecs = Math.max(0, totalSecs - elapsed);
+                  const mins = Math.floor(remainingSecs / 60);
+                  const secs = remainingSecs % 60;
+                  timeInfo = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")} left`;
+                } else if (session.status === "paused") {
+                  timeInfo = `${formatPausedRemaining(
+                    session.started_at,
+                    session.paused_at!,
+                    session.session_minutes ?? WORK_TRACKER.defaultSessionMinutes
+                  )} left`;
+                  onResume = () => handleResume(session.id);
+                } else {
+                  timeInfo = "Abandoned";
+                }
+
+                return (
+                  <CycleCard
+                    key={session.id}
+                    cycleNumber={session.cycle_number}
+                    status={session.status}
+                    timeInfo={timeInfo}
+                    sessionMinutes={session.session_minutes ?? WORK_TRACKER.defaultSessionMinutes}
+                    onResume={onResume}
+                  />
+                );
+              })}
+            </div>
+            {/* Show more link (D-04) */}
+            {hiddenCount > 0 && !showAllSessions && (
+              <button
+                onClick={() => setShowAllSessions(true)}
+                className="mt-3 text-sm text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
+              >
+                Show {hiddenCount} more session{hiddenCount !== 1 ? "s" : ""}
+              </button>
+            )}
+            {showAllSessions && hiddenCount > 0 && (
+              <button
+                onClick={() => setShowAllSessions(false)}
+                className="mt-3 text-sm text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
+              >
+                Show less
+              </button>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
