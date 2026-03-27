@@ -14,6 +14,11 @@ export function getToday(): string {
   return `${year}-${month}-${day}`;
 }
 
+/** Returns today's date as YYYY-MM-DD in UTC */
+export function getTodayUTC(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
 /** Validates a date string matches YYYY-MM-DD format and is a real date */
 export function isValidDateString(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(new Date(date + "T00:00:00Z").getTime());
