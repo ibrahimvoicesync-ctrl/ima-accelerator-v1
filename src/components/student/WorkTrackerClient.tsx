@@ -163,14 +163,8 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         console.error("[WorkTrackerClient] Failed to complete session:", err);
         return;
       }
-      // After completion: trigger break if this was NOT the first session
-      // completedCount is stale here (pre-refresh), so +1 for just-completed
-      const newCompletedCount = completedCount + 1;
-      if (newCompletedCount >= 2) {
-        setPhase({ kind: "break", secondsRemaining: breakMinutes * 60 });
-      } else {
-        setPhase({ kind: "idle" });
-      }
+      // After completion: trigger break with the selected break duration
+      setPhase({ kind: "break", secondsRemaining: breakMinutes * 60 });
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handleComplete error:", err);
@@ -336,8 +330,8 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
             </div>
           </div>
 
-          {/* Break selection — only if this is NOT the first session (WORK-03) */}
-          {completedCount > 0 && (
+          {/* Break selection — available for all sessions */}
+          {(
             <div className="text-center">
               <p className="text-sm font-medium text-ima-text mb-3">Break Before Next Session</p>
               {/* Break type toggle */}

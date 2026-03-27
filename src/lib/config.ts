@@ -107,7 +107,7 @@ export const WORK_TRACKER = {
   defaultSessionMinutes: 45,
   breakOptions: {
     short: { label: "Short Break", presets: [5, 10] as const },
-    long: { label: "Long Break", presets: [10, 15, 20, 30] as const },
+    long: { label: "Long Break", presets: [15, 20, 25, 30] as const },
   } as const,
 } as const;
 
