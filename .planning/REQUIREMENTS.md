@@ -91,41 +91,41 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WORK-01 | — | Pending |
-| WORK-02 | — | Pending |
-| WORK-03 | — | Pending |
-| WORK-04 | — | Pending |
-| WORK-05 | — | Pending |
-| WORK-06 | — | Pending |
-| WORK-07 | — | Pending |
-| WORK-08 | — | Pending |
-| WORK-09 | — | Pending |
-| KPI-01 | — | Pending |
-| KPI-02 | — | Pending |
-| KPI-03 | — | Pending |
-| KPI-04 | — | Pending |
-| KPI-05 | — | Pending |
-| KPI-06 | — | Pending |
-| KPI-07 | — | Pending |
-| VIS-01 | — | Pending |
-| VIS-02 | — | Pending |
-| VIS-03 | — | Pending |
-| VIS-04 | — | Pending |
-| CAL-01 | — | Pending |
-| CAL-02 | — | Pending |
-| CAL-03 | — | Pending |
-| CAL-04 | — | Pending |
-| ROAD-01 | — | Pending |
-| ROAD-02 | — | Pending |
-| ROAD-03 | — | Pending |
-| ROAD-04 | — | Pending |
-| ROAD-05 | — | Pending |
+| WORK-01 | Phase 14 | Pending |
+| WORK-02 | Phase 14 | Pending |
+| WORK-03 | Phase 14 | Pending |
+| WORK-04 | Phase 14 | Pending |
+| WORK-05 | Phase 14 | Pending |
+| WORK-06 | Phase 14 | Pending |
+| WORK-07 | Phase 14 | Pending |
+| WORK-08 | Phase 14 | Pending |
+| WORK-09 | Phase 13 | Pending |
+| KPI-01 | Phase 15 | Pending |
+| KPI-02 | Phase 15 | Pending |
+| KPI-03 | Phase 15 | Pending |
+| KPI-04 | Phase 15 | Pending |
+| KPI-05 | Phase 15 | Pending |
+| KPI-06 | Phase 15 | Pending |
+| KPI-07 | Phase 13 | Pending |
+| VIS-01 | Phase 16 | Pending |
+| VIS-02 | Phase 16 | Pending |
+| VIS-03 | Phase 16 | Pending |
+| VIS-04 | Phase 16 | Pending |
+| CAL-01 | Phase 17 | Pending |
+| CAL-02 | Phase 17 | Pending |
+| CAL-03 | Phase 17 | Pending |
+| CAL-04 | Phase 17 | Pending |
+| ROAD-01 | Phase 13 | Pending |
+| ROAD-02 | Phase 18 | Pending |
+| ROAD-03 | Phase 18 | Pending |
+| ROAD-04 | Phase 18 | Pending |
+| ROAD-05 | Phase 18 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 29 total
-- Mapped to phases: 0
-- Unmapped: 29 ⚠️
+- Mapped to phases: 29
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after initial definition*
+*Last updated: 2026-03-27 after roadmap creation*
