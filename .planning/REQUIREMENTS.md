@@ -9,14 +9,14 @@ Requirements for milestone v1.1 (V2 Feature Build). Each maps to roadmap phases.
 
 ### Work Sessions
 
-- [ ] **WORK-01**: Student can select session duration (30, 45, or 60 min) before starting a cycle
+- [x] **WORK-01**: Student can select session duration (30, 45, or 60 min) before starting a cycle
 - [ ] **WORK-02**: Student can select break type (short 5-10 min or long 10-30 min) and exact duration before starting a cycle
 - [ ] **WORK-03**: First cycle of the day skips the break — break runs between cycles only
 - [ ] **WORK-04**: Break displays as a visible countdown; when break ends, student can start next cycle
 - [ ] **WORK-05**: Student can skip a break early
-- [ ] **WORK-06**: Each work_sessions row stores the chosen session_minutes so history is accurate
+- [x] **WORK-06**: Each work_sessions row stores the chosen session_minutes so history is accurate
 - [ ] **WORK-07**: Circular timer adapts to whatever duration was chosen
-- [ ] **WORK-08**: No daily cycle cap — students can do unlimited sessions (4-hour daily goal remains as KPI, not hard cap)
+- [x] **WORK-08**: No daily cycle cap — students can do unlimited sessions (4-hour daily goal remains as KPI, not hard cap)
 - [x] **WORK-09**: DB migration adds session_minutes column to work_sessions
 
 ### Outreach KPIs
@@ -91,14 +91,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WORK-01 | Phase 14 | Pending |
+| WORK-01 | Phase 14 | Complete |
 | WORK-02 | Phase 14 | Pending |
 | WORK-03 | Phase 14 | Pending |
 | WORK-04 | Phase 14 | Pending |
 | WORK-05 | Phase 14 | Pending |
-| WORK-06 | Phase 14 | Pending |
+| WORK-06 | Phase 14 | Complete |
 | WORK-07 | Phase 14 | Pending |
-| WORK-08 | Phase 14 | Pending |
+| WORK-08 | Phase 14 | Complete |
 | WORK-09 | Phase 13 | Complete |
 | KPI-01 | Phase 15 | Pending |
 | KPI-02 | Phase 15 | Pending |
