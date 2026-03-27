@@ -16,7 +16,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 - ✓ Google OAuth login with invite-only registration — v1.0
 - ✓ Role-based routing and access control (owner/coach/student) — v1.0
-- ✓ Student work tracker (45-min cycles, 4 per day, start/complete/abandon) — v1.0
+- ✓ Student work tracker (45-min cycles, 4 per day, start/complete/abandon) — v1.0, updated in Phase 14
 - ✓ Student 10-step roadmap (locked → active → completed progression) — v1.0
 - ✓ Student daily reports (hours, star rating 1-5, outreach count, wins, improvements) — v1.0
 - ✓ Ask Abu Lahya AI chat (iframe embed, Coming Soon state) — v1.0
@@ -37,7 +37,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 <!-- Current scope. Building toward these for v1.1. -->
 
-- [ ] Flexible work sessions — student-selectable durations (30/45/60 min), breaks between cycles, no cycle cap
+- ✓ Flexible work sessions — student-selectable durations (30/45/60 min), breaks between cycles, no cycle cap — Validated in Phase 14
 - [ ] Progress tracker / email KPIs — granular outreach tracking, sticky progress banner, 2,500 lifetime / 50 daily targets
 - [ ] Coach/owner student KPI visibility — read-only progress on coach and owner detail pages
 - [ ] Calendar view — month grid replacing work sessions + reports tabs on student detail pages
@@ -69,6 +69,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 12 phases, 38 plans, 218 commits over 3 days.
 
 **v1.1 Phase 13 complete** (2026-03-27): Schema & config foundation — migration adds session_minutes, drops cycle cap, adds 5 KPI columns. Config exports session duration options, KPI targets, roadmap target_days, and getTodayUTC utility.
+
+**v1.1 Phase 14 complete** (2026-03-27): Flexible work sessions — session_minutes on types/API, breakOptions config, formatHoursMinutes utility, state-machine WorkTracker UI (idle/setup/working/break), duration picker, break countdown, hours-based progress bars, dynamic session list, no cycle cap.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
@@ -136,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after Phase 13 completion*
+*Last updated: 2026-03-27 after Phase 14 completion*
