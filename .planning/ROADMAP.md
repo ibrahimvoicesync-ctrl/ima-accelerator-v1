@@ -46,7 +46,10 @@
   3. `config.ts` exports `sessionDurationOptions` (30/45/60), `defaultSessionMinutes`, and `KPI_TARGETS` (`{ lifetimeOutreach: 2500, dailyOutreach: 50 }`)
   4. Each roadmap step in `config.ts` has a `target_days` value; `getTodayUTC()` utility exists in `src/lib/utils.ts`
   5. `npx tsc --noEmit` passes with zero errors after all config changes
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 13-01-PLAN.md — V1.1 database migration (session_minutes, constraint drop, KPI columns, trigger update)
+- [ ] 13-02-PLAN.md — Config and utility additions (duration options, KPI targets, roadmap target_days, getTodayUTC)
 
 ### Phase 14: Flexible Work Sessions
 **Goal**: Students can choose their session duration, take timed breaks between cycles, and run unlimited sessions per day
@@ -122,7 +125,7 @@
 | 10. UI Polish & Production Hardening | v1.0 | 4/4 | Complete | 2026-03-17 |
 | 11. Fix Invite Registration URL | v1.0 | 3/3 | Complete | 2026-03-18 |
 | 12. CLAUDE.md Hard Rule Compliance | v1.0 | 2/2 | Complete | 2026-03-18 |
-| 13. Schema & Config Foundation | v1.1 | 0/? | Not started | - |
+| 13. Schema & Config Foundation | v1.1 | 0/2 | Not started | - |
 | 14. Flexible Work Sessions | v1.1 | 0/? | Not started | - |
 | 15. Outreach KPI Banner | v1.1 | 0/? | Not started | - |
 | 16. Coach/Owner KPI Visibility | v1.1 | 0/? | Not started | - |
