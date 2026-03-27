@@ -17,7 +17,7 @@ Requirements for milestone v1.1 (V2 Feature Build). Each maps to roadmap phases.
 - [ ] **WORK-06**: Each work_sessions row stores the chosen session_minutes so history is accurate
 - [ ] **WORK-07**: Circular timer adapts to whatever duration was chosen
 - [ ] **WORK-08**: No daily cycle cap — students can do unlimited sessions (4-hour daily goal remains as KPI, not hard cap)
-- [ ] **WORK-09**: DB migration adds session_minutes column to work_sessions
+- [x] **WORK-09**: DB migration adds session_minutes column to work_sessions
 
 ### Outreach KPIs
 
@@ -27,7 +27,7 @@ Requirements for milestone v1.1 (V2 Feature Build). Each maps to roadmap phases.
 - [ ] **KPI-04**: Sticky ProgressBanner on every student page shows: X/2,500 lifetime outreach, X/50 daily outreach, hours worked, calls joined, brands contacted, influencers contacted
 - [ ] **KPI-05**: RAG color coding: green (on target), amber (>=80%), red (<80%) on all KPI indicators
 - [ ] **KPI-06**: Student homepage shows KPI breakdown cards with RAG color coding
-- [ ] **KPI-07**: DB migration adds 5 new integer columns to daily_reports
+- [x] **KPI-07**: DB migration adds 5 new integer columns to daily_reports
 
 ### Coach/Owner Visibility
 
@@ -99,14 +99,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WORK-06 | Phase 14 | Pending |
 | WORK-07 | Phase 14 | Pending |
 | WORK-08 | Phase 14 | Pending |
-| WORK-09 | Phase 13 | Pending |
+| WORK-09 | Phase 13 | Complete |
 | KPI-01 | Phase 15 | Pending |
 | KPI-02 | Phase 15 | Pending |
 | KPI-03 | Phase 15 | Pending |
 | KPI-04 | Phase 15 | Pending |
 | KPI-05 | Phase 15 | Pending |
 | KPI-06 | Phase 15 | Pending |
-| KPI-07 | Phase 13 | Pending |
+| KPI-07 | Phase 13 | Complete |
 | VIS-01 | Phase 16 | Pending |
 | VIS-02 | Phase 16 | Pending |
 | VIS-03 | Phase 16 | Pending |
