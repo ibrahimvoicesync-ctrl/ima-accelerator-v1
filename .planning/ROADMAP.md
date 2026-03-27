@@ -61,11 +61,11 @@ Plans:
   3. The first cycle of the day starts immediately with no break prompt
   4. Completing a session writes the chosen `session_minutes` to `work_sessions`; the daily hours total reflects the actual durations stored
   5. Students can complete more than 4 cycles in a day without any error or block; the 4-hour daily goal displays as a KPI reference, not a hard cap
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 Plans:
 - [x] 14-01-PLAN.md — Foundation: types, config breakOptions, utils formatHoursMinutes, API route updates
 - [ ] 14-02-PLAN.md — Core Work Tracker UI: state machine, duration picker, break countdown, session list, hours bar
-- [ ] 14-03-PLAN.md — Student dashboard hours-based progress migration
+- [x] 14-03-PLAN.md — Student dashboard hours-based progress migration
 **UI hint**: yes
 
 ### Phase 15: Outreach KPI Banner
@@ -130,7 +130,7 @@ Plans:
 | 11. Fix Invite Registration URL | v1.0 | 3/3 | Complete | 2026-03-18 |
 | 12. CLAUDE.md Hard Rule Compliance | v1.0 | 2/2 | Complete | 2026-03-18 |
 | 13. Schema & Config Foundation | v1.1 | 2/2 | Complete    | 2026-03-27 |
-| 14. Flexible Work Sessions | v1.1 | 1/3 | In Progress|  |
+| 14. Flexible Work Sessions | v1.1 | 2/3 | In Progress|  |
 | 15. Outreach KPI Banner | v1.1 | 0/? | Not started | - |
 | 16. Coach/Owner KPI Visibility | v1.1 | 0/? | Not started | - |
 | 17. Calendar View | v1.1 | 0/? | Not started | - |
