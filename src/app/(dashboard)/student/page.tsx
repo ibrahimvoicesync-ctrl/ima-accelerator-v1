@@ -44,8 +44,8 @@ export default async function StudentDashboard() {
   ] = await Promise.all([
     admin.from("work_sessions").select("*").eq("student_id", user.id).eq("date", today).order("cycle_number", { ascending: true }),
     admin.from("roadmap_progress").select("step_number, status").eq("student_id", user.id).order("step_number", { ascending: true }),
-    admin.from("daily_reports").select("submitted_at, outreach_brands, outreach_influencers").eq("student_id", user.id).eq("date", today).maybeSingle(),
-    admin.from("daily_reports").select("outreach_brands.sum(), outreach_influencers.sum()").eq("student_id", user.id).single(),
+    admin.from("daily_reports").select("submitted_at, brands_contacted, influencers_contacted").eq("student_id", user.id).eq("date", today).maybeSingle(),
+    admin.from("daily_reports").select("brands_contacted, influencers_contacted").eq("student_id", user.id),
     admin.from("users").select("joined_at").eq("id", user.id).single(),
   ]);
 
@@ -82,10 +82,13 @@ export default async function StudentDashboard() {
   const nextAction = getNextAction(completedCount, totalMinutesWorked, activeSession, pausedSession);
 
   // KPI values for breakdown cards
-  const lifetimeData = lifetimeResult.data as { outreach_brands: number | null; outreach_influencers: number | null } | null;
-  const lifetimeOutreach = (lifetimeData?.outreach_brands ?? 0) + (lifetimeData?.outreach_influencers ?? 0);
+  const allReports = lifetimeResult.data ?? [];
+  const lifetimeOutreach = allReports.reduce(
+    (sum, r) => sum + (r.brands_contacted ?? 0) + (r.influencers_contacted ?? 0),
+    0,
+  );
   const days = computeDaysInProgram(userResult.data?.joined_at ?? new Date().toISOString());
-  const dailyOutreachTotal = (todayReport?.outreach_brands ?? 0) + (todayReport?.outreach_influencers ?? 0);
+  const dailyOutreachTotal = (todayReport?.brands_contacted ?? 0) + (todayReport?.influencers_contacted ?? 0);
 
   const lifetimeRag = lifetimeOutreachRag(lifetimeOutreach, days);
   const dailyOutRag = dailyOutreachRag(dailyOutreachTotal, days);
@@ -255,7 +258,7 @@ export default async function StudentDashboard() {
             </>
           ) : (
             <p className="text-sm text-ima-text-secondary mt-1">
-              Track your 10-step program journey
+              Track your {ROADMAP_STEPS.length}-step program journey
             </p>
           )}
           <Link
