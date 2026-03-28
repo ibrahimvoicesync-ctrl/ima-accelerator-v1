@@ -149,4 +149,4 @@ Plans:
 | 15. Outreach KPI Banner | v1.1 | 2/2 | Complete   | 2026-03-28 |
 | 16. Coach/Owner KPI Visibility | v1.1 | 4/4 | Complete    | 2026-03-28 |
 | 17. Calendar View | v1.1 | 2/3 | Complete    | 2026-03-28 |
-| 18. Roadmap Date KPIs & Completion Logging | v1.1 | 2/2 | Complete   | 2026-03-28 |
+| 18. Roadmap Date KPIs & Completion Logging | v1.1 | 2/2 | Complete    | 2026-03-28 |
