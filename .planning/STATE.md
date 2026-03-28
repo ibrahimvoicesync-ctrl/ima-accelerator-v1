@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-last_updated: "2026-03-28T17:27:45.643Z"
+status: executing
+last_updated: "2026-03-28T17:57:12.317Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 16
+  completed_plans: 15
 ---
 
 # Project State
@@ -19,13 +19,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 17 — calendar-view
+**Current focus:** Phase 18 — roadmap-date-kpis-completion-logging
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Phase 17 complete — all gap closure plans done
+Phase: 18 (roadmap-date-kpis-completion-logging) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-28
 
 ```
@@ -72,6 +72,7 @@ All v1.0 decisions marked with outcomes after milestone completion.
 - [Phase 16-03]: UPDATE-only for step names 1-10 preserves status/completed_at; backfill uses ON CONFLICT DO NOTHING for idempotency
 - [Phase 17-calendar-view]: ActivityDayButton nested inside CalendarTab as closure over getActivity; no react-day-picker stylesheet import — classNames prop for full ima-* token control; router.push for month navigation to trigger server re-render
 - [Phase 17-calendar-view]: sevenDaysAgo moved before Promise.all so it can be used in recentRatingsResult query; separate latestSession/latestReport queries ensure at-risk is independent of calendar month view
+- [Phase 18-01]: getDeadlineStatus utility with DeadlineStatus discriminated union; joinedAt normalized before date construction; daysLate suffix only for positive values; kind: none for null target_days
 
 ### Critical Implementation Notes (from research)
 
