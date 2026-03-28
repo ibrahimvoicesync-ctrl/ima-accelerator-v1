@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Sparkles, ExternalLink } from "lucide-react";
 import { Modal, Button } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { RoadmapStep } from "@/components/student/RoadmapStep";
@@ -12,9 +13,10 @@ type RoadmapProgress = Database["public"]["Tables"]["roadmap_progress"]["Row"];
 
 interface RoadmapClientProps {
   progress: RoadmapProgress[];
+  joinedAt: string;
 }
 
-export function RoadmapClient({ progress }: RoadmapClientProps) {
+export function RoadmapClient({ progress, joinedAt }: RoadmapClientProps) {
   const routerRef = useRef(useRouter());
   const { toast } = useToast();
   const toastRef = useRef(toast);
@@ -24,6 +26,7 @@ export function RoadmapClient({ progress }: RoadmapClientProps) {
 
   const [confirmStep, setConfirmStep] = useState<number | null>(null);
   const [completing, setCompleting] = useState(false);
+  const [unlockModal, setUnlockModal] = useState<{ title: string; url: string } | null>(null);
 
   const handleComplete = useCallback(async () => {
     if (confirmStep === null) return;
@@ -39,13 +42,22 @@ export function RoadmapClient({ progress }: RoadmapClientProps) {
         const stepTitle = ROADMAP_STEPS.find(
           (s) => s.step === confirmStep
         )?.title;
-        const nextTitle = ROADMAP_STEPS.find(
+        const currentStep = ROADMAP_STEPS.find(
+          (s) => s.step === confirmStep
+        );
+        const nextStep = ROADMAP_STEPS.find(
           (s) => s.step === confirmStep + 1
-        )?.title;
-        toastRef.current({
-          type: "success",
-          title: `"${stepTitle}" complete!${nextTitle ? ` Next: ${nextTitle}` : ""}`,
-        });
+        );
+
+        // Check if the completed step has an unlock_url
+        if (currentStep?.unlock_url) {
+          setUnlockModal({ title: currentStep.title, url: currentStep.unlock_url });
+        } else {
+          toastRef.current({
+            type: "success",
+            title: `"${stepTitle}" complete!${nextStep ? ` Next: ${nextStep.title}` : ""}`,
+          });
+        }
         routerRef.current.refresh();
       } else {
         const err = await res.json();
@@ -82,9 +94,11 @@ export function RoadmapClient({ progress }: RoadmapClientProps) {
                 step_number: step.step,
                 title: step.title,
                 description: step.description,
+                target_days: step.target_days,
               }}
               progress={stepProgress}
               isLast={i === ROADMAP_STEPS.length - 1}
+              joinedAt={joinedAt}
               onComplete={(stepNumber) => setConfirmStep(stepNumber)}
             />
           );
@@ -108,6 +122,34 @@ export function RoadmapClient({ progress }: RoadmapClientProps) {
           </Button>
           <Button variant="ghost" onClick={() => setConfirmStep(null)}>
             Cancel
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Unlock video modal */}
+      <Modal
+        open={unlockModal !== null}
+        onClose={() => setUnlockModal(null)}
+        title="You've Unlocked a Secret Video!"
+      >
+        <div className="flex flex-col items-center text-center gap-4 pt-2">
+          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-ima-warning/10">
+            <Sparkles className="h-8 w-8 text-ima-warning" aria-hidden="true" />
+          </div>
+          <p className="text-sm text-ima-text-secondary">
+            You just unlocked <span className="font-semibold text-ima-text">{unlockModal?.title}</span>. Watch this video before you start.
+          </p>
+          <a
+            href={unlockModal?.url ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ima-primary text-white font-semibold hover:bg-ima-primary-hover motion-safe:transition-colors"
+          >
+            Watch Video
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          </a>
+          <Button variant="ghost" onClick={() => setUnlockModal(null)}>
+            Watch Later
           </Button>
         </div>
       </Modal>

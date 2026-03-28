@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Calendar } from "lucide-react";
 import { Badge, Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/types";
@@ -12,14 +12,25 @@ interface RoadmapStepProps {
     step_number: number;
     title: string;
     description: string;
+    target_days: number | null;
   };
   progress: RoadmapProgress | null;
   isLast: boolean;
+  joinedAt: string;
   onComplete: (stepNumber: number) => void;
 }
 
-export function RoadmapStep({ step, progress, isLast, onComplete }: RoadmapStepProps) {
+export function RoadmapStep({ step, progress, isLast, joinedAt, onComplete }: RoadmapStepProps) {
   const status = progress?.status ?? "locked";
+
+  // Compute deadline date from joined_at + target_days
+  const deadlineDate = step.target_days !== null
+    ? (() => {
+        const d = new Date(joinedAt);
+        d.setDate(d.getDate() + step.target_days);
+        return d;
+      })()
+    : null;
 
   return (
     <div className="flex gap-3">
@@ -70,6 +81,16 @@ export function RoadmapStep({ step, progress, isLast, onComplete }: RoadmapStepP
         >
           {step.description}
         </p>
+
+        {deadlineDate && status !== "completed" && (
+          <p className={cn(
+            "text-xs mt-1 flex items-center gap-1",
+            deadlineDate < new Date() ? "text-ima-danger font-medium" : "text-ima-text-muted"
+          )}>
+            <Calendar className="h-3 w-3" aria-hidden="true" />
+            Due {deadlineDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </p>
+        )}
 
         <div className="mt-2">
           {status === "completed" && (

@@ -11,12 +11,22 @@ export default async function RoadmapPage() {
   const user = await requireRole("student");
   const admin = createAdminClient();
 
-  // Fetch roadmap progress
-  const { data: progressData, error } = await admin
-    .from("roadmap_progress")
-    .select("*")
-    .eq("student_id", user.id)
-    .order("step_number", { ascending: true });
+  // Fetch roadmap progress and user joined_at in parallel
+  const [progressResult, userResult] = await Promise.all([
+    admin
+      .from("roadmap_progress")
+      .select("*")
+      .eq("student_id", user.id)
+      .order("step_number", { ascending: true }),
+    admin
+      .from("users")
+      .select("joined_at")
+      .eq("id", user.id)
+      .single(),
+  ]);
+
+  const { data: progressData, error } = progressResult;
+  const joinedAt = userResult.data?.joined_at ?? new Date().toISOString();
 
   if (error) {
     console.error("[roadmap] Failed to fetch progress:", error);
@@ -168,7 +178,7 @@ export default async function RoadmapPage() {
       )}
 
       {/* Timeline + Confirm Modal (client component) */}
-      <RoadmapClient progress={progress} />
+      <RoadmapClient progress={progress} joinedAt={joinedAt} />
     </div>
   );
 }
