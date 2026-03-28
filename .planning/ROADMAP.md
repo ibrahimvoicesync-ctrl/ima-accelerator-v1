@@ -108,10 +108,11 @@ Plans:
   2. The Calendar tab shows a month grid where each day cell displays color indicators: green dot for days with both work sessions and a report, amber dot for partial days, empty for days with no activity
   3. Clicking a day opens an inline panel showing that day's work sessions (duration, status, timestamps) and daily report (all KPI fields) side by side
   4. Students can navigate to previous and current months using prev/next controls; the current month loads by default; month changes do not show stale or truncated data for active students
-**Plans:** 2/2 plans complete
+**Plans:** 3 plans (2 complete + 1 gap closure)
 Plans:
 - [x] 17-01-PLAN.md — Install react-day-picker, create CalendarTab component, update StudentDetailTabs
 - [x] 17-02-PLAN.md — Wire CalendarTab into coach/owner server pages and client components with month-scoped queries
+- [ ] 17-03-PLAN.md — Gap closure: fix day selection off-by-one (UTC/local mismatch) and month navigation lag (client-side fetch)
 **UI hint**: yes
 
 ### Phase 18: Roadmap Date KPIs & Completion Logging
@@ -144,5 +145,5 @@ Plans:
 | 14. Flexible Work Sessions | v1.1 | 3/3 | Complete    | 2026-03-27 |
 | 15. Outreach KPI Banner | v1.1 | 2/2 | Complete   | 2026-03-28 |
 | 16. Coach/Owner KPI Visibility | v1.1 | 4/4 | Complete    | 2026-03-28 |
-| 17. Calendar View | v1.1 | 2/2 | Complete    | 2026-03-28 |
+| 17. Calendar View | v1.1 | 2/3 | Gap closure    | 2026-03-28 |
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 0/? | Not started | - |
