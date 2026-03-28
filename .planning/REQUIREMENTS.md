@@ -33,8 +33,8 @@ Requirements for milestone v1.1 (V2 Feature Build). Each maps to roadmap phases.
 
 - [ ] **VIS-01**: Coach student detail page shows read-only KPI summary (lifetime outreach/2,500, daily/50, hours, RAG status)
 - [ ] **VIS-02**: Owner student detail page shows same read-only KPI summary
-- [ ] **VIS-03**: KPI card includes current roadmap step for context
-- [ ] **VIS-04**: Coach and owner see same RAG status colors as the student
+- [x] **VIS-03**: KPI card includes current roadmap step for context
+- [x] **VIS-04**: Coach and owner see same RAG status colors as the student
 
 ### Calendar
 
@@ -109,8 +109,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | KPI-07 | Phase 13 | Complete |
 | VIS-01 | Phase 16 | Pending |
 | VIS-02 | Phase 16 | Pending |
-| VIS-03 | Phase 16 | Pending |
-| VIS-04 | Phase 16 | Pending |
+| VIS-03 | Phase 16 | Complete |
+| VIS-04 | Phase 16 | Complete |
 | CAL-01 | Phase 17 | Pending |
 | CAL-02 | Phase 17 | Pending |
 | CAL-03 | Phase 17 | Pending |

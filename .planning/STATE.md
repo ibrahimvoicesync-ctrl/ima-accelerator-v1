@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-last_updated: "2026-03-28T06:53:22.333Z"
+status: executing
+last_updated: "2026-03-28T08:55:23.512Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
 ---
 
 # Project State
@@ -19,13 +19,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 15 — outreach-kpi-banner
+**Current focus:** Phase 16 — coach-owner-kpi-visibility
 
 ## Current Position
 
-Phase: 15 (outreach-kpi-banner) — EXECUTING
+Phase: 16 (coach-owner-kpi-visibility) — EXECUTING
 Plan: 2 of 2
-Status: Phase complete — ready for verification
+Status: Ready to execute
 Last activity: 2026-03-28
 
 ```
@@ -66,6 +66,8 @@ All v1.0 decisions marked with outcomes after milestone completion.
 - [Phase 15-outreach-kpi-banner]: outreach_count kept populated as outreach_brands + outreach_influencers for backward compat; kpi.ts daysInProgram < 1 guard prevents day-zero red state per D-04
 - [Phase 15-outreach-kpi-banner]: Student sub-layout calls requireRole(student) independently — Next.js 16 deduplicates auth fetch calls within same render tree
 - [Phase 15-outreach-kpi-banner]: dailyMinutesWorked from work_sessions (not hours_worked report field) for real-time accuracy in ProgressBanner
+- [Phase 16-coach-owner-kpi-visibility]: ROADMAP_STEPS expanded to 15 steps across 3 stages (Setup & Preparation steps 1-7, Influencer Outreach steps 8-11, Brand Outreach steps 12-15); target_days typed as number | null to prevent TypeScript literal narrowing
+- [Phase 16-coach-owner-kpi-visibility]: KpiItem exported in place from ProgressBanner.tsx (not moved); StudentKpiSummary is a pure server component receiving pre-computed scalars; stage display format is 'Stage N: StageName — StepTitle' per D-05
 
 ### Critical Implementation Notes (from research)
 
