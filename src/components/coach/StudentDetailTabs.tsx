@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-export type TabKey = "work" | "roadmap" | "reports";
+export type TabKey = "calendar" | "roadmap";
 
 interface StudentDetailTabsProps {
   activeTab: TabKey;
@@ -11,9 +11,8 @@ interface StudentDetailTabsProps {
 }
 
 const tabs: { key: TabKey; label: string }[] = [
-  { key: "work", label: "Work Sessions" },
+  { key: "calendar", label: "Calendar" },
   { key: "roadmap", label: "Roadmap" },
-  { key: "reports", label: "Reports" },
 ];
 
 export function StudentDetailTabs({ activeTab, onTabChange }: StudentDetailTabsProps) {
