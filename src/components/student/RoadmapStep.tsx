@@ -3,6 +3,7 @@
 import { Check, Lock, Calendar } from "lucide-react";
 import { Badge, Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { getDeadlineStatus } from "@/lib/roadmap-utils";
 import type { Database } from "@/lib/types";
 
 type RoadmapProgress = Database["public"]["Tables"]["roadmap_progress"]["Row"];
@@ -23,14 +24,12 @@ interface RoadmapStepProps {
 export function RoadmapStep({ step, progress, isLast, joinedAt, onComplete }: RoadmapStepProps) {
   const status = progress?.status ?? "locked";
 
-  // Compute deadline date from joined_at + target_days
-  const deadlineDate = step.target_days !== null
-    ? (() => {
-        const d = new Date(joinedAt);
-        d.setDate(d.getDate() + step.target_days);
-        return d;
-      })()
-    : null;
+  const deadlineStatus = getDeadlineStatus(
+    step.target_days,
+    joinedAt,
+    status,
+    progress?.completed_at ?? null
+  );
 
   return (
     <div className="flex gap-3">
@@ -82,26 +81,47 @@ export function RoadmapStep({ step, progress, isLast, joinedAt, onComplete }: Ro
           {step.description}
         </p>
 
-        {deadlineDate && status !== "completed" && (
-          <p className={cn(
-            "text-xs mt-1 flex items-center gap-1",
-            deadlineDate < new Date() ? "text-ima-danger font-medium" : "text-ima-text-muted"
-          )}>
-            <Calendar className="h-3 w-3" aria-hidden="true" />
-            Due {deadlineDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-          </p>
-        )}
-
         <div className="mt-2">
-          {status === "completed" && (
+          {/* Completed chip — green Badge with date and optional late suffix (D-02, D-03, D-05) */}
+          {deadlineStatus.kind === "completed" && (
             <Badge variant="success">
-              Completed{progress?.completed_at && (
-                <span className="ml-1">
-                  {new Date(progress.completed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                </span>
+              <Check className="h-3 w-3 mr-1" aria-hidden="true" />
+              Completed {new Date(deadlineStatus.completedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                timeZone: "UTC",
+              })}
+              {deadlineStatus.daysLate !== null && (
+                <span className="ml-1 opacity-75">({deadlineStatus.daysLate}d late)</span>
               )}
             </Badge>
           )}
+
+          {/* On Track chip — green Badge with deadline date */}
+          {deadlineStatus.kind === "on-track" && (
+            <Badge variant="success" size="sm">
+              <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
+              On Track — {deadlineStatus.deadlineLabel}
+            </Badge>
+          )}
+
+          {/* Due Soon chip — amber Badge with deadline date (D-04: target_days: 0 steps show this on join day) */}
+          {deadlineStatus.kind === "due-soon" && (
+            <Badge variant="warning" size="sm">
+              <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
+              Due Soon — {deadlineStatus.deadlineLabel}
+            </Badge>
+          )}
+
+          {/* Overdue chip — red Badge with days overdue count */}
+          {deadlineStatus.kind === "overdue" && (
+            <Badge variant="error" size="sm">
+              <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
+              Overdue — {deadlineStatus.daysOverdue}d
+            </Badge>
+          )}
+
+          {/* Active step — Mark Complete button (unchanged) */}
           {status === "active" && (
             <Button
               variant="primary"
@@ -111,6 +131,8 @@ export function RoadmapStep({ step, progress, isLast, joinedAt, onComplete }: Ro
               Mark Complete
             </Button>
           )}
+
+          {/* Locked step — Locked badge (unchanged) */}
           {status === "locked" && (
             <Badge variant="default">
               <Lock className="h-3 w-3 mr-1" aria-hidden="true" />
