@@ -151,80 +151,112 @@ VALUES
 -- Step 1 completed for all; earlier steps completed, current active, later locked
 -- ---------------------------------------------------------------------------
 
--- Step names for the roadmap (10 steps)
--- 1: Niche Selection, 2: Brand Research, 3: Outreach Scripts, 4: First Contacts
--- 5: Follow-Up System, 6: Negotiations, 7: Deal Closing, 8: Campaign Execution
--- 9: Performance Review, 10: Scale & Repeat
+-- Step names for the roadmap (15 steps, 3 stages)
+-- Stage 1: Setup & Preparation
+--   1: Join the Course, 2: Plan Your Work, 3: Pick Your Niche,
+--   4: Build Your Website, 5: Build a List of Influencers,
+--   6: Send Your First Email, 7: Follow Up
+-- Stage 2: Influencer Outreach
+--   8: Get First Reply, 9: Close First Influencer,
+--   10: Build to 5 Influencers, 11: Scale Influencer Outreach
+-- Stage 3: Brand Outreach
+--   12: Research Brands, 13: Send First Brand Pitch,
+--   14: Follow Up with Brands, 15: Close First Brand Deal
 
--- Amira (004) — at step 5: steps 1-4 completed, step 5 active, 6-10 locked
+-- Amira (004) — at step 5: steps 1-4 completed, step 5 active, 6-15 locked
 INSERT INTO public.roadmap_progress (id, student_id, step_number, step_name, status, completed_at, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000004', 1, 'Niche Selection', 'completed', NOW() - INTERVAL '40 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '40 days'),
-  ('00000000-0000-0000-0000-000000000041', '00000000-0000-0000-0000-000000000004', 2, 'Brand Research', 'completed', NOW() - INTERVAL '35 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '35 days'),
-  ('00000000-0000-0000-0000-000000000042', '00000000-0000-0000-0000-000000000004', 3, 'Outreach Scripts', 'completed', NOW() - INTERVAL '28 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '28 days'),
-  ('00000000-0000-0000-0000-000000000043', '00000000-0000-0000-0000-000000000004', 4, 'First Contacts', 'completed', NOW() - INTERVAL '14 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '14 days'),
-  ('00000000-0000-0000-0000-000000000044', '00000000-0000-0000-0000-000000000004', 5, 'Follow-Up System', 'active', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '7 days'),
-  ('00000000-0000-0000-0000-000000000045', '00000000-0000-0000-0000-000000000004', 6, 'Negotiations', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
-  ('00000000-0000-0000-0000-000000000046', '00000000-0000-0000-0000-000000000004', 7, 'Deal Closing', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
-  ('00000000-0000-0000-0000-000000000047', '00000000-0000-0000-0000-000000000004', 8, 'Campaign Execution', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
-  ('00000000-0000-0000-0000-000000000048', '00000000-0000-0000-0000-000000000004', 9, 'Performance Review', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
-  ('00000000-0000-0000-0000-000000000049', '00000000-0000-0000-0000-000000000004', 10, 'Scale & Repeat', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days');
+  ('00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000004', 1, 'Join the Course', 'completed', NOW() - INTERVAL '40 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '40 days'),
+  ('00000000-0000-0000-0000-000000000041', '00000000-0000-0000-0000-000000000004', 2, 'Plan Your Work', 'completed', NOW() - INTERVAL '35 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '35 days'),
+  ('00000000-0000-0000-0000-000000000042', '00000000-0000-0000-0000-000000000004', 3, 'Pick Your Niche', 'completed', NOW() - INTERVAL '28 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '28 days'),
+  ('00000000-0000-0000-0000-000000000043', '00000000-0000-0000-0000-000000000004', 4, 'Build Your Website', 'completed', NOW() - INTERVAL '14 days', NOW() - INTERVAL '45 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-000000000044', '00000000-0000-0000-0000-000000000004', 5, 'Build a List of Influencers', 'active', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '7 days'),
+  ('00000000-0000-0000-0000-000000000045', '00000000-0000-0000-0000-000000000004', 6, 'Send Your First Email', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-000000000046', '00000000-0000-0000-0000-000000000004', 7, 'Follow Up', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-000000000047', '00000000-0000-0000-0000-000000000004', 8, 'Get First Reply', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-000000000048', '00000000-0000-0000-0000-000000000004', 9, 'Close First Influencer', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-000000000049', '00000000-0000-0000-0000-000000000004', 10, 'Build to 5 Influencers', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-0000000000a0', '00000000-0000-0000-0000-000000000004', 11, 'Scale Influencer Outreach', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000004', 12, 'Research Brands', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-000000000004', 13, 'Send First Brand Pitch', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-000000000004', 14, 'Follow Up with Brands', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days'),
+  ('00000000-0000-0000-0000-0000000000a4', '00000000-0000-0000-0000-000000000004', 15, 'Close First Brand Deal', 'locked', NULL, NOW() - INTERVAL '45 days', NOW() - INTERVAL '45 days');
 
--- Yusuf (005) — at step 3: steps 1-2 completed, step 3 active, 4-10 locked
+-- Yusuf (005) — at step 3: steps 1-2 completed, step 3 active, 4-15 locked
 INSERT INTO public.roadmap_progress (id, student_id, step_number, step_name, status, completed_at, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000050', '00000000-0000-0000-0000-000000000005', 1, 'Niche Selection', 'completed', NOW() - INTERVAL '25 days', NOW() - INTERVAL '30 days', NOW() - INTERVAL '25 days'),
-  ('00000000-0000-0000-0000-000000000051', '00000000-0000-0000-0000-000000000005', 2, 'Brand Research', 'completed', NOW() - INTERVAL '18 days', NOW() - INTERVAL '30 days', NOW() - INTERVAL '18 days'),
-  ('00000000-0000-0000-0000-000000000052', '00000000-0000-0000-0000-000000000005', 3, 'Outreach Scripts', 'active', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '10 days'),
-  ('00000000-0000-0000-0000-000000000053', '00000000-0000-0000-0000-000000000005', 4, 'First Contacts', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
-  ('00000000-0000-0000-0000-000000000054', '00000000-0000-0000-0000-000000000005', 5, 'Follow-Up System', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
-  ('00000000-0000-0000-0000-000000000055', '00000000-0000-0000-0000-000000000005', 6, 'Negotiations', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
-  ('00000000-0000-0000-0000-000000000056', '00000000-0000-0000-0000-000000000005', 7, 'Deal Closing', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
-  ('00000000-0000-0000-0000-000000000057', '00000000-0000-0000-0000-000000000005', 8, 'Campaign Execution', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
-  ('00000000-0000-0000-0000-000000000058', '00000000-0000-0000-0000-000000000005', 9, 'Performance Review', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
-  ('00000000-0000-0000-0000-000000000059', '00000000-0000-0000-0000-000000000005', 10, 'Scale & Repeat', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days');
+  ('00000000-0000-0000-0000-000000000050', '00000000-0000-0000-0000-000000000005', 1, 'Join the Course', 'completed', NOW() - INTERVAL '25 days', NOW() - INTERVAL '30 days', NOW() - INTERVAL '25 days'),
+  ('00000000-0000-0000-0000-000000000051', '00000000-0000-0000-0000-000000000005', 2, 'Plan Your Work', 'completed', NOW() - INTERVAL '18 days', NOW() - INTERVAL '30 days', NOW() - INTERVAL '18 days'),
+  ('00000000-0000-0000-0000-000000000052', '00000000-0000-0000-0000-000000000005', 3, 'Pick Your Niche', 'active', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '10 days'),
+  ('00000000-0000-0000-0000-000000000053', '00000000-0000-0000-0000-000000000005', 4, 'Build Your Website', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000054', '00000000-0000-0000-0000-000000000005', 5, 'Build a List of Influencers', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000055', '00000000-0000-0000-0000-000000000005', 6, 'Send Your First Email', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000056', '00000000-0000-0000-0000-000000000005', 7, 'Follow Up', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000057', '00000000-0000-0000-0000-000000000005', 8, 'Get First Reply', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000058', '00000000-0000-0000-0000-000000000005', 9, 'Close First Influencer', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000059', '00000000-0000-0000-0000-000000000005', 10, 'Build to 5 Influencers', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0000-000000000005', 11, 'Scale Influencer Outreach', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-0000000000a6', '00000000-0000-0000-0000-000000000005', 12, 'Research Brands', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-0000000000a7', '00000000-0000-0000-0000-000000000005', 13, 'Send First Brand Pitch', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-0000000000a8', '00000000-0000-0000-0000-000000000005', 14, 'Follow Up with Brands', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-0000000000a9', '00000000-0000-0000-0000-000000000005', 15, 'Close First Brand Deal', 'locked', NULL, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days');
 
--- Layla (006) — at step 7: steps 1-6 completed, step 7 active, 8-10 locked
+-- Layla (006) — at step 7: steps 1-6 completed, step 7 active, 8-15 locked
 INSERT INTO public.roadmap_progress (id, student_id, step_number, step_name, status, completed_at, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000060', '00000000-0000-0000-0000-000000000006', 1, 'Niche Selection', 'completed', NOW() - INTERVAL '19 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '19 days'),
-  ('00000000-0000-0000-0000-000000000061', '00000000-0000-0000-0000-000000000006', 2, 'Brand Research', 'completed', NOW() - INTERVAL '17 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '17 days'),
-  ('00000000-0000-0000-0000-000000000062', '00000000-0000-0000-0000-000000000006', 3, 'Outreach Scripts', 'completed', NOW() - INTERVAL '14 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '14 days'),
-  ('00000000-0000-0000-0000-000000000063', '00000000-0000-0000-0000-000000000006', 4, 'First Contacts', 'completed', NOW() - INTERVAL '11 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '11 days'),
-  ('00000000-0000-0000-0000-000000000064', '00000000-0000-0000-0000-000000000006', 5, 'Follow-Up System', 'completed', NOW() - INTERVAL '8 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '8 days'),
-  ('00000000-0000-0000-0000-000000000065', '00000000-0000-0000-0000-000000000006', 6, 'Negotiations', 'completed', NOW() - INTERVAL '4 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '4 days'),
-  ('00000000-0000-0000-0000-000000000066', '00000000-0000-0000-0000-000000000006', 7, 'Deal Closing', 'active', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '2 days'),
-  ('00000000-0000-0000-0000-000000000067', '00000000-0000-0000-0000-000000000006', 8, 'Campaign Execution', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
-  ('00000000-0000-0000-0000-000000000068', '00000000-0000-0000-0000-000000000006', 9, 'Performance Review', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
-  ('00000000-0000-0000-0000-000000000069', '00000000-0000-0000-0000-000000000006', 10, 'Scale & Repeat', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days');
+  ('00000000-0000-0000-0000-000000000060', '00000000-0000-0000-0000-000000000006', 1, 'Join the Course', 'completed', NOW() - INTERVAL '19 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '19 days'),
+  ('00000000-0000-0000-0000-000000000061', '00000000-0000-0000-0000-000000000006', 2, 'Plan Your Work', 'completed', NOW() - INTERVAL '17 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '17 days'),
+  ('00000000-0000-0000-0000-000000000062', '00000000-0000-0000-0000-000000000006', 3, 'Pick Your Niche', 'completed', NOW() - INTERVAL '14 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-000000000063', '00000000-0000-0000-0000-000000000006', 4, 'Build Your Website', 'completed', NOW() - INTERVAL '11 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '11 days'),
+  ('00000000-0000-0000-0000-000000000064', '00000000-0000-0000-0000-000000000006', 5, 'Build a List of Influencers', 'completed', NOW() - INTERVAL '8 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '8 days'),
+  ('00000000-0000-0000-0000-000000000065', '00000000-0000-0000-0000-000000000006', 6, 'Send Your First Email', 'completed', NOW() - INTERVAL '4 days', NOW() - INTERVAL '21 days', NOW() - INTERVAL '4 days'),
+  ('00000000-0000-0000-0000-000000000066', '00000000-0000-0000-0000-000000000006', 7, 'Follow Up', 'active', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '2 days'),
+  ('00000000-0000-0000-0000-000000000067', '00000000-0000-0000-0000-000000000006', 8, 'Get First Reply', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
+  ('00000000-0000-0000-0000-000000000068', '00000000-0000-0000-0000-000000000006', 9, 'Close First Influencer', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
+  ('00000000-0000-0000-0000-000000000069', '00000000-0000-0000-0000-000000000006', 10, 'Build to 5 Influencers', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
+  ('00000000-0000-0000-0000-0000000000b0', '00000000-0000-0000-0000-000000000006', 11, 'Scale Influencer Outreach', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
+  ('00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-000000000006', 12, 'Research Brands', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
+  ('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-000000000006', 13, 'Send First Brand Pitch', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
+  ('00000000-0000-0000-0000-0000000000b3', '00000000-0000-0000-0000-000000000006', 14, 'Follow Up with Brands', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days'),
+  ('00000000-0000-0000-0000-0000000000b4', '00000000-0000-0000-0000-000000000006', 15, 'Close First Brand Deal', 'locked', NULL, NOW() - INTERVAL '21 days', NOW() - INTERVAL '21 days');
 
--- Tariq (007) — at step 2: step 1 completed, step 2 active, 3-10 locked
+-- Tariq (007) — at step 2: step 1 completed, step 2 active, 3-15 locked
 INSERT INTO public.roadmap_progress (id, student_id, step_number, step_name, status, completed_at, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000007', 1, 'Niche Selection', 'completed', NOW() - INTERVAL '15 days', NOW() - INTERVAL '20 days', NOW() - INTERVAL '15 days'),
-  ('00000000-0000-0000-0000-000000000071', '00000000-0000-0000-0000-000000000007', 2, 'Brand Research', 'active', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '12 days'),
-  ('00000000-0000-0000-0000-000000000072', '00000000-0000-0000-0000-000000000007', 3, 'Outreach Scripts', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
-  ('00000000-0000-0000-0000-000000000073', '00000000-0000-0000-0000-000000000007', 4, 'First Contacts', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
-  ('00000000-0000-0000-0000-000000000074', '00000000-0000-0000-0000-000000000007', 5, 'Follow-Up System', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
-  ('00000000-0000-0000-0000-000000000075', '00000000-0000-0000-0000-000000000007', 6, 'Negotiations', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
-  ('00000000-0000-0000-0000-000000000076', '00000000-0000-0000-0000-000000000007', 7, 'Deal Closing', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
-  ('00000000-0000-0000-0000-000000000077', '00000000-0000-0000-0000-000000000007', 8, 'Campaign Execution', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
-  ('00000000-0000-0000-0000-000000000078', '00000000-0000-0000-0000-000000000007', 9, 'Performance Review', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
-  ('00000000-0000-0000-0000-000000000079', '00000000-0000-0000-0000-000000000007', 10, 'Scale & Repeat', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days');
+  ('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000007', 1, 'Join the Course', 'completed', NOW() - INTERVAL '15 days', NOW() - INTERVAL '20 days', NOW() - INTERVAL '15 days'),
+  ('00000000-0000-0000-0000-000000000071', '00000000-0000-0000-0000-000000000007', 2, 'Plan Your Work', 'active', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '12 days'),
+  ('00000000-0000-0000-0000-000000000072', '00000000-0000-0000-0000-000000000007', 3, 'Pick Your Niche', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000073', '00000000-0000-0000-0000-000000000007', 4, 'Build Your Website', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000074', '00000000-0000-0000-0000-000000000007', 5, 'Build a List of Influencers', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000075', '00000000-0000-0000-0000-000000000007', 6, 'Send Your First Email', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000076', '00000000-0000-0000-0000-000000000007', 7, 'Follow Up', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000077', '00000000-0000-0000-0000-000000000007', 8, 'Get First Reply', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000078', '00000000-0000-0000-0000-000000000007', 9, 'Close First Influencer', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-000000000079', '00000000-0000-0000-0000-000000000007', 10, 'Build to 5 Influencers', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-0000000000b5', '00000000-0000-0000-0000-000000000007', 11, 'Scale Influencer Outreach', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-0000000000b6', '00000000-0000-0000-0000-000000000007', 12, 'Research Brands', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-0000000000b7', '00000000-0000-0000-0000-000000000007', 13, 'Send First Brand Pitch', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-0000000000b8', '00000000-0000-0000-0000-000000000007', 14, 'Follow Up with Brands', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+  ('00000000-0000-0000-0000-0000000000b9', '00000000-0000-0000-0000-000000000007', 15, 'Close First Brand Deal', 'locked', NULL, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days');
 
--- Nadia (008) — at step 4: steps 1-3 completed, step 4 active, 5-10 locked
+-- Nadia (008) — at step 4: steps 1-3 completed, step 4 active, 5-15 locked
 INSERT INTO public.roadmap_progress (id, student_id, step_number, step_name, status, completed_at, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000080', '00000000-0000-0000-0000-000000000008', 1, 'Niche Selection', 'completed', NOW() - INTERVAL '12 days', NOW() - INTERVAL '14 days', NOW() - INTERVAL '12 days'),
-  ('00000000-0000-0000-0000-000000000081', '00000000-0000-0000-0000-000000000008', 2, 'Brand Research', 'completed', NOW() - INTERVAL '9 days', NOW() - INTERVAL '14 days', NOW() - INTERVAL '9 days'),
-  ('00000000-0000-0000-0000-000000000082', '00000000-0000-0000-0000-000000000008', 3, 'Outreach Scripts', 'completed', NOW() - INTERVAL '5 days', NOW() - INTERVAL '14 days', NOW() - INTERVAL '5 days'),
-  ('00000000-0000-0000-0000-000000000083', '00000000-0000-0000-0000-000000000008', 4, 'First Contacts', 'active', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '3 days'),
-  ('00000000-0000-0000-0000-000000000084', '00000000-0000-0000-0000-000000000008', 5, 'Follow-Up System', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
-  ('00000000-0000-0000-0000-000000000085', '00000000-0000-0000-0000-000000000008', 6, 'Negotiations', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
-  ('00000000-0000-0000-0000-000000000086', '00000000-0000-0000-0000-000000000008', 7, 'Deal Closing', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
-  ('00000000-0000-0000-0000-000000000087', '00000000-0000-0000-0000-000000000008', 8, 'Campaign Execution', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
-  ('00000000-0000-0000-0000-000000000088', '00000000-0000-0000-0000-000000000008', 9, 'Performance Review', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
-  ('00000000-0000-0000-0000-000000000089', '00000000-0000-0000-0000-000000000008', 10, 'Scale & Repeat', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days');
+  ('00000000-0000-0000-0000-000000000080', '00000000-0000-0000-0000-000000000008', 1, 'Join the Course', 'completed', NOW() - INTERVAL '12 days', NOW() - INTERVAL '14 days', NOW() - INTERVAL '12 days'),
+  ('00000000-0000-0000-0000-000000000081', '00000000-0000-0000-0000-000000000008', 2, 'Plan Your Work', 'completed', NOW() - INTERVAL '9 days', NOW() - INTERVAL '14 days', NOW() - INTERVAL '9 days'),
+  ('00000000-0000-0000-0000-000000000082', '00000000-0000-0000-0000-000000000008', 3, 'Pick Your Niche', 'completed', NOW() - INTERVAL '5 days', NOW() - INTERVAL '14 days', NOW() - INTERVAL '5 days'),
+  ('00000000-0000-0000-0000-000000000083', '00000000-0000-0000-0000-000000000008', 4, 'Build Your Website', 'active', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '3 days'),
+  ('00000000-0000-0000-0000-000000000084', '00000000-0000-0000-0000-000000000008', 5, 'Build a List of Influencers', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-000000000085', '00000000-0000-0000-0000-000000000008', 6, 'Send Your First Email', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-000000000086', '00000000-0000-0000-0000-000000000008', 7, 'Follow Up', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-000000000087', '00000000-0000-0000-0000-000000000008', 8, 'Get First Reply', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-000000000088', '00000000-0000-0000-0000-000000000008', 9, 'Close First Influencer', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-000000000089', '00000000-0000-0000-0000-000000000008', 10, 'Build to 5 Influencers', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-0000000000c0', '00000000-0000-0000-0000-000000000008', 11, 'Scale Influencer Outreach', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-000000000008', 12, 'Research Brands', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-000000000008', 13, 'Send First Brand Pitch', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-000000000008', 14, 'Follow Up with Brands', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('00000000-0000-0000-0000-0000000000c4', '00000000-0000-0000-0000-000000000008', 15, 'Close First Brand Deal', 'locked', NULL, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days');
 
 -- ---------------------------------------------------------------------------
 -- Daily Reports
