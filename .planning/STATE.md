@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-03-28T10:48:05.331Z"
+last_updated: "2026-03-28T16:34:08.933Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 13
+  completed_plans: 12
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 16 — coach-owner-kpi-visibility
+**Current focus:** Phase 17 — calendar-view
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
+Phase: 17 (calendar-view) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
 Last activity: 2026-03-28
 
@@ -70,6 +70,7 @@ All v1.0 decisions marked with outcomes after milestone completion.
 - [Phase 16-coach-owner-kpi-visibility]: KpiItem exported in place from ProgressBanner.tsx (not moved); StudentKpiSummary is a pure server component receiving pre-computed scalars; stage display format is 'Stage N: StageName — StepTitle' per D-05
 - [Phase 16-coach-owner-kpi-visibility]: Additive upsert pattern for lazy seeding: only insert missing steps, never delete existing rows — preserves student progress during roadmap schema expansions
 - [Phase 16-03]: UPDATE-only for step names 1-10 preserves status/completed_at; backfill uses ON CONFLICT DO NOTHING for idempotency
+- [Phase 17-calendar-view]: ActivityDayButton nested inside CalendarTab as closure over getActivity; no react-day-picker stylesheet import — classNames prop for full ima-* token control; router.push for month navigation to trigger server re-render
 
 ### Critical Implementation Notes (from research)
 

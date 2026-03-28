@@ -38,10 +38,10 @@ Requirements for milestone v1.1 (V2 Feature Build). Each maps to roadmap phases.
 
 ### Calendar
 
-- [ ] **CAL-01**: Month grid calendar on coach and owner student detail pages with day indicators (green = work + report, amber = partial, empty = nothing)
-- [ ] **CAL-02**: Clicking a day opens inline panel showing that day's work sessions and report side by side
-- [ ] **CAL-03**: Month navigation (prev/next) with current month as default
-- [ ] **CAL-04**: Calendar tab replaces Work Sessions and Reports tabs; Roadmap stays as separate tab
+- [x] **CAL-01**: Month grid calendar on coach and owner student detail pages with day indicators (green = work + report, amber = partial, empty = nothing)
+- [x] **CAL-02**: Clicking a day opens inline panel showing that day's work sessions and report side by side
+- [x] **CAL-03**: Month navigation (prev/next) with current month as default
+- [x] **CAL-04**: Calendar tab replaces Work Sessions and Reports tabs; Roadmap stays as separate tab
 
 ### Roadmap
 
@@ -111,10 +111,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VIS-02 | Phase 16 | Pending |
 | VIS-03 | Phase 16 | Complete |
 | VIS-04 | Phase 16 | Complete |
-| CAL-01 | Phase 17 | Pending |
-| CAL-02 | Phase 17 | Pending |
-| CAL-03 | Phase 17 | Pending |
-| CAL-04 | Phase 17 | Pending |
+| CAL-01 | Phase 17 | Complete |
+| CAL-02 | Phase 17 | Complete |
+| CAL-03 | Phase 17 | Complete |
+| CAL-04 | Phase 17 | Complete |
 | ROAD-01 | Phase 13 | Complete |
 | ROAD-02 | Phase 18 | Pending |
 | ROAD-03 | Phase 18 | Pending |
