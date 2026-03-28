@@ -123,7 +123,10 @@ Plans:
   1. Each roadmap step on the student roadmap view displays a status chip: green "On Track" when the deadline is more than 2 days away, amber "Due Soon" within 2 days, red "Overdue" past deadline
   2. Completed roadmap steps display their `completed_at` date alongside the completion indicator
   3. Coach and owner roadmap tabs on student detail pages show the same deadline status chips and completed_at dates as the student view
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 18-01-PLAN.md — Deadline status utility + student RoadmapStep Badge chips (ROAD-02, ROAD-03, ROAD-04)
+- [ ] 18-02-PLAN.md — Coach/owner RoadmapTab deadline chips + progress bar /15 fix (ROAD-05)
 
 ## Progress
 
@@ -146,4 +149,4 @@ Plans:
 | 15. Outreach KPI Banner | v1.1 | 2/2 | Complete   | 2026-03-28 |
 | 16. Coach/Owner KPI Visibility | v1.1 | 4/4 | Complete    | 2026-03-28 |
 | 17. Calendar View | v1.1 | 2/3 | Complete    | 2026-03-28 |
-| 18. Roadmap Date KPIs & Completion Logging | v1.1 | 0/? | Not started | - |
+| 18. Roadmap Date KPIs & Completion Logging | v1.1 | 0/2 | Not started | - |
