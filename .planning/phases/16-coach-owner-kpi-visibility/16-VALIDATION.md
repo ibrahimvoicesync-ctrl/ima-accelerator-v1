@@ -40,8 +40,8 @@ created: 2026-03-28
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
 | 16-01-01 | 01 | 1 | VIS-03 | build | `npx tsc --noEmit` | ✅ | ⬜ pending |
 | 16-02-01 | 02 | 1 | VIS-01, VIS-02, VIS-03, VIS-04 | build | `npx tsc --noEmit` | ✅ | ⬜ pending |
-| 16-03-01 | 03 | 2 | VIS-01, VIS-03 | build | `npm run build` | ✅ | ⬜ pending |
-| 16-04-01 | 04 | 2 | VIS-02, VIS-03 | build | `npm run build` | ✅ | ⬜ pending |
+| 16-03-01 | 03 | 1 | VIS-01, VIS-03 | build | `npm run build` | ✅ | ⬜ pending |
+| 16-04-01 | 04 | 1 | VIS-02, VIS-03 | build | `npm run build` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
