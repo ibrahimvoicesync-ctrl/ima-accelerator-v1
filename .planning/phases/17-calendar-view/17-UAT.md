@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 17-calendar-view
 source: [17-01-SUMMARY.md, 17-02-SUMMARY.md]
 started: 2026-03-28T17:00:00Z
-updated: 2026-03-28T17:02:00Z
+updated: 2026-03-28T19:00:00Z
 ---
 
 ## Current Test
@@ -56,7 +56,7 @@ blocked: 0
 ## Gaps
 
 - truth: "Day selection highlight should appear on the clicked day"
-  status: failed
+  status: resolved
   reason: "User reported: clicking a day highlights (grey background) the previous day instead. Dots are correct, data is correct — only the selection highlight is off by one."
   severity: cosmetic
   test: 4
@@ -70,7 +70,7 @@ blocked: 0
     - "Replace all getUTC* calls with local-time equivalents"
   debug_session: ".planning/debug/calendar-day-selection-off-by-one.md"
 - truth: "Month navigation should be responsive without noticeable delay"
-  status: failed
+  status: resolved
   reason: "User reported: works but has a really big delay and is laggy when navigating between months"
   severity: minor
   test: 5
