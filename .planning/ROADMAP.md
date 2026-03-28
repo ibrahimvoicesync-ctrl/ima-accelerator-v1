@@ -29,7 +29,7 @@
 
 - [x] **Phase 13: Schema & Config Foundation** — DB migrations for flexible sessions and KPI columns; config additions for duration options, KPI targets, and roadmap target days (completed 2026-03-27)
 - [x] **Phase 14: Flexible Work Sessions** — Student-selectable durations (30/45/60 min), break countdown between cycles, unlimited daily sessions (completed 2026-03-27)
-- [ ] **Phase 15: Outreach KPI Banner** — Granular outreach fields on daily report form, sticky progress banner with lifetime/daily targets and RAG color coding
+- [x] **Phase 15: Outreach KPI Banner** — Granular outreach fields on daily report form, sticky progress banner with lifetime/daily targets and RAG color coding (completed 2026-03-28)
 - [ ] **Phase 16: Coach/Owner KPI Visibility** — Read-only KPI summary card with RAG status on coach and owner student detail pages
 - [ ] **Phase 17: Calendar View** — Month grid calendar replacing work sessions and reports tabs on student detail pages, with day detail panel
 - [ ] **Phase 18: Roadmap Date KPIs & Completion Logging** — Deadline status chips (on-track/due-soon/overdue) and completed_at display on all roadmap views
@@ -77,10 +77,10 @@ Plans:
   2. A sticky banner appears at the top of every student page showing lifetime outreach (X/2,500) and daily outreach (X/50), where lifetime total is computed as the SUM of `outreach_brands + outreach_influencers` across all reports
   3. Each KPI indicator on the banner is color-coded: green when on target, amber when at 80% or above, red below 80%; the student homepage KPI cards use the same RAG color coding
   4. The banner also displays total hours worked, calls joined, brands contacted, and influencers contacted for the current day
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 15-01-PLAN.md — Foundation (types, kpi.ts, config) + API route + ReportForm granular fields
-- [ ] 15-02-PLAN.md — Student sub-layout with ProgressBanner + homepage KPI cards + visual checkpoint
+- [x] 15-02-PLAN.md — Student sub-layout with ProgressBanner + homepage KPI cards + visual checkpoint
 **UI hint**: yes
 
 ### Phase 16: Coach/Owner KPI Visibility
@@ -134,7 +134,7 @@ Plans:
 | 12. CLAUDE.md Hard Rule Compliance | v1.0 | 2/2 | Complete | 2026-03-18 |
 | 13. Schema & Config Foundation | v1.1 | 2/2 | Complete    | 2026-03-27 |
 | 14. Flexible Work Sessions | v1.1 | 3/3 | Complete    | 2026-03-27 |
-| 15. Outreach KPI Banner | v1.1 | 1/2 | In Progress|  |
+| 15. Outreach KPI Banner | v1.1 | 2/2 | Complete   | 2026-03-28 |
 | 16. Coach/Owner KPI Visibility | v1.1 | 0/? | Not started | - |
 | 17. Calendar View | v1.1 | 0/? | Not started | - |
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 0/? | Not started | - |
