@@ -11,6 +11,7 @@ import { StudentDetailTabs, type TabKey } from "@/components/coach/StudentDetail
 import { WorkSessionsTab } from "@/components/coach/WorkSessionsTab";
 import { RoadmapTab } from "@/components/coach/RoadmapTab";
 import { ReportsTab } from "@/components/coach/ReportsTab";
+import { StudentKpiSummary } from "@/components/student/StudentKpiSummary";
 
 interface OwnerStudentDetailClientProps {
   student: {
@@ -46,6 +47,13 @@ interface OwnerStudentDetailClientProps {
   studentId: string;
   coaches: { id: string; name: string; studentCount: number }[];
   currentCoachId: string | null;
+  kpiData: {
+    lifetimeOutreach: number;
+    dailyOutreach: number;
+    dailyMinutesWorked: number;
+    joinedAt: string;
+    currentStepNumber: number | null;
+  };
 }
 
 export function OwnerStudentDetailClient({
@@ -59,6 +67,7 @@ export function OwnerStudentDetailClient({
   studentId,
   coaches,
   currentCoachId,
+  kpiData,
 }: OwnerStudentDetailClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -186,6 +195,14 @@ export function OwnerStudentDetailClient({
           )}
         </div>
       </div>
+
+      <StudentKpiSummary
+        lifetimeOutreach={kpiData.lifetimeOutreach}
+        dailyOutreach={kpiData.dailyOutreach}
+        dailyMinutesWorked={kpiData.dailyMinutesWorked}
+        joinedAt={kpiData.joinedAt}
+        currentStepNumber={kpiData.currentStepNumber}
+      />
 
       <StudentDetailTabs
         activeTab={activeTab}
