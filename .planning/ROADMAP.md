@@ -77,9 +77,9 @@ Plans:
   2. A sticky banner appears at the top of every student page showing lifetime outreach (X/2,500) and daily outreach (X/50), where lifetime total is computed as the SUM of `outreach_brands + outreach_influencers` across all reports
   3. Each KPI indicator on the banner is color-coded: green when on target, amber when at 80% or above, red below 80%; the student homepage KPI cards use the same RAG color coding
   4. The banner also displays total hours worked, calls joined, brands contacted, and influencers contacted for the current day
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 15-01-PLAN.md — Foundation (types, kpi.ts, config) + API route + ReportForm granular fields
+- [x] 15-01-PLAN.md — Foundation (types, kpi.ts, config) + API route + ReportForm granular fields
 - [ ] 15-02-PLAN.md — Student sub-layout with ProgressBanner + homepage KPI cards + visual checkpoint
 **UI hint**: yes
 
@@ -134,7 +134,7 @@ Plans:
 | 12. CLAUDE.md Hard Rule Compliance | v1.0 | 2/2 | Complete | 2026-03-18 |
 | 13. Schema & Config Foundation | v1.1 | 2/2 | Complete    | 2026-03-27 |
 | 14. Flexible Work Sessions | v1.1 | 3/3 | Complete    | 2026-03-27 |
-| 15. Outreach KPI Banner | v1.1 | 0/2 | Not started | - |
+| 15. Outreach KPI Banner | v1.1 | 1/2 | In Progress|  |
 | 16. Coach/Owner KPI Visibility | v1.1 | 0/? | Not started | - |
 | 17. Calendar View | v1.1 | 0/? | Not started | - |
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 0/? | Not started | - |

@@ -21,11 +21,11 @@ Requirements for milestone v1.1 (V2 Feature Build). Each maps to roadmap phases.
 
 ### Outreach KPIs
 
-- [ ] **KPI-01**: daily_reports stores granular outreach: outreach_brands, outreach_influencers, brands_contacted, influencers_contacted, calls_joined
-- [ ] **KPI-02**: Total outreach = outreach_brands + outreach_influencers, computed at query time
-- [ ] **KPI-03**: Daily report form collects outreach_brands, outreach_influencers, brands_contacted, influencers_contacted, calls_joined (replaces single outreach_count)
+- [x] **KPI-01**: daily_reports stores granular outreach: outreach_brands, outreach_influencers, brands_contacted, influencers_contacted, calls_joined
+- [x] **KPI-02**: Total outreach = outreach_brands + outreach_influencers, computed at query time
+- [x] **KPI-03**: Daily report form collects outreach_brands, outreach_influencers, brands_contacted, influencers_contacted, calls_joined (replaces single outreach_count)
 - [ ] **KPI-04**: Sticky ProgressBanner on every student page shows: X/2,500 lifetime outreach, X/50 daily outreach, hours worked, calls joined, brands contacted, influencers contacted
-- [ ] **KPI-05**: RAG color coding: green (on target), amber (>=80%), red (<80%) on all KPI indicators
+- [x] **KPI-05**: RAG color coding: green (on target), amber (>=80%), red (<80%) on all KPI indicators
 - [ ] **KPI-06**: Student homepage shows KPI breakdown cards with RAG color coding
 - [x] **KPI-07**: DB migration adds 5 new integer columns to daily_reports
 
@@ -100,11 +100,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WORK-07 | Phase 14 | Complete |
 | WORK-08 | Phase 14 | Complete |
 | WORK-09 | Phase 13 | Complete |
-| KPI-01 | Phase 15 | Pending |
-| KPI-02 | Phase 15 | Pending |
-| KPI-03 | Phase 15 | Pending |
+| KPI-01 | Phase 15 | Complete |
+| KPI-02 | Phase 15 | Complete |
+| KPI-03 | Phase 15 | Complete |
 | KPI-04 | Phase 15 | Pending |
-| KPI-05 | Phase 15 | Pending |
+| KPI-05 | Phase 15 | Complete |
 | KPI-06 | Phase 15 | Pending |
 | KPI-07 | Phase 13 | Complete |
 | VIS-01 | Phase 16 | Pending |
