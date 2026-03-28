@@ -1,7 +1,15 @@
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { WORK_TRACKER, ROADMAP_STEPS } from "@/lib/config";
+import { WORK_TRACKER, ROADMAP_STEPS, KPI_TARGETS } from "@/lib/config";
 import { getGreeting, getToday, cn, formatHoursMinutes } from "@/lib/utils";
+import {
+  lifetimeOutreachRag,
+  dailyOutreachRag,
+  dailyHoursRag,
+  ragToColorClass,
+  ragToBgClass,
+  daysInProgram as computeDaysInProgram,
+} from "@/lib/kpi";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 import type { Database } from "@/lib/types";
@@ -31,10 +39,14 @@ export default async function StudentDashboard() {
     { data: sessions, error: sessionsError },
     { data: roadmapRows, error: roadmapError },
     reportResult,
+    lifetimeResult,
+    userResult,
   ] = await Promise.all([
     admin.from("work_sessions").select("*").eq("student_id", user.id).eq("date", today).order("cycle_number", { ascending: true }),
     admin.from("roadmap_progress").select("step_number, status").eq("student_id", user.id).order("step_number", { ascending: true }),
-    admin.from("daily_reports").select("submitted_at").eq("student_id", user.id).eq("date", today).maybeSingle(),
+    admin.from("daily_reports").select("submitted_at, outreach_brands, outreach_influencers").eq("student_id", user.id).eq("date", today).maybeSingle(),
+    admin.from("daily_reports").select("outreach_brands.sum(), outreach_influencers.sum()").eq("student_id", user.id).single(),
+    admin.from("users").select("joined_at").eq("id", user.id).single(),
   ]);
 
   if (sessionsError) {
@@ -45,6 +57,12 @@ export default async function StudentDashboard() {
   }
   if (reportResult.error) {
     console.error("[student dashboard] Failed to load report:", reportResult.error);
+  }
+  if (lifetimeResult.error) {
+    console.error("[student dashboard] Failed to load lifetime KPIs:", lifetimeResult.error);
+  }
+  if (userResult.error) {
+    console.error("[student dashboard] Failed to load user joined_at:", userResult.error);
   }
 
   const todayReport = reportResult.data;
@@ -62,6 +80,16 @@ export default async function StudentDashboard() {
   const firstName = user.name.split(" ")[0];
 
   const nextAction = getNextAction(completedCount, totalMinutesWorked, activeSession, pausedSession);
+
+  // KPI values for breakdown cards
+  const lifetimeData = lifetimeResult.data as { outreach_brands: number | null; outreach_influencers: number | null } | null;
+  const lifetimeOutreach = (lifetimeData?.outreach_brands ?? 0) + (lifetimeData?.outreach_influencers ?? 0);
+  const days = computeDaysInProgram(userResult.data?.joined_at ?? new Date().toISOString());
+  const dailyOutreachTotal = (todayReport?.outreach_brands ?? 0) + (todayReport?.outreach_influencers ?? 0);
+
+  const lifetimeRag = lifetimeOutreachRag(lifetimeOutreach, days);
+  const dailyOutRag = dailyOutreachRag(dailyOutreachTotal, days);
+  const hoursRag = dailyHoursRag(totalMinutesWorked, days);
 
   const roadmapCompleted = (roadmapRows ?? []).filter(r => r.status === "completed").length;
   const activeRoadmapStep = (roadmapRows ?? []).find(r => r.status === "active");
@@ -106,6 +134,90 @@ export default async function StudentDashboard() {
         >
           {nextAction.label}
         </Link>
+      </div>
+
+      {/* KPI Outreach Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+        {/* Lifetime Outreach */}
+        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", ragToBgClass(lifetimeRag))} aria-hidden="true" />
+            <h3 className="text-sm font-medium text-ima-text-secondary">Lifetime Outreach</h3>
+          </div>
+          <p className={cn("text-2xl font-bold mt-2", ragToColorClass(lifetimeRag))}>
+            {lifetimeOutreach.toLocaleString()}
+          </p>
+          <p className="text-xs text-ima-text-muted mt-1">
+            Target: {KPI_TARGETS.lifetimeOutreach.toLocaleString()}
+          </p>
+          <div
+            className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
+            role="progressbar"
+            aria-valuenow={lifetimeOutreach}
+            aria-valuemin={0}
+            aria-valuemax={KPI_TARGETS.lifetimeOutreach}
+            aria-label={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
+          >
+            <div
+              className={cn("h-full rounded-full motion-safe:transition-all duration-500", ragToBgClass(lifetimeRag))}
+              style={{ width: `${Math.min(100, Math.round((lifetimeOutreach / KPI_TARGETS.lifetimeOutreach) * 100))}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Daily Outreach */}
+        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", ragToBgClass(dailyOutRag))} aria-hidden="true" />
+            <h3 className="text-sm font-medium text-ima-text-secondary">Daily Outreach</h3>
+          </div>
+          <p className={cn("text-2xl font-bold mt-2", ragToColorClass(dailyOutRag))}>
+            {dailyOutreachTotal}
+          </p>
+          <p className="text-xs text-ima-text-muted mt-1">
+            Target: {KPI_TARGETS.dailyOutreach}/day
+          </p>
+          <div
+            className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
+            role="progressbar"
+            aria-valuenow={dailyOutreachTotal}
+            aria-valuemin={0}
+            aria-valuemax={KPI_TARGETS.dailyOutreach}
+            aria-label={`Daily outreach: ${dailyOutreachTotal} of ${KPI_TARGETS.dailyOutreach}`}
+          >
+            <div
+              className={cn("h-full rounded-full motion-safe:transition-all duration-500", ragToBgClass(dailyOutRag))}
+              style={{ width: `${Math.min(100, Math.round((dailyOutreachTotal / KPI_TARGETS.dailyOutreach) * 100))}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Daily Hours */}
+        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", ragToBgClass(hoursRag))} aria-hidden="true" />
+            <h3 className="text-sm font-medium text-ima-text-secondary">Hours Worked</h3>
+          </div>
+          <p className={cn("text-2xl font-bold mt-2", ragToColorClass(hoursRag))}>
+            {formatHoursMinutes(totalMinutesWorked)}
+          </p>
+          <p className="text-xs text-ima-text-muted mt-1">
+            Target: {WORK_TRACKER.dailyGoalHours}h/day
+          </p>
+          <div
+            className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
+            role="progressbar"
+            aria-valuenow={totalMinutesWorked}
+            aria-valuemin={0}
+            aria-valuemax={WORK_TRACKER.dailyGoalHours * 60}
+            aria-label={`Hours worked: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
+          >
+            <div
+              className={cn("h-full rounded-full motion-safe:transition-all duration-500", ragToBgClass(hoursRag))}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Placeholder Cards */}
