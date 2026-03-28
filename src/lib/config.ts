@@ -146,7 +146,11 @@ export const DAILY_REPORT = {
   ratingMax: 5,
   fields: {
     starRating: { label: "Rate your day", required: true },
-    outreachCount: { label: "How many influencers did you reach out to today?", required: true },
+    outreachBrands: { label: "Outreach to brands", required: true },
+    outreachInfluencers: { label: "Outreach to influencers", required: true },
+    brandsContacted: { label: "Brands contacted", required: true },
+    influencersContacted: { label: "Influencers contacted", required: true },
+    callsJoined: { label: "Calls joined", required: true },
     wins: { label: "What went well today?", required: false, maxLength: 500 },
     improvements: { label: "What could you improve tomorrow?", required: false, maxLength: 500 },
   },
