@@ -40,7 +40,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ Flexible work sessions — student-selectable durations (30/45/60 min), breaks between cycles, no cycle cap — Validated in Phase 14
 - [ ] Progress tracker / email KPIs — granular outreach tracking, sticky progress banner, 2,500 lifetime / 50 daily targets
 - [ ] Coach/owner student KPI visibility — read-only progress on coach and owner detail pages
-- [ ] Calendar view — month grid replacing work sessions + reports tabs on student detail pages
+- ✓ Calendar view — month grid replacing work sessions + reports tabs on student detail pages — Validated in Phase 17
 - [ ] Roadmap date KPIs — target deadlines per step relative to joined_at, on-track/due-soon/overdue status
 - [ ] Roadmap completion date logging — display completed_at timestamps on roadmap steps
 
@@ -71,6 +71,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **v1.1 Phase 13 complete** (2026-03-27): Schema & config foundation — migration adds session_minutes, drops cycle cap, adds 5 KPI columns. Config exports session duration options, KPI targets, roadmap target_days, and getTodayUTC utility.
 
 **v1.1 Phase 14 complete** (2026-03-27): Flexible work sessions — session_minutes on types/API, breakOptions config, formatHoursMinutes utility, state-machine WorkTracker UI (idle/setup/working/break), duration picker, break countdown, hours-based progress bars, dynamic session list, no cycle cap.
+
+**v1.1 Phase 17 complete** (2026-03-28): Calendar view — CalendarTab with react-day-picker month grid, green/amber activity dots, inline day detail panel, month navigation via ?month=YYYY-MM. Replaced Work Sessions + Reports tabs on coach and owner student detail pages.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
@@ -138,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after Phase 14 completion*
+*Last updated: 2026-03-28 after Phase 17 completion*
