@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { StudentDetailTabs, type TabKey } from "@/components/coach/StudentDetailTabs";
-import { WorkSessionsTab } from "@/components/coach/WorkSessionsTab";
+import { CalendarTab } from "@/components/coach/CalendarTab";
 import { RoadmapTab } from "@/components/coach/RoadmapTab";
-import { ReportsTab } from "@/components/coach/ReportsTab";
 import { StudentKpiSummary } from "@/components/student/StudentKpiSummary";
 
 interface OwnerStudentDetailClientProps {
@@ -22,26 +21,30 @@ interface OwnerStudentDetailClientProps {
   };
   isAtRisk: boolean;
   atRiskReasons: string[];
-  sessions: {
+  calendarSessions: {
     id: string;
     date: string;
     cycle_number: number;
     status: string;
     duration_minutes: number;
+    session_minutes: number;
   }[];
-  roadmap: {
-    step_number: number;
-    status: "locked" | "active" | "completed";
-  }[];
-  reports: {
+  calendarReports: {
     id: string;
     date: string;
     hours_worked: number;
     star_rating: number | null;
-    outreach_count: number;
+    brands_contacted: number;
+    influencers_contacted: number;
+    calls_joined: number;
     wins: string | null;
     improvements: string | null;
     reviewed_by: string | null;
+  }[];
+  currentMonth: string;
+  roadmap: {
+    step_number: number;
+    status: "locked" | "active" | "completed";
   }[];
   initialTab?: string;
   studentId: string;
@@ -60,9 +63,10 @@ export function OwnerStudentDetailClient({
   student,
   isAtRisk,
   atRiskReasons,
-  sessions,
+  calendarSessions,
+  calendarReports,
+  currentMonth,
   roadmap,
-  reports,
   initialTab,
   studentId,
   coaches,
@@ -79,7 +83,7 @@ export function OwnerStudentDetailClient({
   toastRef.current = toast;
 
   const [activeTab, setActiveTab] = useState<TabKey>(
-    (initialTab as TabKey) || "work"
+    (initialTab === "roadmap" ? "roadmap" : "calendar") as TabKey
   );
   const [assignedCoachId, setAssignedCoachId] = useState<string | null>(currentCoachId);
   const [isSaving, setIsSaving] = useState(false);
@@ -209,9 +213,16 @@ export function OwnerStudentDetailClient({
         onTabChange={handleTabChange}
       />
 
-      {activeTab === "work" && <WorkSessionsTab sessions={sessions} />}
+      {activeTab === "calendar" && (
+        <CalendarTab
+          sessions={calendarSessions}
+          reports={calendarReports}
+          currentMonth={currentMonth}
+          studentId={studentId}
+          role="owner"
+        />
+      )}
       {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} />}
-      {activeTab === "reports" && <ReportsTab reports={reports} />}
     </div>
   );
 }

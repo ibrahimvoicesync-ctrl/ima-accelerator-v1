@@ -27,6 +27,7 @@ export default async function OwnerStudentDetailPage({
   const lastDay = lastDayDate.toISOString().split("T")[0];
 
   // sevenDaysAgo needed for at-risk recent ratings query (must be before Promise.all)
+  // eslint-disable-next-line react-hooks/purity -- async server component, not a hook
   const nowMs = Date.now();
   const sevenDaysAgo = new Date(nowMs - COACH_CONFIG.reportInboxDays * 24 * 60 * 60 * 1000)
     .toISOString()

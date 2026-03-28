@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { StudentHeader } from "./StudentHeader";
 import { StudentDetailTabs, type TabKey } from "./StudentDetailTabs";
-import { WorkSessionsTab } from "./WorkSessionsTab";
+import { CalendarTab } from "./CalendarTab";
 import { RoadmapTab } from "./RoadmapTab";
-import { ReportsTab } from "./ReportsTab";
 import { StudentKpiSummary } from "@/components/student/StudentKpiSummary";
 
 interface StudentDetailClientProps {
@@ -17,26 +16,30 @@ interface StudentDetailClientProps {
   };
   isAtRisk: boolean;
   atRiskReasons: string[];
-  sessions: {
+  calendarSessions: {
     id: string;
     date: string;
     cycle_number: number;
     status: string;
     duration_minutes: number;
+    session_minutes: number;
   }[];
-  roadmap: {
-    step_number: number;
-    status: "locked" | "active" | "completed";
-  }[];
-  reports: {
+  calendarReports: {
     id: string;
     date: string;
     hours_worked: number;
     star_rating: number | null;
-    outreach_count: number;
+    brands_contacted: number;
+    influencers_contacted: number;
+    calls_joined: number;
     wins: string | null;
     improvements: string | null;
     reviewed_by: string | null;
+  }[];
+  currentMonth: string;
+  roadmap: {
+    step_number: number;
+    status: "locked" | "active" | "completed";
   }[];
   initialTab?: string;
   studentId: string;
@@ -53,15 +56,16 @@ export function StudentDetailClient({
   student,
   isAtRisk,
   atRiskReasons,
-  sessions,
+  calendarSessions,
+  calendarReports,
+  currentMonth,
   roadmap,
-  reports,
   initialTab,
   studentId,
   kpiData,
 }: StudentDetailClientProps) {
   const [activeTab, setActiveTab] = useState<TabKey>(
-    (initialTab as TabKey) || "work"
+    (initialTab === "roadmap" ? "roadmap" : "calendar") as TabKey
   );
 
   function handleTabChange(tab: TabKey) {
@@ -90,9 +94,16 @@ export function StudentDetailClient({
         onTabChange={handleTabChange}
       />
 
-      {activeTab === "work" && <WorkSessionsTab sessions={sessions} />}
+      {activeTab === "calendar" && (
+        <CalendarTab
+          sessions={calendarSessions}
+          reports={calendarReports}
+          currentMonth={currentMonth}
+          studentId={studentId}
+          role="coach"
+        />
+      )}
       {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} />}
-      {activeTab === "reports" && <ReportsTab reports={reports} />}
     </div>
   );
 }
