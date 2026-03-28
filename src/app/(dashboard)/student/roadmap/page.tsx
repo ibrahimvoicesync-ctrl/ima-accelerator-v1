@@ -58,6 +58,42 @@ export default async function RoadmapPage() {
     }
   }
 
+  // Auto-complete steps marked autoComplete in config (e.g., step 1 "Join the Course")
+  // and ensure the next step is active so the student can progress
+  const autoSteps = ROADMAP_STEPS.filter(
+    (s): s is (typeof ROADMAP_STEPS)[number] & { autoComplete: true } =>
+      "autoComplete" in s && s.autoComplete === true
+  );
+  for (const autoStep of autoSteps) {
+    const row = progress.find((p) => p.step_number === autoStep.step);
+    if (row && (row.status === "locked" || row.status === "active")) {
+      await admin
+        .from("roadmap_progress")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("student_id", user.id)
+        .eq("step_number", autoStep.step);
+
+      // Unlock the next step if it exists and is still locked
+      const nextRow = progress.find((p) => p.step_number === autoStep.step + 1);
+      if (nextRow && nextRow.status === "locked") {
+        await admin
+          .from("roadmap_progress")
+          .update({ status: "active" })
+          .eq("student_id", user.id)
+          .eq("step_number", autoStep.step + 1);
+      }
+
+      // Re-fetch to reflect changes
+      const { data: updatedProgress } = await admin
+        .from("roadmap_progress")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("step_number", { ascending: true });
+
+      progress = updatedProgress ?? [];
+    }
+  }
+
   const completedCount = progress.filter((p) => p.status === "completed").length;
   const allComplete = completedCount === ROADMAP_STEPS.length;
   const percent = Math.round((completedCount / ROADMAP_STEPS.length) * 100);
