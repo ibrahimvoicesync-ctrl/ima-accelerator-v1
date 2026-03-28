@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-03-28T09:45:44.140Z"
+last_updated: "2026-03-28T09:46:10.605Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 ## Current Position
 
 Phase: 16 (coach-owner-kpi-visibility) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-03-28
 
@@ -69,6 +69,7 @@ All v1.0 decisions marked with outcomes after milestone completion.
 - [Phase 16-coach-owner-kpi-visibility]: ROADMAP_STEPS expanded to 15 steps across 3 stages (Setup & Preparation steps 1-7, Influencer Outreach steps 8-11, Brand Outreach steps 12-15); target_days typed as number | null to prevent TypeScript literal narrowing
 - [Phase 16-coach-owner-kpi-visibility]: KpiItem exported in place from ProgressBanner.tsx (not moved); StudentKpiSummary is a pure server component receiving pre-computed scalars; stage display format is 'Stage N: StageName — StepTitle' per D-05
 - [Phase 16-coach-owner-kpi-visibility]: Additive upsert pattern for lazy seeding: only insert missing steps, never delete existing rows — preserves student progress during roadmap schema expansions
+- [Phase 16-03]: UPDATE-only for step names 1-10 preserves status/completed_at; backfill uses ON CONFLICT DO NOTHING for idempotency
 
 ### Critical Implementation Notes (from research)
 

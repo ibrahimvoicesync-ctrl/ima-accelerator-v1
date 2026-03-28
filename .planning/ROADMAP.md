@@ -30,7 +30,7 @@
 - [x] **Phase 13: Schema & Config Foundation** — DB migrations for flexible sessions and KPI columns; config additions for duration options, KPI targets, and roadmap target days (completed 2026-03-27)
 - [x] **Phase 14: Flexible Work Sessions** — Student-selectable durations (30/45/60 min), break countdown between cycles, unlimited daily sessions (completed 2026-03-27)
 - [x] **Phase 15: Outreach KPI Banner** — Granular outreach fields on daily report form, sticky progress banner with lifetime/daily targets and RAG color coding (completed 2026-03-28)
-- [ ] **Phase 16: Coach/Owner KPI Visibility** — Read-only KPI summary card with RAG status on coach and owner student detail pages; gap closure for 15-step roadmap DB migration
+- [x] **Phase 16: Coach/Owner KPI Visibility** — Read-only KPI summary card with RAG status on coach and owner student detail pages; gap closure for 15-step roadmap DB migration (completed 2026-03-28)
 - [ ] **Phase 17: Calendar View** — Month grid calendar replacing work sessions and reports tabs on student detail pages, with day detail panel
 - [ ] **Phase 18: Roadmap Date KPIs & Completion Logging** — Deadline status chips (on-track/due-soon/overdue) and completed_at display on all roadmap views
 
@@ -91,11 +91,11 @@ Plans:
   1. Coach student detail page header shows a read-only KPI summary: lifetime outreach vs 2,500 target, daily outreach vs 50 target, hours worked, and RAG status colors matching what the student sees
   2. Owner student detail page shows the same read-only KPI summary with identical RAG color coding
   3. The KPI summary card includes the student's current roadmap step number and name for context
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
 - [x] 16-01-PLAN.md — Config update (15-step roadmap with stages), KpiItem export, StudentKpiSummary component
 - [x] 16-02-PLAN.md — Wire KPI queries into coach/owner server pages + render StudentKpiSummary in client components
-- [ ] 16-03-PLAN.md — Gap closure: expand DB CHECK constraint to 15 steps, backfill existing students, update seed data
+- [x] 16-03-PLAN.md — Gap closure: expand DB CHECK constraint to 15 steps, backfill existing students, update seed data
 - [x] 16-04-PLAN.md — Gap closure: non-destructive lazy seeding, fix hardcoded "10 steps" strings
 **UI hint**: yes
 
@@ -140,6 +140,6 @@ Plans:
 | 13. Schema & Config Foundation | v1.1 | 2/2 | Complete    | 2026-03-27 |
 | 14. Flexible Work Sessions | v1.1 | 3/3 | Complete    | 2026-03-27 |
 | 15. Outreach KPI Banner | v1.1 | 2/2 | Complete   | 2026-03-28 |
-| 16. Coach/Owner KPI Visibility | v1.1 | 3/4 | In Progress|  |
+| 16. Coach/Owner KPI Visibility | v1.1 | 4/4 | Complete   | 2026-03-28 |
 | 17. Calendar View | v1.1 | 0/? | Not started | - |
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 0/? | Not started | - |
