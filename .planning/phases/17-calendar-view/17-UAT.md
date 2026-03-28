@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 17-calendar-view
 source: [17-01-SUMMARY.md, 17-02-SUMMARY.md]
 started: 2026-03-28T17:00:00Z
@@ -60,12 +60,30 @@ blocked: 0
   reason: "User reported: clicking a day highlights (grey background) the previous day instead. Dots are correct, data is correct — only the selection highlight is off by one."
   severity: cosmetic
   test: 4
-  artifacts: []
-  missing: []
+  root_cause: "Timezone mismatch in modifiers.selected (CalendarTab.tsx:138). Date constructed with UTC midnight suffix 'T00:00:00Z' but react-day-picker compares in local time via date-fns isSameDay. For users west of UTC, the UTC date rolls back one calendar day in local time. Secondary: dateStrUTC helper and getUTCDate/getUTCFullYear/getUTCMonth calls throughout the file also use UTC when react-day-picker operates in local time."
+  artifacts:
+    - path: "src/components/coach/CalendarTab.tsx"
+      issue: "Line 138: modifiers.selected uses UTC Date; lines 51-53: dateStrUTC uses getUTC* methods; line 87: getUTCDate(); line 100: getUTCFullYear/getUTCMonth"
+  missing:
+    - "Replace dateStrUTC with local-time dateStrLocal using getFullYear/getMonth/getDate"
+    - "Replace new Date(selectedDate + 'T00:00:00Z') with local-time Date construction"
+    - "Replace all getUTC* calls with local-time equivalents"
+  debug_session: ".planning/debug/calendar-day-selection-off-by-one.md"
 - truth: "Month navigation should be responsive without noticeable delay"
   status: failed
   reason: "User reported: works but has a really big delay and is laggy when navigating between months"
   severity: minor
   test: 5
-  artifacts: []
-  missing: []
+  root_cause: "router.push() in handleMonthChange triggers full Next.js server re-render, re-executing all 9 (coach) or 11 (owner) Supabase queries. Only 2 queries are month-scoped — the other 7-9 are redundant work on every month click."
+  artifacts:
+    - path: "src/components/coach/CalendarTab.tsx"
+      issue: "Line 98-103: handleMonthChange uses router.push instead of client-side state"
+    - path: "src/app/(dashboard)/coach/students/[studentId]/page.tsx"
+      issue: "Lines 62-124: All 9 queries re-run on month change; only 2 need to"
+    - path: "src/app/(dashboard)/owner/students/[studentId]/page.tsx"
+      issue: "Lines 64-138: All 11 queries re-run; only 2 need to"
+  missing:
+    - "Make month a client-side useState in CalendarTab, use replaceState for URL"
+    - "Create lightweight API route for month-scoped calendar data only"
+    - "Fetch only sessions + reports for new month via client-side fetch"
+  debug_session: ".planning/debug/calendar-month-nav-laggy.md"
