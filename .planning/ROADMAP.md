@@ -32,7 +32,7 @@
 - [x] **Phase 15: Outreach KPI Banner** — Granular outreach fields on daily report form, sticky progress banner with lifetime/daily targets and RAG color coding (completed 2026-03-28)
 - [x] **Phase 16: Coach/Owner KPI Visibility** — Read-only KPI summary card with RAG status on coach and owner student detail pages; gap closure for 15-step roadmap DB migration (completed 2026-03-28)
 - [x] **Phase 17: Calendar View** — Month grid calendar replacing work sessions and reports tabs on student detail pages, with day detail panel (completed 2026-03-28)
-- [ ] **Phase 18: Roadmap Date KPIs & Completion Logging** — Deadline status chips (on-track/due-soon/overdue) and completed_at display on all roadmap views
+- [x] **Phase 18: Roadmap Date KPIs & Completion Logging** — Deadline status chips (on-track/due-soon/overdue) and completed_at display on all roadmap views (completed 2026-03-28)
 
 ## Phase Details
 
@@ -123,10 +123,10 @@ Plans:
   1. Each roadmap step on the student roadmap view displays a status chip: green "On Track" when the deadline is more than 2 days away, amber "Due Soon" within 2 days, red "Overdue" past deadline
   2. Completed roadmap steps display their `completed_at` date alongside the completion indicator
   3. Coach and owner roadmap tabs on student detail pages show the same deadline status chips and completed_at dates as the student view
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 18-01-PLAN.md — Deadline status utility + student RoadmapStep Badge chips (ROAD-02, ROAD-03, ROAD-04)
-- [ ] 18-02-PLAN.md — Coach/owner RoadmapTab deadline chips + progress bar /15 fix (ROAD-05)
+- [x] 18-02-PLAN.md — Coach/owner RoadmapTab deadline chips + progress bar /15 fix (ROAD-05)
 
 ## Progress
 
@@ -149,4 +149,4 @@ Plans:
 | 15. Outreach KPI Banner | v1.1 | 2/2 | Complete   | 2026-03-28 |
 | 16. Coach/Owner KPI Visibility | v1.1 | 4/4 | Complete    | 2026-03-28 |
 | 17. Calendar View | v1.1 | 2/3 | Complete    | 2026-03-28 |
-| 18. Roadmap Date KPIs & Completion Logging | v1.1 | 1/2 | In Progress|  |
+| 18. Roadmap Date KPIs & Completion Logging | v1.1 | 2/2 | Complete   | 2026-03-28 |

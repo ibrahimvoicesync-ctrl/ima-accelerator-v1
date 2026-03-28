@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-03-28T17:57:12.317Z"
+status: verifying
+last_updated: "2026-03-28T18:04:12.870Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 
 Phase: 18 (roadmap-date-kpis-completion-logging) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-28
 
 ```
@@ -73,6 +73,7 @@ All v1.0 decisions marked with outcomes after milestone completion.
 - [Phase 17-calendar-view]: ActivityDayButton nested inside CalendarTab as closure over getActivity; no react-day-picker stylesheet import — classNames prop for full ima-* token control; router.push for month navigation to trigger server re-render
 - [Phase 17-calendar-view]: sevenDaysAgo moved before Promise.all so it can be used in recentRatingsResult query; separate latestSession/latestReport queries ensure at-risk is independent of calendar month view
 - [Phase 18-01]: getDeadlineStatus utility with DeadlineStatus discriminated union; joinedAt normalized before date construction; daysLate suffix only for positive values; kind: none for null target_days
+- [Phase 18-roadmap-date-kpis-completion-logging]: RoadmapTab is read-only on coach/owner views; rowMap replaces statusMap to carry completed_at; progress denominator uses ROADMAP_STEPS.length (15)
 
 ### Critical Implementation Notes (from research)
 
