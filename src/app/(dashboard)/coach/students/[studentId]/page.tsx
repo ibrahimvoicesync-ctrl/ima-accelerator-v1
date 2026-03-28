@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
 import { notFound } from "next/navigation";
 import { StudentDetailClient } from "@/components/coach/StudentDetailClient";
+import { getTodayUTC } from "@/lib/utils";
 
 export default async function StudentDetailPage({
   params,
@@ -16,6 +17,7 @@ export default async function StudentDetailPage({
   const { tab } = await searchParams;
 
   const admin = createAdminClient();
+  const today = getTodayUTC();
 
   // Fetch student with defense-in-depth: coach can only see their own students
   const { data: student, error: studentError } = await admin
@@ -33,7 +35,7 @@ export default async function StudentDetailPage({
   }
 
   // Parallel fetch enrichment data
-  const [sessionsResult, roadmapResult, reportsResult] = await Promise.all([
+  const [sessionsResult, roadmapResult, reportsResult, lifetimeReportsResult, todayReportResult, todaySessionsResult] = await Promise.all([
     admin
       .from("work_sessions")
       .select("id, date, cycle_number, status, duration_minutes")
@@ -51,6 +53,24 @@ export default async function StudentDetailPage({
       .eq("student_id", student.id)
       .order("date", { ascending: false })
       .limit(20),
+    // KPI: Lifetime outreach — all reports
+    admin
+      .from("daily_reports")
+      .select("brands_contacted, influencers_contacted")
+      .eq("student_id", student.id),
+    // KPI: Today's report — daily outreach
+    admin
+      .from("daily_reports")
+      .select("brands_contacted, influencers_contacted")
+      .eq("student_id", student.id)
+      .eq("date", today)
+      .maybeSingle(),
+    // KPI: Today's sessions — hours worked
+    admin
+      .from("work_sessions")
+      .select("duration_minutes, status")
+      .eq("student_id", student.id)
+      .eq("date", today),
   ]);
 
   if (sessionsResult.error) {
@@ -62,10 +82,35 @@ export default async function StudentDetailPage({
   if (reportsResult.error) {
     console.error("[student detail] Failed to load reports:", reportsResult.error);
   }
+  if (lifetimeReportsResult.error) {
+    console.error("[student detail] Failed to load lifetime reports:", lifetimeReportsResult.error);
+  }
+  if (todayReportResult.error) {
+    console.error("[student detail] Failed to load today's report:", todayReportResult.error);
+  }
+  if (todaySessionsResult.error) {
+    console.error("[student detail] Failed to load today's sessions:", todaySessionsResult.error);
+  }
 
   const sessions = sessionsResult.data ?? [];
   const roadmap = roadmapResult.data ?? [];
   const reports = reportsResult.data ?? [];
+
+  // Compute KPI values for StudentKpiSummary
+  const allLifetimeReports = lifetimeReportsResult.data ?? [];
+  const lifetimeOutreach = allLifetimeReports.reduce(
+    (sum, r) => sum + (r.brands_contacted ?? 0) + (r.influencers_contacted ?? 0),
+    0,
+  );
+  const todayReport = todayReportResult.data;
+  const dailyOutreach = (todayReport?.brands_contacted ?? 0) + (todayReport?.influencers_contacted ?? 0);
+  const dailyMinutesWorked = (todaySessionsResult.data ?? [])
+    .filter((s) => s.status === "completed")
+    .reduce((sum, s) => sum + s.duration_minutes, 0);
+
+  // Current roadmap step — derived from already-fetched roadmap data
+  const activeStep = roadmap.find((r) => r.status === "active");
+  const currentStepNumber = activeStep?.step_number ?? null;
 
   // Compute at-risk status
   const latestSessionDate = sessions.length > 0 ? sessions[0].date : null;
@@ -116,6 +161,13 @@ export default async function StudentDetailPage({
       reports={reports}
       initialTab={typeof tab === "string" ? tab : undefined}
       studentId={student.id}
+      kpiData={{
+        lifetimeOutreach,
+        dailyOutreach,
+        dailyMinutesWorked,
+        joinedAt: student.joined_at,
+        currentStepNumber,
+      }}
     />
   );
 }

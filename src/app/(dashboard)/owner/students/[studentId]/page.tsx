@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
 import { notFound } from "next/navigation";
 import { OwnerStudentDetailClient } from "@/components/owner/OwnerStudentDetailClient";
+import { getTodayUTC } from "@/lib/utils";
 
 export default async function OwnerStudentDetailPage({
   params,
@@ -16,6 +17,7 @@ export default async function OwnerStudentDetailPage({
   const { tab } = await searchParams;
 
   const admin = createAdminClient();
+  const today = getTodayUTC();
 
   // Owner sees any student — no coach_id filter
   const { data: student, error: studentError } = await admin
@@ -33,7 +35,7 @@ export default async function OwnerStudentDetailPage({
   }
 
   // Parallel fetch enrichment data
-  const [sessionsResult, roadmapResult, reportsResult, coachesResult, studentCountsResult] = await Promise.all([
+  const [sessionsResult, roadmapResult, reportsResult, coachesResult, studentCountsResult, lifetimeReportsResult, todayReportResult, todaySessionsResult] = await Promise.all([
     admin
       .from("work_sessions")
       .select("id, date, cycle_number, status, duration_minutes")
@@ -63,6 +65,24 @@ export default async function OwnerStudentDetailPage({
       .eq("role", "student")
       .eq("status", "active")
       .not("coach_id", "is", null),
+    // KPI: Lifetime outreach — all reports
+    admin
+      .from("daily_reports")
+      .select("brands_contacted, influencers_contacted")
+      .eq("student_id", student.id),
+    // KPI: Today's report — daily outreach
+    admin
+      .from("daily_reports")
+      .select("brands_contacted, influencers_contacted")
+      .eq("student_id", student.id)
+      .eq("date", today)
+      .maybeSingle(),
+    // KPI: Today's sessions — hours worked
+    admin
+      .from("work_sessions")
+      .select("duration_minutes, status")
+      .eq("student_id", student.id)
+      .eq("date", today),
   ]);
 
   if (sessionsResult.error) {
@@ -79,6 +99,15 @@ export default async function OwnerStudentDetailPage({
   }
   if (studentCountsResult.error) {
     console.error("[owner student detail] Failed to load student counts:", studentCountsResult.error);
+  }
+  if (lifetimeReportsResult.error) {
+    console.error("[owner student detail] Failed to load lifetime reports:", lifetimeReportsResult.error);
+  }
+  if (todayReportResult.error) {
+    console.error("[owner student detail] Failed to load today's report:", todayReportResult.error);
+  }
+  if (todaySessionsResult.error) {
+    console.error("[owner student detail] Failed to load today's sessions:", todaySessionsResult.error);
   }
 
   const sessions = sessionsResult.data ?? [];
@@ -101,6 +130,22 @@ export default async function OwnerStudentDetailPage({
     name: c.name,
     studentCount: studentCounts[c.id] ?? 0,
   }));
+
+  // Compute KPI values for StudentKpiSummary
+  const allLifetimeReports = lifetimeReportsResult.data ?? [];
+  const lifetimeOutreach = allLifetimeReports.reduce(
+    (sum, r) => sum + (r.brands_contacted ?? 0) + (r.influencers_contacted ?? 0),
+    0,
+  );
+  const todayReport = todayReportResult.data;
+  const dailyOutreach = (todayReport?.brands_contacted ?? 0) + (todayReport?.influencers_contacted ?? 0);
+  const dailyMinutesWorked = (todaySessionsResult.data ?? [])
+    .filter((s) => s.status === "completed")
+    .reduce((sum, s) => sum + s.duration_minutes, 0);
+
+  // Current roadmap step — derived from already-fetched roadmap data
+  const activeStep = roadmap.find((r) => r.status === "active");
+  const currentStepNumber = activeStep?.step_number ?? null;
 
   // Compute at-risk status
   const latestSessionDate = sessions.length > 0 ? sessions[0].date : null;
@@ -153,6 +198,13 @@ export default async function OwnerStudentDetailPage({
       studentId={student.id}
       coaches={coachOptions}
       currentCoachId={student.coach_id ?? null}
+      kpiData={{
+        lifetimeOutreach,
+        dailyOutreach,
+        dailyMinutesWorked,
+        joinedAt: student.joined_at,
+        currentStepNumber,
+      }}
     />
   );
 }
