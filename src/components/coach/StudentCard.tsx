@@ -3,6 +3,7 @@ import { CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import { ROADMAP_STEPS } from "@/lib/config";
 
 interface StudentCardProps {
   student: {
@@ -70,7 +71,7 @@ export function StudentCard({ student, basePath = "/coach/students" }: StudentCa
             </div>
             <div className="flex items-center justify-between text-xs text-ima-text-secondary">
               <span>Roadmap</span>
-              <span className="font-medium text-ima-text">Step {student.currentRoadmapStep}/10</span>
+              <span className="font-medium text-ima-text">Step {student.currentRoadmapStep}/{ROADMAP_STEPS.length}</span>
             </div>
           </div>
         </CardContent>
