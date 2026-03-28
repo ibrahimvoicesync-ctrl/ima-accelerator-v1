@@ -67,20 +67,28 @@ export default async function RoadmapPage() {
   for (const autoStep of autoSteps) {
     const row = progress.find((p) => p.step_number === autoStep.step);
     if (row && (row.status === "locked" || row.status === "active")) {
-      await admin
+      const { error: completeErr } = await admin
         .from("roadmap_progress")
         .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("student_id", user.id)
         .eq("step_number", autoStep.step);
 
+      if (completeErr) {
+        console.error(`[roadmap] Failed to auto-complete step ${autoStep.step}:`, completeErr);
+      }
+
       // Unlock the next step if it exists and is still locked
       const nextRow = progress.find((p) => p.step_number === autoStep.step + 1);
       if (nextRow && nextRow.status === "locked") {
-        await admin
+        const { error: unlockErr } = await admin
           .from("roadmap_progress")
           .update({ status: "active" })
           .eq("student_id", user.id)
           .eq("step_number", autoStep.step + 1);
+
+        if (unlockErr) {
+          console.error(`[roadmap] Failed to unlock step ${autoStep.step + 1}:`, unlockErr);
+        }
       }
 
       // Re-fetch to reflect changes
