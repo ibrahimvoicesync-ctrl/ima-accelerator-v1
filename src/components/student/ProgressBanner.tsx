@@ -20,7 +20,7 @@ interface ProgressBannerProps {
   joinedAt: string;
 }
 
-function KpiItem({
+export function KpiItem({
   label,
   value,
   ragStatus,
@@ -98,18 +98,18 @@ export function ProgressBanner({
           ariaLabel={`Calls joined today: ${callsJoined}`}
         />
 
-        {/* Brands Contacted — no RAG per D-06 */}
+        {/* Brands Outreach — no RAG per D-06 */}
         <KpiItem
-          label="Brands Contacted"
+          label="Brands Outreach"
           value={String(brandsContacted)}
-          ariaLabel={`Brands contacted today: ${brandsContacted}`}
+          ariaLabel={`Brands outreach today: ${brandsContacted}`}
         />
 
-        {/* Influencers Contacted — no RAG per D-06 */}
+        {/* Influencers Outreach — no RAG per D-06 */}
         <KpiItem
-          label="Influencers Contacted"
+          label="Influencers Outreach"
           value={String(influencersContacted)}
-          ariaLabel={`Influencers contacted today: ${influencersContacted}`}
+          ariaLabel={`Influencers outreach today: ${influencersContacted}`}
         />
       </div>
     </div>

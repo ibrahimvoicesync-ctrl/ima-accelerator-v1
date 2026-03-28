@@ -120,21 +120,31 @@ export const KPI_TARGETS = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// 6. ROADMAP MILESTONES (10 steps)
+// 6. ROADMAP MILESTONES (15 steps, 3 stages)
 // target_days = cumulative days from student's joined_at date
+// Stage 2-3 steps have target_days: null (no deadlines per D-06)
 // TODO: Confirm target_days values with Abu Lahya before Phase 18 ships
+// TODO: Step titles 8-15 are placeholders — update when Abu Lahya provides exact names
 // ---------------------------------------------------------------------------
 export const ROADMAP_STEPS = [
-  { step: 1, title: "Join the Course", description: "Complete your onboarding and set up your profile", autoComplete: true, target_days: 1 },
-  { step: 2, title: "Plan Your Work", description: "Set up your daily schedule and commit to 4 hours of focused work per day", target_days: 3 },
-  { step: 3, title: "Pick Your Niche", description: "Choose the influencer niche you will focus on (fitness, lifestyle, tech, etc.)", target_days: 7 },
-  { step: 4, title: "Build Your Website", description: "Create your agency website — your professional face to brands and influencers", target_days: 14 },
-  { step: 5, title: "Send Your First Email", description: "Reach out to your first influencer with a personalized pitch", target_days: 21 },
-  { step: 6, title: "Get Your First Response", description: "Receive a reply from an influencer — positive or negative, it counts", target_days: 28 },
-  { step: 7, title: "Close Your First Influencer", description: "Sign your first influencer to your roster — you are officially an agent", target_days: 35 },
-  { step: 8, title: "Close 5 Influencers", description: "Build your roster to 5 signed influencers ready for brand deals", target_days: 42 },
-  { step: 9, title: "Brand Outreach", description: "Start pitching brands with your roster — send your first brand proposals", target_days: 49 },
-  { step: 10, title: "Close Your First Brand Deal", description: "Negotiate and close your first paid brand deal — this is where it all pays off", target_days: 56 },
+  // Stage 1: Setup & Preparation (Steps 1-7, day-based deadlines)
+  { step: 1, stage: 1, stageName: "Setup & Preparation", title: "Join the Course", description: "Complete your onboarding and set up your profile", autoComplete: true, target_days: 0 as number | null },
+  { step: 2, stage: 1, stageName: "Setup & Preparation", title: "Plan Your Work", description: "Set up your daily schedule and commit to 4 hours of focused work per day", target_days: 1 as number | null },
+  { step: 3, stage: 1, stageName: "Setup & Preparation", title: "Pick Your Niche", description: "Choose the influencer niche you will focus on (fitness, lifestyle, tech, etc.)", target_days: 2 as number | null },
+  { step: 4, stage: 1, stageName: "Setup & Preparation", title: "Build Your Website", description: "Create your agency website — your professional face to brands and influencers", target_days: 3 as number | null },
+  { step: 5, stage: 1, stageName: "Setup & Preparation", title: "Build a List of Influencers", description: "Research and compile a list of influencers in your niche to reach out to", target_days: 3 as number | null },
+  { step: 6, stage: 1, stageName: "Setup & Preparation", title: "Send Your First Email", description: "Reach out to your first influencer with a personalized pitch", target_days: 4 as number | null },
+  { step: 7, stage: 1, stageName: "Setup & Preparation", title: "Follow Up", description: "Follow up with influencers who haven't responded to your initial outreach", target_days: 4 as number | null },
+  // Stage 2: Influencer Outreach (Steps 8-11, no deadlines)
+  { step: 8, stage: 2, stageName: "Influencer Outreach", title: "Get First Reply", description: "Receive a reply from an influencer — positive or negative, it counts", target_days: null as number | null },
+  { step: 9, stage: 2, stageName: "Influencer Outreach", title: "Close First Influencer", description: "Sign your first influencer to your roster — you are officially an agent", target_days: null as number | null },
+  { step: 10, stage: 2, stageName: "Influencer Outreach", title: "Build to 5 Influencers", description: "Build your roster to 5 signed influencers ready for brand deals", target_days: null as number | null },
+  { step: 11, stage: 2, stageName: "Influencer Outreach", title: "Scale Influencer Outreach", description: "Expand your outreach system and grow beyond 5 influencers", target_days: null as number | null },
+  // Stage 3: Brand Outreach (Steps 12-15, no deadlines)
+  { step: 12, stage: 3, stageName: "Brand Outreach", title: "Research Brands", description: "Identify brands that align with your influencers and niche", target_days: null as number | null },
+  { step: 13, stage: 3, stageName: "Brand Outreach", title: "Send First Brand Pitch", description: "Start pitching brands with your roster — send your first brand proposals", target_days: null as number | null },
+  { step: 14, stage: 3, stageName: "Brand Outreach", title: "Follow Up with Brands", description: "Follow up on brand pitches and negotiate terms", target_days: null as number | null },
+  { step: 15, stage: 3, stageName: "Brand Outreach", title: "Close First Brand Deal", description: "Negotiate and close your first paid brand deal — this is where it all pays off", target_days: null as number | null },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -146,10 +156,8 @@ export const DAILY_REPORT = {
   ratingMax: 5,
   fields: {
     starRating: { label: "Rate your day", required: true },
-    outreachBrands: { label: "Outreach to brands", required: true },
-    outreachInfluencers: { label: "Outreach to influencers", required: true },
-    brandsContacted: { label: "Brands contacted", required: true },
-    influencersContacted: { label: "Influencers contacted", required: true },
+    brandsContacted: { label: "Brands outreach", required: true },
+    influencersContacted: { label: "Influencers outreach", required: true },
     callsJoined: { label: "Calls joined", required: true },
     wins: { label: "What went well today?", required: false, maxLength: 500 },
     improvements: { label: "What could you improve tomorrow?", required: false, maxLength: 500 },
@@ -279,8 +287,6 @@ export const VALIDATION = {
   reportWins: { max: 500 },
   reportImprovements: { max: 500 },
   outreachCount: { min: 0, max: 500 },
-  outreachBrands: { min: 0, max: 500 },
-  outreachInfluencers: { min: 0, max: 500 },
   brandsContacted: { min: 0, max: 500 },
   influencersContacted: { min: 0, max: 500 },
   callsJoined: { min: 0, max: 100 },
