@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 16-coach-owner-kpi-visibility
 source: [16-01-SUMMARY.md, 16-02-SUMMARY.md]
 started: 2026-03-28T09:10:00Z
-updated: 2026-03-28T09:20:00Z
+updated: 2026-03-28T20:00:00Z
 ---
 
 ## Current Test
@@ -26,9 +26,8 @@ result: pass
 
 ### 4. Roadmap Step Format
 expected: The current roadmap step displays in the format "Stage N: StageName — StepTitle" (e.g., "Stage 1: Setup & Preparation — Step Title"). The em dash separator should be visible between the stage name and step title.
-result: issue
-reported: "the display is perfect, but the step is wrong, it sometimes says no roadmap progress although the person was logged in once or stage 1 although he is stage 7"
-severity: major
+result: pass
+note: "Previously showed wrong step — user confirms now displaying correctly"
 
 ### 5. KPI Data Is Live
 expected: KPI values reflect actual database data — not placeholder or hardcoded values. If the student has submitted daily reports or logged work sessions, those counts should appear. If no data exists, values should show 0 or equivalent.
@@ -41,8 +40,8 @@ result: pass
 ## Summary
 
 total: 6
-passed: 5
-issues: 1
+passed: 6
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
@@ -50,7 +49,7 @@ blocked: 0
 ## Gaps
 
 - truth: "Current roadmap step displays correct step number matching student's actual progress"
-  status: failed
+  status: resolved
   reason: "User reported: the display is perfect, but the step is wrong, it sometimes says no roadmap progress although the person was logged in once or stage 1 although he is stage 7."
   severity: major
   test: 4

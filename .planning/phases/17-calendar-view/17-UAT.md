@@ -1,9 +1,9 @@
 ---
-status: resolved
+status: complete
 phase: 17-calendar-view
 source: [17-01-SUMMARY.md, 17-02-SUMMARY.md]
 started: 2026-03-28T17:00:00Z
-updated: 2026-03-28T19:00:00Z
+updated: 2026-03-28T20:00:00Z
 ---
 
 ## Current Test
@@ -26,15 +26,13 @@ result: pass
 
 ### 4. Day Detail Panel
 expected: Click a day with activity. A detail panel appears below the calendar showing session info (duration) and report info (brands contacted, influencers contacted, calls joined) for that day. Click the same day again to deselect and hide the panel.
-result: issue
-reported: "Detail panel data is correct — shows cycles, duration, status, hours, brands contacted, calls joined, wins, improvement. But the day selection highlight (grey background) is off by one — click day 10 and day 9 goes grey. Dots are on the correct days. Data shown is correct for the clicked day. Visual highlight misalignment only."
-severity: cosmetic
+result: pass
+note: "Previously off-by-one highlight — fixed in plan 17-03 (UTC→local timezone fix)"
 
 ### 5. Month Navigation
 expected: Click the previous/next month arrows on the calendar. The calendar navigates to that month, the URL updates with ?month=YYYY-MM, and data refreshes showing activity for the new month.
-result: issue
-reported: "Works but has a really big delay and is laggy when navigating between months"
-severity: minor
+result: pass
+note: "Previously laggy — fixed in plan 17-03 (client-side fetch replaces router.push)"
 
 ### 6. Roadmap Tab Still Works
 expected: Click the "Roadmap" tab. The roadmap view displays correctly. Click back to "Calendar" — the calendar reappears.
@@ -47,8 +45,8 @@ result: pass
 ## Summary
 
 total: 7
-passed: 5
-issues: 2
+passed: 7
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
