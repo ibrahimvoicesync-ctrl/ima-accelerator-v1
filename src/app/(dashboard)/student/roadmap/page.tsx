@@ -24,48 +24,38 @@ export default async function RoadmapPage() {
 
   let progress: RoadmapProgress[] = progressData ?? [];
 
-  // Lazy seeding: if fewer rows than expected (new student), re-initialize
+  // Lazy seeding: if fewer rows than expected, add only the missing steps (additive, never destructive)
   // Skip if initial fetch failed
   if (!error && progress.length < ROADMAP_STEPS.length) {
-    const now = new Date().toISOString();
+    const existingSteps = new Set(progress.map((p) => p.step_number));
+    const missingSteps = ROADMAP_STEPS.filter((s) => !existingSteps.has(s.step));
 
-    // Delete any partial rows before re-seeding
-    if (progress.length > 0) {
-      await admin
+    if (missingSteps.length > 0) {
+      const rows = missingSteps.map((step) => ({
+        student_id: user.id,
+        step_number: step.step,
+        step_name: step.title,
+        status: "locked" as const,
+        completed_at: null,
+      }));
+
+      const { error: upsertError } = await admin
         .from("roadmap_progress")
-        .delete()
-        .eq("student_id", user.id);
+        .upsert(rows, { onConflict: "student_id,step_number", ignoreDuplicates: true });
+
+      if (upsertError) {
+        console.error("[roadmap] Failed to add missing roadmap steps:", upsertError);
+      }
+
+      // Re-fetch after adding missing steps
+      const { data: newProgress } = await admin
+        .from("roadmap_progress")
+        .select("*")
+        .eq("student_id", user.id)
+        .order("step_number", { ascending: true });
+
+      progress = newProgress ?? [];
     }
-
-    const rows = ROADMAP_STEPS.map((step) => ({
-      student_id: user.id,
-      step_number: step.step,
-      step_name: step.title,
-      status:
-        step.step === 1
-          ? ("completed" as const)
-          : step.step === 2
-            ? ("active" as const)
-            : ("locked" as const),
-      completed_at: step.step === 1 ? now : null,
-    }));
-
-    const { error: insertError } = await admin
-      .from("roadmap_progress")
-      .insert(rows);
-
-    if (insertError) {
-      console.error("[roadmap] Failed to seed roadmap:", insertError);
-    }
-
-    // Re-fetch after seeding
-    const { data: newProgress } = await admin
-      .from("roadmap_progress")
-      .select("*")
-      .eq("student_id", user.id)
-      .order("step_number", { ascending: true });
-
-    progress = newProgress ?? [];
   }
 
   const completedCount = progress.filter((p) => p.status === "completed").length;
@@ -77,7 +67,7 @@ export default async function RoadmapPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-ima-text">Your Roadmap</h1>
-        <p className="mt-1 text-ima-text-secondary">10 steps from beginner to closing your first brand deal</p>
+        <p className="mt-1 text-ima-text-secondary">{`${ROADMAP_STEPS.length} steps from beginner to closing your first brand deal`}</p>
       </div>
 
       {/* Progress overview card */}
