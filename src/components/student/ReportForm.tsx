@@ -13,7 +13,11 @@ type DailyReport = Database["public"]["Tables"]["daily_reports"]["Row"];
 
 interface ReportFormData {
   star_rating: number;
-  outreach_count: number;
+  outreach_brands: number;
+  outreach_influencers: number;
+  brands_contacted: number;
+  influencers_contacted: number;
+  calls_joined: number;
   wins?: string;
   improvements?: string;
 }
@@ -38,7 +42,11 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
   } = useForm<ReportFormData>({
     defaultValues: {
       star_rating: existingReport?.star_rating ?? 0,
-      outreach_count: existingReport?.outreach_count ?? 0,
+      outreach_brands: existingReport?.outreach_brands ?? 0,
+      outreach_influencers: existingReport?.outreach_influencers ?? 0,
+      brands_contacted: existingReport?.brands_contacted ?? 0,
+      influencers_contacted: existingReport?.influencers_contacted ?? 0,
+      calls_joined: existingReport?.calls_joined ?? 0,
       wins: existingReport?.wins ?? "",
       improvements: existingReport?.improvements ?? "",
     },
@@ -62,7 +70,11 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
           date,
           hours_worked: Math.round((autoMinutes / 60) * 100) / 100,
           star_rating: starRating,
-          outreach_count: data.outreach_count,
+          outreach_brands: data.outreach_brands,
+          outreach_influencers: data.outreach_influencers,
+          brands_contacted: data.brands_contacted,
+          influencers_contacted: data.influencers_contacted,
+          calls_joined: data.calls_joined,
           wins: data.wins || undefined,
           improvements: data.improvements || undefined,
         }),
@@ -109,15 +121,56 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
             <StarRating value={starRating} onChange={setStarRating} />
           </div>
 
-          {/* Outreach count */}
-          <Input
-            label={DAILY_REPORT.fields.outreachCount.label}
-            type="number"
-            min={VALIDATION.outreachCount.min}
-            max={VALIDATION.outreachCount.max}
-            error={errors.outreach_count?.message}
-            {...register("outreach_count", { valueAsNumber: true })}
-          />
+          {/* Outreach fields */}
+          <fieldset>
+            <legend className="text-sm font-medium text-ima-text-secondary mb-2">
+              Outreach Today
+            </legend>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label={DAILY_REPORT.fields.outreachBrands.label}
+                type="number"
+                min={VALIDATION.outreachBrands.min}
+                max={VALIDATION.outreachBrands.max}
+                error={errors.outreach_brands?.message}
+                {...register("outreach_brands", { valueAsNumber: true })}
+              />
+              <Input
+                label={DAILY_REPORT.fields.outreachInfluencers.label}
+                type="number"
+                min={VALIDATION.outreachInfluencers.min}
+                max={VALIDATION.outreachInfluencers.max}
+                error={errors.outreach_influencers?.message}
+                {...register("outreach_influencers", { valueAsNumber: true })}
+              />
+              <Input
+                label={DAILY_REPORT.fields.brandsContacted.label}
+                type="number"
+                min={VALIDATION.brandsContacted.min}
+                max={VALIDATION.brandsContacted.max}
+                error={errors.brands_contacted?.message}
+                {...register("brands_contacted", { valueAsNumber: true })}
+              />
+              <Input
+                label={DAILY_REPORT.fields.influencersContacted.label}
+                type="number"
+                min={VALIDATION.influencersContacted.min}
+                max={VALIDATION.influencersContacted.max}
+                error={errors.influencers_contacted?.message}
+                {...register("influencers_contacted", { valueAsNumber: true })}
+              />
+            </div>
+            <div className="mt-3">
+              <Input
+                label={DAILY_REPORT.fields.callsJoined.label}
+                type="number"
+                min={VALIDATION.callsJoined.min}
+                max={VALIDATION.callsJoined.max}
+                error={errors.calls_joined?.message}
+                {...register("calls_joined", { valueAsNumber: true })}
+              />
+            </div>
+          </fieldset>
 
           {/* Wins */}
           <div>
