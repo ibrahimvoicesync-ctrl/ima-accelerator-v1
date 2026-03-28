@@ -9,8 +9,6 @@ const postSchema = z.object({
   date: z.string().refine(isValidDateString, "Invalid date format (YYYY-MM-DD)"),
   hours_worked: z.number().min(0).max(24),
   star_rating: z.number().int().min(VALIDATION.starRating.min).max(VALIDATION.starRating.max),
-  outreach_brands: z.number().int().min(VALIDATION.outreachBrands.min).max(VALIDATION.outreachBrands.max),
-  outreach_influencers: z.number().int().min(VALIDATION.outreachInfluencers.min).max(VALIDATION.outreachInfluencers.max),
   brands_contacted: z.number().int().min(VALIDATION.brandsContacted.min).max(VALIDATION.brandsContacted.max),
   influencers_contacted: z.number().int().min(VALIDATION.influencersContacted.min).max(VALIDATION.influencersContacted.max),
   calls_joined: z.number().int().min(VALIDATION.callsJoined.min).max(VALIDATION.callsJoined.max),
@@ -54,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Validation failed" }, { status: 400 });
   }
 
-  const { date, hours_worked, star_rating, outreach_brands, outreach_influencers, brands_contacted, influencers_contacted, calls_joined, wins, improvements } = parsed.data;
+  const { date, hours_worked, star_rating, brands_contacted, influencers_contacted, calls_joined, wins, improvements } = parsed.data;
 
   const now = new Date().toISOString();
 
@@ -73,12 +71,10 @@ export async function POST(request: NextRequest) {
       .update({
         hours_worked,
         star_rating,
-        outreach_brands,
-        outreach_influencers,
         brands_contacted,
         influencers_contacted,
         calls_joined,
-        outreach_count: outreach_brands + outreach_influencers, // backward compat
+        outreach_count: brands_contacted + influencers_contacted, // backward compat
         wins: wins || null,
         improvements: improvements || null,
         submitted_at: now,
@@ -102,12 +98,10 @@ export async function POST(request: NextRequest) {
       date,
       hours_worked,
       star_rating,
-      outreach_brands,
-      outreach_influencers,
       brands_contacted,
       influencers_contacted,
       calls_joined,
-      outreach_count: outreach_brands + outreach_influencers, // backward compat
+      outreach_count: brands_contacted + influencers_contacted, // backward compat
       wins: wins || null,
       improvements: improvements || null,
       submitted_at: now,

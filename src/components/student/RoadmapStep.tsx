@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Lock, Calendar } from "lucide-react";
+import { Check, Lock, Calendar, ExternalLink } from "lucide-react";
 import { Badge, Button } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { getDeadlineStatus } from "@/lib/roadmap-utils";
@@ -14,6 +14,7 @@ interface RoadmapStepProps {
     title: string;
     description: string;
     target_days: number | null;
+    unlock_url: string | null;
   };
   progress: RoadmapProgress | null;
   isLast: boolean;
@@ -138,6 +139,19 @@ export function RoadmapStep({ step, progress, isLast, joinedAt, onComplete }: Ro
               <Lock className="h-3 w-3 mr-1" aria-hidden="true" />
               Locked
             </Badge>
+          )}
+
+          {/* Persistent video link — visible only after step is completed */}
+          {step.unlock_url && status === "completed" && (
+            <a
+              href={step.unlock_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              Watch Video
+            </a>
           )}
         </div>
       </div>

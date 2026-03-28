@@ -13,8 +13,6 @@ type DailyReport = Database["public"]["Tables"]["daily_reports"]["Row"];
 
 interface ReportFormData {
   star_rating: number;
-  outreach_brands: number;
-  outreach_influencers: number;
   brands_contacted: number;
   influencers_contacted: number;
   calls_joined: number;
@@ -42,8 +40,6 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
   } = useForm<ReportFormData>({
     defaultValues: {
       star_rating: existingReport?.star_rating ?? 0,
-      outreach_brands: existingReport?.outreach_brands ?? 0,
-      outreach_influencers: existingReport?.outreach_influencers ?? 0,
       brands_contacted: existingReport?.brands_contacted ?? 0,
       influencers_contacted: existingReport?.influencers_contacted ?? 0,
       calls_joined: existingReport?.calls_joined ?? 0,
@@ -70,8 +66,6 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
           date,
           hours_worked: Math.round((autoMinutes / 60) * 100) / 100,
           star_rating: starRating,
-          outreach_brands: data.outreach_brands,
-          outreach_influencers: data.outreach_influencers,
           brands_contacted: data.brands_contacted,
           influencers_contacted: data.influencers_contacted,
           calls_joined: data.calls_joined,
@@ -127,22 +121,6 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
               Outreach Today
             </legend>
             <div className="grid grid-cols-2 gap-3">
-              <Input
-                label={DAILY_REPORT.fields.outreachBrands.label}
-                type="number"
-                min={VALIDATION.outreachBrands.min}
-                max={VALIDATION.outreachBrands.max}
-                error={errors.outreach_brands?.message}
-                {...register("outreach_brands", { valueAsNumber: true })}
-              />
-              <Input
-                label={DAILY_REPORT.fields.outreachInfluencers.label}
-                type="number"
-                min={VALIDATION.outreachInfluencers.min}
-                max={VALIDATION.outreachInfluencers.max}
-                error={errors.outreach_influencers?.message}
-                {...register("outreach_influencers", { valueAsNumber: true })}
-              />
               <Input
                 label={DAILY_REPORT.fields.brandsContacted.label}
                 type="number"

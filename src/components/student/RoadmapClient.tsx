@@ -95,6 +95,7 @@ export function RoadmapClient({ progress, joinedAt }: RoadmapClientProps) {
                 title: step.title,
                 description: step.description,
                 target_days: step.target_days,
+                unlock_url: step.unlock_url,
               }}
               progress={stepProgress}
               isLast={i === ROADMAP_STEPS.length - 1}

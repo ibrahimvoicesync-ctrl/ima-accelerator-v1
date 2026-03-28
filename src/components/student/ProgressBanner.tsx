@@ -18,6 +18,7 @@ interface ProgressBannerProps {
   brandsContacted: number;
   influencersContacted: number;
   joinedAt: string;
+  outreachStarted: boolean;
 }
 
 export function KpiItem({
@@ -53,8 +54,10 @@ export function ProgressBanner({
   brandsContacted,
   influencersContacted,
   joinedAt,
+  outreachStarted,
 }: ProgressBannerProps) {
-  const days = computeDaysInProgram(joinedAt);
+  // RAG colors activate only after step 7 (outreach prep) is completed
+  const days = outreachStarted ? computeDaysInProgram(joinedAt) : 0;
 
   const lifetimeRag = lifetimeOutreachRag(lifetimeOutreach, days);
   const dailyRag = dailyOutreachRag(dailyOutreach, days);

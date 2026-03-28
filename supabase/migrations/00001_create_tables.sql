@@ -5,28 +5,8 @@
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- 1. Helper Functions
+-- 1. Trigger function (no table references, needed by table triggers below)
 -- ---------------------------------------------------------------------------
-
-CREATE OR REPLACE FUNCTION public.get_user_id()
-RETURNS uuid
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT id FROM public.users WHERE auth_id = auth.uid()
-$$;
-
-CREATE OR REPLACE FUNCTION public.get_user_role()
-RETURNS text
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT role FROM public.users WHERE auth_id = auth.uid()
-$$;
 
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS trigger
@@ -157,7 +137,31 @@ CREATE INDEX idx_daily_reports_date ON public.daily_reports(date);
 CREATE INDEX idx_daily_reports_student ON public.daily_reports(student_id);
 
 -- ---------------------------------------------------------------------------
--- 3. Enable Row Level Security on all 6 tables
+-- 3. RLS Helper Functions (after tables they reference, before RLS policies)
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.get_user_id()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT id FROM public.users WHERE auth_id = auth.uid()
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM public.users WHERE auth_id = auth.uid()
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 4. Enable Row Level Security on all 6 tables
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
@@ -168,7 +172,7 @@ ALTER TABLE public.roadmap_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_reports ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
--- 4. RLS Policies — using (select get_user_role()) initplan wrapper
+-- 5. RLS Policies — using (select get_user_role()) initplan wrapper
 --    Wrapping in scalar subqueries forces Postgres to evaluate once per query
 --    instead of per row (initplan evaluation = better performance).
 -- ---------------------------------------------------------------------------
@@ -380,7 +384,7 @@ CREATE POLICY "student_update_reports" ON public.daily_reports
   WITH CHECK ((select get_user_role()) = 'student' AND student_id = (select get_user_id()));
 
 -- ---------------------------------------------------------------------------
--- 5. Security Triggers
+-- 6. Security Triggers
 -- ---------------------------------------------------------------------------
 
 -- Prevents non-owners from changing role, coach_id, auth_id, email, joined_at
@@ -426,3 +430,17 @@ $$;
 CREATE TRIGGER enforce_coach_report_fields
   BEFORE UPDATE ON public.daily_reports
   FOR EACH ROW EXECUTE FUNCTION public.restrict_coach_report_update();
+
+-- ---------------------------------------------------------------------------
+-- 7. Grants — allow Supabase roles to access tables (RLS still enforces row access)
+-- ---------------------------------------------------------------------------
+
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;

@@ -249,8 +249,6 @@ export type Database = {
           hours_worked: number;
           star_rating: number | null;
           outreach_count: number;
-          outreach_brands: number;
-          outreach_influencers: number;
           brands_contacted: number;
           influencers_contacted: number;
           calls_joined: number;
@@ -268,8 +266,6 @@ export type Database = {
           hours_worked?: number;
           star_rating?: number | null;
           outreach_count?: number;
-          outreach_brands?: number;
-          outreach_influencers?: number;
           brands_contacted?: number;
           influencers_contacted?: number;
           calls_joined?: number;
@@ -287,8 +283,6 @@ export type Database = {
           hours_worked?: number;
           star_rating?: number | null;
           outreach_count?: number;
-          outreach_brands?: number;
-          outreach_influencers?: number;
           brands_contacted?: number;
           influencers_contacted?: number;
           calls_joined?: number;

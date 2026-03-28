@@ -8,19 +8,18 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const admin = createAdminClient();
   const today = getTodayUTC();
 
-  // Three parallel queries for banner data
-  const [lifetimeResult, todayReportResult, userResult] = await Promise.all([
-    // Lifetime totals — PostgREST aggregate (never JS reduce per STATE.md)
+  // Four parallel queries for banner data
+  const [lifetimeResult, todayReportResult, userResult, step7Result] = await Promise.all([
+    // Lifetime outreach — fetch all report totals and sum in JS
     admin
       .from("daily_reports")
-      .select("outreach_brands.sum(), outreach_influencers.sum()")
-      .eq("student_id", user.id)
-      .single(),
+      .select("brands_contacted, influencers_contacted")
+      .eq("student_id", user.id),
 
     // Today's report — for daily KPIs
     admin
       .from("daily_reports")
-      .select("outreach_brands, outreach_influencers, brands_contacted, influencers_contacted, calls_joined")
+      .select("brands_contacted, influencers_contacted, calls_joined")
       .eq("student_id", user.id)
       .eq("date", today)
       .maybeSingle(),
@@ -31,6 +30,14 @@ export default async function StudentLayout({ children }: { children: React.Reac
       .select("joined_at")
       .eq("id", user.id)
       .single(),
+
+    // Step 7 completion — RAG colors activate only after outreach prep is done
+    admin
+      .from("roadmap_progress")
+      .select("status")
+      .eq("student_id", user.id)
+      .eq("step_number", 7)
+      .maybeSingle(),
   ]);
 
   if (lifetimeResult.error) {
@@ -43,8 +50,11 @@ export default async function StudentLayout({ children }: { children: React.Reac
     console.error("[student layout] Failed to load user:", userResult.error);
   }
 
-  // Type assertion for aggregate result (PostgREST returns column names for aggregates)
-  const lifetime = lifetimeResult.data as { outreach_brands: number | null; outreach_influencers: number | null } | null;
+  const allReports = lifetimeResult.data ?? [];
+  const lifetimeOutreach = allReports.reduce(
+    (sum, r) => sum + (r.brands_contacted ?? 0) + (r.influencers_contacted ?? 0),
+    0,
+  );
   const todayReport = todayReportResult.data;
   const userRow = userResult.data;
 
@@ -66,13 +76,14 @@ export default async function StudentLayout({ children }: { children: React.Reac
   return (
     <>
       <ProgressBanner
-        lifetimeOutreach={(lifetime?.outreach_brands ?? 0) + (lifetime?.outreach_influencers ?? 0)}
-        dailyOutreach={(todayReport?.outreach_brands ?? 0) + (todayReport?.outreach_influencers ?? 0)}
+        lifetimeOutreach={lifetimeOutreach}
+        dailyOutreach={(todayReport?.brands_contacted ?? 0) + (todayReport?.influencers_contacted ?? 0)}
         dailyMinutesWorked={dailyMinutesWorked}
         callsJoined={todayReport?.calls_joined ?? 0}
         brandsContacted={todayReport?.brands_contacted ?? 0}
         influencersContacted={todayReport?.influencers_contacted ?? 0}
         joinedAt={userRow?.joined_at ?? new Date().toISOString()}
+        outreachStarted={step7Result.data?.status === "completed"}
       />
       {children}
     </>
