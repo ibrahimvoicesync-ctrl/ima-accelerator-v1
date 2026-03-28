@@ -10,17 +10,17 @@ export default async function OwnerStudentDetailPage({
   searchParams,
 }: {
   params: Promise<{ studentId: string }>;
-  searchParams: Promise<{ tab?: string; month?: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   await requireRole("owner");
   const { studentId } = await params;
-  const { tab, month } = await searchParams;
+  const { tab } = await searchParams;
 
   const admin = createAdminClient();
   const today = getTodayUTC();
 
-  // Month-scoped calendar data: validate ?month=YYYY-MM or default to current month
-  const monthStr = typeof month === "string" && /^\d{4}-\d{2}$/.test(month) ? month : today.slice(0, 7);
+  // Server always renders current month for SSR; client navigates months via /api/calendar
+  const monthStr = today.slice(0, 7);
   const firstDay = `${monthStr}-01`;
   const lastDayDate = new Date(firstDay + "T00:00:00Z");
   lastDayDate.setUTCMonth(lastDayDate.getUTCMonth() + 1, 0);
