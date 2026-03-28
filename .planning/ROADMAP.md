@@ -31,7 +31,7 @@
 - [x] **Phase 14: Flexible Work Sessions** — Student-selectable durations (30/45/60 min), break countdown between cycles, unlimited daily sessions (completed 2026-03-27)
 - [x] **Phase 15: Outreach KPI Banner** — Granular outreach fields on daily report form, sticky progress banner with lifetime/daily targets and RAG color coding (completed 2026-03-28)
 - [x] **Phase 16: Coach/Owner KPI Visibility** — Read-only KPI summary card with RAG status on coach and owner student detail pages; gap closure for 15-step roadmap DB migration (completed 2026-03-28)
-- [ ] **Phase 17: Calendar View** — Month grid calendar replacing work sessions and reports tabs on student detail pages, with day detail panel
+- [x] **Phase 17: Calendar View** — Month grid calendar replacing work sessions and reports tabs on student detail pages, with day detail panel (completed 2026-03-28)
 - [ ] **Phase 18: Roadmap Date KPIs & Completion Logging** — Deadline status chips (on-track/due-soon/overdue) and completed_at display on all roadmap views
 
 ## Phase Details
@@ -108,10 +108,10 @@ Plans:
   2. The Calendar tab shows a month grid where each day cell displays color indicators: green dot for days with both work sessions and a report, amber dot for partial days, empty for days with no activity
   3. Clicking a day opens an inline panel showing that day's work sessions (duration, status, timestamps) and daily report (all KPI fields) side by side
   4. Students can navigate to previous and current months using prev/next controls; the current month loads by default; month changes do not show stale or truncated data for active students
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 17-01-PLAN.md — Install react-day-picker, create CalendarTab component, update StudentDetailTabs
-- [ ] 17-02-PLAN.md — Wire CalendarTab into coach/owner server pages and client components with month-scoped queries
+- [x] 17-02-PLAN.md — Wire CalendarTab into coach/owner server pages and client components with month-scoped queries
 **UI hint**: yes
 
 ### Phase 18: Roadmap Date KPIs & Completion Logging
@@ -144,5 +144,5 @@ Plans:
 | 14. Flexible Work Sessions | v1.1 | 3/3 | Complete    | 2026-03-27 |
 | 15. Outreach KPI Banner | v1.1 | 2/2 | Complete   | 2026-03-28 |
 | 16. Coach/Owner KPI Visibility | v1.1 | 4/4 | Complete    | 2026-03-28 |
-| 17. Calendar View | v1.1 | 1/2 | In Progress|  |
+| 17. Calendar View | v1.1 | 2/2 | Complete   | 2026-03-28 |
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 0/? | Not started | - |
