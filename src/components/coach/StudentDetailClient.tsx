@@ -40,6 +40,7 @@ interface StudentDetailClientProps {
   roadmap: {
     step_number: number;
     status: "locked" | "active" | "completed";
+    completed_at: string | null;
   }[];
   initialTab?: string;
   studentId: string;
@@ -103,7 +104,7 @@ export function StudentDetailClient({
           role="coach"
         />
       )}
-      {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} />}
+      {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} />}
     </div>
   );
 }

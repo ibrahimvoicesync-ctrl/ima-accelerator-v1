@@ -45,6 +45,7 @@ interface OwnerStudentDetailClientProps {
   roadmap: {
     step_number: number;
     status: "locked" | "active" | "completed";
+    completed_at: string | null;
   }[];
   initialTab?: string;
   studentId: string;
@@ -222,7 +223,7 @@ export function OwnerStudentDetailClient({
           role="owner"
         />
       )}
-      {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} />}
+      {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} />}
     </div>
   );
 }

@@ -71,7 +71,7 @@ export default async function StudentDetailPage({
       .order("cycle_number"),
     admin
       .from("roadmap_progress")
-      .select("step_number, status")
+      .select("step_number, status, completed_at")
       .eq("student_id", student.id)
       .order("step_number"),
     // Month-scoped calendar reports with granular KPI fields
