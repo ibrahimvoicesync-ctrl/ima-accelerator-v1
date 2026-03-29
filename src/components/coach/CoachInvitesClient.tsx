@@ -98,13 +98,13 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        toastRef.current({ type: "error", title: (json as { error?: string }).error ?? "Failed to create magic link" });
+        toastRef.current({ type: "error", title: (json as { error?: string }).error ?? "Failed to create invite link" });
         return;
       }
       const { data, registerUrl } = await res.json() as { data: MagicLinkItem; registerUrl: string };
       setLastUrl(registerUrl);
       setLocalMagicLinks(prev => [data, ...prev]);
-      toastRef.current({ type: "success", title: "Magic link created!" });
+      toastRef.current({ type: "success", title: "Invite link created!" });
     } catch (err) {
       console.error("[CoachInvitesClient] create magic link error:", err);
       toastRef.current({ type: "error", title: "Something went wrong" });
@@ -149,7 +149,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
       }
       toastRef.current({
         type: "success",
-        title: newActive ? "Magic link reactivated" : "Magic link deactivated",
+        title: newActive ? "Invite link reactivated" : "Invite link deactivated",
       });
       routerRef.current.refresh();
     } catch (err) {
@@ -205,7 +205,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
         >
           <span className="flex items-center gap-2">
             <Link2 className="h-4 w-4" aria-hidden="true" />
-            Magic Link
+            Invite Link
           </span>
         </button>
       </div>
@@ -249,9 +249,9 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
       {activeTab === "magic" && (
         <Card>
           <CardContent className="p-5">
-            <h2 className="text-base font-semibold text-ima-text mb-1">Generate Magic Link</h2>
+            <h2 className="text-base font-semibold text-ima-text mb-1">Generate Invite Link</h2>
             <p className="text-xs text-ima-text-secondary mb-4">
-              Magic links can be shared with any student. Anyone with the link can register as a student
+              Invite links can be shared with any student. Anyone with the link can register as a student
               assigned to you. No email restriction, no expiry.
             </p>
             <Button
@@ -262,7 +262,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
               className="min-h-[44px]"
             >
               <Link2 className="h-4 w-4" aria-hidden="true" />
-              Generate Magic Link
+              Generate Invite Link
             </Button>
           </CardContent>
         </Card>
@@ -363,13 +363,13 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
 
       {/* Magic links history */}
       <section>
-        <h2 className="text-base font-semibold text-ima-text mb-3">Magic Links</h2>
+        <h2 className="text-base font-semibold text-ima-text mb-3">Invite Links</h2>
         {localMagicLinks.length === 0 ? (
           <Card>
             <EmptyState
               icon={<Link2 className="h-6 w-6" />}
-              title="No magic links created yet"
-              description="Generate a magic link above to share with multiple students."
+              title="No invite links created yet"
+              description="Generate an invite link above to share with multiple students."
             />
           </Card>
         ) : (

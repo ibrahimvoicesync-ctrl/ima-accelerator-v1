@@ -44,7 +44,7 @@ export default async function CoachInvitesPage() {
     <div className="px-4">
       <h1 className="text-2xl font-bold text-ima-text">Invite Students</h1>
       <p className="mt-1 text-ima-text-secondary">
-        Whitelist emails and generate magic links for new students
+        Whitelist emails and generate invite links for new students
       </p>
 
       {/* Stat cards */}
