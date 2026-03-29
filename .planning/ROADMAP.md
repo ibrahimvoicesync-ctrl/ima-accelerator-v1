@@ -58,9 +58,9 @@
   2. All 36 createAdminClient() call sites have been replaced with a module-level getAdminClient() singleton; the admin client is instantiated once per process, not once per request
   3. All RLS policies in current migrations use (SELECT auth.uid()) instead of bare auth.uid(); EXPLAIN on a policy-covered query shows initplan not per-row evaluation
   4. pg_stat_statements is enabled and a baseline of the top 10 slowest queries is captured and recorded before and after the index migration
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 19-01-PLAN.md — Migration SQL (composite index + pg_stat_statements) and admin client singleton conversion
+- [x] 19-01-PLAN.md — Migration SQL (composite index + pg_stat_statements) and admin client singleton conversion
 - [ ] 19-02-PLAN.md — RLS audit, BASELINE.md scaffold, human applies migration and captures query stats
 
 ### Phase 20: Query Consolidation & Caching
@@ -144,7 +144,7 @@ Plans:
 | 16. Coach/Owner KPI Visibility | v1.1 | 4/4 | Complete | 2026-03-28 |
 | 17. Calendar View | v1.1 | 3/3 | Complete | 2026-03-28 |
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 2/2 | Complete | 2026-03-28 |
-| 19. Database Foundation | v1.2 | 0/2 | Not started | - |
+| 19. Database Foundation | v1.2 | 1/2 | In Progress|  |
 | 20. Query Consolidation & Caching | v1.2 | 0/? | Not started | - |
 | 21. Write Path & Pre-Aggregation | v1.2 | 0/? | Not started | - |
 | 22. Spike Protection & Rate Limiting | v1.2 | 0/? | Not started | - |

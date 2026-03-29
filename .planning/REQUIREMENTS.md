@@ -9,8 +9,8 @@ Requirements for milestone v1.2 (Performance, Scale & Security for 5,000 Student
 
 ### Database & Monitoring
 
-- [ ] **DB-01**: Composite indexes exist on daily_reports(student_id, date), work_sessions(student_id, date, status), roadmap_progress(student_id) — verified with EXPLAIN ANALYZE
-- [ ] **DB-02**: createAdminClient() is a module-level singleton reused across requests within the same process
+- [x] **DB-01**: Composite indexes exist on daily_reports(student_id, date), work_sessions(student_id, date, status), roadmap_progress(student_id) — verified with EXPLAIN ANALYZE
+- [x] **DB-02**: createAdminClient() is a module-level singleton reused across requests within the same process
 - [ ] **DB-03**: All RLS policies use (SELECT auth.uid()) instead of auth.uid() for initplan optimization
 - [ ] **DB-04**: pg_stat_statements enabled, slow queries >200ms logged, baseline metrics recorded before and after index changes
 
@@ -86,8 +86,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DB-01 | Phase 19 | Pending |
-| DB-02 | Phase 19 | Pending |
+| DB-01 | Phase 19 | Complete |
+| DB-02 | Phase 19 | Complete |
 | DB-03 | Phase 19 | Pending |
 | DB-04 | Phase 19 | Pending |
 | QUERY-01 | Phase 20 | Pending |
