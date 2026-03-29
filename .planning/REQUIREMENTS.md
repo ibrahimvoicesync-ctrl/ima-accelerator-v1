@@ -86,32 +86,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DB-01 | — | Pending |
-| DB-02 | — | Pending |
-| DB-03 | — | Pending |
-| DB-04 | — | Pending |
-| QUERY-01 | — | Pending |
-| QUERY-02 | — | Pending |
-| QUERY-03 | — | Pending |
-| QUERY-04 | — | Pending |
-| QUERY-05 | — | Pending |
-| QUERY-06 | — | Pending |
-| WRITE-01 | — | Pending |
-| WRITE-02 | — | Pending |
-| WRITE-03 | — | Pending |
-| SEC-01 | — | Pending |
-| SEC-02 | — | Pending |
-| SEC-03 | — | Pending |
-| SEC-04 | — | Pending |
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
+| DB-01 | Phase 19 | Pending |
+| DB-02 | Phase 19 | Pending |
+| DB-03 | Phase 19 | Pending |
+| DB-04 | Phase 19 | Pending |
+| QUERY-01 | Phase 20 | Pending |
+| QUERY-02 | Phase 20 | Pending |
+| QUERY-03 | Phase 20 | Pending |
+| QUERY-04 | Phase 20 | Pending |
+| QUERY-05 | Phase 20 | Pending |
+| QUERY-06 | Phase 20 | Pending |
+| WRITE-01 | Phase 21 | Pending |
+| WRITE-02 | Phase 21 | Pending |
+| WRITE-03 | Phase 21 | Pending |
+| SEC-01 | Phase 22 | Pending |
+| SEC-02 | Phase 23 | Pending |
+| SEC-03 | Phase 23 | Pending |
+| SEC-04 | Phase 23 | Pending |
+| INFRA-01 | Phase 24 | Pending |
+| INFRA-02 | Phase 24 | Pending |
+| INFRA-03 | Phase 24 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-29*
-*Last updated: 2026-03-29 after initial definition*
+*Last updated: 2026-03-29 — traceability populated after roadmap creation*
