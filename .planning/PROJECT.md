@@ -32,17 +32,27 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ Shared UI components matching old codebase visual style — v1.0
 - ✓ Loading skeletons, error boundaries, empty states — v1.0
 - ✓ Mobile responsiveness and accessibility (44px touch targets, ARIA) — v1.0
+- ✓ Flexible work sessions — student-selectable durations (30/45/60 min), breaks, no cycle cap — v1.1
+- ✓ Progress tracker / email KPIs — granular outreach tracking, sticky progress banner, RAG colors — v1.1
+- ✓ Coach/owner student KPI visibility — read-only KPI summary on coach and owner detail pages — v1.1
+- ✓ Calendar view — month grid on student detail pages replacing work sessions + reports tabs — v1.1
+- ✓ Roadmap date KPIs — deadline status chips per roadmap step, completed_at display — v1.1
 
 ### Active
 
-<!-- Current scope. Building toward these for v1.1. -->
+<!-- Current scope. Building toward these for v1.2. -->
 
-- ✓ Flexible work sessions — student-selectable durations (30/45/60 min), breaks between cycles, no cycle cap — Validated in Phase 14
-- [ ] Progress tracker / email KPIs — granular outreach tracking, sticky progress banner, 2,500 lifetime / 50 daily targets
-- [ ] Coach/owner student KPI visibility — read-only progress on coach and owner detail pages
-- ✓ Calendar view — month grid replacing work sessions + reports tabs on student detail pages — Validated in Phase 17
-- ✓ Roadmap date KPIs — target deadlines per step relative to joined_at, on-track/due-soon/overdue status — Validated in Phase 18
-- ✓ Roadmap completion date logging — display completed_at timestamps on roadmap steps — Validated in Phase 18
+- [ ] Database indexes on high-traffic query paths (daily_reports, work_sessions, roadmap_progress)
+- [ ] Admin client singleton (module-level reuse, not per-call instantiation)
+- [ ] Query performance monitoring baseline and slow query logging (>200ms)
+- [ ] Dashboard layout RPC consolidation (owner path: 8 → ≤2 round trips)
+- [ ] Server-side pagination on owner list pages (students, coaches)
+- [ ] React cache() dedup + route-level revalidation on dashboard routes
+- [ ] pg_cron nightly pre-aggregation for KPI summaries
+- [ ] Optimistic UI on student report submission
+- [ ] API route-level rate limiting (30 req/min/user)
+- [ ] Security audit: auth checks, RLS verification, CSRF, cross-student isolation
+- [ ] Infrastructure validation under 5k simulated load
 
 ### Out of Scope
 
@@ -61,6 +71,8 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - Settings pages for any role — no name/niche editing in V1
 - PostHog analytics — V2+ feature
 - Cron jobs (inactive-check, streak-check) — V2+ feature
+- Supavisor/connection pooler setup — PostgREST has built-in connection pooler
+- Redis/Upstash cache — evaluate only if Phase 24 load testing proves Next.js cache insufficient
 
 ## Context
 
@@ -75,6 +87,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **v1.1 Phase 17 complete** (2026-03-28): Calendar view — CalendarTab with react-day-picker month grid, green/amber activity dots, inline day detail panel. Gap closure fixed UTC/local timezone off-by-one in day selection and replaced server-side month navigation with client-side fetch to /api/calendar endpoint. Replaced Work Sessions + Reports tabs on coach and owner student detail pages.
 
 **v1.1 Phase 18 complete** (2026-03-28): Roadmap date KPIs & completion logging — `getDeadlineStatus()` utility with 5-state discriminated union (none/completed/on-track/due-soon/overdue), UTC-safe date math. Badge chips on student RoadmapStep and shared coach/owner RoadmapTab. Progress bar fixed from /10 to /15.
+
+**v1.1 milestone complete** (2026-03-28): 6 phases (13-18), 16 plans. Flexible work sessions, outreach KPI banner, coach/owner KPI visibility, calendar view, roadmap date KPIs all shipped. Supabase Pro plan active.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
@@ -112,17 +126,21 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | Resume shifts started_at forward | Client timer needs no elapsed accumulator; Date.now() - started_at always equals active work time | ✓ Good — simple timer math |
 | alert_dismissals with time-windowed keys | Dismissed alerts re-trigger in new window (daily/weekly/monthly) | ✓ Good — prevents stale dismissals masking new issues |
 
-## Current Milestone: v1.1 V2 Feature Build
+## Current Milestone: v1.2 Performance, Scale & Security
 
-**Goal:** Add flexible work sessions, granular outreach KPIs, coach/owner KPI visibility, calendar view, and roadmap deadline tracking.
+**Goal:** Optimize queries, add caching and pagination, harden the 11 PM write spike, audit security, and validate under realistic 5k-student load.
 
 **Target features:**
-- Flexible work sessions (student-selectable durations, breaks, no cycle cap)
-- Progress tracker / email KPIs (granular outreach, sticky banner, 2,500/50 targets)
-- Coach/owner student KPI visibility (read-only progress views)
-- Calendar view (month grid on student detail pages)
-- Roadmap date KPIs (deadlines relative to joined_at)
-- Roadmap completion date logging (completed_at display)
+- Database indexes + admin client singleton + monitoring baseline
+- RPC consolidation + server-side pagination + caching for dashboard queries
+- pg_cron nightly pre-aggregation + optimistic UI
+- API route-level rate limiting (30 req/min/user)
+- Security audit (auth checks, RLS, CSRF, cross-student isolation)
+- Infrastructure validation under 5k simulated load
+
+**Milestone gates:**
+- HALT after Phase 20 — human confirms load test results before proceeding
+- HALT at Phase 23 — security audit requires human review before applying changes
 
 ## Evolution
 
@@ -142,4 +160,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after Phase 18 completion*
+*Last updated: 2026-03-29 after milestone v1.2 start*
