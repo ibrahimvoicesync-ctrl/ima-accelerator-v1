@@ -1,749 +1,867 @@
-# Architecture Patterns
+# Architecture Research
 
-**Project:** IMA Accelerator v1.1 — Incremental Feature Integration
-**Domain:** Student performance & coaching platform (Next.js App Router + Supabase)
-**Researched:** 2026-03-27
-**Confidence:** HIGH — all findings derived from direct codebase inspection of v1.0 source files
-
----
-
-## Recommended Architecture
-
-v1.1 adds no new structural layers. Every new feature uses the same pattern that already works in v1.0: async server component reads data and passes typed props to a small "use client" component for interactivity.
-
-```
-Server Component (page.tsx)
-  └── reads DB with createAdminClient()
-  └── computes derived values (at-risk, KPI aggregates, roadmap deadlines)
-  └── passes typed props down to client islands
-
-"use client" Component
-  └── owns UI state only (active tab, modal open, selected duration, break timer)
-  └── calls API routes for mutations via fetch()
-  └── calls router.refresh() after mutations to re-run server component
-```
-
-The v1.1 changes are entirely additive at the structural level. No new route groups, no new layout layers, no new auth patterns.
+**Domain:** Performance optimization and security hardening — Next.js 16 App Router + Supabase
+**Researched:** 2026-03-29
+**Confidence:** HIGH (Next.js 16.2.1 official docs + Supabase docs + direct codebase analysis)
 
 ---
 
-## System Diagram (unchanged from v1.0, with v1.1 additions noted)
+## Standard Architecture
+
+### System Overview (Current + v1.2 Changes)
 
 ```
-Browser
-  └── "use client" islands:
-      WorkTrackerClient (modified: duration selector, break timer)
-      CalendarTab (new)
-      ReportForm (modified: 5 new KPI fields)
-      RoadmapClient (modified: passes joinedAt)
-      RoadmapStep (modified: deadline status + completed_at)
-      StudentDetailTabs (modified: work/reports → calendar)
-      ProgressBanner (new, but server-rendered, no client state)
-      StudentKPIBar (new, server-rendered, no client state)
-
-Next.js Server
-  └── proxy.ts (unchanged — route guard)
-  └── (dashboard)/layout.tsx (modified: adds ProgressBanner for students)
-  └── student/work/page.tsx (minor: passes flexible session context)
-  └── student/roadmap/page.tsx (modified: passes joinedAt)
-  └── coach/students/[studentId]/page.tsx (modified: aggregate query, no-limit fetch)
-  └── owner/students/[studentId]/page.tsx (modified: aggregate query, no-limit fetch)
-  └── api/work-sessions/route.ts (modified: session_minutes, auto cycle_number)
-  └── api/work-sessions/[id]/route.ts (modified: duration from DB column)
-  └── api/reports/route.ts (modified: 5 new KPI columns)
-  └── src/lib/kpi.ts (new: shared pure computation functions)
-
-Supabase
-  └── work_sessions (modified: +session_minutes column, fixed constraints)
-  └── daily_reports (modified: +5 outreach KPI columns)
-  └── roadmap_progress (unchanged: completed_at already exists)
-  └── users, invites, magic_links (unchanged)
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Browser / Client                               │
+│  React hydrated components — "use client" only for interactivity        │
+└─────────────────────────────┬───────────────────────────────────────────┘
+                              │ HTTP
+┌─────────────────────────────▼───────────────────────────────────────────┐
+│                       Next.js 16 App Router (Node.js serverless)        │
+│                                                                          │
+│  src/proxy.ts ──────────────── route guard (NOT middleware.ts)          │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Server Components (async pages / layouts)                       │   │
+│  │                                                                   │   │
+│  │  React cache() ─── per-request dedup only (NOT cross-request)   │   │
+│  │  unstable_cache ── cross-request TTL cache (NEW in v1.2)        │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  API Route Handlers  (src/app/api/**/route.ts)                   │   │
+│  │                                                                   │   │
+│  │  checkRateLimit() ── Supabase-backed counter (NEW in v1.2)      │   │
+│  │  Auth check ──────── createClient().auth.getUser()              │   │
+│  │  Profile lookup ──── getAdminClient() → users table             │   │
+│  │  Business logic ──── getAdminClient() queries / mutations        │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  src/lib/supabase/admin.ts                                               │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Module-level singleton (NEW in v1.2)                            │   │
+│  │  let _adminClient: SupabaseClient | null = null                  │   │
+│  │  export function getAdminClient() { return _adminClient ??= ... }│   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────┬───────────────────────────────────────────┘
+                              │ PostgREST (HTTPS)
+┌─────────────────────────────▼───────────────────────────────────────────┐
+│                           Supabase Pro                                   │
+│                                                                          │
+│  ┌──────────────────┐  ┌──────────────────────┐  ┌──────────────────┐  │
+│  │  Postgres DB      │  │  RPC Functions (NEW) │  │  pg_cron (NEW)  │  │
+│  │                  │  │                      │  │                  │  │
+│  │  users           │  │  get_sidebar_badges  │  │  nightly 2 AM   │  │
+│  │  work_sessions   │  │  get_owner_dashboard │  │  → refresh_kpi  │  │
+│  │  daily_reports   │  │  get_student_detail  │  │    _summaries() │  │
+│  │  roadmap_progress│  │                      │  │                  │  │
+│  │  invites         │  └──────────────────────┘  └──────────────────┘  │
+│  │  magic_links     │                                                    │
+│  │  alert_dismissals│  ┌──────────────────────┐                         │
+│  │  rate_limit_log  │  │  Summary table (NEW) │                         │
+│  │  student_kpi_    │  │  student_kpi_summaries│                        │
+│  │   summaries(NEW) │  │  computed_date, TTL  │                         │
+│  └──────────────────┘  └──────────────────────┘                         │
+│                                                                          │
+│  RLS on all tables — service_role key bypasses, anon key respects RLS  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Component Responsibilities
+
+| Component | Responsibility | Key v1.2 Change |
+|-----------|----------------|-----------------|
+| `src/proxy.ts` | Route guard — redirect unauthenticated/unauthorized | No change |
+| `src/lib/supabase/admin.ts` | Service-role Supabase client | Singleton pattern replaces per-call instantiation |
+| `src/lib/supabase/server.ts` | User-scoped Supabase client (respects RLS) | No change |
+| `src/lib/session.ts` | `getSessionUser()` / `requireRole()` helpers | Wrap with `React.cache()` to dedup per-render |
+| `src/app/(dashboard)/layout.tsx` | Sidebar badge computation — 8 DB calls for owner, 2 for coach | Replace with single RPC call wrapped in `unstable_cache` |
+| `src/app/api/**/route.ts` | Auth + role + validation + mutation | Add `checkRateLimit()` before business logic |
+| `supabase/migrations/` | Schema, RLS, helper functions | Add indexes, RPC functions, pg_cron, summary table, rate_limit_log |
 
 ---
 
-## Feature-by-Feature Integration Analysis
+## Recommended Project Structure (v1.2 additions)
 
-### 1. Flexible Work Sessions
-
-**Schema changes required.**
-
-The `work_sessions` table has two constraints that must change:
-
-- `cycle_number CHECK (cycle_number BETWEEN 1 AND 4)` — raise upper bound to allow unlimited cycles (e.g., `BETWEEN 1 AND 20`). The current cap prevents adding more sessions when a student wants to do a 5th cycle.
-- `status CHECK (status IN ('in_progress', 'completed', 'abandoned'))` — add `'paused'`. The PATCH route already handles `paused` as a valid status in its state machine but the DDL check constraint does not include it. This is a latent bug in v1.0 that the migration fixes.
-- Add `session_minutes INTEGER NOT NULL DEFAULT 45` column. Records the user-chosen duration per session at creation time. This decouples duration from config and allows past sessions to display accurate duration.
-
-**Migration 00006:**
-
-```sql
-ALTER TABLE public.work_sessions
-  DROP CONSTRAINT work_sessions_cycle_number_check,
-  ADD CONSTRAINT work_sessions_cycle_number_check CHECK (cycle_number BETWEEN 1 AND 20),
-  DROP CONSTRAINT work_sessions_status_check,
-  ADD CONSTRAINT work_sessions_status_check
-    CHECK (status IN ('in_progress', 'completed', 'abandoned', 'paused')),
-  ADD COLUMN session_minutes INTEGER NOT NULL DEFAULT 45;
 ```
-
-**API route: `POST /api/work-sessions`**
-
-Changes:
-- Remove `cycle_number` from client input — server computes it as `(max existing cycle_number for this student+date) + 1`. Prevents gaps and removes the constraint that client must track cycle numbers.
-- Remove `max(WORK_TRACKER.cyclesPerDay)` constraint from postSchema.
-- Accept `session_minutes: z.number().int().min(30).max(90)` in POST body. Store in the new column.
-
-**API route: `PATCH /api/work-sessions/[id]`**
-
-Changes:
-- Change `duration_minutes` max from 60 to 90 in patchSchema.
-- When completing a session, use `session.session_minutes` (read from the DB row) as the fallback value for `duration_minutes`, not `WORK_TRACKER.sessionMinutes`. This ensures a 60-min session records 60 min, not 45.
-
-**WorkTrackerClient.tsx changes:**
-
-- Add `useState<number>(45)` for `selectedMinutes`.
-- Render duration selector (3 radio/button group: 30 / 45 / 60 min) in the idle state, above the Start button.
-- Pass `session_minutes: selectedMinutes` in the POST body.
-- Remove `WORK_TRACKER.cyclesPerDay` cycle cap: `allComplete` condition should be removed or user-defined. The "complete" state was based on `completedCount >= 4`. With no cap, consider replacing with a "Daily goal reached" message after 4 cycles but allowing more.
-- Replace the fixed 4-slot grid (`Array.from({ length: WORK_TRACKER.cyclesPerDay })`) with a dynamic grid based on actual sessions plus one pending slot.
-- Pass `activeSession.session_minutes * 60` to `<WorkTimer totalSeconds={...}>` instead of `WORK_TRACKER.sessionMinutes * 60`.
-
-**WorkTimer.tsx changes:**
-
-- `totalSeconds` prop already dynamic — no change to the component itself.
-- ARIA label `of ${WORK_TRACKER.cyclesPerDay}` (currently "Cycle X of 4") — remove the "of 4" part since cycle count is now open-ended. Change to just `Cycle ${cycleNumber}`.
-
-**Break timer — lives entirely in client state:**
-
-After a session completes, WorkTrackerClient shows a break countdown. No server involvement.
-
-```typescript
-// In WorkTrackerClient after successful handleComplete():
-setBreakSecondsRemaining(WORK_TRACKER.breakMinutes * 60);
-// useEffect ticks it down, disables Start button during countdown
-// When breakSecondsRemaining reaches 0, re-enable Start
-```
-
-Breaks are not persisted. If the user refreshes during a break, it resets — acceptable behavior.
-
-**config.ts changes:**
-
-```typescript
-export const WORK_TRACKER = {
-  sessionDurationOptions: [30, 45, 60] as const,  // new
-  defaultSessionMinutes: 45,                        // replaces sessionMinutes
-  breakMinutes: 15,                                 // unchanged
-  dailyGoalCycles: 4,                              // renamed from cyclesPerDay, now informational only
-  dailyGoalHours: 4,
-  abandonGraceSeconds: 300,
-} as const;
+src/
+├── lib/
+│   ├── supabase/
+│   │   ├── admin.ts          # MODIFIED — singleton getAdminClient()
+│   │   └── server.ts         # no change
+│   ├── session.ts            # MODIFIED — wrap getSessionUser with React.cache()
+│   ├── rate-limit.ts         # NEW — Supabase-backed rate limiter helper
+│   └── rpc/
+│       └── types.ts          # NEW — hand-typed RPC response shapes
+│
+├── app/
+│   ├── (dashboard)/
+│   │   └── layout.tsx        # MODIFIED — single RPC + unstable_cache
+│   │
+│   └── api/
+│       ├── work-sessions/    # MODIFIED — add checkRateLimit()
+│       ├── reports/          # MODIFIED — add checkRateLimit()
+│       └── roadmap/          # MODIFIED — add checkRateLimit()
+│
+supabase/
+└── migrations/
+    ├── 00009_indexes.sql          # NEW — composite indexes for hot paths
+    ├── 00010_rpc_functions.sql    # NEW — get_sidebar_badges, get_owner_dashboard
+    ├── 00011_summary_table.sql    # NEW — student_kpi_summaries + pg_cron job
+    └── 00012_rate_limit_log.sql   # NEW — rate_limit_log table + cleanup cron
 ```
 
 ---
 
-### 2. Progress Banner (Sticky Outreach KPI Bar)
+## Architectural Patterns
 
-**Where the banner goes:**
+### Pattern 1: Admin Client Singleton
 
-The dashboard layout (`(dashboard)/layout.tsx`) renders:
+**What:** Module-level initialization instead of `createClient()` on every call. Node.js module scope is per-process. In Next.js serverless, the function container is kept warm for repeated requests (typically 5-25 minutes), so the singleton survives warm invocations.
 
-```tsx
-<main id="main-content" className="min-h-screen pt-16 md:pt-0 md:ml-60">
-  <ToastProvider>
-    <div className="p-4 md:p-8">{children}</div>
-  </ToastProvider>
-</main>
-```
+**When to use:** Always — 36 files currently import and call `createAdminClient()`, each creating a new `SupabaseClient` with HTTP client setup on every invocation.
 
-The sticky banner goes **between `<ToastProvider>` and the padded `<div>`**, so it spans the full content-area width while sticky behavior pins it at the top of the scrollable area:
+**Trade-offs:**
+- Pro: Amortizes client initialization overhead across warm-container invocations
+- Pro: One less object allocation per request in the hot path
+- Neutral: Cold starts still pay the initialization cost — no help there
+- Important: The singleton is per-process/container, NOT shared across concurrent serverless instances. No race condition risk because Node.js is single-threaded and module initialization is synchronous.
 
-```tsx
-<main id="main-content" className="min-h-screen pt-16 md:pt-0 md:ml-60">
-  <ToastProvider>
-    {profile.role === "student" && (
-      <ProgressBanner
-        lifetimeOutreach={lifetimeOutreach}
-        todayOutreach={todayOutreach}
-      />
-    )}
-    <div className="p-4 md:p-8">{children}</div>
-  </ToastProvider>
-</main>
-```
-
-The banner uses `sticky top-0 z-10` so it pins below the mobile top bar when the user scrolls.
-
-**Aggregate query strategy:**
-
-Use Supabase PostgREST aggregate syntax in the server component. Two queries, both run in the layout's `Promise.all`:
-
+**Pattern:**
 ```typescript
-// Only runs when profile.role === "student"
-const [lifetimeResult, todayResult] = await Promise.all([
-  admin
-    .from("daily_reports")
-    .select("outreach_count.sum()")
-    .eq("student_id", profile.id)
-    .not("submitted_at", "is", null)
-    .single(),
-  admin
-    .from("daily_reports")
-    .select("outreach_count.sum()")
-    .eq("student_id", profile.id)
-    .eq("date", todayStr)
-    .not("submitted_at", "is", null)
-    .single(),
-]);
-const lifetimeOutreach = (lifetimeResult.data as { sum: number } | null)?.sum ?? 0;
-const todayOutreach = (todayResult.data as { sum: number } | null)?.sum ?? 0;
-```
+// src/lib/supabase/admin.ts
+import "server-only";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/types";
 
-PostgREST aggregate functions (`sum()`, `count()`, `avg()`) are available in recent Supabase versions. This returns one integer per query — no row fetching overhead.
+let _adminClient: SupabaseClient<Database> | null = null;
 
-**ProgressBanner component:** New `src/components/student/ProgressBanner.tsx`. Server component (no "use client" needed — pure display). Renders:
-- Lifetime progress bar: `lifetimeOutreach / KPI_TARGETS.lifetimeOutreach` with `role="progressbar"` ARIA
-- Today's count vs `KPI_TARGETS.dailyOutreach` target
-- Sticky, full content-area width, light background with blue accent
-- Text: "X / 2,500 lifetime" and "X / 50 today"
-
-**KPI config:** Add to `config.ts`:
-
-```typescript
-export const KPI_TARGETS = {
-  lifetimeOutreach: 2500,
-  dailyOutreach: 50,
-} as const;
-```
-
-**When banner data refreshes:** The student submits a report → `router.refresh()` in ReportForm → layout re-runs → banner queries re-execute → new counts display. No client-side polling needed.
-
----
-
-### 3. KPI Visibility on Coach/Owner Pages
-
-**The duplication problem:**
-
-The at-risk computation logic is identically implemented in both:
-- `coach/students/[studentId]/page.tsx` (lines 71-102)
-- `owner/students/[studentId]/page.tsx` (lines 105-137)
-
-v1.1 is the right time to extract this into a shared utility.
-
-**New file: `src/lib/kpi.ts`**
-
-Pure functions, server-only imports (but not marked `server-only` since the functions themselves are pure — they just operate on already-fetched data):
-
-```typescript
-// Compute at-risk status from pre-fetched session and report arrays
-export function computeAtRisk(
-  sessions: { date: string }[],
-  reports: { date: string; star_rating: number | null }[],
-  config: { atRiskInactiveDays: number; atRiskRatingThreshold: number; reportInboxDays: number }
-): { isAtRisk: boolean; reasons: string[] }
-
-// Compute lifetime outreach from pre-fetched aggregate (already a number)
-// or from a full reports array
-export function computeLifetimeOutreach(
-  reports: { outreach_count: number }[]
-): number
-
-// Compute roadmap deadline status per step
-export function computeRoadmapDeadlineStatus(
-  stepTargetDays: number,
-  joinedAt: string,
-  status: "locked" | "active" | "completed"
-): "on-track" | "due-soon" | "overdue" | "done" | null
-```
-
-Both coach and owner detail pages import from `lib/kpi.ts`. No duplication.
-
-**New component: `StudentKPIBar`**
-
-New `src/components/shared/StudentKPIBar.tsx`. Server-renderable (no "use client"). Accepts pre-computed KPI values as props and renders a compact informational row under the student header in coach/owner views:
-
-```typescript
-interface StudentKPIBarProps {
-  lifetimeOutreach: number;      // from aggregate query
-  roadmapStep: number;           // current active step number
-  roadmapTotalSteps: number;     // 10
-  joinedAt: string;
+export function getAdminClient(): SupabaseClient<Database> {
+  if (!_adminClient) {
+    _adminClient = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _adminClient;
 }
 ```
 
-**Data changes on coach/owner detail pages:**
-
-Both pages currently query `daily_reports` with `.limit(20)` — sufficient for display but not for lifetime aggregate. Add a parallel aggregate query:
-
-```typescript
-const [sessionsResult, roadmapResult, reportsResult, lifetimeOutreachResult, ...] =
-  await Promise.all([
-    admin.from("work_sessions").select(...)...,
-    admin.from("roadmap_progress").select("step_number, status, completed_at")...,  // add completed_at
-    admin.from("daily_reports").select(...)...,
-    admin.from("daily_reports")
-      .select("outreach_count.sum()")
-      .eq("student_id", student.id)
-      .not("submitted_at", "is", null)
-      .single(),
-    ...
-  ]);
-```
-
-No new API routes needed. KPIs are server-computed and passed as props.
+**Migration:** All 36 `createAdminClient()` call sites change to `getAdminClient()`. The rename signals "get existing or create" vs "always create new". The old `createAdminClient` export is removed — no deprecation period needed since it is internal.
 
 ---
 
-### 4. Calendar View
+### Pattern 2: React cache() for Per-Request Deduplication
 
-**What replaces what:**
+**What:** Wrap data-fetching functions with `React.cache()` to deduplicate calls within a single server render pass. This is request-scoped — the cache is discarded at the end of each request. It does NOT cache across requests.
 
-The 3 tabs (`work` | `roadmap` | `reports`) on coach/owner student detail pages become 2 tabs (`calendar` | `roadmap`). `WorkSessionsTab.tsx` and `ReportsTab.tsx` are deleted. `CalendarTab.tsx` is new.
+**Scope clarification:**
+- `React.cache()` = per-request dedup (one render tree, one request)
+- `unstable_cache` = cross-request with configurable TTL
 
-**StudentDetailTabs.tsx changes:**
+These solve different problems and are often used together.
+
+**When to use `React.cache()`:**
+- `getSessionUser()` in `session.ts` — called from `(dashboard)/layout.tsx` (renders first) and then again from `requireRole()` inside a child page (same render tree). Currently triggers two round trips to Supabase per request. With `cache()`, the second call returns the memoized result from the first.
+
+**When to use `unstable_cache`:**
+- Dashboard badge counts (owner: 60-second staleness is acceptable)
+- Owner dashboard stat counts (total students/coaches — changes rarely)
+
+**Pattern for session dedup:**
+```typescript
+// src/lib/session.ts
+import { cache } from "react";
+import { createClient } from "@/lib/supabase/server";
+import { getAdminClient } from "@/lib/supabase/admin";
+
+export const getSessionUser = cache(async (): Promise<SessionUser> => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  const admin = getAdminClient();
+  const { data: profile, error } = await admin
+    .from("users")
+    .select("id, email, name, role, coach_id")
+    .eq("auth_id", user.id)
+    .single();
+  if (error) console.error("[session] Failed to load profile:", error);
+  if (!profile) redirect("/no-access");
+  return { authId: user.id, id: profile.id, /* ... */ };
+});
+```
+
+**Important constraint for Next.js 16:** The app does NOT enable `cacheComponents: true`. Therefore:
+- The `"use cache"` directive is not available
+- `React.cache()` is the correct tool for per-render dedup
+- `unstable_cache` is the correct tool for persistent cross-request caching
+- `export const revalidate = N` does NOT apply to cookie-reading authenticated routes (see Anti-Pattern 3 below)
+
+---
+
+### Pattern 3: Persistent Cross-Request Caching with unstable_cache
+
+**What:** Wrap expensive read functions with `unstable_cache` to cache results server-side across requests, with a TTL and optional tag-based invalidation.
+
+**Application in this codebase:**
+
+The owner sidebar badge computation in `(dashboard)/layout.tsx` currently runs 8 sequential + parallel DB queries on every page navigation for the owner. The badge count is acceptable to be 60 seconds stale.
 
 ```typescript
-// Before
-export type TabKey = "work" | "roadmap" | "reports";
-const tabs = [
-  { key: "work", label: "Work Sessions" },
-  { key: "roadmap", label: "Roadmap" },
-  { key: "reports", label: "Reports" },
-];
+// src/lib/data/badges.ts
+import { unstable_cache } from "next/cache";
+import { getAdminClient } from "@/lib/supabase/admin";
 
-// After
-export type TabKey = "calendar" | "roadmap";
-const tabs = [
-  { key: "calendar", label: "Calendar" },
-  { key: "roadmap", label: "Roadmap" },
-];
+export const getOwnerBadgeCounts = unstable_cache(
+  async (ownerId: string) => {
+    const admin = getAdminClient();
+    const { data } = await admin.rpc("get_sidebar_badges", {
+      p_user_id: ownerId,
+      p_role: "owner",
+    });
+    return data as { active_alerts: number } | null;
+  },
+  ["owner-sidebar-badges"],    // stable key prefix
+  {
+    tags: ["owner-badges"],    // for on-demand revalidation
+    revalidate: 60,            // max staleness: 60 seconds
+  }
+);
 ```
 
-Default tab in `StudentDetailClient` and `OwnerStudentDetailClient` changes from `"work"` to `"calendar"`.
-
-**Components deleted:**
-- `src/components/coach/WorkSessionsTab.tsx`
-- `src/components/coach/ReportsTab.tsx`
-
-Verify: `ReportsTab` is only used in `StudentDetailClient` and `OwnerStudentDetailClient` — confirmed by inspection. `WorkSessionsTab` same. Both safe to delete.
-
-**New component: `CalendarTab.tsx`**
-
-`src/components/coach/CalendarTab.tsx` — "use client". Internal structure:
-
-```
-CalendarTab
-  ├── state: currentMonth (Date), selectedDay (string | null)
-  ├── MonthGrid — 7-column CSS grid
-  │     └── DayCell[] — each shows colored indicators
-  └── DayDetailPanel — rendered below grid when selectedDay !== null
-        ├── sessions for that day (sorted by cycle_number)
-        └── report for that day (outreach count, rating, hours, wins, improvements)
-```
-
-Month navigation (prev/next) uses `currentMonth` state only — no additional fetches.
-
-**Data query changes on coach/owner detail pages:**
-
-Remove row limits for the calendar to work correctly across the full student history:
+**Tag-based invalidation:** When the owner dismisses an alert (`POST /api/alerts/dismiss`), call `revalidateTag("owner-badges")` in the route handler to expire the cache immediately:
 
 ```typescript
-// Work sessions: remove .limit(120)
-admin.from("work_sessions")
-  .select("id, date, cycle_number, status, duration_minutes, session_minutes")  // add session_minutes
-  .eq("student_id", student.id)
-  .order("date", { ascending: false })  // no .limit()
-
-// Daily reports: remove .limit(20)
-admin.from("daily_reports")
-  .select("id, date, hours_worked, star_rating, outreach_count, wins, improvements, reviewed_by,
-           emails_sent, responses_received, influencers_signed, brand_pitches_sent, brand_deals_closed")
-  .eq("student_id", student.id)
-  .order("date", { ascending: false })  // no .limit()
-```
-
-A student's full history is small: ~365 session rows/year maximum (more with flexible sessions, but still < 1,500/year), ~365 report rows/year. Fetching without limit and filtering client-side for month navigation is correct at this scale.
-
-**CalendarTab data flow:**
-
-```
-Initial load: all sessions + all reports passed as props
-currentMonth state: default = today's month
-
-Month navigation:
-  setCurrentMonth(prev) / setCurrentMonth(next)
-  daysInMonth derived from currentMonth
-  sessionsByDate = sessions.filter(s => s.date starts with currentMonth YYYY-MM)
-  reportsByDate = reports.filter(r => r.date starts with currentMonth YYYY-MM)
-  Re-renders grid — zero network requests
-
-Day cell click:
-  setSelectedDay(dateStr)
-  DayDetailPanel renders below grid with sessions + report for that date
+// In POST /api/alerts/dismiss route handler, after successful upsert:
+import { revalidateTag } from "next/cache";
+revalidateTag("owner-badges");
 ```
 
 ---
 
-### 5. Roadmap Date KPIs
+### Pattern 4: RPC Function Consolidation
 
-**config.ts change:**
+**What:** Move multi-table join logic from Next.js server components into Postgres functions. Call via `admin.rpc("function_name", args)`. One PostgREST round trip instead of N.
 
-Add `target_days` to each `ROADMAP_STEPS` entry. These values represent "how many days after joining should this step be complete":
+**Where to define:** Supabase migration files, version-controlled with the schema. Deploy via `supabase db push`.
+
+**TypeScript typing for RPC returns:**
+
+The hand-crafted `src/lib/types.ts` does not include RPC functions. Until types are regenerated from a running local Supabase (`npx supabase gen types typescript --local`), define response shapes manually:
 
 ```typescript
-export const ROADMAP_STEPS = [
-  { step: 1, title: "Join the Course",          ..., target_days: 0  },
-  { step: 2, title: "Plan Your Work",           ..., target_days: 3  },
-  { step: 3, title: "Pick Your Niche",          ..., target_days: 7  },
-  { step: 4, title: "Build Your Website",       ..., target_days: 21 },
-  { step: 5, title: "Send Your First Email",    ..., target_days: 28 },
-  { step: 6, title: "Get Your First Response",  ..., target_days: 35 },
-  { step: 7, title: "Close Your First Influencer", ..., target_days: 60 },
-  { step: 8, title: "Close 5 Influencers",     ..., target_days: 90 },
-  { step: 9, title: "Brand Outreach",           ..., target_days: 120 },
-  { step: 10, title: "Close Your First Brand Deal", ..., target_days: 180 },
-] as const;
+// src/lib/rpc/types.ts
+
+// Return type of get_sidebar_badges(p_user_id uuid, p_role text) → jsonb
+export type SidebarBadgesResult = {
+  active_alerts?: number;          // owner only
+  unreviewed_reports?: number;     // coach only
+};
+
+// Return type of get_owner_dashboard_stats() → jsonb
+export type OwnerDashboardStats = {
+  total_students: number;
+  total_coaches: number;
+  active_today_count: number;
+  reports_today: number;
+};
 ```
 
-Note: specific values above are placeholders — need confirmation from Abu Lahya before shipping. The architecture accommodates any values.
+**Calling pattern with type cast:**
+```typescript
+const admin = getAdminClient();
+const { data, error } = await admin.rpc("get_sidebar_badges", {
+  p_user_id: profile.id,
+  p_role: profile.role,
+});
+// data is typed as `unknown` until types.ts is regenerated
+const badges = data as SidebarBadgesResult | null;
+```
 
-**RoadmapStep.tsx changes:**
+Once `npx supabase gen types typescript` runs against local Supabase with the new functions defined, the `Database["public"]["Functions"]` section will include fully typed RPC signatures and the cast can be removed.
 
-Currently receives `step: { step_number, title, description }` and `progress: RoadmapProgress | null`. Add `joinedAt: string` and `targetDays: number` props (both from parent).
-
-Deadline status computation (use `computeRoadmapDeadlineStatus` from `lib/kpi.ts`):
-- `completed` → show `completed_at` formatted as "Completed Mar 15, 2026"
-- `locked` → no deadline indicator shown
-- `active` + deadline in future (>3 days) → green "On Track" badge
-- `active` + deadline within 3 days → yellow "Due Soon" badge
-- `active` + past deadline → red "Overdue" badge
-
-**RoadmapClient.tsx changes:**
-
-Currently receives `progress: RoadmapProgress[]`. Add `joinedAt: string` prop. Pass it and the matching `target_days` from `ROADMAP_STEPS` config to each `<RoadmapStep>`.
-
-**RoadmapPage (student) changes:**
-
-The server component already has `user.joined_at` via `requireRole`. Pass it to `<RoadmapClient joinedAt={user.joined_at} progress={progress} />`.
-
-**RoadmapTab (coach/owner) changes:**
-
-Currently typed as `roadmap: { step_number, status }[]`. Expand type to include `completed_at: string | null`. The server query already selects `*` but the TypeScript type on the detail pages explicitly lists columns — add `completed_at` to the select string.
-
-Pass `joined_at: student.joined_at` through StudentDetailClient props to RoadmapTab, which passes `joinedAt` and per-step `target_days` to step rendering.
-
-**Completed_at display:**
-
-`roadmap_progress.completed_at` already exists in the schema (timestamptz) and is populated when steps are completed. The `/api/roadmap` PATCH route sets `completed_at: new Date().toISOString()` on step completion. No schema change needed — just surface it in the UI.
-
----
-
-### 6. New daily_reports Columns
-
-**New columns (5 granular outreach KPIs):**
-
+**RPC migration pattern:**
 ```sql
--- Migration 00007_add_outreach_kpi_columns.sql
-ALTER TABLE public.daily_reports
-  ADD COLUMN emails_sent INTEGER NOT NULL DEFAULT 0,
-  ADD COLUMN responses_received INTEGER NOT NULL DEFAULT 0,
-  ADD COLUMN influencers_signed INTEGER NOT NULL DEFAULT 0,
-  ADD COLUMN brand_pitches_sent INTEGER NOT NULL DEFAULT 0,
-  ADD COLUMN brand_deals_closed INTEGER NOT NULL DEFAULT 0;
-```
+-- supabase/migrations/00010_rpc_functions.sql
 
-All `NOT NULL DEFAULT 0`. Existing rows instantly valid. No backfill needed. Existing queries continue to work — Postgres returns new columns as 0 even on `SELECT *` queries that were already working.
-
-**RLS trigger change:**
-
-The `restrict_coach_report_update()` trigger lists columns explicitly to prevent coaches from modifying student report content. The 5 new columns must be added to the freeze list:
-
-```sql
-CREATE OR REPLACE FUNCTION public.restrict_coach_report_update()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+CREATE OR REPLACE FUNCTION public.get_sidebar_badges(
+  p_user_id uuid,
+  p_role text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE          -- read-only; Postgres can cache result in same transaction
+SECURITY DEFINER
+SET search_path = public
 AS $$
+DECLARE
+  v_result jsonb;
+  v_alert_count integer := 0;
+  v_unreviewed integer := 0;
 BEGIN
-  IF (select get_user_role()) = 'coach' THEN
-    NEW.student_id           := OLD.student_id;
-    NEW.date                 := OLD.date;
-    NEW.hours_worked         := OLD.hours_worked;
-    NEW.star_rating          := OLD.star_rating;
-    NEW.outreach_count       := OLD.outreach_count;
-    NEW.wins                 := OLD.wins;
-    NEW.improvements         := OLD.improvements;
-    NEW.submitted_at         := OLD.submitted_at;
-    NEW.created_at           := OLD.created_at;
-    -- New v1.1 columns (coaches cannot modify):
-    NEW.emails_sent          := OLD.emails_sent;
-    NEW.responses_received   := OLD.responses_received;
-    NEW.influencers_signed   := OLD.influencers_signed;
-    NEW.brand_pitches_sent   := OLD.brand_pitches_sent;
-    NEW.brand_deals_closed   := OLD.brand_deals_closed;
+  IF p_role = 'owner' THEN
+    -- All 8 former layout.tsx queries consolidated here
+    -- (inactive students, dropoff students, unreviewed reports, coach ratings,
+    --  dismissed alerts) → returns single active_alerts integer
+    -- ... full implementation ...
+    v_result := jsonb_build_object('active_alerts', v_alert_count);
+
+  ELSIF p_role = 'coach' THEN
+    SELECT COUNT(*) INTO v_unreviewed
+    FROM daily_reports dr
+    JOIN users u ON u.id = dr.student_id
+    WHERE u.coach_id = p_user_id
+      AND dr.reviewed_by IS NULL
+      AND dr.submitted_at IS NOT NULL
+      AND dr.date >= CURRENT_DATE - 7;
+    v_result := jsonb_build_object('unreviewed_reports', v_unreviewed);
+
+  ELSE
+    v_result := jsonb_build_object();
   END IF;
-  RETURN NEW;
+  RETURN v_result;
 END;
 $$;
 ```
 
-**API route: `POST /api/reports/route.ts`**
+---
 
-Add 5 new optional fields to `postSchema`:
+### Pattern 5: Server-Side Pagination
+
+**What:** Add `page` query param to list pages. Use Supabase `.range(from, to)` with `{ count: "exact" }` to get one page of results plus the total row count. Pass both to a pagination UI component.
+
+**How searchParams work in Next.js 16 server components:**
+
+Server components receive `searchParams` as a `Promise<Record<string, string>>` that must be awaited. This is the pattern already in use in `owner/students/page.tsx` for the `search` param.
 
 ```typescript
-const postSchema = z.object({
-  date: ...,
-  hours_worked: ...,
-  star_rating: ...,
-  outreach_count: ...,
-  wins: ...,
-  improvements: ...,
-  // New v1.1 fields:
-  emails_sent: z.number().int().min(0).max(VALIDATION.outreachKpi.max).default(0),
-  responses_received: z.number().int().min(0).max(VALIDATION.outreachKpi.max).default(0),
-  influencers_signed: z.number().int().min(0).max(VALIDATION.outreachKpi.max).default(0),
-  brand_pitches_sent: z.number().int().min(0).max(VALIDATION.outreachKpi.max).default(0),
-  brand_deals_closed: z.number().int().min(0).max(VALIDATION.outreachKpi.max).default(0),
-});
+// src/app/(dashboard)/owner/students/page.tsx (MODIFIED)
+export default async function OwnerStudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string; page?: string }>;
+}) {
+  await requireRole("owner");
+  const { search, page: pageStr } = await searchParams;
+
+  const page = Math.max(1, parseInt(pageStr ?? "1", 10));
+  const pageSize = 25;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const admin = getAdminClient();
+  let query = admin
+    .from("users")
+    .select("id, name, email, status, joined_at, coach_id", { count: "exact" })
+    .eq("role", "student")
+    .order("name")
+    .range(from, to);
+
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+
+  const { data: students, count, error } = await query;
+  const totalPages = Math.ceil((count ?? 0) / pageSize);
+
+  // Pass to client component: students, page, totalPages, totalCount
+}
 ```
 
-Add `outreachKpi: { max: 500 }` to the `VALIDATION` object in `config.ts`.
+**URL-driven pagination:** The `<PaginationControls page={page} totalPages={totalPages} />` client component uses `useRouter().push()` or `<Link>` to update the `?page=N` query param, triggering a full server component re-render. No client state is needed for the current page — the URL is the source of truth.
 
-Include all 5 fields in the insert/update payload.
-
-**ReportForm.tsx changes:**
-
-Add "Outreach KPIs" section with 5 new number inputs. All optional (default 0). Group them visually below the existing `outreach_count` field. Each input needs `aria-label` and `min-h-[44px]` per hard rules.
+**Important:** The Supabase `.range(from, to)` uses 0-based offsets but the UI uses 1-based page numbers. `from = (page - 1) * pageSize`, `to = from + pageSize - 1`.
 
 ---
 
-## Component Inventory
+### Pattern 6: pg_cron Nightly Aggregation
 
-### New Components
+**What:** A pg_cron job runs nightly at 2 AM UTC, computing per-student KPI aggregates and storing them in `student_kpi_summaries`. Dashboard pages read from the summary table during the day, falling back to live queries when today's summary row does not yet exist.
 
-| Component | Path | Type | Purpose |
-|-----------|------|------|---------|
-| `ProgressBanner` | `src/components/student/ProgressBanner.tsx` | Server | Sticky lifetime + daily outreach KPI bar (student layout only) |
-| `StudentKPIBar` | `src/components/shared/StudentKPIBar.tsx` | Server | Read-only KPI summary on coach/owner student detail pages |
-| `CalendarTab` | `src/components/coach/CalendarTab.tsx` | use client | Month grid + day detail panel, replaces WorkSessionsTab + ReportsTab |
+**Enabling pg_cron:**
 
-### Modified Components
+Supabase Pro plans have pg_cron available. Enable it in a migration (idempotent):
 
-| Component | Path | Change Summary |
-|-----------|------|---------------|
-| `WorkTrackerClient` | `src/components/student/WorkTrackerClient.tsx` | Duration selector, break timer, no cycle cap, dynamic cycle grid |
-| `WorkTimer` | `src/components/student/WorkTimer.tsx` | Remove `of ${cyclesPerDay}` from ARIA label |
-| `ReportForm` | `src/components/student/ReportForm.tsx` | 5 new outreach KPI integer inputs |
-| `RoadmapClient` | `src/components/student/RoadmapClient.tsx` | Accept + pass `joinedAt` prop |
-| `RoadmapStep` | `src/components/student/RoadmapStep.tsx` | Show deadline status badge + completed_at timestamp |
-| `StudentDetailTabs` | `src/components/coach/StudentDetailTabs.tsx` | Replace work/reports tabs with calendar tab |
-| `StudentDetailClient` | `src/components/coach/StudentDetailClient.tsx` | Replace WorkSessionsTab/ReportsTab with CalendarTab, add joined_at to roadmap pass-through |
-| `OwnerStudentDetailClient` | `src/components/owner/OwnerStudentDetailClient.tsx` | Same tab changes, add KPIBar |
-| `RoadmapTab` | `src/components/coach/RoadmapTab.tsx` | Accept completed_at + joined_at for deadline display |
+```sql
+-- supabase/migrations/00011_summary_table.sql
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
+```
 
-### Deleted Components
+Note: On Supabase, pg_cron requires the extension to exist in `extensions` schema. Jobs are scheduled via `cron.schedule()` which writes to the `cron.job` table managed by Supabase.
 
-| Component | Path | Reason |
-|-----------|------|--------|
-| `WorkSessionsTab` | `src/components/coach/WorkSessionsTab.tsx` | Replaced by CalendarTab |
-| `ReportsTab` | `src/components/coach/ReportsTab.tsx` | Replaced by CalendarTab |
+**Summary table and cron job:**
+```sql
+CREATE TABLE public.student_kpi_summaries (
+  student_id     uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  computed_date  date NOT NULL,
+  lifetime_outreach      integer NOT NULL DEFAULT 0,
+  lifetime_hours         decimal(8,2) NOT NULL DEFAULT 0,
+  days_active_last_30    integer NOT NULL DEFAULT 0,
+  avg_star_rating_last_7 decimal(3,2),
+  current_step_number    integer,
+  computed_at    timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (student_id, computed_date)
+);
 
-### New Library Files
+CREATE INDEX idx_kpi_summaries_student ON public.student_kpi_summaries(student_id);
+CREATE INDEX idx_kpi_summaries_date ON public.student_kpi_summaries(computed_date);
 
-| File | Purpose |
-|------|---------|
-| `src/lib/kpi.ts` | Shared pure functions: computeAtRisk, computeLifetimeOutreach, computeRoadmapDeadlineStatus |
+-- Aggregation function
+CREATE OR REPLACE FUNCTION public.refresh_student_kpi_summaries()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.student_kpi_summaries (
+    student_id, computed_date, lifetime_outreach, lifetime_hours,
+    days_active_last_30, avg_star_rating_last_7, current_step_number
+  )
+  SELECT
+    u.id,
+    CURRENT_DATE,
+    COALESCE(SUM(dr.brands_contacted + dr.influencers_contacted), 0),
+    COALESCE(SUM(dr.hours_worked), 0),
+    COUNT(DISTINCT CASE WHEN dr.date >= CURRENT_DATE - 30 THEN dr.date END),
+    AVG(CASE WHEN dr.date >= CURRENT_DATE - 7 AND dr.star_rating IS NOT NULL
+             THEN dr.star_rating END),
+    (SELECT step_number FROM public.roadmap_progress
+     WHERE student_id = u.id AND status = 'active' LIMIT 1)
+  FROM public.users u
+  LEFT JOIN public.daily_reports dr
+    ON dr.student_id = u.id AND dr.submitted_at IS NOT NULL
+  WHERE u.role = 'student' AND u.status = 'active'
+  GROUP BY u.id
+  ON CONFLICT (student_id, computed_date) DO UPDATE SET
+    lifetime_outreach      = EXCLUDED.lifetime_outreach,
+    lifetime_hours         = EXCLUDED.lifetime_hours,
+    days_active_last_30    = EXCLUDED.days_active_last_30,
+    avg_star_rating_last_7 = EXCLUDED.avg_star_rating_last_7,
+    current_step_number    = EXCLUDED.current_step_number,
+    computed_at            = now();
+END;
+$$;
+
+-- Schedule: nightly at 2 AM UTC
+SELECT cron.schedule(
+  'nightly-kpi-refresh',
+  '0 2 * * *',
+  'SELECT public.refresh_student_kpi_summaries()'
+);
+```
+
+**Read path — summary first, live fallback:**
+```typescript
+// In student detail page server component:
+const admin = getAdminClient();
+const today = getTodayUTC();
+
+const { data: summary } = await admin
+  .from("student_kpi_summaries")
+  .select("lifetime_outreach, lifetime_hours, avg_star_rating_last_7, current_step_number")
+  .eq("student_id", studentId)
+  .eq("computed_date", today)
+  .maybeSingle();
+
+// If summary exists, skip 3-4 expensive live aggregate queries
+const lifetimeOutreach = summary
+  ? summary.lifetime_outreach
+  : await computeLifetimeOutreachLive(studentId, admin);
+```
+
+**pg_cron constraints on Supabase Pro:**
+- Max 8 concurrent jobs (Supabase recommendation)
+- Per-job limit: 10 minutes (Supabase recommendation)
+- With 5k active students, the nightly aggregation touching all reports runs one SQL statement with a GROUP BY — should complete in seconds, well within limits
 
 ---
 
-## Data Flow Changes
+### Pattern 7: Supabase-Backed Rate Limiter
 
-### Flexible Sessions
+**What:** A `rate_limit_log` table in Postgres tracks API call timestamps per user per endpoint. The rate limiter counts rows in the sliding window and inserts the current call. Old rows are cleaned up by a pg_cron job.
 
-```
-Idle state: student sees duration selector (30/45/60 min)
-  → useState selectedMinutes (default 45)
+**Why not in-memory:** In-memory rate limiting in Next.js serverless is architecturally broken. Each serverless function container is isolated. A user making 60 requests per minute can hit multiple warm containers, each with its own counter that sees only a fraction of the traffic. There is no shared in-memory state between containers.
 
-Start button:
-  POST /api/work-sessions { date, session_minutes: selectedMinutes }
-  Server: SELECT MAX(cycle_number) WHERE student_id+date → next_cycle = max + 1
-  Server: INSERT { student_id, date, cycle_number: next_cycle, session_minutes, started_at, status: 'in_progress' }
-  Client: router.refresh() → page re-renders with new session
+**Why not Redis/Upstash:** The project scope explicitly defers Redis evaluation until post-load testing proves the DB counter adds unacceptable latency. Supabase Pro is already the infrastructure.
 
-Session completes:
-  PATCH /api/work-sessions/[id] { status: 'completed' }
-  Server: reads session.session_minutes → sets duration_minutes = session_minutes
-  Client: setBreakSecondsRemaining(WORK_TRACKER.breakMinutes * 60)
-  Client: useEffect ticks break countdown (client-only, no API)
-  Break ends: re-enable Start button, show next cycle duration selector
-```
+**Table design:**
+```sql
+-- supabase/migrations/00012_rate_limit_log.sql
+CREATE TABLE public.rate_limit_log (
+  id          bigserial PRIMARY KEY,
+  user_id     uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  endpoint    text NOT NULL,
+  called_at   timestamptz NOT NULL DEFAULT now()
+);
 
-### Progress Banner
+-- Covering index for the sliding window count query
+CREATE INDEX idx_rate_limit_user_endpoint_time
+  ON public.rate_limit_log(user_id, endpoint, called_at DESC);
 
-```
-Every student page load:
-  Dashboard layout server component:
-    profile.role === 'student' ? run two aggregate queries in Promise.all
-    SELECT SUM(outreach_count) WHERE student_id = X → lifetimeOutreach
-    SELECT SUM(outreach_count) WHERE student_id = X AND date = today → todayOutreach
-    Render <ProgressBanner lifetimeOutreach todayOutreach />
-
-Student submits/updates report:
-  ReportForm → POST /api/reports
-  router.refresh() → layout re-runs → banner queries re-execute → fresh counts
+-- Cleanup old rows nightly (2-hour retention is more than enough for 1-min windows)
+SELECT cron.schedule(
+  'cleanup-rate-limit-log',
+  '30 3 * * *',
+  $$ DELETE FROM public.rate_limit_log WHERE called_at < now() - interval '2 hours' $$
+);
 ```
 
-### Calendar
+**Rate limiter helper:**
+```typescript
+// src/lib/rate-limit.ts
+import { getAdminClient } from "@/lib/supabase/admin";
+
+export type RateLimitResult = { allowed: boolean; remaining: number };
+
+export async function checkRateLimit(
+  userId: string,
+  endpoint: string,
+  maxRequests = 30,
+  windowMinutes = 1
+): Promise<RateLimitResult> {
+  const admin = getAdminClient();
+  const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
+
+  const { count } = await admin
+    .from("rate_limit_log")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("endpoint", endpoint)
+    .gte("called_at", windowStart);
+
+  const callCount = count ?? 0;
+  if (callCount >= maxRequests) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  await admin.from("rate_limit_log").insert({ user_id: userId, endpoint });
+  return { allowed: true, remaining: maxRequests - callCount - 1 };
+}
+```
+
+**Usage in API routes** (after profile lookup, before Zod validation):
+```typescript
+const { allowed } = await checkRateLimit(profile.id, "/api/reports");
+if (!allowed) {
+  return NextResponse.json(
+    { error: "Rate limit exceeded. Try again in 60 seconds." },
+    { status: 429, headers: { "Retry-After": "60" } }
+  );
+}
+```
+
+**Latency cost:** 1 COUNT query + 1 INSERT = 2 DB round trips per rate-limited API call, adding ~4-8ms overhead on warm Supabase connections. Acceptable for write endpoints (reports, work sessions, roadmap). Do not apply to GET endpoints or to server component reads.
+
+---
+
+## Data Flow
+
+### Request Flow: Dashboard Layout Badge Counts (Before → After)
+
+**Before (8 round trips for owner, per page navigation):**
+```
+Browser: GET /owner/students
+    ↓
+layout.tsx
+    createAdminClient() — creates new client
+    await admin.from("users").select() — get all students         RTT 1
+    await Promise.all([
+      admin.from("work_sessions").select() — recent sessions,    RTT 2
+      admin.from("daily_reports").select() — recent reports,     RTT 3
+    ])
+    await admin.from("daily_reports").select count — unreviewed  RTT 4
+    await admin.from("users").select() — coaches                 RTT 5
+    await admin.from("users").select() — coach students          RTT 6
+    await admin.from("daily_reports").select() — window reports  RTT 7
+    await admin.from("alert_dismissals").select count            RTT 8
+    ────────────────────────────────────────────────────────────────
+    Total: 8 × ~20-40ms PostgREST RTT = 160-320ms for layout alone
+```
+
+**After (1 RPC + unstable_cache):**
+```
+Browser: GET /owner/students
+    ↓
+layout.tsx
+    getAdminClient() — returns cached singleton
+    unstable_cache hit (within 60s)? → 0 DB round trips, return cached badges
+    unstable_cache miss?
+      admin.rpc("get_sidebar_badges", { p_user_id, p_role })    RTT 1
+      (Postgres executes 8-query logic in-database, single network hop)
+    ────────────────────────────────────────────────────────────────
+    Cache hit:  0ms DB latency
+    Cache miss: 1 × ~20-40ms PostgREST RTT
+```
+
+### Request Flow: Student Detail Page (11 queries → RPC consolidation)
+
+**Before:**
+```
+Promise.all([
+  sessions (month-scoped),           RTT group A (all fire concurrently)
+  roadmap,
+  reports (month-scoped),
+  coaches list,
+  student counts,
+  lifetime reports (ALL rows),       <-- full table scan, no date filter
+  today report,
+  today sessions,
+  latest session date,
+  latest report date,
+  recent ratings (7 days),
+])
+Slowest query determines wall time.
+"lifetime reports" fetches every report row for KPI sum.
+```
+
+**After:**
+```
+admin.rpc("get_student_detail_data", {              RTT 1 — all data
+  p_student_id, p_month, p_today, p_seven_days_ago
+})
+Postgres handles joins + aggregations in-database.
+
+OR: Use summary table for KPI fields (if within 24h of nightly refresh):
+  admin.from("student_kpi_summaries").select()      RTT 1 — KPI fields
+  admin.from("work_sessions/roadmap_progress/       RTT 2 — calendar + roadmap
+             daily_reports").select() (month-scoped)
+Total: 2 concurrent round trips instead of 11.
+```
+
+### Request Flow: Rate-Limited API Write
 
 ```
-Coach/Owner student detail page load:
-  Server queries (no limit):
-    all sessions (includes session_minutes)
-    all reports (includes new KPI columns)
-  Pass as sessions[] and reports[] to StudentDetailClient / OwnerStudentDetailClient
-  Client renders <CalendarTab sessions={sessions} reports={reports} />
-
-CalendarTab internal:
-  useState: currentMonth = today's month, selectedDay = null
-  Month navigation: prev/next buttons → setCurrentMonth → re-derive filtered data
-  Day click: setSelectedDay(dateStr) → DayDetailPanel slides in below grid
-  All interactions are pure client state — zero network requests after initial load
+Client: POST /api/reports { date, hours_worked, ... }
+    ↓
+createClient() → supabase.auth.getUser()     validates JWT (user-scoped client)
+    ↓
+getAdminClient().from("users").select()      profile lookup (admin, no RLS)
+    ↓
+checkRateLimit(profile.id, "/api/reports")
+  → SELECT COUNT from rate_limit_log         sliding window count
+  → INSERT into rate_limit_log               record this call
+  → allowed? continue  |  not allowed? 429
+    ↓
+Zod safeParse(body)
+    ↓
+getAdminClient().from("daily_reports").upsert()
+    ↓
+200/201 response
 ```
 
-### KPI on Coach/Owner Pages
+### Data Flow: pg_cron → Summary Table → Dashboard Read
 
 ```
-Coach/Owner student detail page:
-  Promise.all includes new aggregate query:
-    SELECT SUM(outreach_count) WHERE student_id = X AND submitted_at IS NOT NULL
-  roadmap query adds completed_at to select
-  lib/kpi.computeAtRisk(sessions, reports, COACH_CONFIG) replaces inline computation
-  StudentKPIBar rendered in student header area with pre-computed values
+2:00 AM UTC (pg_cron)
+    ↓
+refresh_student_kpi_summaries()
+  SELECT from users + daily_reports (GROUP BY student_id)
+  UPSERT into student_kpi_summaries WHERE computed_date = CURRENT_DATE
+    ↓
+Throughout the day:
+  Owner/coach visits student detail page
+  SELECT from student_kpi_summaries WHERE student_id = X AND computed_date = today
+    → hit: return pre-aggregated KPIs (no live aggregation needed)
+    → miss (before 2 AM, or new student): fall back to live aggregate queries
 ```
 
 ---
 
-## Migration Files
+## Files Modified vs New
 
-| File | Purpose | Risk |
-|------|---------|------|
-| `supabase/migrations/00006_flexible_sessions.sql` | Add session_minutes column, raise cycle_number check, fix status check | Low — additive with DEFAULT, constraint relaxation only |
-| `supabase/migrations/00007_add_outreach_kpi_columns.sql` | Add 5 integer columns to daily_reports + update restrict_coach_report_update trigger | Low — additive with DEFAULT 0, trigger update is a DROP/CREATE replace |
-
-Both migrations are additive. Existing queries continue to work. Existing rows remain valid.
-
----
-
-## Suggested Build Order
-
-Dependencies flow top-to-bottom. Build in this order to avoid blocked work:
-
-**Phase 1 — Schema and Config (no UI dependencies, everything else needs these)**
-1. Migration 00006: flexible sessions
-2. Migration 00007: outreach KPI columns + trigger update
-3. `config.ts`: add `sessionDurationOptions`, `defaultSessionMinutes`, `KPI_TARGETS`, `target_days` on `ROADMAP_STEPS`
-4. `VALIDATION` in config.ts: add `outreachKpi.max`
-
-**Phase 2 — API Routes (depend on Phase 1 schema)**
-5. `POST /api/work-sessions`: accept `session_minutes`, auto-compute `cycle_number`
-6. `PATCH /api/work-sessions/[id]`: use `session.session_minutes` for duration
-7. `POST /api/reports`: accept + store 5 new KPI fields
-
-**Phase 3 — Shared Library (depends on nothing, used by Phases 4-6)**
-8. `src/lib/kpi.ts`: computeAtRisk, computeLifetimeOutreach, computeRoadmapDeadlineStatus
-
-**Phase 4 — Student-facing features (depend on Phase 1-3)**
-9. `WorkTrackerClient`: duration selector, break timer, dynamic cycle grid (depends on Phase 2 API)
-10. `ReportForm`: 5 new KPI fields (depends on Phase 2 API)
-11. `RoadmapStep`: deadline status badge + completed_at (depends on Phase 1 config)
-12. `RoadmapClient`: accept + pass `joinedAt` (depends on Phase 11)
-13. `student/roadmap/page.tsx`: pass `user.joined_at` to RoadmapClient
-
-**Phase 5 — Progress Banner (depends on Phase 1 config, Phase 3 lib)**
-14. `ProgressBanner` component (depends on Phase 1 KPI_TARGETS)
-15. `(dashboard)/layout.tsx`: add aggregate queries + ProgressBanner for student role
-
-**Phase 6 — Coach/Owner KPI visibility (depends on Phase 3, 4)**
-16. `StudentKPIBar` component
-17. `coach/students/[studentId]/page.tsx`: add aggregate query, update roadmap select, use lib/kpi.ts
-18. `owner/students/[studentId]/page.tsx`: same
-19. `RoadmapTab`: accept + pass `completed_at`, `joined_at` for deadline display
-
-**Phase 7 — Calendar (depends on Phase 6 — query changes in Phase 6 remove limits)**
-20. `StudentDetailTabs`: replace work/reports tabs with calendar
-21. `CalendarTab`: MonthGrid + DayDetailPanel
-22. `StudentDetailClient` + `OwnerStudentDetailClient`: replace WorkSessionsTab/ReportsTab with CalendarTab
-23. Delete `WorkSessionsTab.tsx`, `ReportsTab.tsx`
+| File | Action | Change Summary |
+|------|--------|----------------|
+| `src/lib/supabase/admin.ts` | MODIFY | `getAdminClient()` singleton replaces `createAdminClient()` |
+| `src/lib/session.ts` | MODIFY | Wrap `getSessionUser` body with `React.cache()` |
+| `src/app/(dashboard)/layout.tsx` | MODIFY | Replace 8 raw queries with `unstable_cache(rpc("get_sidebar_badges"))` |
+| `src/app/(dashboard)/owner/students/page.tsx` | MODIFY | Add `.range()` + `{ count: "exact" }` + `totalPages` prop |
+| `src/app/(dashboard)/owner/coaches/page.tsx` | MODIFY | Same pagination pattern |
+| `src/app/(dashboard)/owner/students/[studentId]/page.tsx` | MODIFY | Replace lifetime aggregate queries with summary table lookup + live fallback |
+| `src/app/api/reports/route.ts` | MODIFY | Add `checkRateLimit()` after profile lookup |
+| `src/app/api/work-sessions/route.ts` | MODIFY | Add `checkRateLimit()` after profile lookup |
+| `src/app/api/roadmap/route.ts` | MODIFY | Add `checkRateLimit()` after profile lookup |
+| **All 36 `createAdminClient()` call sites** | MODIFY | Import `getAdminClient` instead |
+| `src/lib/rate-limit.ts` | NEW | Supabase-backed `checkRateLimit()` helper |
+| `src/lib/rpc/types.ts` | NEW | Hand-typed RPC response interfaces |
+| `supabase/migrations/00009_indexes.sql` | NEW | Composite covering indexes for hot paths |
+| `supabase/migrations/00010_rpc_functions.sql` | NEW | `get_sidebar_badges`, `get_owner_dashboard_stats`, `get_student_detail_data` |
+| `supabase/migrations/00011_summary_table.sql` | NEW | `student_kpi_summaries` table + `refresh_student_kpi_summaries()` + pg_cron schedule |
+| `supabase/migrations/00012_rate_limit_log.sql` | NEW | `rate_limit_log` table + cleanup cron job |
 
 ---
 
-## Anti-Patterns to Avoid
+## Admin Client vs User Client — Route-by-Route Analysis
 
-### Anti-Pattern 1: Persisting Break Timer to Server
-**What:** Adding a `break_started_at` column to `work_sessions` or a separate `break_sessions` table.
-**Why bad:** Breaks are a UI concern, not data. Adds DB writes and schema complexity for a countdown that resets on page refresh anyway.
-**Instead:** Client `useState` + `useEffect` countdown. Break ends when `breakSecondsRemaining <= 0`.
+**Core distinction:**
+- `createClient()` with user JWT (anon key + session cookie) — respects RLS, Postgres knows who the user is
+- `getAdminClient()` (service_role key) — bypasses RLS entirely, all data is accessible
 
-### Anti-Pattern 2: Client-Side Aggregate Computation for Banner
-**What:** Fetching all `daily_reports` rows to the ProgressBanner client component and summing `outreach_count` in JavaScript.
-**Why bad:** Transfers potentially hundreds of rows for a single number. Violates server-first pattern.
-**Instead:** PostgREST `outreach_count.sum()` aggregate in the server component. One integer back per query.
+**Why admin client is used everywhere today:**
 
-### Anti-Pattern 3: Per-Month API Calls in Calendar
-**What:** Fetching sessions and reports from the server each time the user clicks prev/next month in CalendarTab.
-**Why bad:** Latency on every month flip, requires loading state, complex error handling. A student's full history is small.
-**Instead:** Fetch all sessions and all reports (no limit) on initial page load. Filter by month entirely client-side. Zero network requests during calendar navigation.
+The comment in `layout.tsx` and `session.ts` explains the bootstrapping problem: "RLS policies use `get_user_role()` which can fail during profile resolution." To look up the user's profile (which maps `auth_id` → `id` + `role`), the query must run outside of RLS. Once the profile is resolved, the role is known and all subsequent authorization is done explicitly in application code.
 
-### Anti-Pattern 4: Keeping At-Risk Logic Duplicated
-**What:** Continuing to copy-paste the at-risk computation between coach and owner detail pages.
-**Why bad:** Two sources of truth. Already diverged slightly in v1.0 (same logic but copied). Will diverge further.
-**Instead:** Extract to `src/lib/kpi.ts` and import in both pages. v1.1 is the right time to fix this.
+**Route-by-route verdict:**
 
-### Anti-Pattern 5: Hardcoding KPI Targets in Components
-**What:** Writing `2500` or `50` inside ProgressBanner or StudentKPIBar components.
-**Why bad:** Targets will change. Not discoverable without reading the component file.
-**Instead:** `KPI_TARGETS` in `config.ts`. Same pattern as `WORK_TRACKER`, `DAILY_REPORT`, `COACH_CONFIG`.
+| Route | Current | Can Switch to User Client? | Verdict |
+|-------|---------|----------------------------|---------|
+| `POST /api/reports` | Admin all queries | Profile lookup must stay admin. Report insert/update could use user client — RLS `student_insert_reports` + `student_update_reports` exist. | Keep admin. Marginal security gain does not justify refactor risk. |
+| `POST /api/work-sessions` | Admin all queries | Same as reports — RLS policies exist for student writes. | Keep admin. Same reasoning. |
+| `PATCH /api/roadmap` | Admin all queries | Student update RLS exists. | Keep admin. Step-unlock logic writes next step — application code already handles authorization. |
+| `PATCH /api/reports/[id]/review` | Admin all queries | Coach review requires cross-student ownership check: `student.coach_id = profile.id`. Difficult to express purely in RLS without a multi-table join policy. | Keep admin. Explicit ownership check in application code is correct. |
+| `PATCH /api/assignments` | Admin all queries | Owner-only operation. | Keep admin. |
+| `POST /api/alerts/dismiss` | Admin all queries | Owner-only operation. | Keep admin. |
+| `GET /api/calendar` | Admin all queries | Requires cross-role access (coach reading student data). RLS `coach_select_work_sessions` and `coach_select_reports` policies exist but the route also does the coach-student assignment check. | Keep admin. Defense-in-depth is correct here. |
+| `POST /api/invites` | Admin all queries | Owner/coach insert. Admin required for owner-wide invite management. | Keep admin. |
 
-### Anti-Pattern 6: Adding cycle_number to POST body with client-computed values
-**What:** Client computes next cycle number and sends it in POST body (current v1.0 pattern, inherits from pre-flexible-sessions design).
-**Why bad:** Race condition if two sessions start simultaneously; client must track session count; constrains flexibility.
-**Instead:** Server computes `MAX(cycle_number) + 1` for the student+date. Client sends only `date` and `session_minutes`.
+**Security posture is already correct.** The service_role key is server-only (no `NEXT_PUBLIC_` prefix, never reaches the browser). The admin client is the right tool for server-side code that implements its own authorization. The defense-in-depth pattern (admin query + explicit `eq("auth_id", user.id)` + role check) is correct and should be maintained.
+
+**What to verify in the security audit (not change):**
+- Confirm no route skips the `auth_id = authUser.id` filter on the initial profile lookup — verified in all current routes
+- Confirm `SUPABASE_SERVICE_ROLE_KEY` is never prefixed with `NEXT_PUBLIC_` — verified correct
+- Confirm `get_user_role()` and `get_user_id()` have `SECURITY DEFINER` + `SET search_path = public` — confirmed in migration 00001
 
 ---
 
-## Scalability Considerations
+## Scaling Considerations
 
-All v1.1 changes remain appropriate for v1 scale (< 1,000 students).
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| 0-500 students (current) | Current architecture is fine. Admin singleton reduces per-call overhead. |
+| 500-5k students (v1.2 target) | Composite indexes + RPC consolidation + nightly KPI summaries. The 11 PM daily report spike (all students submitting simultaneously) is the primary concern. Indexes + rate limiting contain it. |
+| 5k-50k students | Materialized views with `REFRESH MATERIALIZED VIEW CONCURRENTLY`. Add Supabase read replica for coach/owner analytics paths. Summary table becomes essential. |
+| 50k+ students | Separate OLAP store for historical analytics. Real-time dashboard reads from summary tables only. Consider Supabase branching for heavy analytical queries. |
 
-| Concern | Approach | Notes |
-|---------|----------|-------|
-| Aggregate queries in layout | PostgREST SUM — single round-trip | Fine for all V1 users |
-| Calendar data (no limit) | Fetch all, filter client-side | ~500 sessions/year max per student — trivial |
-| Break timer | Client-only state | No server cost |
-| 5 new daily_reports columns | NOT NULL DEFAULT 0 | Zero migration cost |
-| Roadmap deadline computation | Pure function on small array | No DB involvement |
+### Scaling Priorities
+
+1. **First bottleneck: Dashboard layout query count.** The owner layout runs 8 queries on every navigation event, even when just switching tabs. With 5k students and multiple active owners this is the top DB load multiplier. Fix: RPC consolidation + `unstable_cache`.
+
+2. **Second bottleneck: 11 PM write spike on `daily_reports` + `work_sessions`.** Students submitting end-of-day reports in a 1-2 hour window. Without indexes on `(student_id, date)`, each insert triggers a table scan to enforce the unique constraint. Fix: Ensure composite covering indexes exist on `(student_id, date)` for both tables.
+
+3. **Third bottleneck: Student detail page (11 parallel queries).** Each owner or coach viewing a student detail page fires 11 concurrent PostgREST requests. The "lifetime reports" query scans all rows to compute a SUM. Fix: RPC consolidation + summary table for KPI values.
+
+---
+
+## Anti-Patterns
+
+### Anti-Pattern 1: createAdminClient() Per Call With Singleton Available
+
+**What people do:** Keep calling `createAdminClient()` in every function, creating a new `SupabaseClient` on each invocation.
+
+**Why it's wrong:** Each `SupabaseClient` initialization allocates objects and sets up HTTP client config. In a warm serverless container serving 30 req/min at 5k users, this is repeated unnecessary work.
+
+**Do this instead:** `getAdminClient()` — returns the module-level singleton, initializing it only once per container lifetime.
+
+---
+
+### Anti-Pattern 2: React cache() as a Cross-Request Cache
+
+**What people do:** Wrap expensive data functions with `React.cache()` and assume the result persists across multiple page loads.
+
+**Why it's wrong:** `React.cache()` scope is exactly one server render pass. The memo table is reset at the end of every request. A subsequent request by the same user re-executes the function from scratch.
+
+**Do this instead:** `React.cache()` for within-render dedup (layout + page calling `getSessionUser()` in the same render tree). `unstable_cache` with a TTL for data acceptable to be stale across requests.
+
+---
+
+### Anti-Pattern 3: export const revalidate = 60 on Authenticated Routes
+
+**What people do:** Add `export const revalidate = 60` to authenticated dashboard pages expecting ISR (Incremental Static Regeneration) behavior.
+
+**Why it's wrong:** Any route that reads `cookies()` from `next/headers` — which `createClient()` does via `@supabase/ssr` — is inherently dynamic. Next.js cannot cache a response that depends on per-request cookie data. The `revalidate` export is silently ignored or can produce unexpected behavior when mixed with dynamic functions.
+
+**Do this instead:** Use `unstable_cache` with TTL on specific data functions within the route handler. The route itself remains dynamic (executed per-request), but the expensive sub-queries return cached results.
+
+---
+
+### Anti-Pattern 4: In-Memory Rate Limiting in Serverless
+
+**What people do:** Use a `Map<string, {count: number; resetAt: number}>` at module level to track per-user request rates.
+
+**Why it's wrong:** Next.js serverless containers run in isolation. A user making 31 requests/minute can land on multiple warm containers, each with its own counter showing only its fraction of total traffic. The limit is trivially bypassed.
+
+**Do this instead:** Supabase-backed `rate_limit_log` table — shared state across all containers. At 5k users with 30 req/min/user, the log cleanup cron keeps the table small and the covering index makes the window count query fast.
+
+---
+
+### Anti-Pattern 5: Relying on RLS as the Only Authorization in API Routes
+
+**What people do:** Switch to the user client (anon key + user JWT) in API routes and remove the admin-based role check, trusting RLS to handle authorization.
+
+**Why it's wrong for this app:** The bootstrapping problem requires admin access for the initial profile lookup. Additionally, ownership checks like "this report belongs to a student assigned to this coach" are complex to write correctly in RLS and fragile to maintain. Application-level authorization is more explicit and auditable.
+
+**Do this instead:** Maintain the current defense-in-depth: admin client for all server queries + explicit `eq("auth_id", user.id)` filter + role check in application code. RLS remains as a backup safety net. Do not change this pattern.
+
+---
+
+### Anti-Pattern 6: Fetching All Rows for Client-Side Aggregation
+
+**What people do:** Fetch all `daily_reports` rows for a student (hundreds of rows) and compute `SUM(outreach_count)` in JavaScript.
+
+**Why it's wrong:** The `owner/students/[studentId]/page.tsx` currently does exactly this (`lifetimeReportsResult` in the 11-query `Promise.all`). Every page load transfers all historical report data just for one integer.
+
+**Do this instead:** Use a Postgres aggregate (`.select("brands_contacted.sum()")` via PostgREST) or read from `student_kpi_summaries.lifetime_outreach` which is pre-computed nightly.
+
+---
+
+## Integration Points
+
+### External Services
+
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| Supabase PostgREST | `supabase.from().select/insert/update/rpc()` | No change — still via `@supabase/supabase-js` |
+| Supabase pg_cron | SQL in migration file, managed by Supabase infrastructure | Pro plan required — already active |
+| Supabase Auth | `createClient().auth.getUser()` — user-scoped | No change |
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| Server Components → Supabase | `getAdminClient()` singleton | Module-level, per-container |
+| API Routes → Rate Limiter | `checkRateLimit(userId, endpoint)` helper | Adds 2 DB round trips per write request |
+| pg_cron → Summary Table | In-database `UPSERT` via scheduled Postgres function | No network hop |
+| Dashboard Layout → RPC | `unstable_cache(admin.rpc("get_sidebar_badges"))` | 60s TTL; `revalidateTag` on alert dismiss |
+| Student Detail → Summary Table | Direct `admin.from("student_kpi_summaries").select()` | Fallback to live query if today's row absent |
+
+---
+
+## Build Order for v1.2
+
+Dependencies flow top-to-bottom. Each phase unblocks the next.
+
+1. **Admin client singleton** — zero functional risk, pure refactor. Rename export, update all 36 call sites. Everything else in v1.2 uses this.
+
+2. **Database indexes** (`00009_indexes.sql`) — pure migration additions, no code changes, immediate query performance improvement.
+
+3. **React cache() on session** — wrap `getSessionUser` in `cache()`. Reduces per-render Supabase calls from 2 to 1 on all authenticated routes.
+
+4. **Server-side pagination** — modify owner students/coaches pages + add pagination UI component. Self-contained, no RPC dependency.
+
+5. **RPC functions + layout consolidation** (`00010_rpc_functions.sql`) — write migrations first, then update `layout.tsx` to call `rpc("get_sidebar_badges")` wrapped in `unstable_cache`. Add `revalidateTag` in `POST /api/alerts/dismiss`.
+
+6. **pg_cron + summary table** (`00011_summary_table.sql`) — migration adds everything. Then update student detail pages to read from summary with live fallback. Cron runs nightly; no immediate testing is possible without manual invocation.
+
+7. **Rate limiter** (`00012_rate_limit_log.sql`) — add table migration, implement `checkRateLimit()` helper, add to `POST /api/reports`, `POST /api/work-sessions`, `PATCH /api/roadmap`.
+
+8. **Security audit** — review all routes for auth check gaps, verify RLS policy coverage, check for cross-student data leaks, confirm no secret key exposure. Human review required (HALT gate).
+
+9. **Load testing** — 5k simulated users hitting write endpoints. HALT gate before this step — requires human review of load test plan. Validates that indexes + rate limiting contain the 11 PM spike.
 
 ---
 
 ## Sources
 
-All findings derived from direct codebase inspection of v1.0 source (HIGH confidence).
+- [Next.js 16.2.1 Caching (Previous Model) — official docs](https://nextjs.org/docs/app/guides/caching-without-cache-components) — `unstable_cache`, `React.cache()`, `revalidate` semantics, revalidation frequency rules
+- [Next.js 16.2.1 Getting Started: Caching (Cache Components)](https://nextjs.org/docs/app/getting-started/caching) — `"use cache"` directive, PPR model, contrast with `React.cache()`
+- [React cache() vs unstable_cache — bugfree.dev](https://www.bugfree.dev/post/nextjs-caching-unstable-cache-vs-react-cache) — per-request vs cross-request scope clarification
+- [Supabase API Keys — official docs](https://supabase.com/docs/guides/api/api-keys) — service_role vs anon key, when each is appropriate, bootstrapping considerations
+- [Supabase JavaScript RPC reference](https://supabase.com/docs/reference/javascript/rpc) — `supabase.rpc()` calling convention and TypeScript support
+- [Supabase Cron — official docs](https://supabase.com/docs/guides/cron) — pg_cron scheduling, 8-job concurrency limit, 10-minute per-job recommendation
+- [Singleton pattern in Node.js serverless](https://copyprogramming.com/howto/singleton-pattern-in-nodejs-is-it-needed) — per-process scope, warm container reuse, thread safety
+- [Next.js App Router pagination — official learn](https://nextjs.org/learn/dashboard-app/adding-search-and-pagination) — `searchParams` in server components, `.range()` pattern
+- Codebase analysis: `src/lib/supabase/admin.ts`, `src/app/(dashboard)/layout.tsx`, `src/lib/session.ts`, all 12 API routes, `supabase/migrations/00001_create_tables.sql`, all 36 `createAdminClient()` consumers
 
-| File Inspected | Finding |
-|----------------|---------|
-| `src/app/(dashboard)/layout.tsx` | Banner insertion point, profile.role available for conditional rendering |
-| `src/app/(dashboard)/student/work/page.tsx` | Server component pattern for work tracker |
-| `src/components/student/WorkTrackerClient.tsx` | Cycle cap logic, cyclesPerDay grid, handleStart POST body |
-| `src/components/student/WorkTimer.tsx` | totalSeconds prop already dynamic |
-| `src/app/api/work-sessions/route.ts` | POST schema cycle_number constraint, cyclesPerDay max |
-| `src/app/api/work-sessions/[id]/route.ts` | PATCH schema duration_minutes max(60), WORK_TRACKER.sessionMinutes fallback |
-| `src/components/coach/StudentDetailClient.tsx` | Tab architecture, TabKey type |
-| `src/components/coach/StudentDetailTabs.tsx` | TabKey = "work" | "roadmap" | "reports" — to be changed |
-| `src/components/coach/WorkSessionsTab.tsx` | Component to be deleted |
-| `src/components/coach/ReportsTab.tsx` | Component to be deleted |
-| `src/components/owner/OwnerStudentDetailClient.tsx` | Duplicated at-risk logic confirmed |
-| `src/app/(dashboard)/coach/students/[studentId]/page.tsx` | At-risk computation, .limit(120)/.limit(20), select columns |
-| `src/app/(dashboard)/owner/students/[studentId]/page.tsx` | Same pattern, confirmed duplication |
-| `src/app/(dashboard)/student/roadmap/page.tsx` | completed_at already populated, user.joined_at available |
-| `src/components/student/RoadmapClient.tsx` | Step iteration, needs joinedAt prop |
-| `supabase/migrations/00001_create_tables.sql` | Full schema: cycle_number constraint, status constraint, completed_at exists, restrict_coach_report_update trigger |
-| `src/lib/config.ts` | WORK_TRACKER, ROADMAP_STEPS (no target_days), VALIDATION constants |
-| `src/app/api/reports/route.ts` | POST schema, insert/update payload structure |
+---
+*Architecture research for: IMA Accelerator v1.2 Performance, Scale & Security*
+*Researched: 2026-03-29*
