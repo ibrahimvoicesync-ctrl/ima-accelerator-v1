@@ -1,59 +1,60 @@
 # Requirements: IMA Accelerator
 
-**Defined:** 2026-03-27
+**Defined:** 2026-03-29
 **Core Value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
 
-## v1.1 Requirements
+## v1.2 Requirements
 
-Requirements for milestone v1.1 (V2 Feature Build). Each maps to roadmap phases.
+Requirements for milestone v1.2 (Performance, Scale & Security for 5,000 Students). Each maps to roadmap phases.
 
-### Work Sessions
+### Database & Monitoring
 
-- [x] **WORK-01**: Student can select session duration (30, 45, or 60 min) before starting a cycle
-- [x] **WORK-02**: Student can select break type (short 5-10 min or long 10-30 min) and exact duration before starting a cycle
-- [x] **WORK-03**: First cycle of the day skips the break — break runs between cycles only
-- [x] **WORK-04**: Break displays as a visible countdown; when break ends, student can start next cycle
-- [x] **WORK-05**: Student can skip a break early
-- [x] **WORK-06**: Each work_sessions row stores the chosen session_minutes so history is accurate
-- [x] **WORK-07**: Circular timer adapts to whatever duration was chosen
-- [x] **WORK-08**: No daily cycle cap — students can do unlimited sessions (4-hour daily goal remains as KPI, not hard cap)
-- [x] **WORK-09**: DB migration adds session_minutes column to work_sessions
+- [ ] **DB-01**: Composite indexes exist on daily_reports(student_id, date), work_sessions(student_id, date, status), roadmap_progress(student_id) — verified with EXPLAIN ANALYZE
+- [ ] **DB-02**: createAdminClient() is a module-level singleton reused across requests within the same process
+- [ ] **DB-03**: All RLS policies use (SELECT auth.uid()) instead of auth.uid() for initplan optimization
+- [ ] **DB-04**: pg_stat_statements enabled, slow queries >200ms logged, baseline metrics recorded before and after index changes
 
-### Outreach KPIs
+### Query Optimization
 
-- [x] **KPI-01**: daily_reports stores granular outreach: outreach_brands, outreach_influencers, brands_contacted, influencers_contacted, calls_joined
-- [x] **KPI-02**: Total outreach = outreach_brands + outreach_influencers, computed at query time
-- [x] **KPI-03**: Daily report form collects outreach_brands, outreach_influencers, brands_contacted, influencers_contacted, calls_joined (replaces single outreach_count)
-- [x] **KPI-04**: Sticky ProgressBanner on every student page shows: X/2,500 lifetime outreach, X/50 daily outreach, hours worked, calls joined, brands contacted, influencers contacted
-- [x] **KPI-05**: RAG color coding: green (on target), amber (>=80%), red (<80%) on all KPI indicators
-- [x] **KPI-06**: Student homepage shows KPI breakdown cards with RAG color coding
-- [x] **KPI-07**: DB migration adds 5 new integer columns to daily_reports
+- [ ] **QUERY-01**: Dashboard layout owner path consolidated to ≤2 DB round trips via Postgres RPC functions (down from 8)
+- [ ] **QUERY-02**: Student detail pages (coach/owner views) consolidated via Postgres RPC (down from 9-11 parallel queries)
+- [ ] **QUERY-03**: React cache() wrappers on server component data fetches deduplicate within RSC render tree
+- [ ] **QUERY-04**: Dashboard badge count computations use unstable_cache with 60s TTL (revalidate=N broken on auth routes due to cookies())
+- [ ] **QUERY-05**: Owner student list page is server-side paginated with Supabase .range() and total count
+- [ ] **QUERY-06**: Owner coach list page is server-side paginated with Supabase .range() and total count
 
-### Coach/Owner Visibility
+### Write Path
 
-- [ ] **VIS-01**: Coach student detail page shows read-only KPI summary (lifetime outreach/2,500, daily/50, hours, RAG status)
-- [ ] **VIS-02**: Owner student detail page shows same read-only KPI summary
-- [x] **VIS-03**: KPI card includes current roadmap step for context
-- [x] **VIS-04**: Coach and owner see same RAG status colors as the student
+- [ ] **WRITE-01**: pg_cron nightly aggregation job pre-computes KPI summaries into a summary table after the 11 PM submission window (UTC-aware scheduling, advisory lock protected, idempotent upsert)
+- [ ] **WRITE-02**: Student daily report submission uses optimistic UI via React 19 useOptimistic for instant feedback
+- [ ] **WRITE-03**: Write path audit documents report/session API call counts and confirms no unnecessary round trips
 
-### Calendar
+### Security & Protection
 
-- [x] **CAL-01**: Month grid calendar on coach and owner student detail pages with day indicators (green = work + report, amber = partial, empty = nothing)
-- [x] **CAL-02**: Clicking a day opens inline panel showing that day's work sessions and report side by side
-- [x] **CAL-03**: Month navigation (prev/next) with current month as default
-- [x] **CAL-04**: Calendar tab replaces Work Sessions and Reports tabs; Roadmap stays as separate tab
+- [ ] **SEC-01**: DB-backed rate limiting on mutation API routes enforces 30 requests/minute per user via Supabase table (in-memory breaks in serverless)
+- [ ] **SEC-02**: Every API route's auth check and role verification is documented and verified correct
+- [ ] **SEC-03**: All mutation route handlers verify Origin header for CSRF protection
+- [ ] **SEC-04**: Cross-student data isolation verified — no student can access another student's data via param manipulation
 
-### Roadmap
+### Infrastructure & Validation
 
-- [x] **ROAD-01**: Each roadmap step has target_days in config; deadline = joined_at + target_days
-- [x] **ROAD-02**: Status chips on each step: on track (green), due soon (amber, within 2 days), overdue (red), completed (with date)
-- [x] **ROAD-03**: Completed steps display their completed_at date
-- [x] **ROAD-04**: Deadline status visible on student roadmap view
-- [x] **ROAD-05**: Deadline status visible on coach and owner student detail roadmap views
+- [ ] **INFRA-01**: k6 load test simulates 5k students with dashboard read mix and 11 PM write spike
+- [ ] **INFRA-02**: Connection usage, query times, and capacity headroom are documented
+- [ ] **INFRA-03**: Supabase compute add-on is right-sized based on load test data
+
+## v1.1 Requirements (Completed)
+
+All 29 requirements completed. See .planning/milestones/ for archived details.
+
+### Work Sessions — 9/9 complete
+### Outreach KPIs — 7/7 complete
+### Coach/Owner Visibility — 4/4 complete
+### Calendar — 4/4 complete
+### Roadmap — 5/5 complete
 
 ## Future Requirements
 
-Deferred to v1.2+. Tracked but not in current roadmap.
+Deferred to v1.3+. Tracked but not in current roadmap.
 
 ### Enhancements
 
@@ -63,6 +64,7 @@ Deferred to v1.2+. Tracked but not in current roadmap.
 - **ENH-04**: Joined-date marker on calendar
 - **ENH-05**: Break duration proportional to session length (30 min → 10 min break, 60 min → 20 min)
 - **ENH-06**: Session count badge replacing cycle count display
+- **ENH-07**: Redis/Upstash cache layer (evaluate only if Phase 24 load testing proves Next.js cache insufficient)
 
 ## Out of Scope
 
@@ -70,19 +72,12 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Free-form duration input (text field) | Validation complexity; 3 presets cover all cases |
-| Pause during break countdown | State complexity; skip break covers this |
-| Auto-start next session after break | Removes intentional start gesture; ghost sessions inflate data |
-| Dismissable/collapsible KPI banner | Defeats ambient KPI visibility purpose |
-| Separate outreach tracker page | Daily report IS the logging surface; avoids dual-source-of-truth |
-| Coach ability to edit/override KPI targets | Targets are program-wide (Abu Lahya's numbers); per-student overrides are V2 |
-| Coach outreach trend charts | Chart infrastructure is non-trivial; sparklines could substitute later |
-| Editable calendar (coach corrections) | Trust in record depends on student-generated data |
-| Year view / heat map mode | Students have < 8 weeks data; mostly empty |
-| Calendar drag-and-drop | Historical record viewer, not a scheduler |
-| Absolute calendar deadlines | Penalizes late joiners; relative deadlines auto-correct |
-| Automated deadline extensions via UI | Opens negotiation complexity; change config if needed |
-| Email/in-app deadline notifications | Notification infrastructure out of scope for v1.1 |
+| Supavisor/connection pooler setup | PostgREST has built-in connection pooler |
+| Redis/Upstash cache | Evaluate only if Phase 24 load testing proves insufficient |
+| In-memory rate limiting (lru-cache) | Silently broken in serverless — each container has isolated state |
+| export const revalidate on auth routes | cookies() makes routes dynamic; ISR cannot apply — use unstable_cache |
+| Switching API routes from admin to user client | Risk of breaking ownership-check patterns; defense-in-depth approach is correct |
+| Free-form duration input (text field) | v1.1 out of scope carry-over |
 | Per-student custom KPI targets | Program-wide targets; per-cohort targets are V2 |
 
 ## Traceability
@@ -91,41 +86,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WORK-01 | Phase 14 | Complete |
-| WORK-02 | Phase 14 | Complete |
-| WORK-03 | Phase 14 | Complete |
-| WORK-04 | Phase 14 | Complete |
-| WORK-05 | Phase 14 | Complete |
-| WORK-06 | Phase 14 | Complete |
-| WORK-07 | Phase 14 | Complete |
-| WORK-08 | Phase 14 | Complete |
-| WORK-09 | Phase 13 | Complete |
-| KPI-01 | Phase 15 | Complete |
-| KPI-02 | Phase 15 | Complete |
-| KPI-03 | Phase 15 | Complete |
-| KPI-04 | Phase 15 | Complete |
-| KPI-05 | Phase 15 | Complete |
-| KPI-06 | Phase 15 | Complete |
-| KPI-07 | Phase 13 | Complete |
-| VIS-01 | Phase 16 | Pending |
-| VIS-02 | Phase 16 | Pending |
-| VIS-03 | Phase 16 | Complete |
-| VIS-04 | Phase 16 | Complete |
-| CAL-01 | Phase 17 | Complete |
-| CAL-02 | Phase 17 | Complete |
-| CAL-03 | Phase 17 | Complete |
-| CAL-04 | Phase 17 | Complete |
-| ROAD-01 | Phase 13 | Complete |
-| ROAD-02 | Phase 18 | Complete |
-| ROAD-03 | Phase 18 | Complete |
-| ROAD-04 | Phase 18 | Complete |
-| ROAD-05 | Phase 18 | Complete |
+| DB-01 | — | Pending |
+| DB-02 | — | Pending |
+| DB-03 | — | Pending |
+| DB-04 | — | Pending |
+| QUERY-01 | — | Pending |
+| QUERY-02 | — | Pending |
+| QUERY-03 | — | Pending |
+| QUERY-04 | — | Pending |
+| QUERY-05 | — | Pending |
+| QUERY-06 | — | Pending |
+| WRITE-01 | — | Pending |
+| WRITE-02 | — | Pending |
+| WRITE-03 | — | Pending |
+| SEC-01 | — | Pending |
+| SEC-02 | — | Pending |
+| SEC-03 | — | Pending |
+| SEC-04 | — | Pending |
+| INFRA-01 | — | Pending |
+| INFRA-02 | — | Pending |
+| INFRA-03 | — | Pending |
 
 **Coverage:**
-- v1.1 requirements: 29 total
-- Mapped to phases: 29
-- Unmapped: 0
+- v1.2 requirements: 20 total
+- Mapped to phases: 0
+- Unmapped: 20 ⚠️
 
 ---
-*Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after roadmap creation*
+*Requirements defined: 2026-03-29*
+*Last updated: 2026-03-29 after initial definition*
