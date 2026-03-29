@@ -42,9 +42,9 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 <!-- Current scope. Building toward these for v1.2. -->
 
-- [ ] Database indexes on high-traffic query paths (daily_reports, work_sessions, roadmap_progress)
-- [ ] Admin client singleton (module-level reuse, not per-call instantiation)
-- [ ] Query performance monitoring baseline and slow query logging (>200ms)
+- [x] Database indexes on high-traffic query paths (daily_reports, work_sessions, roadmap_progress) — Validated in Phase 19: Database Foundation
+- [x] Admin client singleton (module-level reuse, not per-call instantiation) — Validated in Phase 19: Database Foundation
+- [x] Query performance monitoring baseline and slow query logging (>200ms) — Validated in Phase 19: Database Foundation
 - [ ] Dashboard layout RPC consolidation (owner path: 8 → ≤2 round trips)
 - [ ] Server-side pagination on owner list pages (students, coaches)
 - [ ] React cache() dedup + route-level revalidation on dashboard routes
