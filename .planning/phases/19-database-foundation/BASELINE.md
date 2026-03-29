@@ -23,7 +23,7 @@ Helper functions confirmed:
 
 ### EXPLAIN Verification
 
-RLS initplan optimization is verified via source audit above. EXPLAIN ANALYZE for RLS behavior requires an authenticated session context (`SET LOCAL role = authenticated`) which cannot be set through the Supabase CLI. The source audit confirms all 34 policies use `(select ...)` initplan wrappers — Postgres will evaluate these as InitPlan nodes at execution time.
+RLS initplan optimization is verified via source audit above. Live EXPLAIN with `SET LOCAL role = authenticated` cannot be executed via RPC (Postgres prevents `SET role` inside SECURITY DEFINER functions). The source audit confirms all 34 policies use `(select ...)` initplan wrappers with STABLE helper functions — Postgres evaluates these as InitPlan nodes (once per query) rather than SubPlan (once per row). This is a well-documented PostgreSQL optimization for STABLE scalar subqueries in RLS policies.
 
 ## Before Migration (DB-04)
 
@@ -90,6 +90,29 @@ Finished supabase db push.
 - `idx_roadmap_progress_student` — already existed (idempotent no-op as designed)
 - `pg_stat_statements` — already enabled (idempotent no-op as designed)
 
+### pg_stat_statements — Top 10 After Migration
+
+Captured via temporary RPC function querying `extensions.pg_stat_statements` directly:
+
+| # | Query Snippet | Calls | Mean (ms) | Total (ms) | Cache Hit % |
+|---|---------------|-------|-----------|------------|-------------|
+| 1 | `get_coach_performance_summary()` | 167 | 289.38 | 48,326.97 | 100.0% |
+| 2 | `SELECT name FROM pg_timezone_names` | 99 | 468.61 | 46,391.96 | — |
+| 3 | PostgREST RPC call (p_per...) | 40 | 879.60 | 35,184.03 | 100.0% |
+| 4 | `roadmap_progress` SELECT | 370 | 46.35 | 17,149.07 | 100.0% |
+| 5 | PostgREST RPC call (p_coa...) | 21 | 751.08 | 15,772.66 | 100.0% |
+| 6 | `work_sessions` SELECT (duration_minutes) | 1,930 | 7.26 | 14,003.63 | 100.0% |
+| 7 | Dashboard introspection (pg_proc CTE) | 110 | 121.37 | 13,351.21 | 100.0% |
+| 8 | `get_platform_stats()` | 31 | 350.56 | 10,867.25 | 100.0% |
+| 9 | `roadmap_progress` SELECT (variant) | 2,771 | 3.58 | 9,932.71 | 100.0% |
+| 10 | `pg_available_extensions()` | 127 | 63.43 | 8,055.30 | 99.9% |
+
+**Key observations:**
+- All application queries have 100% cache hit rate
+- `get_coach_performance_summary()` is the slowest app function (289ms mean) — Phase 20 optimization target
+- `work_sessions` queries average 7.26ms across 1,930 calls — healthy
+- `roadmap_progress` queries average 3.58-46.35ms — healthy
+
 ### New Index Verified
 
 Captured via `supabase inspect db index-stats` immediately after migration:
@@ -98,7 +121,7 @@ Captured via `supabase inspect db index-stats` immediately after migration:
 |-------|------|---------|-------------|--------|
 | **idx_work_sessions_student_date_status** | **16 kB** | **0%** | **0** | **true (new)** |
 
-The new index has 0 scans because it was just created. At current data volume (~22 rows in work_sessions), Postgres optimizer correctly prefers sequential scans. The index will activate at production scale (100+ rows per student).
+The new index had 0 scans in index-stats because it was just created. However, EXPLAIN ANALYZE (below) confirms it IS used by the query planner for 3-column status filter queries.
 
 ### Table Stats After Migration
 
@@ -112,18 +135,65 @@ The new index has 0 scans because it was just created. At current data volume (~
 
 ## Index Verification (DB-01)
 
-### Analysis
+EXPLAIN ANALYZE captured via temporary RPC functions deployed to Supabase, called via REST API, then dropped.
+Test student: `54a1cbab-7616-4b5a-ba09-09a3ce912166`
 
-EXPLAIN ANALYZE requires direct psql/SQL Editor access which the Supabase CLI `inspect` commands don't support for arbitrary queries. However, index verification is confirmed through two complementary methods:
+### EXPLAIN ANALYZE — work_sessions Hot Path
 
-**1. Index existence confirmed** — `supabase inspect db index-stats` shows `idx_work_sessions_student_date_status` was created successfully on `public.work_sessions(student_id, date, status)`.
+```
+Index Scan using idx_work_sessions_student_date_cycle on work_sessions
+  (cost=0.14..2.10 rows=1 width=90) (actual time=0.668..0.668 rows=0 loops=1)
+  Index Cond: ((student_id = '54a1cbab-...'::uuid) AND (date = CURRENT_DATE))
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=169
+Planning Time: 0.475 ms
+Execution Time: 0.685 ms
+```
 
-**2. Seq scan expected at current scale** — With only 22 rows in `work_sessions`, Postgres cost-based optimizer will correctly choose sequential scans over index scans. This is optimal behavior — index overhead exceeds benefit below ~100-200 rows. The composite index exists and will be used automatically once data grows to production scale (~5,000 students × 14 days = ~70,000 rows).
+**Result:** Index Scan using `idx_work_sessions_student_date_cycle`. Executes in 0.685ms with 1 shared buffer hit.
 
-**3. Hot path indexes are active** — The `idx_work_sessions_student_date_cycle` index (526 scans) and `idx_daily_reports_student_date` (308 scans) confirm Postgres IS using indexes on these tables when cost-beneficial. The new 3-column composite adds `status` coverage for the work tracker's `in_progress` filter pattern.
+### EXPLAIN ANALYZE — daily_reports Hot Path
+
+```
+Seq Scan on daily_reports
+  (cost=0.00..2.21 rows=1 width=16) (actual time=0.017..0.017 rows=0 loops=1)
+  Filter: ((student_id = '54a1cbab-...'::uuid) AND (date = CURRENT_DATE))
+  Rows Removed by Filter: 13
+  Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=95
+Planning Time: 0.290 ms
+Execution Time: 0.032 ms
+```
+
+**Result:** Seq Scan (only 13 rows in table — expected). Index exists but Postgres optimizer correctly chooses seq scan at this scale. Executes in 0.032ms.
+
+### EXPLAIN ANALYZE — work_sessions Status Filter (NEW composite index)
+
+```
+Index Scan using idx_work_sessions_student_date_status on work_sessions
+  (cost=0.14..2.10 rows=1 width=90) (actual time=0.007..0.008 rows=0 loops=1)
+  Index Cond: ((student_id = '54a1cbab-...'::uuid) AND (date = CURRENT_DATE) AND ((status)::text = 'in_progress'::text))
+  Buffers: shared hit=1
+Planning Time: 0.131 ms
+Execution Time: 0.021 ms
+```
+
+**Result: Index Scan using `idx_work_sessions_student_date_status`** — the NEW composite index from migration 00009 IS being used by the Postgres query planner for the 3-column status filter pattern. All three columns (`student_id`, `date`, `status`) appear in the Index Cond. Executes in 0.021ms.
+
+### Summary
+
+| Query Path | Plan | Index Used | Time |
+|------------|------|-----------|------|
+| work_sessions (student+date) | Index Scan | idx_work_sessions_student_date_cycle | 0.685ms |
+| daily_reports (student+date) | Seq Scan | n/a (13 rows, expected) | 0.032ms |
+| **work_sessions (student+date+status)** | **Index Scan** | **idx_work_sessions_student_date_status** | **0.021ms** |
 
 ### Notes
 
 - All indexes use IF NOT EXISTS — safe for repeated application
+- The new composite index is actively used by the query planner even at small scale
+- `daily_reports` will switch to index scan at production scale (~70,000 rows)
 - Phase 20 will reference this baseline for query optimization targets
-- At production scale, run `EXPLAIN (ANALYZE, BUFFERS)` to confirm index scan activation on the 3-column status filter path
+- `get_coach_performance_summary()` (289ms mean) is the top optimization target for Phase 20
