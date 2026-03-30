@@ -121,11 +121,11 @@ Plans:
   1. Every API route has been audited for the pattern: auth check → role verification → resource ownership check → query; any gaps are documented and fixed
   2. Every POST/PATCH/DELETE route handler verifies the Origin header matches the expected host and returns 403 on mismatch; CSRF protection is not assumed from Next.js (only Server Actions get it automatically)
   3. Cross-student isolation is verified: no student can retrieve another student's data by manipulating route params; every admin-client query that touches student data filters by the authenticated user's ID
-**Plans:** 3 plans (2 complete + 1 gap closure)
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 23-01-PLAN.md — Security audit report: all 12 routes, proxy guard, RLS policies documented with severity-classified findings
 - [x] 23-02-PLAN.md — CSRF helper + integration into all mutation routes, reports/[id]/review ownership leak fix (requires human approval of audit report first)
-- [ ] 23-03-PLAN.md — UAT gap closure: optimistic timer start + hide CycleCard countdown from student view
+- [x] 23-03-PLAN.md — UAT gap closure: optimistic timer start + hide CycleCard countdown from student view
 
 ### Phase 24: Infrastructure & Validation
 **Goal**: The platform is validated under realistic 5,000-student load, connection and query capacity headroom is documented, and compute sizing is confirmed or adjusted
@@ -163,5 +163,5 @@ Plans:
 | 20. Query Consolidation & Caching | v1.2 | 4/4 | Complete    | 2026-03-30 |
 | 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete    | 2026-03-30 |
 | 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete    | 2026-03-30 |
-| 23. Security Audit | v1.2 | 2/3 | In progress | - |
+| 23. Security Audit | v1.2 | 3/3 | Complete   | 2026-03-30 |
 | 24. Infrastructure & Validation | v1.2 | 0/? | Not started | - |
