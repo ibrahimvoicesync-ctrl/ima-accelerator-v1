@@ -1,57 +1,26 @@
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getGreeting, getToday } from "@/lib/utils";
+import { getGreeting } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/Card";
 import { GraduationCap, Shield, Users, FileText } from "lucide-react";
 import Link from "next/link";
+import type { OwnerDashboardStats } from "@/lib/rpc/types";
 
 export default async function OwnerDashboard() {
   const user = await requireRole("owner");
   const admin = createAdminClient();
-  const today = getToday();
   const firstName = user.name.split(" ")[0];
 
-  const [
-    { count: totalStudents, error: studentsError },
-    { count: totalCoaches, error: coachesError },
-    { data: activeSessions, error: activeError },
-    { count: reportsToday, error: reportsError },
-  ] = await Promise.all([
-    admin
-      .from("users")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "student")
-      .eq("status", "active"),
-    admin
-      .from("users")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "coach")
-      .eq("status", "active"),
-    admin
-      .from("work_sessions")
-      .select("student_id")
-      .eq("date", today),
-    admin
-      .from("daily_reports")
-      .select("*", { count: "exact", head: true })
-      .eq("date", today)
-      .not("submitted_at", "is", null),
-  ]);
-
-  if (studentsError) {
-    console.error("[owner dashboard] Failed to load total students:", studentsError);
+  const { data, error } = await admin.rpc("get_owner_dashboard_stats");
+  if (error) {
+    console.error("[owner dashboard] RPC failed:", error);
   }
-  if (coachesError) {
-    console.error("[owner dashboard] Failed to load total coaches:", coachesError);
-  }
-  if (activeError) {
-    console.error("[owner dashboard] Failed to load active sessions:", activeError);
-  }
-  if (reportsError) {
-    console.error("[owner dashboard] Failed to load reports today:", reportsError);
-  }
-
-  const activeTodayCount = new Set(activeSessions?.map((r) => r.student_id) ?? []).size;
+  const stats = (data as OwnerDashboardStats) ?? {
+    total_students: 0,
+    total_coaches: 0,
+    active_today_count: 0,
+    reports_today: 0,
+  };
 
   return (
     <div className="px-4">
@@ -75,7 +44,7 @@ export default async function OwnerDashboard() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-ima-text">
-                  {totalStudents ?? 0}
+                  {stats.total_students}
                 </p>
                 <p className="text-xs text-ima-text-secondary">Total Students</p>
               </div>
@@ -95,7 +64,7 @@ export default async function OwnerDashboard() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-ima-text">
-                  {totalCoaches ?? 0}
+                  {stats.total_coaches}
                 </p>
                 <p className="text-xs text-ima-text-secondary">Total Coaches</p>
               </div>
@@ -114,7 +83,7 @@ export default async function OwnerDashboard() {
             </div>
             <div>
               <p className="text-2xl font-bold text-ima-text">
-                {activeTodayCount}
+                {stats.active_today_count}
               </p>
               <p className="text-xs text-ima-text-secondary">Active Today</p>
             </div>
@@ -132,7 +101,7 @@ export default async function OwnerDashboard() {
             </div>
             <div>
               <p className="text-2xl font-bold text-ima-text">
-                {reportsToday ?? 0}
+                {stats.reports_today}
               </p>
               <p className="text-xs text-ima-text-secondary">Reports Today</p>
             </div>

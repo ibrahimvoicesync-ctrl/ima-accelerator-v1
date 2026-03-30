@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER } from "@/lib/config";
@@ -89,5 +90,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to start session" }, { status: 500 });
   }
 
+  revalidateTag("badges", "default");
   return NextResponse.json(session, { status: 201 });
 }

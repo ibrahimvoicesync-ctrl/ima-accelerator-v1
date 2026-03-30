@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { VALIDATION } from "@/lib/config";
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
+    revalidateTag("badges", "default");
     return NextResponse.json({ data: updated });
   }
 
@@ -113,5 +115,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
+  revalidateTag("badges", "default");
   return NextResponse.json({ data: report }, { status: 201 });
 }
