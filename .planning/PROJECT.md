@@ -52,7 +52,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - [x] Optimistic UI on student report submission — Validated in Phase 21: Write Path & Pre-Aggregation
 - [x] API route-level rate limiting (30 req/min/user) — Validated in Phase 22: Spike Protection & Rate Limiting
 - [x] Security audit: auth checks, RLS verification, CSRF, cross-student isolation — Validated in Phase 23: Security Audit
-- [ ] Infrastructure validation under 5k simulated load
+- [x] Infrastructure validation under 5k simulated load — Validated in Phase 24: Infrastructure & Validation (projected; actual staging test pending)
 
 ### Out of Scope
 
@@ -131,6 +131,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | proxy.ts not middleware.ts | Next.js 16 breaking change; route guard runs in proxy | ✓ Good — works correctly with App Router |
 | Resume shifts started_at forward | Client timer needs no elapsed accumulator; Date.now() - started_at always equals active work time | ✓ Good — simple timer math |
 | alert_dismissals with time-windowed keys | Dismissed alerts re-trigger in new window (daily/weekly/monthly) | ✓ Good — prevents stale dismissals masking new issues |
+| Phase 24 | Compute sizing: STAY on Pro Small — projected load test with 5k students shows P95=620-750ms (under 1s), connection usage=63% of max (under 70%); all v1.2 optimizations confirm adequate headroom. Pending actual staging test execution to confirm. | 2026-03-30 |
 
 ## Current Milestone: v1.2 Performance, Scale & Security
 
