@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { APP_CONFIG } from "@/lib/config";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 function generateMagicCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -35,6 +36,15 @@ export async function POST(request: NextRequest) {
 
   if (profile.role !== "coach" && profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit check (per D-01, D-04)
+  const { allowed: postAllowed, retryAfterSeconds: postRetryAfter } = await checkRateLimit(profile.id, "/api/magic-links/create");
+  if (!postAllowed) {
+    return NextResponse.json(
+      { error: `Too many requests, try again in ${postRetryAfter} seconds.` },
+      { status: 429, headers: { "Retry-After": String(postRetryAfter) } }
+    );
   }
 
   let magicRole: "coach" | "student" = "student";
@@ -101,6 +111,15 @@ export async function PATCH(request: NextRequest) {
 
   if (profile.role !== "coach" && profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit check (per D-01, D-04)
+  const { allowed: patchAllowed, retryAfterSeconds: patchRetryAfter } = await checkRateLimit(profile.id, "/api/magic-links/update");
+  if (!patchAllowed) {
+    return NextResponse.json(
+      { error: `Too many requests, try again in ${patchRetryAfter} seconds.` },
+      { status: 429, headers: { "Retry-After": String(patchRetryAfter) } }
+    );
   }
 
   const id = request.nextUrl.searchParams.get("id");

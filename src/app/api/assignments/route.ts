@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const assignSchema = z.object({
   coach_id: z.string().guid().nullable(),
@@ -28,6 +29,15 @@ export async function PATCH(request: NextRequest) {
   }
   if (profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit check (per D-01, D-04)
+  const { allowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/assignments");
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Too many requests, try again in ${retryAfterSeconds} seconds.` },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
   }
 
   // 3. Parse studentId from query params

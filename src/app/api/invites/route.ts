@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { INVITE_CONFIG, VALIDATION } from "@/lib/config";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const inviteSchema = z.object({
   email: z.string().email().max(VALIDATION.email.max),
@@ -29,6 +30,15 @@ export async function POST(request: NextRequest) {
 
   if (profile.role !== "coach" && profile.role !== "owner") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit check (per D-01, D-04)
+  const { allowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/invites");
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Too many requests, try again in ${retryAfterSeconds} seconds.` },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
   }
 
   let body: unknown;
