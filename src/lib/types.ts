@@ -339,6 +339,82 @@ export type Database = {
           }
         ];
       };
+      student_kpi_summaries: {
+        Row: {
+          student_id: string;
+          total_brands_contacted: number;
+          total_influencers_contacted: number;
+          total_hours_worked: number;
+          total_calls_joined: number;
+          total_reports: number;
+          last_active_date: string | null;
+          current_streak: number;
+          last_report_date: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          student_id: string;
+          total_brands_contacted?: number;
+          total_influencers_contacted?: number;
+          total_hours_worked?: number;
+          total_calls_joined?: number;
+          total_reports?: number;
+          last_active_date?: string | null;
+          current_streak?: number;
+          last_report_date?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          student_id?: string;
+          total_brands_contacted?: number;
+          total_influencers_contacted?: number;
+          total_hours_worked?: number;
+          total_calls_joined?: number;
+          total_reports?: number;
+          last_active_date?: string | null;
+          current_streak?: number;
+          last_report_date?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "student_kpi_summaries_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      rate_limit_log: {
+        Row: {
+          id: number;
+          user_id: string;
+          endpoint: string;
+          called_at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          endpoint: string;
+          called_at?: string;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          endpoint?: string;
+          called_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rate_limit_log_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
