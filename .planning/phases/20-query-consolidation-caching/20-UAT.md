@@ -3,7 +3,7 @@ status: complete
 phase: 20-query-consolidation-caching
 source: [20-01-SUMMARY.md, 20-02-SUMMARY.md, 20-03-SUMMARY.md, 20-04-SUMMARY.md]
 started: 2026-03-30T08:00:00Z
-updated: 2026-03-30T08:45:00Z
+updated: 2026-03-30T09:00:00Z
 ---
 
 ## Current Test
@@ -34,9 +34,8 @@ result: pass
 
 ### 6. Owner Student Detail Page
 expected: Log in as owner. Click on a student to view their detail page. Page shows all data from coach view PLUS coach management fields (assigned coach info). All data renders correctly — now powered by a single RPC call instead of 11 queries.
-result: issue
-reported: "roadmap always shows 'No roadmap progress yet' even if there is already progress"
-severity: major
+result: pass
+note: Initially failed — migration 00010 was not deployed to remote Supabase. After `supabase migration repair --status reverted 00010` + `supabase db push`, RPC functions became available and roadmap data rendered correctly. Re-tested and passed.
 
 ### 7. Owner Students List — Pagination
 expected: Log in as owner, go to Students list. If more than 25 students exist, pagination controls (Previous/Next) appear at the bottom with "Page X of ~Y" indicator. Clicking Next loads the next page of students. Clicking Previous goes back. Controls are disabled at boundaries (Previous disabled on page 1, Next disabled on last page).
@@ -53,20 +52,12 @@ result: pass
 ## Summary
 
 total: 9
-passed: 8
-issues: 1
+passed: 9
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
 
 ## Gaps
 
-- truth: "Owner student detail page shows roadmap progress when progress exists"
-  status: failed
-  reason: "User reported: roadmap always shows 'No roadmap progress yet' even if there is already progress"
-  severity: major
-  test: 6
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+[none — initial roadmap issue resolved by deploying migration 00010 to remote Supabase]
