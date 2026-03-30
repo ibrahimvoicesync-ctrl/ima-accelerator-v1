@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROADMAP_STEPS } from "@/lib/config";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrigin } from "@/lib/csrf";
 
 const patchSchema = z.object({
   step_number: z.number().int().min(1).max(ROADMAP_STEPS.length),
@@ -11,6 +12,10 @@ const patchSchema = z.object({
 
 export async function PATCH(request: NextRequest) {
   try {
+    // CSRF protection -- Origin header must match app host
+    const csrfError = verifyOrigin(request);
+    if (csrfError) return csrfError;
+
     const supabase = await createClient();
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) {

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER } from "@/lib/config";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrigin } from "@/lib/csrf";
 
 const postSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -16,6 +17,10 @@ const postSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // CSRF protection -- Origin header must match app host
+  const csrfError = verifyOrigin(request);
+  if (csrfError) return csrfError;
+
   // Auth check
   const supabase = await createClient();
   const {

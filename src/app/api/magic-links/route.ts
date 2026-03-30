@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { APP_CONFIG } from "@/lib/config";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrigin } from "@/lib/csrf";
 
 function generateMagicCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -17,6 +18,10 @@ const patchSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // CSRF protection -- Origin header must match app host
+  const csrfError = verifyOrigin(request);
+  if (csrfError) return csrfError;
+
   const supabase = await createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {
@@ -92,6 +97,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  // CSRF protection -- Origin header must match app host
+  const csrfError = verifyOrigin(request);
+  if (csrfError) return csrfError;
+
   const supabase = await createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {

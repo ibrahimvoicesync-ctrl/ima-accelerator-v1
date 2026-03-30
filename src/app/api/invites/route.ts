@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { INVITE_CONFIG, VALIDATION } from "@/lib/config";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrigin } from "@/lib/csrf";
 
 const inviteSchema = z.object({
   email: z.string().email().max(VALIDATION.email.max),
@@ -11,6 +12,10 @@ const inviteSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // CSRF protection -- Origin header must match app host
+  const csrfError = verifyOrigin(request);
+  if (csrfError) return csrfError;
+
   const supabase = await createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {

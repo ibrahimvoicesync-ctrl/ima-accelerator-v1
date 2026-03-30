@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { VALIDATION } from "@/lib/config";
 import { isValidDateString } from "@/lib/utils";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrigin } from "@/lib/csrf";
 
 const postSchema = z.object({
   date: z.string().refine(isValidDateString, "Invalid date format (YYYY-MM-DD)"),
@@ -19,6 +20,10 @@ const postSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // CSRF protection -- Origin header must match app host
+  const csrfError = verifyOrigin(request);
+  if (csrfError) return csrfError;
+
   const supabase = await createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) {

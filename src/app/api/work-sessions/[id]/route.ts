@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrigin } from "@/lib/csrf";
 
 const patchSchema = z.object({
   status: z.enum(["completed", "abandoned", "paused", "in_progress"]),
@@ -14,6 +15,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  // CSRF protection -- Origin header must match app host
+  const csrfError = verifyOrigin(request);
+  if (csrfError) return csrfError;
 
   // Auth check
   const supabase = await createClient();

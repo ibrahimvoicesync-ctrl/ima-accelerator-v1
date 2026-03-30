@@ -4,12 +4,17 @@ import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrigin } from "@/lib/csrf";
 
 const dismissSchema = z.object({
   alert_key: z.string().min(1).max(200),
 });
 
 export async function POST(request: NextRequest) {
+  // CSRF protection -- Origin header must match app host
+  const csrfError = verifyOrigin(request);
+  if (csrfError) return csrfError;
+
   // 1. Auth check
   const supabase = await createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();

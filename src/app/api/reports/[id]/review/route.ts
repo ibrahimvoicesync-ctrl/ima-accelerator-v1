@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrigin } from "@/lib/csrf";
 
 const reviewSchema = z.object({
   reviewed: z.boolean(),
@@ -13,6 +14,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 0. CSRF protection -- Origin header must match app host
+  const csrfError = verifyOrigin(request);
+  if (csrfError) return csrfError;
+
   // 1. Auth — verify user session
   const supabase = await createClient();
   const {
@@ -87,7 +92,8 @@ export async function PATCH(
     .single();
 
   if (studentError || !studentMatch) {
-    return NextResponse.json({ error: "Not your student" }, { status: 403 });
+    // Return 404 for all ownership failures to prevent report-ID probing (FIND-05)
+    return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
   // 8. Toggle review status
