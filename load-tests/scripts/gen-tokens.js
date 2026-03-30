@@ -165,7 +165,7 @@ const ownerTokenPath    = path.join(tokensDir, 'owner_token.json');
 const studentUUIDsPath  = path.join(tokensDir, 'student_uuids.json');
 
 fs.writeFileSync(studentTokensPath, JSON.stringify(studentTokens, null, 0));
-fs.writeFileSync(ownerTokenPath,    JSON.stringify(ownerToken,    null, 0));
+fs.writeFileSync(ownerTokenPath,    JSON.stringify([ownerToken],  null, 0));
 fs.writeFileSync(studentUUIDsPath,  JSON.stringify(studentUUIDs,  null, 2));
 
 // ----------------------------------------------------------------------------
