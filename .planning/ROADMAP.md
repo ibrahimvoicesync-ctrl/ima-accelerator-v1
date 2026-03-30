@@ -45,7 +45,7 @@
 - [x] **Phase 21: Write Path & Pre-Aggregation** — pg_cron nightly KPI summaries, optimistic UI on report submission, write path audit (completed 2026-03-30)
 - [x] **Phase 22: Spike Protection & Rate Limiting** — DB-backed rate limiting (30 req/min/user) on all mutation routes (completed 2026-03-30)
 - [x] **Phase 23: Security Audit** — Auth check verification, CSRF Origin headers, cross-student isolation audit [requires-human-review] (completed 2026-03-30)
-- [x] **Phase 24: Infrastructure & Validation** — k6 load test (5k students), capacity documentation, compute right-sizing (completed 2026-03-30)
+- [ ] **Phase 24: Infrastructure & Validation** — k6 load test (5k students), capacity documentation, compute right-sizing (gap closure: token bug fix + staging test execution pending)
 
 ## Phase Details
 
@@ -135,11 +135,13 @@ Plans:
   1. A k6 load test runs against a staging environment seeded with 5,000 students and 90 days of reports (~500k rows); the test covers the owner dashboard read mix and the 11 PM write spike scenario; P95 latency and connection counts are recorded
   2. A capacity document records connection usage (must stay below 70% of max_connections during spike), P50/P95/P99 query latencies, and rate limiter trigger counts during the simulated spike
   3. Supabase compute add-on tier is confirmed adequate or upgraded based on load test data; the decision (stay/upgrade + rationale) is written into PROJECT.md Key Decisions
-**Plans:** 3/3 plans complete
+**Plans:** 5 plans (3 complete, 2 gap closure)
 Plans:
 - [x] 24-01-PLAN.md — Seed SQL (5k students, 500k reports), JWT pre-gen script, CAPACITY.md template, .gitignore
 - [x] 24-02-PLAN.md — k6 scenario scripts (read-mix, write-spike, combined)
 - [x] 24-03-PLAN.md — Load test execution, capacity doc completion, compute sizing decision
+- [ ] 24-04-PLAN.md — Gap closure: fix owner token format bug + revert premature INFRA requirement markings
+- [ ] 24-05-PLAN.md — Gap closure: provision staging, execute k6 tests, update capacity docs with measured data
 
 ## Progress
 
@@ -168,4 +170,4 @@ Plans:
 | 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete    | 2026-03-30 |
 | 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete    | 2026-03-30 |
 | 23. Security Audit | v1.2 | 3/3 | Complete    | 2026-03-30 |
-| 24. Infrastructure & Validation | v1.2 | 3/3 | Complete   | 2026-03-30 |
+| 24. Infrastructure & Validation | v1.2 | 3/5 | Gap Closure | — |
