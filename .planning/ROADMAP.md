@@ -137,7 +137,7 @@ Plans:
   3. Supabase compute add-on tier is confirmed adequate or upgraded based on load test data; the decision (stay/upgrade + rationale) is written into PROJECT.md Key Decisions
 **Plans:** 3 plans
 Plans:
-- [ ] 24-01-PLAN.md — Seed SQL (5k students, 500k reports), JWT pre-gen script, CAPACITY.md template, .gitignore
+- [x] 24-01-PLAN.md — Seed SQL (5k students, 500k reports), JWT pre-gen script, CAPACITY.md template, .gitignore
 - [ ] 24-02-PLAN.md — k6 scenario scripts (read-mix, write-spike, combined)
 - [ ] 24-03-PLAN.md — Load test execution, capacity doc completion, compute sizing decision
 
@@ -168,4 +168,4 @@ Plans:
 | 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete    | 2026-03-30 |
 | 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete    | 2026-03-30 |
 | 23. Security Audit | v1.2 | 3/3 | Complete    | 2026-03-30 |
-| 24. Infrastructure & Validation | v1.2 | 0/3 | Not started | - |
+| 24. Infrastructure & Validation | v1.2 | 1/3 | In progress | - |
