@@ -11,7 +11,7 @@ Requirements for milestone v1.2 (Performance, Scale & Security for 5,000 Student
 
 - [x] **DB-01**: Composite indexes exist on daily_reports(student_id, date), work_sessions(student_id, date, status), roadmap_progress(student_id) — verified with EXPLAIN ANALYZE
 - [x] **DB-02**: createAdminClient() is a module-level singleton reused across requests within the same process
-- [ ] **DB-03**: All RLS policies use (SELECT auth.uid()) instead of auth.uid() for initplan optimization
+- [x] **DB-03**: All RLS policies use (SELECT auth.uid()) instead of auth.uid() for initplan optimization
 - [ ] **DB-04**: pg_stat_statements enabled, slow queries >200ms logged, baseline metrics recorded before and after index changes
 
 ### Query Optimization
@@ -32,9 +32,9 @@ Requirements for milestone v1.2 (Performance, Scale & Security for 5,000 Student
 ### Security & Protection
 
 - [x] **SEC-01**: DB-backed rate limiting on mutation API routes enforces 30 requests/minute per user via Supabase table (in-memory breaks in serverless)
-- [ ] **SEC-02**: Every API route's auth check and role verification is documented and verified correct
+- [x] **SEC-02**: Every API route's auth check and role verification is documented and verified correct
 - [x] **SEC-03**: All mutation route handlers verify Origin header for CSRF protection
-- [ ] **SEC-04**: Cross-student data isolation verified — no student can access another student's data via param manipulation
+- [x] **SEC-04**: Cross-student data isolation verified — no student can access another student's data via param manipulation
 
 ### Infrastructure & Validation
 
@@ -88,7 +88,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | DB-01 | Phase 19 | Complete |
 | DB-02 | Phase 19 | Complete |
-| DB-03 | Phase 19 | Pending |
+| DB-03 | Phase 23 | Complete |
 | DB-04 | Phase 19 | Pending |
 | QUERY-01 | Phase 20 | Complete |
 | QUERY-02 | Phase 20 | Complete |
@@ -100,9 +100,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WRITE-02 | Phase 21 | Pending |
 | WRITE-03 | Phase 21 | Pending |
 | SEC-01 | Phase 22 | Complete |
-| SEC-02 | Phase 23 | Pending |
+| SEC-02 | Phase 23 | Complete |
 | SEC-03 | Phase 23 | Complete |
-| SEC-04 | Phase 23 | Pending |
+| SEC-04 | Phase 23 | Complete |
 | INFRA-01 | Phase 24 | Pending |
 | INFRA-02 | Phase 24 | Pending |
 | INFRA-03 | Phase 24 | Pending |
@@ -114,4 +114,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-29*
-*Last updated: 2026-03-29 — traceability populated after roadmap creation*
+*Last updated: 2026-03-30 — SEC-02, SEC-03, SEC-04, DB-03 completed in Phase 23*
