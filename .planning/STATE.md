@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Performance, Scale & Security
 status: executing
-stopped_at: Completed 20-03-PLAN.md (student detail RPC consolidation)
-last_updated: "2026-03-30T06:52:36.930Z"
+stopped_at: Completed 20-04-PLAN.md (PaginationControls + server-side pagination)
+last_updated: "2026-03-30T06:54:09.470Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 20 (query-consolidation-caching) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -69,6 +69,9 @@ Critical v1.2 decisions from research:
 - [Phase 20-query-consolidation-caching]: React cache() wraps getSessionUser at declaration level so requireRole() benefits automatically with zero changes to callsites
 - [Phase 20]: Use (admin as any).rpc() cast for unregistered RPC calls until supabase gen types regenerated
 - [Phase 20]: Cast roadmap status string to union type inline at usage site for component prop compatibility
+- [Phase 20-query-consolidation-caching]: Replaced OwnerStudentSearchClient with server-side form GET — eliminates client JS for search, resets page to 1 on new search
+- [Phase 20-query-consolidation-caching]: Coach enrichment queries scoped to current page's coachIds only — O(page_size) not O(all_coaches) at scale
+- [Phase 20-query-consolidation-caching]: count: 'estimated' on paginated owner list pages — avoids full table scan for count
 
 ### Pending Todos
 
@@ -81,6 +84,6 @@ None blocking Phase 19 start.
 
 ## Session Continuity
 
-Last session: 2026-03-30T06:52:36.928Z
-Stopped at: Completed 20-03-PLAN.md (student detail RPC consolidation)
+Last session: 2026-03-30T06:54:09.467Z
+Stopped at: Completed 20-04-PLAN.md (PaginationControls + server-side pagination)
 Resume file: None
