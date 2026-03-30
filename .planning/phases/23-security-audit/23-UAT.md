@@ -1,9 +1,9 @@
 ---
-status: complete
+status: resolved
 phase: 23-security-audit
 source: [23-01-SUMMARY.md, 23-02-SUMMARY.md]
 started: 2026-03-30T14:00:00Z
-updated: 2026-03-30T14:02:00Z
+updated: 2026-03-30T15:00:00Z
 ---
 
 ## Current Test
@@ -50,9 +50,17 @@ blocked: 0
 ## Gaps
 
 - truth: "Work session starts immediately and timer appears without delay"
-  status: failed
+  status: resolved
   reason: "User reported: delay until timer appears when starting a session; also wants countdown timer (Session 1 — 45 min / 44:59 left) hidden from student view but still visible to owner/coaches"
   severity: minor
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "No optimistic state update in handleStart — timer waits for router.refresh() server round-trip. API already returns created session but response is not parsed into local state. Countdown text in CycleCard shows '44:59 left' to students; coaches already see different component with no countdown."
+  artifacts:
+    - path: "src/components/student/WorkTrackerClient.tsx"
+      issue: "handleStart (line 139) sets phase but doesn't update sessions state — activeSession stays null until server re-render"
+    - path: "src/components/student/WorkTrackerClient.tsx"
+      issue: "lines 549-557 compute countdown timeInfo for in_progress sessions shown in CycleCard"
+  missing:
+    - "Parse API response and optimistically add to sessions state before router.refresh()"
+    - "Change timeInfo for in_progress status from countdown to 'In progress' in student view"
+  debug_session: ".planning/debug/work-timer-delay-and-countdown.md"
