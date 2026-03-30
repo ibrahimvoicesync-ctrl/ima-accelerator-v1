@@ -154,7 +154,7 @@ Plans:
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 2/2 | Complete | 2026-03-28 |
 | 19. Database Foundation | v1.2 | 2/2 | Complete    | 2026-03-29 |
 | 20. Query Consolidation & Caching | v1.2 | 4/4 | Complete    | 2026-03-30 |
-| 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete   | 2026-03-30 |
+| 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete    | 2026-03-30 |
 | 22. Spike Protection & Rate Limiting | v1.2 | 0/? | Not started | - |
 | 23. Security Audit | v1.2 | 0/? | Not started | - |
 | 24. Infrastructure & Validation | v1.2 | 0/? | Not started | - |
