@@ -50,12 +50,20 @@ ALTER TABLE public.rate_limit_log ENABLE ROW LEVEL SECURITY;
 -- ============================================================================
 
 DO $$ BEGIN
-  PERFORM cron.unschedule('cleanup-rate-limit-log');
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    PERFORM cron.unschedule('cleanup-rate-limit-log');
+  END IF;
 EXCEPTION WHEN OTHERS THEN NULL;
 END; $$;
 
-SELECT cron.schedule(
-  'cleanup-rate-limit-log',
-  '30 3 * * *',
-  $$ DELETE FROM public.rate_limit_log WHERE called_at < now() - interval '2 hours' $$
-);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    PERFORM cron.schedule(
+      'cleanup-rate-limit-log',
+      '30 3 * * *',
+      'DELETE FROM public.rate_limit_log WHERE called_at < now() - interval ''2 hours'''
+    );
+  ELSE
+    RAISE NOTICE 'pg_cron not available — skipping rate_limit_log cleanup job (OK for local dev)';
+  END IF;
+END; $$;

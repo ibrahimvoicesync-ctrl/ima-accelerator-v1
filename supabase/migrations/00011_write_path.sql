@@ -247,20 +247,32 @@ $$;
 -- ============================================================================
 
 -- Unschedule existing job if it exists (makes migration idempotent on re-run)
+-- Wrapped in schema check so local Supabase (no pg_cron) doesn't fail
 DO $$
 BEGIN
-  PERFORM cron.unschedule('refresh-student-kpi-summaries');
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    PERFORM cron.unschedule('refresh-student-kpi-summaries');
+  END IF;
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 $$;
 
 -- Schedule nightly aggregation job
 -- 0 2 * * * = 2:00 AM UTC = 6:00 AM UAE (GST, UTC+4)
-SELECT cron.schedule(
-  'refresh-student-kpi-summaries',
-  '0 2 * * *',
-  $$SELECT public.refresh_student_kpi_summaries()$$
-);
+-- Skipped when pg_cron is not available (e.g. local Docker)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    PERFORM cron.schedule(
+      'refresh-student-kpi-summaries',
+      '0 2 * * *',
+      'SELECT public.refresh_student_kpi_summaries()'
+    );
+  ELSE
+    RAISE NOTICE 'pg_cron not available — skipping cron job registration (OK for local dev)';
+  END IF;
+END;
+$$;
 
 
 -- ============================================================================

@@ -1,19 +1,10 @@
 // Read Mix Scenario — simulates owner dashboard browsing
-// Run: "/c/Program Files/k6/k6.exe" run -e APP_URL=<url> -e SUPABASE_URL=<url> -e SUPABASE_ANON_KEY=<key> load-tests/scenarios/read-mix.js
+// Hits PostgREST RPCs and table reads directly
+//
+// Run: k6 run -e SUPABASE_URL=http://127.0.0.1:54321 -e SUPABASE_ANON_KEY=<key> -e SERVICE_ROLE_KEY=<key> load-tests/scenarios/read-mix.js
 
-import { SharedArray } from 'k6/data';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-
-// Load owner token (single token — only one owner per staging environment per D-08)
-const ownerTokenArr = new SharedArray('owner-token', function () {
-  return JSON.parse(open('../tokens/owner_token.json'));
-});
-
-// Load student tokens for student detail page reads
-const studentTokens = new SharedArray('student-tokens', function () {
-  return JSON.parse(open('../tokens/student_tokens.json'));
-});
 
 export const options = {
   scenarios: {
@@ -38,18 +29,14 @@ export const options = {
 // but each RPC is heavier (aggregates over 500k rows)
 
 export default function () {
-  // Owner token from pre-generated pool (gen-tokens.js writes owner_token.json as array)
-  const ownerToken = ownerTokenArr[0];
-
-  // PostgREST headers — Authorization + apikey required for Supabase RPC calls
-  // No Origin header needed on reads (GET and Supabase RPC do not require CSRF)
+  // service_role key bypasses RLS — matches SECURITY DEFINER RPCs in production
   const headers = {
-    'Authorization': `Bearer ${ownerToken}`,
+    'Authorization': `Bearer ${__ENV.SERVICE_ROLE_KEY}`,
     'apikey': __ENV.SUPABASE_ANON_KEY,
     'Content-Type': 'application/json',
   };
 
-  // Request 1: RPC get_owner_dashboard_stats — aggregates totals across all students
+  // Request 1: RPC get_owner_dashboard_stats — aggregates totals across all students (no params)
   const dashboardRes = http.post(
     `${__ENV.SUPABASE_URL}/rest/v1/rpc/get_owner_dashboard_stats`,
     JSON.stringify({}),
@@ -63,7 +50,7 @@ export default function () {
   // Request 2: RPC get_sidebar_badges — badge counts for unread reports, etc.
   const badgesRes = http.post(
     `${__ENV.SUPABASE_URL}/rest/v1/rpc/get_sidebar_badges`,
-    JSON.stringify({}),
+    JSON.stringify({ p_user_id: __ENV.OWNER_USER_ID, p_role: 'owner' }),
     { headers }
   );
 

@@ -76,68 +76,68 @@ VALUES
 -- Mix of cycle numbers 1-3, mix of statuses
 -- ---------------------------------------------------------------------------
 
-INSERT INTO public.work_sessions (id, student_id, date, cycle_number, started_at, completed_at, duration_minutes, status, created_at)
+INSERT INTO public.work_sessions (id, student_id, date, cycle_number, session_minutes, started_at, completed_at, duration_minutes, status, created_at)
 VALUES
   -- Amira (004) — today, cycle 1 completed
   ('00000000-0000-0000-0000-000000000030',
    '00000000-0000-0000-0000-000000000004',
-   CURRENT_DATE, 1,
+   CURRENT_DATE, 1, 45,
    NOW() - INTERVAL '3 hours', NOW() - INTERVAL '2 hours 15 minutes', 45, 'completed',
    NOW() - INTERVAL '3 hours'),
 
   -- Amira (004) — today, cycle 2 in progress
   ('00000000-0000-0000-0000-000000000031',
    '00000000-0000-0000-0000-000000000004',
-   CURRENT_DATE, 2,
+   CURRENT_DATE, 2, 45,
    NOW() - INTERVAL '1 hour', NULL, 0, 'in_progress',
    NOW() - INTERVAL '1 hour'),
 
   -- Yusuf (005) — today, cycle 1 completed
   ('00000000-0000-0000-0000-000000000032',
    '00000000-0000-0000-0000-000000000005',
-   CURRENT_DATE, 1,
+   CURRENT_DATE, 1, 45,
    NOW() - INTERVAL '4 hours', NOW() - INTERVAL '3 hours 15 minutes', 45, 'completed',
    NOW() - INTERVAL '4 hours'),
 
   -- Yusuf (005) — today, cycle 2 completed
   ('00000000-0000-0000-0000-000000000033',
    '00000000-0000-0000-0000-000000000005',
-   CURRENT_DATE, 2,
+   CURRENT_DATE, 2, 45,
    NOW() - INTERVAL '2 hours', NOW() - INTERVAL '1 hour 15 minutes', 45, 'completed',
    NOW() - INTERVAL '2 hours'),
 
   -- Yusuf (005) — today, cycle 3 abandoned
   ('00000000-0000-0000-0000-000000000034',
    '00000000-0000-0000-0000-000000000005',
-   CURRENT_DATE, 3,
+   CURRENT_DATE, 3, 30,
    NOW() - INTERVAL '30 minutes', NOW() - INTERVAL '15 minutes', 15, 'abandoned',
    NOW() - INTERVAL '30 minutes'),
 
   -- Layla (006) — today, cycle 1 completed
   ('00000000-0000-0000-0000-000000000035',
    '00000000-0000-0000-0000-000000000006',
-   CURRENT_DATE, 1,
+   CURRENT_DATE, 1, 45,
    NOW() - INTERVAL '5 hours', NOW() - INTERVAL '4 hours 15 minutes', 45, 'completed',
    NOW() - INTERVAL '5 hours'),
 
   -- Tariq (007) — yesterday, cycle 1 completed
   ('00000000-0000-0000-0000-000000000036',
    '00000000-0000-0000-0000-000000000007',
-   CURRENT_DATE - 1, 1,
+   CURRENT_DATE - 1, 1, 45,
    NOW() - INTERVAL '26 hours', NOW() - INTERVAL '25 hours 15 minutes', 45, 'completed',
    NOW() - INTERVAL '26 hours'),
 
   -- Tariq (007) — yesterday, cycle 2 completed
   ('00000000-0000-0000-0000-000000000037',
    '00000000-0000-0000-0000-000000000007',
-   CURRENT_DATE - 1, 2,
+   CURRENT_DATE - 1, 2, 45,
    NOW() - INTERVAL '24 hours', NOW() - INTERVAL '23 hours 15 minutes', 45, 'completed',
    NOW() - INTERVAL '24 hours'),
 
   -- Nadia (008) — yesterday, cycle 1 completed
   ('00000000-0000-0000-0000-000000000038',
    '00000000-0000-0000-0000-000000000008',
-   CURRENT_DATE - 1, 1,
+   CURRENT_DATE - 1, 1, 45,
    NOW() - INTERVAL '27 hours', NOW() - INTERVAL '26 hours 15 minutes', 45, 'completed',
    NOW() - INTERVAL '27 hours');
 

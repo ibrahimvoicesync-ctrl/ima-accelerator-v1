@@ -1,24 +1,18 @@
 // Combined Scenario — simultaneous read + write traffic
-// Run: "/c/Program Files/k6/k6.exe" run -e APP_URL=<url> -e SUPABASE_URL=<url> -e SUPABASE_ANON_KEY=<key> load-tests/scenarios/combined.js
+// Hits PostgREST directly with service_role key
+//
+// Run: k6 run -e SUPABASE_URL=http://127.0.0.1:54321 -e SUPABASE_ANON_KEY=<key> -e SERVICE_ROLE_KEY=<key> load-tests/scenarios/combined.js
 
 import { SharedArray } from 'k6/data';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-// Load pre-generated JWT tokens for student write VUs (D-04)
-const studentTokens = new SharedArray('student-tokens', function () {
-  return JSON.parse(open('../tokens/student_tokens.json'));
-});
-
-// Load owner token for read VUs (single token for dashboard reads)
-const ownerTokenArr = new SharedArray('owner-token', function () {
-  return JSON.parse(open('../tokens/owner_token.json'));
+// Load student profiles for write VUs
+const students = new SharedArray('student-profiles', function () {
+  return JSON.parse(open('../tokens/student_profiles.json'));
 });
 
 export const options = {
-  // k6 multi-scenario: write_spike and read_mix run simultaneously
-  // Combined uses lower VU counts (300 write + 50 read) since both run at the same time
-  // Total additive load simulates realistic mixed traffic pattern (D-09)
   scenarios: {
     write_spike: {
       executor: 'ramping-vus',
@@ -50,78 +44,78 @@ export const options = {
 };
 
 // =============================================================================
-// writeSpike: student report submission + work session start (same as write-spike.js)
+// writeSpike: student report + work session writes via PostgREST
 // =============================================================================
 export function writeSpike() {
-  const token = studentTokens[(__VU - 1) % studentTokens.length];
+  const student = students[(__VU - 1) % students.length];
 
-  // CSRF: Origin header required for mutation routes (Pitfall 2 — verifyOrigin() check)
   const headers = {
-    'Authorization': `Bearer ${token}`,
+    'Authorization': `Bearer ${__ENV.SERVICE_ROLE_KEY}`,
+    'apikey': __ENV.SUPABASE_ANON_KEY,
     'Content-Type': 'application/json',
-    'Origin': __ENV.APP_URL,
+    'Prefer': 'return=minimal',
   };
 
-  // Random date offset 0-89 days back (matches seeded data range per D-06/D-07)
   const dayOffset = Math.floor(Math.random() * 90);
   const d = new Date();
   d.setDate(d.getDate() - dayOffset);
   const date = d.toISOString().split('T')[0];
 
-  // Request 1: Submit daily report (POST /api/reports)
-  // Body conforms to Zod postSchema in src/app/api/reports/route.ts
+  // Request 1: Upsert daily report
   const reportBody = JSON.stringify({
+    student_id: student.id,
     date: date,
-    hours_worked: 2 + Math.random() * 6,                    // 2.0–8.0 (0–24 range)
-    star_rating: 1 + Math.floor(Math.random() * 5),          // 1–5 int
-    brands_contacted: Math.floor(Math.random() * 10),        // 0–9 int
-    influencers_contacted: Math.floor(Math.random() * 5),    // 0–4 int
-    calls_joined: Math.floor(Math.random() * 3),             // 0–2 int
+    hours_worked: (2 + Math.random() * 6).toFixed(2),
+    star_rating: 1 + Math.floor(Math.random() * 5),
+    outreach_count: Math.floor(Math.random() * 16),
+    brands_contacted: Math.floor(Math.random() * 10),
+    influencers_contacted: Math.floor(Math.random() * 5),
+    calls_joined: Math.floor(Math.random() * 3),
+    wins: 'Load test report',
+    improvements: 'Load test data',
   });
 
   const reportRes = http.post(
-    `${__ENV.APP_URL}/api/reports`,
+    `${__ENV.SUPABASE_URL}/rest/v1/daily_reports?on_conflict=student_id,date`,
     reportBody,
-    { headers }
+    { headers: Object.assign({}, headers, { 'Prefer': 'return=minimal,resolution=merge-duplicates' }) }
   );
 
   check(reportRes, {
-    'report submitted (200/201/409)': (r) =>
-      r.status === 200 || r.status === 201 || r.status === 409,
+    'report upserted (2xx)': (r) => r.status >= 200 && r.status < 300,
   });
 
-  // Request 2: Start work session (POST /api/work-sessions)
-  // Body conforms to Zod postSchema in src/app/api/work-sessions/route.ts
+  // Request 2: Insert work session
   const sessionBody = JSON.stringify({
+    student_id: student.id,
     date: date,
-    cycle_number: 1 + Math.floor(Math.random() * 10),                   // random cycle 1–10
-    session_minutes: [30, 45, 60][Math.floor(Math.random() * 3)],        // valid options only
+    cycle_number: 1 + Math.floor(Math.random() * 10),
+    session_minutes: [30, 45, 60][Math.floor(Math.random() * 3)],
+    status: 'completed',
+    duration_minutes: [30, 45, 60][Math.floor(Math.random() * 3)],
+    started_at: new Date(Date.now() - Math.floor(Math.random() * 3600000)).toISOString(),
+    completed_at: new Date().toISOString(),
   });
 
   const sessionRes = http.post(
-    `${__ENV.APP_URL}/api/work-sessions`,
+    `${__ENV.SUPABASE_URL}/rest/v1/work_sessions`,
     sessionBody,
     { headers }
   );
 
   check(sessionRes, {
-    'session started (201/409)': (r) => r.status === 201 || r.status === 409,
+    'session inserted (2xx)': (r) => r.status >= 200 && r.status < 300,
   });
 
-  // Rate limit protection: 2 requests per iteration + 3s sleep = ~20 req/min per endpoint
   sleep(3);
 }
 
 // =============================================================================
-// readMix: owner dashboard RPC calls + paginated student list (same as read-mix.js)
+// readMix: owner dashboard RPC calls + paginated student list
 // =============================================================================
 export function readMix() {
-  const ownerToken = ownerTokenArr[0];
-
-  // PostgREST headers — Authorization + apikey required for Supabase RPC calls
-  // No Origin header needed on reads (GET and Supabase RPC do not require CSRF)
   const headers = {
-    'Authorization': `Bearer ${ownerToken}`,
+    'Authorization': `Bearer ${__ENV.SERVICE_ROLE_KEY}`,
     'apikey': __ENV.SUPABASE_ANON_KEY,
     'Content-Type': 'application/json',
   };
@@ -137,10 +131,10 @@ export function readMix() {
     'get_owner_dashboard_stats: 200': (r) => r.status === 200,
   });
 
-  // Request 2: RPC get_sidebar_badges
+  // Request 2: RPC get_sidebar_badges (requires user_id and role params)
   const badgesRes = http.post(
     `${__ENV.SUPABASE_URL}/rest/v1/rpc/get_sidebar_badges`,
-    JSON.stringify({}),
+    JSON.stringify({ p_user_id: __ENV.OWNER_USER_ID, p_role: 'owner' }),
     { headers }
   );
 
@@ -148,7 +142,7 @@ export function readMix() {
     'get_sidebar_badges: 200': (r) => r.status === 200,
   });
 
-  // Request 3: Paginated student list — random page offset
+  // Request 3: Paginated student list
   const randomPage = Math.floor(Math.random() * 200);
   const listRes = http.get(
     `${__ENV.SUPABASE_URL}/rest/v1/users?role=eq.student&order=name.asc&offset=${randomPage * 25}&limit=25`,
@@ -159,6 +153,5 @@ export function readMix() {
     'paginated student list: 200': (r) => r.status === 200,
   });
 
-  // Dashboard browsing cadence
   sleep(2);
 }
