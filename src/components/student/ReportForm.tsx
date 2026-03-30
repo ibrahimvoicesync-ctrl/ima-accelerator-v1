@@ -24,7 +24,7 @@ interface ReportFormProps {
   date: string;
   existingReport: DailyReport | null;
   autoMinutes: number;
-  onSuccess?: () => void;
+  onSuccess?: (report: DailyReport) => void;
 }
 
 export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: ReportFormProps) {
@@ -80,9 +80,9 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
         return;
       }
 
-      await res.json();
+      const result = await res.json();
       toast({ type: "success", title: existingReport ? "Report updated!" : "Report submitted!" });
-      onSuccess?.();
+      onSuccess?.(result.data as DailyReport);
     } catch {
       toast({ type: "error", title: "Failed to submit report" });
     } finally {

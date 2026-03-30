@@ -1,4 +1,4 @@
-import { CheckCircle, Calendar, Clock, FileText } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
 import { ReportFormWrapper } from "@/components/student/ReportFormWrapper";
 import { requireRole } from "@/lib/session";
@@ -102,57 +102,7 @@ export default async function DailyReportPage() {
         </div>
       </div>
 
-      {/* Already submitted banner */}
-      {report?.submitted_at && (
-        <Card
-          variant="bordered-left"
-          className="border-l-ima-success"
-        >
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-ima-success/10 shrink-0">
-              <CheckCircle
-                className="h-5 w-5 text-ima-success"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-ima-text">
-                Report submitted for today
-              </p>
-              <p className="text-xs text-ima-text-secondary mt-0.5">
-                You can update it below if needed
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Report not yet submitted hint */}
-      {!report?.submitted_at && (
-        <Card
-          variant="bordered-left"
-          className="border-l-ima-warning"
-        >
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-ima-warning/10 shrink-0">
-              <FileText
-                className="h-5 w-5 text-ima-warning"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-ima-text">
-                Report not yet submitted
-              </p>
-              <p className="text-xs text-ima-text-secondary mt-0.5">
-                Fill out the form below to submit your daily report
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Report form */}
+      {/* Report form -- banners managed by ReportFormWrapper via useOptimistic */}
       <ReportFormWrapper
         date={today}
         existingReport={report ?? null}
