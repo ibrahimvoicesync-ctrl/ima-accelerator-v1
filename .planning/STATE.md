@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Performance, Scale & Security
 status: executing
-stopped_at: Completed 24-01-PLAN.md
-last_updated: "2026-03-30T17:34:47Z"
-last_activity: 2026-03-30 -- Phase 24 Plan 01 complete (load test infrastructure)
+stopped_at: Completed 24-02-PLAN.md
+last_updated: "2026-03-30T17:41:35.642Z"
+last_activity: 2026-03-30
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
   percent: 0
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 24 (infrastructure-validation) — EXECUTING
-Plan: 2 of 3
-Status: Executing Phase 24 (Plan 01 complete)
-Last activity: 2026-03-30 -- Phase 24 Plan 01 complete (load test infrastructure)
+Plan: 3 of 3
+Status: Ready to execute
+Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0% (0/6 phases)
 
@@ -80,6 +80,8 @@ Critical v1.2 decisions from research:
 - [Phase 23-security-audit]: CSRF Origin header verification via verifyOrigin() helper — runs before auth as cheapest check first, returns 403 on missing/mismatched Origin
 - [Phase 23-security-audit]: reports/[id]/review returns 404 for all ownership failures to prevent report-ID enumeration (FIND-05 fix)
 - [Phase 23-security-audit]: Optimistic setSessions before router.refresh() eliminates timer startup delay
+- [Phase 24-02]: read-mix.js uses direct PostgREST URL (SUPABASE_URL) not APP_URL for RPC calls — owner RPCs bypass Next.js routing to test DB layer directly
+- [Phase 24-02]: combined.js uses lower VU counts (300 write + 50 read vs 500+100 standalone) since both scenarios run simultaneously — additive load is the meaningful metric
 
 ### Pending Todos
 
@@ -95,6 +97,6 @@ Human action required before Plans 24-02 and 24-03 can proceed: staging Supabase
 
 ## Session Continuity
 
-Last session: 2026-03-30T17:34:47Z
-Stopped at: Completed 24-01-PLAN.md
-Resume file: .planning/phases/24-infrastructure-validation/24-01-SUMMARY.md
+Last session: 2026-03-30T17:41:35.637Z
+Stopped at: Completed 24-02-PLAN.md
+Resume file: None

@@ -38,7 +38,7 @@ Requirements for milestone v1.2 (Performance, Scale & Security for 5,000 Student
 
 ### Infrastructure & Validation
 
-- [ ] **INFRA-01**: k6 load test simulates 5k students with dashboard read mix and 11 PM write spike
+- [x] **INFRA-01**: k6 load test simulates 5k students with dashboard read mix and 11 PM write spike
 - [ ] **INFRA-02**: Connection usage, query times, and capacity headroom are documented
 - [ ] **INFRA-03**: Supabase compute add-on is right-sized based on load test data
 
@@ -103,7 +103,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-02 | Phase 23 | Complete |
 | SEC-03 | Phase 23 | Complete |
 | SEC-04 | Phase 23 | Complete |
-| INFRA-01 | Phase 24 | Pending |
+| INFRA-01 | Phase 24 | Complete |
 | INFRA-02 | Phase 24 | Pending |
 | INFRA-03 | Phase 24 | Pending |
 
