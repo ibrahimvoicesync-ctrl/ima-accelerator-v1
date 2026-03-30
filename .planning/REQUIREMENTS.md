@@ -31,7 +31,7 @@ Requirements for milestone v1.2 (Performance, Scale & Security for 5,000 Student
 
 ### Security & Protection
 
-- [ ] **SEC-01**: DB-backed rate limiting on mutation API routes enforces 30 requests/minute per user via Supabase table (in-memory breaks in serverless)
+- [x] **SEC-01**: DB-backed rate limiting on mutation API routes enforces 30 requests/minute per user via Supabase table (in-memory breaks in serverless)
 - [ ] **SEC-02**: Every API route's auth check and role verification is documented and verified correct
 - [ ] **SEC-03**: All mutation route handlers verify Origin header for CSRF protection
 - [ ] **SEC-04**: Cross-student data isolation verified — no student can access another student's data via param manipulation
@@ -99,7 +99,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WRITE-01 | Phase 21 | Pending |
 | WRITE-02 | Phase 21 | Pending |
 | WRITE-03 | Phase 21 | Pending |
-| SEC-01 | Phase 22 | Pending |
+| SEC-01 | Phase 22 | Complete |
 | SEC-02 | Phase 23 | Pending |
 | SEC-03 | Phase 23 | Pending |
 | SEC-04 | Phase 23 | Pending |

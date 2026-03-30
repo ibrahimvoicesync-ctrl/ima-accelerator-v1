@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Performance, Scale & Security
 status: executing
-stopped_at: Phase 22 context gathered
-last_updated: "2026-03-30T10:59:44.319Z"
+stopped_at: Completed 22-01-PLAN.md
+last_updated: "2026-03-30T11:26:32.732Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 21 — write-path-pre-aggregation
+**Current focus:** Phase 22 — spike-protection-rate-limiting
 
 ## Current Position
 
-Phase: 22
-Plan: Not started
-Status: Executing Phase 21
+Phase: 22 (spike-protection-rate-limiting) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0% (0/6 phases)
@@ -74,6 +74,8 @@ Critical v1.2 decisions from research:
 - [Phase 20-query-consolidation-caching]: count: 'estimated' on paginated owner list pages — avoids full table scan for count
 - [Phase 20]: revalidateTag requires second argument (profile) in Next.js 16 — use 'default' to avoid deprecation warning
 - [Phase 20]: Phase 20 RPC function types added to types.ts hand-crafted placeholder (get_owner_dashboard_stats, get_sidebar_badges, get_student_detail)
+- [Phase 22-spike-protection-rate-limiting]: DB-backed rate limiting via rate_limit_log table — in-memory is broken in serverless (isolated per-container state)
+- [Phase 22-spike-protection-rate-limiting]: checkRateLimit() fails open on DB error — errors propagate naturally to route handler's try-catch, avoiding false rejections for legitimate users
 
 ### Pending Todos
 
@@ -86,6 +88,6 @@ None blocking Phase 19 start.
 
 ## Session Continuity
 
-Last session: 2026-03-30T10:59:44.316Z
-Stopped at: Phase 22 context gathered
-Resume file: .planning/phases/22-spike-protection-rate-limiting/22-CONTEXT.md
+Last session: 2026-03-30T11:26:32.729Z
+Stopped at: Completed 22-01-PLAN.md
+Resume file: None

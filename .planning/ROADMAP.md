@@ -105,9 +105,9 @@ Plans:
   1. A rate_limit_log Supabase table exists with a cleanup pg_cron job; a checkRateLimit() async helper reads and writes to this table using an atomic INSERT + COUNT pattern
   2. All POST/PATCH/DELETE route handlers for work sessions, daily reports, and roadmap progress call checkRateLimit() after auth verification and before Zod validation
   3. A user who exceeds 30 requests/minute receives a 429 response with a Retry-After header; the limit is enforced consistently regardless of which serverless container handles the request
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 22-01-PLAN.md — Migration 00012 (rate_limit_log table, covering index, pg_cron cleanup) and checkRateLimit() helper module
+- [x] 22-01-PLAN.md — Migration 00012 (rate_limit_log table, covering index, pg_cron cleanup) and checkRateLimit() helper module
 - [ ] 22-02-PLAN.md — Integrate checkRateLimit() into all 10 mutation API routes (9 files, 10 endpoints)
 
 ### Phase 23: Security Audit
@@ -158,6 +158,6 @@ Plans:
 | 19. Database Foundation | v1.2 | 2/2 | Complete    | 2026-03-29 |
 | 20. Query Consolidation & Caching | v1.2 | 4/4 | Complete    | 2026-03-30 |
 | 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete    | 2026-03-30 |
-| 22. Spike Protection & Rate Limiting | v1.2 | 0/2 | Not started | - |
+| 22. Spike Protection & Rate Limiting | v1.2 | 1/2 | In Progress|  |
 | 23. Security Audit | v1.2 | 0/? | Not started | - |
 | 24. Infrastructure & Validation | v1.2 | 0/? | Not started | - |
