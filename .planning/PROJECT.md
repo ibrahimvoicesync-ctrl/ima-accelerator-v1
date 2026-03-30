@@ -50,7 +50,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - [ ] React cache() dedup + route-level revalidation on dashboard routes
 - [x] pg_cron nightly pre-aggregation for KPI summaries — Validated in Phase 21: Write Path & Pre-Aggregation
 - [x] Optimistic UI on student report submission — Validated in Phase 21: Write Path & Pre-Aggregation
-- [ ] API route-level rate limiting (30 req/min/user)
+- [x] API route-level rate limiting (30 req/min/user) — Validated in Phase 22: Spike Protection & Rate Limiting
 - [ ] Security audit: auth checks, RLS verification, CSRF, cross-student isolation
 - [ ] Infrastructure validation under 5k simulated load
 
@@ -91,6 +91,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **v1.1 milestone complete** (2026-03-28): 6 phases (13-18), 16 plans. Flexible work sessions, outreach KPI banner, coach/owner KPI visibility, calendar view, roadmap date KPIs all shipped. Supabase Pro plan active.
 
 **v1.2 Phase 21 complete** (2026-03-30): Write path & pre-aggregation — student_kpi_summaries table with nightly pg_cron refresh (advisory lock, incremental skip, streak computation), get_student_detail reads from summary table with fallback. React 19 useOptimistic on report submission for instant feedback. Write path audit confirms both endpoints optimal at 4 DB calls each.
+
+**v1.2 Phase 22 complete** (2026-03-30): Spike protection & rate limiting — rate_limit_log table (migration 00012) with covering index, RLS, pg_cron 2-hour cleanup. checkRateLimit() helper with atomic COUNT + INSERT. All 10 mutation routes (9 files) rate-limited at 30 req/min per user per endpoint with 429 + Retry-After responses.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
