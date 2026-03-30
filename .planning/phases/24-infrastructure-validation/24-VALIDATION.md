@@ -18,9 +18,9 @@ created: 2026-03-30
 | Property | Value |
 |----------|-------|
 | **Framework** | k6 v1.7.0 (load testing) + SQL seed scripts |
-| **Config file** | `tests/load/` (created in Wave 1) |
-| **Quick run command** | `"/c/Program Files/k6/k6.exe" run tests/load/smoke.js` |
-| **Full suite command** | `"/c/Program Files/k6/k6.exe" run tests/load/full-load.js` |
+| **Config file** | `load-tests/` (created in Wave 1) |
+| **Quick run command** | `"/c/Program Files/k6/k6.exe" run load-tests/scenarios/read-mix.js` |
+| **Full suite command** | `"/c/Program Files/k6/k6.exe" run load-tests/scenarios/combined.js` |
 | **Estimated runtime** | ~120-300 seconds (full load test) |
 
 ---
