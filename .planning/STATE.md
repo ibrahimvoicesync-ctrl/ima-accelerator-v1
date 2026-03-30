@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Performance, Scale & Security
 status: executing
-stopped_at: Completed 20-01-PLAN.md (RPC functions + types + session cache)
-last_updated: "2026-03-30T06:45:20.578Z"
+stopped_at: Completed 20-03-PLAN.md (student detail RPC consolidation)
+last_updated: "2026-03-30T06:52:36.930Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 6
-  completed_plans: 2
+  completed_plans: 4
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 20 (query-consolidation-caching) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -67,6 +67,8 @@ Critical v1.2 decisions from research:
 - [Phase 19-database-foundation]: Migration 00009 uses CREATE INDEX IF NOT EXISTS for idempotency — all Phase 19 SQL changes in single file per D-10
 - [Phase 20-query-consolidation-caching]: Single shared get_student_detail RPC with p_include_coach_mgmt boolean flag rather than separate coach/owner functions — avoids duplication of heavy 7-query body
 - [Phase 20-query-consolidation-caching]: React cache() wraps getSessionUser at declaration level so requireRole() benefits automatically with zero changes to callsites
+- [Phase 20]: Use (admin as any).rpc() cast for unregistered RPC calls until supabase gen types regenerated
+- [Phase 20]: Cast roadmap status string to union type inline at usage site for component prop compatibility
 
 ### Pending Todos
 
@@ -79,6 +81,6 @@ None blocking Phase 19 start.
 
 ## Session Continuity
 
-Last session: 2026-03-30T06:45:20.574Z
-Stopped at: Completed 20-01-PLAN.md (RPC functions + types + session cache)
+Last session: 2026-03-30T06:52:36.928Z
+Stopped at: Completed 20-03-PLAN.md (student detail RPC consolidation)
 Resume file: None
