@@ -41,7 +41,7 @@
 **v1.2 Performance, Scale & Security**
 
 - [x] **Phase 19: Database Foundation** — Composite indexes, admin client singleton, RLS initplan fix, monitoring baseline (completed 2026-03-29)
-- [x] **Phase 20: Query Consolidation & Caching** — RPC consolidation (8 → ≤2 round trips), React cache(), unstable_cache, server-side pagination (completed 2026-03-30)
+- [x] **Phase 20: Query Consolidation & Caching** — RPC consolidation (8 → ≤2 round trips), React cache(), unstable_cache, server-side pagination (completed 2026-03-30)
 - [ ] **Phase 21: Write Path & Pre-Aggregation** — pg_cron nightly KPI summaries, optimistic UI on report submission, write path audit
 - [ ] **Phase 22: Spike Protection & Rate Limiting** — DB-backed rate limiting (30 req/min/user) on all mutation routes
 - [ ] **Phase 23: Security Audit** — Auth check verification, CSRF Origin headers, cross-student isolation audit [requires-human-review]
@@ -92,7 +92,10 @@ Plans:
   1. A student_kpi_summaries table exists; a pg_cron job runs at 2 AM UTC (6 AM UAE) and calls refresh_student_kpi_summaries() which upserts per-student KPI aggregates; the function uses pg_try_advisory_lock() to prevent overlapping runs
   2. Student daily report submission updates the UI optimistically via useOptimistic before the API call returns; on API failure, the UI rolls back to server ground truth and the submit button re-enables
   3. A write path audit document records the exact DB call count for report submission and work session complete paths, and confirms no unnecessary round trips exist
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 21-01-PLAN.md — Migration 00011 (student_kpi_summaries table, refresh function, pg_cron job, get_student_detail RPC update)
+- [ ] 21-02-PLAN.md — Optimistic UI on ReportForm (useOptimistic + startTransition) and write path audit document
 
 ### Phase 22: Spike Protection & Rate Limiting
 **Goal**: All mutation API routes enforce a 30 requests/minute per-user limit backed by the database, so the limit is consistent across all serverless container instances
@@ -151,7 +154,7 @@ Plans:
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 2/2 | Complete | 2026-03-28 |
 | 19. Database Foundation | v1.2 | 2/2 | Complete    | 2026-03-29 |
 | 20. Query Consolidation & Caching | v1.2 | 4/4 | Complete    | 2026-03-30 |
-| 21. Write Path & Pre-Aggregation | v1.2 | 0/? | Not started | - |
+| 21. Write Path & Pre-Aggregation | v1.2 | 0/2 | Not started | - |
 | 22. Spike Protection & Rate Limiting | v1.2 | 0/? | Not started | - |
 | 23. Security Audit | v1.2 | 0/? | Not started | - |
 | 24. Infrastructure & Validation | v1.2 | 0/? | Not started | - |
