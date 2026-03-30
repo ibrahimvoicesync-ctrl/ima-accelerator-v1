@@ -48,8 +48,8 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - [ ] Dashboard layout RPC consolidation (owner path: 8 → ≤2 round trips)
 - [ ] Server-side pagination on owner list pages (students, coaches)
 - [ ] React cache() dedup + route-level revalidation on dashboard routes
-- [ ] pg_cron nightly pre-aggregation for KPI summaries
-- [ ] Optimistic UI on student report submission
+- [x] pg_cron nightly pre-aggregation for KPI summaries — Validated in Phase 21: Write Path & Pre-Aggregation
+- [x] Optimistic UI on student report submission — Validated in Phase 21: Write Path & Pre-Aggregation
 - [ ] API route-level rate limiting (30 req/min/user)
 - [ ] Security audit: auth checks, RLS verification, CSRF, cross-student isolation
 - [ ] Infrastructure validation under 5k simulated load
@@ -89,6 +89,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **v1.1 Phase 18 complete** (2026-03-28): Roadmap date KPIs & completion logging — `getDeadlineStatus()` utility with 5-state discriminated union (none/completed/on-track/due-soon/overdue), UTC-safe date math. Badge chips on student RoadmapStep and shared coach/owner RoadmapTab. Progress bar fixed from /10 to /15.
 
 **v1.1 milestone complete** (2026-03-28): 6 phases (13-18), 16 plans. Flexible work sessions, outreach KPI banner, coach/owner KPI visibility, calendar view, roadmap date KPIs all shipped. Supabase Pro plan active.
+
+**v1.2 Phase 21 complete** (2026-03-30): Write path & pre-aggregation — student_kpi_summaries table with nightly pg_cron refresh (advisory lock, incremental skip, streak computation), get_student_detail reads from summary table with fallback. React 19 useOptimistic on report submission for instant feedback. Write path audit confirms both endpoints optimal at 4 DB calls each.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
@@ -160,4 +162,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after Phase 20 complete — query consolidation, badge caching, server-side pagination shipped*
+*Last updated: 2026-03-30 after Phase 21 complete — nightly KPI pre-aggregation, optimistic UI on report submission, write path audit*
