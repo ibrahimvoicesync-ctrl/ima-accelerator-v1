@@ -350,6 +350,32 @@ export type Database = {
         Args: Record<string, never>;
         Returns: string;
       };
+      get_owner_dashboard_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          total_students: number;
+          total_coaches: number;
+          active_today_count: number;
+          reports_today: number;
+        };
+      };
+      get_sidebar_badges: {
+        Args: {
+          p_user_id: string;
+          p_role: string;
+        };
+        Returns: {
+          active_alerts?: number;
+          unreviewed_reports?: number;
+        };
+      };
+      get_student_detail: {
+        Args: {
+          p_student_id: string;
+          p_include_coach_mgmt: boolean;
+        };
+        Returns: unknown;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
