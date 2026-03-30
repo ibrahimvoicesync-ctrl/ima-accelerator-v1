@@ -38,3 +38,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Load test artifacts (Phase 24)
+load-tests/tokens/*.json
+load-tests/results/
