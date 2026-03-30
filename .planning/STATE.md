@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Performance, Scale & Security
-status: executing
-stopped_at: Completed 20-04-PLAN.md (PaginationControls + server-side pagination)
-last_updated: "2026-03-30T06:54:09.470Z"
+status: verifying
+stopped_at: Completed 20-02-PLAN.md (layout caching + owner dashboard RPC + badge invalidation)
+last_updated: "2026-03-30T06:57:19.590Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 Phase: 20 (query-consolidation-caching) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0% (0/6 phases)
@@ -72,6 +72,8 @@ Critical v1.2 decisions from research:
 - [Phase 20-query-consolidation-caching]: Replaced OwnerStudentSearchClient with server-side form GET — eliminates client JS for search, resets page to 1 on new search
 - [Phase 20-query-consolidation-caching]: Coach enrichment queries scoped to current page's coachIds only — O(page_size) not O(all_coaches) at scale
 - [Phase 20-query-consolidation-caching]: count: 'estimated' on paginated owner list pages — avoids full table scan for count
+- [Phase 20]: revalidateTag requires second argument (profile) in Next.js 16 — use 'default' to avoid deprecation warning
+- [Phase 20]: Phase 20 RPC function types added to types.ts hand-crafted placeholder (get_owner_dashboard_stats, get_sidebar_badges, get_student_detail)
 
 ### Pending Todos
 
@@ -84,6 +86,6 @@ None blocking Phase 19 start.
 
 ## Session Continuity
 
-Last session: 2026-03-30T06:54:09.467Z
-Stopped at: Completed 20-04-PLAN.md (PaginationControls + server-side pagination)
+Last session: 2026-03-30T06:57:19.588Z
+Stopped at: Completed 20-02-PLAN.md (layout caching + owner dashboard RPC + badge invalidation)
 Resume file: None

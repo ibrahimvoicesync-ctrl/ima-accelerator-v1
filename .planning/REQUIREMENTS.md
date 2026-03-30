@@ -19,7 +19,7 @@ Requirements for milestone v1.2 (Performance, Scale & Security for 5,000 Student
 - [x] **QUERY-01**: Dashboard layout owner path consolidated to ≤2 DB round trips via Postgres RPC functions (down from 8)
 - [x] **QUERY-02**: Student detail pages (coach/owner views) consolidated via Postgres RPC (down from 9-11 parallel queries)
 - [x] **QUERY-03**: React cache() wrappers on server component data fetches deduplicate within RSC render tree
-- [ ] **QUERY-04**: Dashboard badge count computations use unstable_cache with 60s TTL (revalidate=N broken on auth routes due to cookies())
+- [x] **QUERY-04**: Dashboard badge count computations use unstable_cache with 60s TTL (revalidate=N broken on auth routes due to cookies())
 - [x] **QUERY-05**: Owner student list page is server-side paginated with Supabase .range() and total count
 - [x] **QUERY-06**: Owner coach list page is server-side paginated with Supabase .range() and total count
 
@@ -93,7 +93,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QUERY-01 | Phase 20 | Complete |
 | QUERY-02 | Phase 20 | Complete |
 | QUERY-03 | Phase 20 | Complete |
-| QUERY-04 | Phase 20 | Pending |
+| QUERY-04 | Phase 20 | Complete |
 | QUERY-05 | Phase 20 | Complete |
 | QUERY-06 | Phase 20 | Complete |
 | WRITE-01 | Phase 21 | Pending |
