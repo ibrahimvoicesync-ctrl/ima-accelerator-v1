@@ -77,7 +77,7 @@ Plans:
   4. Owner sidebar badge counts are served by unstable_cache with a 60-second TTL; the cache is invalidated correctly on mutations
   5. Owner student list page shows 25 students per page with server-side .range() pagination; total count uses count: 'estimated'; URL search params drive page state
   6. Owner coach list page has the same server-side pagination as the student list page
-**Plans:** 4 plans
+**Plans:** 0/4 plans executed
 Plans:
 - [ ] 20-01-PLAN.md — Migration 00010 (3 RPC functions), RPC types, React cache() on getSessionUser
 - [ ] 20-02-PLAN.md — Owner dashboard RPC swap, layout.tsx cached badges, badge invalidation in 5 API routes
@@ -150,7 +150,7 @@ Plans:
 | 17. Calendar View | v1.1 | 3/3 | Complete | 2026-03-28 |
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 2/2 | Complete | 2026-03-28 |
 | 19. Database Foundation | v1.2 | 2/2 | Complete    | 2026-03-29 |
-| 20. Query Consolidation & Caching | v1.2 | 0/4 | Planned | - |
+| 20. Query Consolidation & Caching | v1.2 | 0/4 | Planned    |  |
 | 21. Write Path & Pre-Aggregation | v1.2 | 0/? | Not started | - |
 | 22. Spike Protection & Rate Limiting | v1.2 | 0/? | Not started | - |
 | 23. Security Audit | v1.2 | 0/? | Not started | - |

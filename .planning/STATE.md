@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Performance, Scale & Security
 status: executing
-stopped_at: Phase 20 context gathered
-last_updated: "2026-03-30T06:13:11.549Z"
-last_activity: 2026-03-29
+stopped_at: Completed 20-01-PLAN.md (RPC functions + types + session cache)
+last_updated: "2026-03-30T06:45:20.578Z"
+last_activity: 2026-03-30
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 2
+  total_plans: 6
   completed_plans: 2
   percent: 0
 ---
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 19 — database-foundation
+**Current focus:** Phase 20 — query-consolidation-caching
 
 ## Current Position
 
-Phase: 20
-Plan: Not started
+Phase: 20 (query-consolidation-caching) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-03-29
+Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0% (0/6 phases)
 
@@ -65,6 +65,8 @@ Critical v1.2 decisions from research:
 - [v1.2 research]: count: 'exact' on large paginated tables causes full scan — use count: 'estimated' instead
 - [Phase 19-database-foundation]: Module-level singleton admin client with lazy init — keeps createAdminClient() function name unchanged; all 36 call sites transparent
 - [Phase 19-database-foundation]: Migration 00009 uses CREATE INDEX IF NOT EXISTS for idempotency — all Phase 19 SQL changes in single file per D-10
+- [Phase 20-query-consolidation-caching]: Single shared get_student_detail RPC with p_include_coach_mgmt boolean flag rather than separate coach/owner functions — avoids duplication of heavy 7-query body
+- [Phase 20-query-consolidation-caching]: React cache() wraps getSessionUser at declaration level so requireRole() benefits automatically with zero changes to callsites
 
 ### Pending Todos
 
@@ -77,6 +79,6 @@ None blocking Phase 19 start.
 
 ## Session Continuity
 
-Last session: 2026-03-30T06:13:11.546Z
-Stopped at: Phase 20 context gathered
-Resume file: .planning/phases/20-query-consolidation-caching/20-CONTEXT.md
+Last session: 2026-03-30T06:45:20.574Z
+Stopped at: Completed 20-01-PLAN.md (RPC functions + types + session cache)
+Resume file: None

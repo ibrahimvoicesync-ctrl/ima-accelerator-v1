@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
@@ -16,8 +17,9 @@ export type SessionUser = {
  * Gets the authenticated user with their platform profile.
  * Redirects to /login if not authenticated, /no-access if no profile.
  * Use in server components that require auth.
+ * Wrapped with React cache() for per-request RSC render tree deduplication.
  */
-export async function getSessionUser(): Promise<SessionUser> {
+export const getSessionUser = cache(async (): Promise<SessionUser> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,7 +48,7 @@ export async function getSessionUser(): Promise<SessionUser> {
     role: profile.role as Role,
     coachId: profile.coach_id,
   };
-}
+});
 
 /**
  * Like getSessionUser but also enforces role access.
