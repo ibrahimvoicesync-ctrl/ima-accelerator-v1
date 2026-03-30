@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { VALIDATION } from "@/lib/config";
 import { isValidDateString } from "@/lib/utils";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const postSchema = z.object({
   date: z.string().refine(isValidDateString, "Invalid date format (YYYY-MM-DD)"),
@@ -39,6 +40,15 @@ export async function POST(request: NextRequest) {
 
   if (profile.role !== "student") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit check (per D-01, D-04)
+  const { allowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/reports");
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Too many requests, try again in ${retryAfterSeconds} seconds.` },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
   }
 
   let body: unknown;

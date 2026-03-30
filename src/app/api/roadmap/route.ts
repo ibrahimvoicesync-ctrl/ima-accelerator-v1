@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROADMAP_STEPS } from "@/lib/config";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const patchSchema = z.object({
   step_number: z.number().int().min(1).max(ROADMAP_STEPS.length),
@@ -31,6 +32,15 @@ export async function PATCH(request: NextRequest) {
 
     if (profile.role !== "student") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Rate limit check (per D-01, D-04)
+    const { allowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/roadmap");
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `Too many requests, try again in ${retryAfterSeconds} seconds.` },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+      );
     }
 
     let body: unknown;

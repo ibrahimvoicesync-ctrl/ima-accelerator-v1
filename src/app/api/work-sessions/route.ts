@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER } from "@/lib/config";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const postSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -30,6 +31,15 @@ export async function POST(request: Request) {
     .single();
   if (!profile || profile.role !== "student") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit check (per D-01, D-04)
+  const { allowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/work-sessions");
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Too many requests, try again in ${retryAfterSeconds} seconds.` },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
   }
 
   // Parse and validate body

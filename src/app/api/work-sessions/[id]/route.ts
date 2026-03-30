@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const patchSchema = z.object({
   status: z.enum(["completed", "abandoned", "paused", "in_progress"]),
@@ -29,6 +30,15 @@ export async function PATCH(
     .single();
   if (!profile || profile.role !== "student") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit check (per D-01, D-04)
+  const { allowed: rateLimitAllowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/work-sessions/update");
+  if (!rateLimitAllowed) {
+    return NextResponse.json(
+      { error: `Too many requests, try again in ${retryAfterSeconds} seconds.` },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
   }
 
   // Parse body

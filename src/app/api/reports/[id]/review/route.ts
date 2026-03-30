@@ -3,6 +3,7 @@ import { z } from "zod";
 import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const reviewSchema = z.object({
   reviewed: z.boolean(),
@@ -36,6 +37,15 @@ export async function PATCH(
   // 3. Role check — coaches only
   if (profile.role !== "coach") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit check (per D-01, D-04)
+  const { allowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/reports/review");
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Too many requests, try again in ${retryAfterSeconds} seconds.` },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
   }
 
   // 4. Parse and validate request body
