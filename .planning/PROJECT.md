@@ -160,4 +160,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 after milestone v1.2 start*
+*Last updated: 2026-03-30 after Phase 20 complete — query consolidation, badge caching, server-side pagination shipped*
