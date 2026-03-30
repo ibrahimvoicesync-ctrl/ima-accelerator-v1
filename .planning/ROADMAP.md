@@ -43,7 +43,7 @@
 - [x] **Phase 19: Database Foundation** — Composite indexes, admin client singleton, RLS initplan fix, monitoring baseline (completed 2026-03-29)
 - [x] **Phase 20: Query Consolidation & Caching** — RPC consolidation (8 → ≤2 round trips), React cache(), unstable_cache, server-side pagination (completed 2026-03-30)
 - [x] **Phase 21: Write Path & Pre-Aggregation** — pg_cron nightly KPI summaries, optimistic UI on report submission, write path audit (completed 2026-03-30)
-- [ ] **Phase 22: Spike Protection & Rate Limiting** — DB-backed rate limiting (30 req/min/user) on all mutation routes
+- [x] **Phase 22: Spike Protection & Rate Limiting** — DB-backed rate limiting (30 req/min/user) on all mutation routes (completed 2026-03-30)
 - [ ] **Phase 23: Security Audit** — Auth check verification, CSRF Origin headers, cross-student isolation audit [requires-human-review]
 - [ ] **Phase 24: Infrastructure & Validation** — k6 load test (5k students), capacity documentation, compute right-sizing
 
@@ -105,10 +105,10 @@ Plans:
   1. A rate_limit_log Supabase table exists with a cleanup pg_cron job; a checkRateLimit() async helper reads and writes to this table using an atomic INSERT + COUNT pattern
   2. All POST/PATCH/DELETE route handlers for work sessions, daily reports, and roadmap progress call checkRateLimit() after auth verification and before Zod validation
   3. A user who exceeds 30 requests/minute receives a 429 response with a Retry-After header; the limit is enforced consistently regardless of which serverless container handles the request
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 22-01-PLAN.md — Migration 00012 (rate_limit_log table, covering index, pg_cron cleanup) and checkRateLimit() helper module
-- [ ] 22-02-PLAN.md — Integrate checkRateLimit() into all 10 mutation API routes (9 files, 10 endpoints)
+- [x] 22-02-PLAN.md — Integrate checkRateLimit() into all 10 mutation API routes (9 files, 10 endpoints)
 
 ### Phase 23: Security Audit
 **Goal**: Every API route's auth and ownership checks are verified correct, all mutation handlers have CSRF protection, and cross-student data isolation is confirmed
@@ -158,6 +158,6 @@ Plans:
 | 19. Database Foundation | v1.2 | 2/2 | Complete    | 2026-03-29 |
 | 20. Query Consolidation & Caching | v1.2 | 4/4 | Complete    | 2026-03-30 |
 | 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete    | 2026-03-30 |
-| 22. Spike Protection & Rate Limiting | v1.2 | 1/2 | In Progress|  |
+| 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete   | 2026-03-30 |
 | 23. Security Audit | v1.2 | 0/? | Not started | - |
 | 24. Infrastructure & Validation | v1.2 | 0/? | Not started | - |
