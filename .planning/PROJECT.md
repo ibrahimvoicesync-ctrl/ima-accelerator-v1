@@ -51,7 +51,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - [x] pg_cron nightly pre-aggregation for KPI summaries — Validated in Phase 21: Write Path & Pre-Aggregation
 - [x] Optimistic UI on student report submission — Validated in Phase 21: Write Path & Pre-Aggregation
 - [x] API route-level rate limiting (30 req/min/user) — Validated in Phase 22: Spike Protection & Rate Limiting
-- [ ] Security audit: auth checks, RLS verification, CSRF, cross-student isolation
+- [x] Security audit: auth checks, RLS verification, CSRF, cross-student isolation — Validated in Phase 23: Security Audit
 - [ ] Infrastructure validation under 5k simulated load
 
 ### Out of Scope
@@ -164,4 +164,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after Phase 21 complete — nightly KPI pre-aggregation, optimistic UI on report submission, write path audit*
+*Last updated: 2026-03-30 after Phase 23 complete — security audit, CSRF protection on all mutations, DB-03 closed*
