@@ -136,6 +136,8 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         console.error("[WorkTrackerClient] Failed to start session:", err);
         return;
       }
+      const newSession = await response.json();
+      setSessions((prev) => [...prev, newSession]);
       setPhase({ kind: "working" });
       router.refresh();
     } catch (err) {
@@ -547,14 +549,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
                 if (session.status === "completed") {
                   timeInfo = `${session.session_minutes ?? WORK_TRACKER.defaultSessionMinutes} min`;
                 } else if (session.status === "in_progress") {
-                  const elapsed = Math.floor(
-                    (Date.now() - new Date(session.started_at).getTime()) / 1000
-                  );
-                  const totalSecs = (session.session_minutes ?? WORK_TRACKER.defaultSessionMinutes) * 60;
-                  const remainingSecs = Math.max(0, totalSecs - elapsed);
-                  const mins = Math.floor(remainingSecs / 60);
-                  const secs = remainingSecs % 60;
-                  timeInfo = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")} left`;
+                  timeInfo = "In progress";
                 } else if (session.status === "paused") {
                   timeInfo = `${formatPausedRemaining(
                     session.started_at,
