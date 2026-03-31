@@ -210,9 +210,9 @@ Plans:
   2. GET /api/daily-plans returns today's plan for the authenticated student, or null if no plan exists; the date comparison uses UTC to match the daily_plans.date column default
   3. POST /api/work-sessions checks the student's total planned minutes and actual minutes worked today when a daily plan exists; a request that would exceed 4 hours of work time returns 400 with a clear cap-exceeded message
   4. Both endpoints enforce the full CSRF → auth → role → rate-limit → Zod → admin client chain; plan_json is always read back through Zod safeParse, never TypeScript cast
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 28-01-PLAN.md — Zod plan_json schema module + POST/GET /api/daily-plans route (idempotent create, today's plan retrieval)
+- [x] 28-01-PLAN.md — Zod plan_json schema module + POST/GET /api/daily-plans route (idempotent create, today's plan retrieval)
 - [ ] 28-02-PLAN.md — Plan-aware cap enforcement in POST /api/work-sessions (no-plan block, minute cap, fulfilled bypass)
 
 ### Phase 29: Daily Session Planner Client
@@ -260,5 +260,5 @@ Plans:
 | 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete    | 2026-03-31 |
 | 26. Database Schema Foundation | v1.3 | 1/1 | Complete    | 2026-03-31 |
 | 27. Coach/Owner Roadmap Undo | v1.3 | 2/2 | Complete    | 2026-03-31 |
-| 28. Daily Session Planner API | v1.3 | 0/2 | Not started | - |
+| 28. Daily Session Planner API | v1.3 | 1/2 | In Progress|  |
 | 29. Daily Session Planner Client | v1.3 | 0/? | Not started | - |

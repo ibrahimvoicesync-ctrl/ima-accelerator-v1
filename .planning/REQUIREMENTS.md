@@ -33,7 +33,7 @@ Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Control
 - [ ] **PLAN-05**: Student cannot plan more than 4 hours of work time; confirm button enabled when total reaches exactly 4h or nearest valid total below 4h
 - [ ] **PLAN-06**: After confirming plan, planner disappears and WorkTracker executes planned sessions in sequence with assigned breaks
 - [x] **PLAN-07**: daily_plans table stores one plan per student per day with plan_json (array of session configs), UNIQUE(student_id, date) constraint
-- [ ] **PLAN-08**: POST /api/daily-plans validates 4h work cap server-side; returns existing plan on conflict (idempotent)
+- [x] **PLAN-08**: POST /api/daily-plans validates 4h work cap server-side; returns existing plan on conflict (idempotent)
 - [ ] **PLAN-09**: POST /api/work-sessions enforces 4h daily cap when a plan exists for the day
 - [ ] **PLAN-10**: Student must complete all planned sessions before doing additional sessions
 
@@ -120,7 +120,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAN-05 | Phase 29 | Pending |
 | PLAN-06 | Phase 29 | Pending |
 | PLAN-07 | Phase 26 | Complete |
-| PLAN-08 | Phase 28 | Pending |
+| PLAN-08 | Phase 28 | Complete |
 | PLAN-09 | Phase 28 | Pending |
 | PLAN-10 | Phase 29 | Pending |
 | COMP-01 | Phase 29 | Pending |
