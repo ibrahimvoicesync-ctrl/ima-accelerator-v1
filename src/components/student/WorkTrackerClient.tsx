@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
 import { WorkTimer } from "@/components/student/WorkTimer";
 import { CycleCard } from "@/components/student/CycleCard";
 import { WORK_TRACKER, ROUTES } from "@/lib/config";
@@ -24,6 +25,7 @@ interface WorkTrackerClientProps {
 export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
   const routerRef = useRef(useRouter());
   const router = routerRef.current;
+  const toastRef = useRef(useToast());
 
   const [sessions, setSessions] = useState<WorkSession[]>(initialSessions);
   const [isLoading, setIsLoading] = useState(false);
@@ -132,8 +134,9 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         }),
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
+        const err = await response.json().catch((parseErr) => { console.error("[WorkTrackerClient] Failed to parse error response:", parseErr); return { error: null }; });
         console.error("[WorkTrackerClient] Failed to start session:", err);
+        toastRef.current.toast({ type: "error", title: err.error || "Failed to start session" });
         return;
       }
       const newSession = await response.json();
@@ -142,6 +145,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handleStart error:", err);
+      toastRef.current.toast({ type: "error", title: "Something went wrong. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -156,13 +160,14 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         body: JSON.stringify({ status: "completed" }),
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
+        const err = await response.json().catch((parseErr) => { console.error("[WorkTrackerClient] Failed to parse error response:", parseErr); return { error: null }; });
         // Silently ignore race condition with auto-complete
         if (typeof err.error === "string" && err.error.includes("Cannot transition")) {
           router.refresh();
           return;
         }
         console.error("[WorkTrackerClient] Failed to complete session:", err);
+        toastRef.current.toast({ type: "error", title: err.error || "Failed to complete session" });
         return;
       }
       // After completion: trigger break with the selected break duration
@@ -170,6 +175,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handleComplete error:", err);
+      toastRef.current.toast({ type: "error", title: "Something went wrong. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -184,13 +190,15 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         body: JSON.stringify({ status: "paused" }),
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
+        const err = await response.json().catch((parseErr) => { console.error("[WorkTrackerClient] Failed to parse error response:", parseErr); return { error: null }; });
         console.error("[WorkTrackerClient] Failed to pause session:", err);
+        toastRef.current.toast({ type: "error", title: err.error || "Failed to pause session" });
         return;
       }
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handlePause error:", err);
+      toastRef.current.toast({ type: "error", title: "Something went wrong. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -205,13 +213,15 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         body: JSON.stringify({ status: "in_progress" }),
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
+        const err = await response.json().catch((parseErr) => { console.error("[WorkTrackerClient] Failed to parse error response:", parseErr); return { error: null }; });
         console.error("[WorkTrackerClient] Failed to resume session:", err);
+        toastRef.current.toast({ type: "error", title: err.error || "Failed to resume session" });
         return;
       }
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handleResume error:", err);
+      toastRef.current.toast({ type: "error", title: "Something went wrong. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -237,8 +247,9 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
         body: JSON.stringify({ status: "abandoned" }),
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
+        const err = await response.json().catch((parseErr) => { console.error("[WorkTrackerClient] Failed to parse error response:", parseErr); return { error: null }; });
         console.error("[WorkTrackerClient] Failed to abandon session:", err);
+        toastRef.current.toast({ type: "error", title: err.error || "Failed to abandon session" });
         return;
       }
       setShowAbandonConfirm(false);
@@ -246,6 +257,7 @@ export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
       router.refresh();
     } catch (err) {
       console.error("[WorkTrackerClient] handleAbandon error:", err);
+      toastRef.current.toast({ type: "error", title: "Something went wrong. Please try again." });
     } finally {
       setIsLoading(false);
     }
