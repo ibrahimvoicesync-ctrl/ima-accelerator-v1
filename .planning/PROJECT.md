@@ -167,4 +167,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — Phase 27 complete: coach/owner roadmap undo with full cascade re-lock, confirmation modal, audit logging*
+*Last updated: 2026-03-31 — Phase 28 complete: daily session planner API with plan-aware cap enforcement and toast error display*
