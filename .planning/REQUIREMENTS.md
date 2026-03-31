@@ -102,37 +102,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ROAD-01 | — | Pending |
-| ROAD-02 | — | Pending |
-| ROAD-03 | — | Pending |
-| ROAD-04 | — | Pending |
-| ROAD-05 | — | Pending |
-| ROAD-06 | — | Pending |
-| UNDO-01 | — | Pending |
-| UNDO-02 | — | Pending |
-| UNDO-03 | — | Pending |
-| UNDO-04 | — | Pending |
-| UNDO-05 | — | Pending |
-| PLAN-01 | — | Pending |
-| PLAN-02 | — | Pending |
-| PLAN-03 | — | Pending |
-| PLAN-04 | — | Pending |
-| PLAN-05 | — | Pending |
-| PLAN-06 | — | Pending |
-| PLAN-07 | — | Pending |
-| PLAN-08 | — | Pending |
-| PLAN-09 | — | Pending |
-| PLAN-10 | — | Pending |
-| COMP-01 | — | Pending |
-| COMP-02 | — | Pending |
-| COMP-03 | — | Pending |
-| COMP-04 | — | Pending |
+| ROAD-01 | Phase 25 | Pending |
+| ROAD-02 | Phase 25 | Pending |
+| ROAD-03 | Phase 25 | Pending |
+| ROAD-04 | Phase 25 | Pending |
+| ROAD-05 | Phase 25 | Pending |
+| ROAD-06 | Phase 25 | Pending |
+| UNDO-01 | Phase 27 | Pending |
+| UNDO-02 | Phase 27 | Pending |
+| UNDO-03 | Phase 27 | Pending |
+| UNDO-04 | Phase 27 | Pending |
+| UNDO-05 | Phase 26 | Pending |
+| PLAN-01 | Phase 29 | Pending |
+| PLAN-02 | Phase 29 | Pending |
+| PLAN-03 | Phase 29 | Pending |
+| PLAN-04 | Phase 29 | Pending |
+| PLAN-05 | Phase 29 | Pending |
+| PLAN-06 | Phase 29 | Pending |
+| PLAN-07 | Phase 26 | Pending |
+| PLAN-08 | Phase 28 | Pending |
+| PLAN-09 | Phase 28 | Pending |
+| PLAN-10 | Phase 29 | Pending |
+| COMP-01 | Phase 29 | Pending |
+| COMP-02 | Phase 29 | Pending |
+| COMP-03 | Phase 29 | Pending |
+| COMP-04 | Phase 29 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25
+- Mapped to phases: 25
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after initial definition*
+*Last updated: 2026-03-31 after v1.3 roadmap creation — all 25 requirements mapped*

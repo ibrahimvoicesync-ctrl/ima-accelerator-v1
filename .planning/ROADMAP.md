@@ -4,7 +4,8 @@
 
 - ✅ **v1.0 IMA Accelerator V1** — Phases 1-12 (shipped 2026-03-18)
 - ✅ **v1.1 V2 Feature Build** — Phases 13-18 (shipped 2026-03-28)
-- 🚧 **v1.2 Performance, Scale & Security** — Phases 19-24 (in progress)
+- ✅ **v1.2 Performance, Scale & Security** — Phases 19-24 (shipped 2026-03-31)
+- 🚧 **v1.3 Roadmap Update, Session Planner & Coach Controls** — Phases 25-29 (in progress)
 
 ## Phases
 
@@ -38,14 +39,25 @@
 
 </details>
 
-**v1.2 Performance, Scale & Security**
+<details>
+<summary>✅ v1.2 Performance, Scale & Security (Phases 19-24) — SHIPPED 2026-03-31</summary>
 
-- [x] **Phase 19: Database Foundation** — Composite indexes, admin client singleton, RLS initplan fix, monitoring baseline (completed 2026-03-29)
-- [x] **Phase 20: Query Consolidation & Caching** — RPC consolidation (8 → ≤2 round trips), React cache(), unstable_cache, server-side pagination (completed 2026-03-30)
-- [x] **Phase 21: Write Path & Pre-Aggregation** — pg_cron nightly KPI summaries, optimistic UI on report submission, write path audit (completed 2026-03-30)
-- [x] **Phase 22: Spike Protection & Rate Limiting** — DB-backed rate limiting (30 req/min/user) on all mutation routes (completed 2026-03-30)
-- [x] **Phase 23: Security Audit** — Auth check verification, CSRF Origin headers, cross-student isolation audit [requires-human-review] (completed 2026-03-30)
-- [ ] **Phase 24: Infrastructure & Validation** — k6 load test (5k students), capacity documentation, compute right-sizing (gap closure: token bug fix + staging test execution pending)
+- [x] **Phase 19: Database Foundation** — completed 2026-03-29
+- [x] **Phase 20: Query Consolidation & Caching** — completed 2026-03-30
+- [x] **Phase 21: Write Path & Pre-Aggregation** — completed 2026-03-30
+- [x] **Phase 22: Spike Protection & Rate Limiting** — completed 2026-03-30
+- [x] **Phase 23: Security Audit** — completed 2026-03-30
+- [x] **Phase 24: Infrastructure & Validation** — completed 2026-03-31
+
+</details>
+
+**v1.3 Roadmap Update, Session Planner & Coach Controls**
+
+- [ ] **Phase 25: Roadmap Config & Stage Headers** - Update step descriptions, unlock URLs, target_days, and add stage grouping headers to all roadmap views
+- [ ] **Phase 26: Database Schema Foundation** - Add daily_plans and roadmap_undo_log tables with RLS, indexes, and UTC-safe constraints
+- [ ] **Phase 27: Coach/Owner Roadmap Undo** - PATCH /api/roadmap/undo with confirmation dialog, N+1 cascade re-lock, and audit logging
+- [ ] **Phase 28: Daily Session Planner API** - POST/GET /api/daily-plans with 4h cap enforcement, Zod plan_json schema, server-side cap on work-sessions
+- [ ] **Phase 29: Daily Session Planner Client** - DailyPlannerClient wizard, WorkTrackerClient plan-mode, PlanCompletionCard with ad-hoc session picker
 
 ## Phase Details
 
@@ -135,13 +147,76 @@ Plans:
   1. A k6 load test runs against a staging environment seeded with 5,000 students and 90 days of reports (~500k rows); the test covers the owner dashboard read mix and the 11 PM write spike scenario; P95 latency and connection counts are recorded
   2. A capacity document records connection usage (must stay below 70% of max_connections during spike), P50/P95/P99 query latencies, and rate limiter trigger counts during the simulated spike
   3. Supabase compute add-on tier is confirmed adequate or upgraded based on load test data; the decision (stay/upgrade + rationale) is written into PROJECT.md Key Decisions
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 Plans:
 - [x] 24-01-PLAN.md — Seed SQL (5k students, 500k reports), JWT pre-gen script, CAPACITY.md template, .gitignore
 - [x] 24-02-PLAN.md — k6 scenario scripts (read-mix, write-spike, combined)
 - [x] 24-03-PLAN.md — Load test execution, capacity doc completion, compute sizing decision
 - [x] 24-04-PLAN.md — Gap closure: fix owner token format bug + revert premature INFRA requirement markings
-- [ ] 24-05-PLAN.md — Gap closure: provision staging, execute k6 tests, update capacity docs with measured data
+- [x] 24-05-PLAN.md — Gap closure: provision staging, execute k6 tests, update capacity docs with measured data
+
+### Phase 25: Roadmap Config & Stage Headers
+**Goal**: Students and coaches see accurate, stage-grouped roadmap steps with correct descriptions, unlock URLs, and completion targets
+**Depends on**: Phase 24
+**Requirements**: ROAD-01, ROAD-02, ROAD-03, ROAD-04, ROAD-05, ROAD-06
+**Success Criteria** (what must be TRUE):
+  1. All 8 active roadmap steps (1-8) display parenthetical time guidance appended to their descriptions in the student view
+  2. Step 5 shows the skool CRM link as its unlock URL; step 6 has no unlock URL
+  3. Step 6 description reads "Build 100 Influencer Lead List, and Watch 3 Influencer Roast My Email"; step 7 description reflects drafting emails only
+  4. Step 8 displays a 14-day target and the deadline chip responds correctly to that target
+  5. Student roadmap page groups steps under three visible stage headers: Setup & Preparation, Influencer Outreach, Brand Outreach
+  6. Coach and owner roadmap tab shows the same three stage headers grouping the same step ranges
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 26: Database Schema Foundation
+**Goal**: The daily_plans and roadmap_undo_log tables exist in the database with correct constraints, indexes, and RLS policies, unblocking all v1.3 API work
+**Depends on**: Phase 25
+**Requirements**: PLAN-07, UNDO-05
+**Success Criteria** (what must be TRUE):
+  1. The daily_plans table exists with columns: id, student_id, date (DEFAULT CURRENT_DATE), plan_json (JSONB), created_at; a UNIQUE(student_id, date) constraint prevents duplicate plans per day
+  2. The roadmap_undo_log table exists with columns: id, actor_id, actor_role, student_id, step_number, undone_at; it is append-only with no UPDATE/DELETE RLS policy
+  3. Both tables have RLS enabled; daily_plans uses (SELECT auth.uid()) initplan pattern on student_id; roadmap_undo_log allows INSERT for coach/owner roles and SELECT for actors on their own rows
+  4. The daily_plans table has an index on (student_id, date) to support the 5k inserts/day hot query path
+**Plans**: TBD
+
+### Phase 27: Coach/Owner Roadmap Undo
+**Goal**: Coaches and owners can revert any completed roadmap step to active, with a confirmation dialog, sequential-progression enforcement, and a permanent audit trail
+**Depends on**: Phase 26
+**Requirements**: UNDO-01, UNDO-02, UNDO-03, UNDO-04
+**Success Criteria** (what must be TRUE):
+  1. A completed roadmap step in the coach or owner roadmap tab shows an undo button; clicking it opens a confirmation dialog reading "Are you sure you want to reset Step X back to active?"
+  2. After confirming, the step reverts from completed to active and the roadmap tab re-renders showing the step as in-progress; no page reload required
+  3. If step N+1 was active (not yet completed) at the time step N was undone, step N+1 is locked back to its pre-active state in the same server request
+  4. A coach can only undo steps for students assigned to them; an owner can undo steps for any student; attempting to undo an unassigned student's step returns 403
+  5. Every undo action is visible in the roadmap_undo_log table with the actor's ID, role, target student, step number, and timestamp
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 28: Daily Session Planner API
+**Goal**: The daily plans API is live with server-enforced 4-hour cap, idempotent plan creation, and the existing work-sessions endpoint enforces the cap when a plan exists
+**Depends on**: Phase 26
+**Requirements**: PLAN-08, PLAN-09
+**Success Criteria** (what must be TRUE):
+  1. POST /api/daily-plans accepts a plan_json payload, validates total_work_minutes <= 240 server-side via Zod, stores the plan, and returns the created plan; submitting a second plan for the same day returns the existing plan (idempotent, no duplicate insert)
+  2. GET /api/daily-plans returns today's plan for the authenticated student, or null if no plan exists; the date comparison uses UTC to match the daily_plans.date column default
+  3. POST /api/work-sessions checks the student's total planned minutes and actual minutes worked today when a daily plan exists; a request that would exceed 4 hours of work time returns 400 with a clear cap-exceeded message
+  4. Both endpoints enforce the full CSRF → auth → role → rate-limit → Zod → admin client chain; plan_json is always read back through Zod safeParse, never TypeScript cast
+**Plans**: TBD
+
+### Phase 29: Daily Session Planner Client
+**Goal**: Students see a pre-session planner on their first visit each day, execute planned sessions sequentially via WorkTracker, and receive a motivational completion card with access to ad-hoc sessions afterward
+**Depends on**: Phase 28
+**Requirements**: PLAN-01, PLAN-02, PLAN-03, PLAN-04, PLAN-05, PLAN-06, PLAN-10, COMP-01, COMP-02, COMP-03, COMP-04
+**Success Criteria** (what must be TRUE):
+  1. On first visit to Work Tracker with no plan for today, a planner UI appears where the student can add sessions (30/45/60 min), see running work-time total (breaks excluded), and confirm when total is at or below 4 hours
+  2. Break types auto-assign without student input: odd-numbered sessions (1st, 3rd, 5th) get a short break (5 or 10 min choice), even sessions (2nd, 4th, 6th) get a long break (15/20/25/30 min choice), and the last session has no break
+  3. The confirm button is disabled until the planned total reaches exactly 4h or the nearest valid total at or below 4h; the student cannot add sessions that would push the total above 4 hours
+  4. After confirming, the planner disappears and WorkTracker executes the planned sessions in sequence; the phase-reset useEffect guard preserves plan-mode state across page refreshes
+  5. After all planned sessions complete, a motivational card appears showing Arabic "اللهم بارك" (large, centered, dir="rtl") and English "You have done the bare minimum! Continue with your next work session"; the card shows once per day
+  6. The card offers "Start Next Session" (opens ad-hoc duration picker) and "Dismiss" (returns to work tracker idle); ad-hoc sessions allow free duration and break type selection with no daily cap
+**Plans**: TBD
+**UI hint**: yes
 
 ## Progress
 
@@ -165,9 +240,14 @@ Plans:
 | 16. Coach/Owner KPI Visibility | v1.1 | 4/4 | Complete | 2026-03-28 |
 | 17. Calendar View | v1.1 | 3/3 | Complete | 2026-03-28 |
 | 18. Roadmap Date KPIs & Completion Logging | v1.1 | 2/2 | Complete | 2026-03-28 |
-| 19. Database Foundation | v1.2 | 2/2 | Complete    | 2026-03-29 |
-| 20. Query Consolidation & Caching | v1.2 | 4/4 | Complete    | 2026-03-30 |
-| 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete    | 2026-03-30 |
-| 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete    | 2026-03-30 |
-| 23. Security Audit | v1.2 | 3/3 | Complete    | 2026-03-30 |
-| 24. Infrastructure & Validation | v1.2 | 4/5 | In Progress|  |
+| 19. Database Foundation | v1.2 | 2/2 | Complete | 2026-03-29 |
+| 20. Query Consolidation & Caching | v1.2 | 4/4 | Complete | 2026-03-30 |
+| 21. Write Path & Pre-Aggregation | v1.2 | 2/2 | Complete | 2026-03-30 |
+| 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete | 2026-03-30 |
+| 23. Security Audit | v1.2 | 3/3 | Complete | 2026-03-30 |
+| 24. Infrastructure & Validation | v1.2 | 5/5 | Complete | 2026-03-31 |
+| 25. Roadmap Config & Stage Headers | v1.3 | 0/? | Not started | - |
+| 26. Database Schema Foundation | v1.3 | 0/? | Not started | - |
+| 27. Coach/Owner Roadmap Undo | v1.3 | 0/? | Not started | - |
+| 28. Daily Session Planner API | v1.3 | 0/? | Not started | - |
+| 29. Daily Session Planner Client | v1.3 | 0/? | Not started | - |
