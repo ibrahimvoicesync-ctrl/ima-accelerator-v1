@@ -195,7 +195,10 @@ Plans:
   3. If step N+1 was active (not yet completed) at the time step N was undone, step N+1 is locked back to its pre-active state in the same server request
   4. A coach can only undo steps for students assigned to them; an owner can undo steps for any student; attempting to undo an unassigned student's step returns 403
   5. Every undo action is visible in the roadmap_undo_log table with the actor's ID, role, target student, step number, and timestamp
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 27-01-PLAN.md — PATCH /api/roadmap/undo route with auth, cascade re-lock, and audit logging
+- [ ] 27-02-PLAN.md — RoadmapTab undo button + confirmation modal, studentId prop thread from parent components
 **UI hint**: yes
 
 ### Phase 28: Daily Session Planner API
@@ -253,6 +256,6 @@ Plans:
 | 24. Infrastructure & Validation | v1.2 | 5/5 | Complete | 2026-03-31 |
 | 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete    | 2026-03-31 |
 | 26. Database Schema Foundation | v1.3 | 1/1 | Complete    | 2026-03-31 |
-| 27. Coach/Owner Roadmap Undo | v1.3 | 0/? | Not started | - |
+| 27. Coach/Owner Roadmap Undo | v1.3 | 0/2 | Not started | - |
 | 28. Daily Session Planner API | v1.3 | 0/? | Not started | - |
 | 29. Daily Session Planner Client | v1.3 | 0/? | Not started | - |
