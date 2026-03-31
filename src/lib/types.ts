@@ -415,6 +415,80 @@ export type Database = {
           }
         ];
       };
+      daily_plans: {
+        Row: {
+          id: string;
+          student_id: string;
+          date: string;
+          plan_json: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          student_id: string;
+          date?: string;
+          plan_json: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          student_id?: string;
+          date?: string;
+          plan_json?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "daily_plans_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      roadmap_undo_log: {
+        Row: {
+          id: string;
+          actor_id: string;
+          actor_role: "coach" | "owner";
+          student_id: string;
+          step_number: number;
+          undone_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_id: string;
+          actor_role: "coach" | "owner";
+          student_id: string;
+          step_number: number;
+          undone_at?: string;
+        };
+        Update: {
+          id?: string;
+          actor_id?: string;
+          actor_role?: "coach" | "owner";
+          student_id?: string;
+          step_number?: number;
+          undone_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_undo_log_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "roadmap_undo_log_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
