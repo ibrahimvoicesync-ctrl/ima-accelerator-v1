@@ -54,7 +54,7 @@
 **v1.3 Roadmap Update, Session Planner & Coach Controls**
 
 - [x] **Phase 25: Roadmap Config & Stage Headers** - Update step descriptions, unlock URLs, target_days, and add stage grouping headers to all roadmap views (completed 2026-03-31)
-- [ ] **Phase 26: Database Schema Foundation** - Add daily_plans and roadmap_undo_log tables with RLS, indexes, and UTC-safe constraints
+- [x] **Phase 26: Database Schema Foundation** - Add daily_plans and roadmap_undo_log tables with RLS, indexes, and UTC-safe constraints (completed 2026-03-31)
 - [ ] **Phase 27: Coach/Owner Roadmap Undo** - PATCH /api/roadmap/undo with confirmation dialog, N+1 cascade re-lock, and audit logging
 - [ ] **Phase 28: Daily Session Planner API** - POST/GET /api/daily-plans with 4h cap enforcement, Zod plan_json schema, server-side cap on work-sessions
 - [ ] **Phase 29: Daily Session Planner Client** - DailyPlannerClient wizard, WorkTrackerClient plan-mode, PlanCompletionCard with ad-hoc session picker
@@ -181,9 +181,9 @@ Plans:
   2. The roadmap_undo_log table exists with columns: id, actor_id, actor_role, student_id, step_number, undone_at; it is append-only with no UPDATE/DELETE RLS policy
   3. Both tables have RLS enabled; daily_plans uses (SELECT auth.uid()) initplan pattern on student_id; roadmap_undo_log allows INSERT for coach/owner roles and SELECT for actors on their own rows
   4. The daily_plans table has an index on (student_id, date) to support the 5k inserts/day hot query path
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
-- [ ] 26-01-PLAN.md — Migration 00013 (daily_plans + roadmap_undo_log tables, indexes, RLS policies) and deployment verification
+- [x] 26-01-PLAN.md — Migration 00013 (daily_plans + roadmap_undo_log tables, indexes, RLS policies) and deployment verification
 
 ### Phase 27: Coach/Owner Roadmap Undo
 **Goal**: Coaches and owners can revert any completed roadmap step to active, with a confirmation dialog, sequential-progression enforcement, and a permanent audit trail
@@ -252,7 +252,7 @@ Plans:
 | 23. Security Audit | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 24. Infrastructure & Validation | v1.2 | 5/5 | Complete | 2026-03-31 |
 | 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete    | 2026-03-31 |
-| 26. Database Schema Foundation | v1.3 | 0/1 | Not started | - |
+| 26. Database Schema Foundation | v1.3 | 1/1 | Complete   | 2026-03-31 |
 | 27. Coach/Owner Roadmap Undo | v1.3 | 0/? | Not started | - |
 | 28. Daily Session Planner API | v1.3 | 0/? | Not started | - |
 | 29. Daily Session Planner Client | v1.3 | 0/? | Not started | - |

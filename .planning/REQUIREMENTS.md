@@ -22,7 +22,7 @@ Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Control
 - [ ] **UNDO-02**: Owner can revert any completed roadmap step to active for any student via the same endpoint
 - [ ] **UNDO-03**: Undo presents a confirmation dialog before executing ("Are you sure you want to reset Step X back to active?")
 - [ ] **UNDO-04**: If step N+1 is currently active (not completed), undoing step N re-locks N+1 to maintain sequential progression
-- [ ] **UNDO-05**: Every undo action is logged to roadmap_undo_log table (who, when, which student, which step)
+- [x] **UNDO-05**: Every undo action is logged to roadmap_undo_log table (who, when, which student, which step)
 
 ### Session Planner
 
@@ -32,7 +32,7 @@ Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Control
 - [ ] **PLAN-04**: Short break options are 5 or 10 min; long break options are 15, 20, 25, or 30 min (fixed choices per break type)
 - [ ] **PLAN-05**: Student cannot plan more than 4 hours of work time; confirm button enabled when total reaches exactly 4h or nearest valid total below 4h
 - [ ] **PLAN-06**: After confirming plan, planner disappears and WorkTracker executes planned sessions in sequence with assigned breaks
-- [ ] **PLAN-07**: daily_plans table stores one plan per student per day with plan_json (array of session configs), UNIQUE(student_id, date) constraint
+- [x] **PLAN-07**: daily_plans table stores one plan per student per day with plan_json (array of session configs), UNIQUE(student_id, date) constraint
 - [ ] **PLAN-08**: POST /api/daily-plans validates 4h work cap server-side; returns existing plan on conflict (idempotent)
 - [ ] **PLAN-09**: POST /api/work-sessions enforces 4h daily cap when a plan exists for the day
 - [ ] **PLAN-10**: Student must complete all planned sessions before doing additional sessions
@@ -112,14 +112,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UNDO-02 | Phase 27 | Pending |
 | UNDO-03 | Phase 27 | Pending |
 | UNDO-04 | Phase 27 | Pending |
-| UNDO-05 | Phase 26 | Pending |
+| UNDO-05 | Phase 26 | Complete |
 | PLAN-01 | Phase 29 | Pending |
 | PLAN-02 | Phase 29 | Pending |
 | PLAN-03 | Phase 29 | Pending |
 | PLAN-04 | Phase 29 | Pending |
 | PLAN-05 | Phase 29 | Pending |
 | PLAN-06 | Phase 29 | Pending |
-| PLAN-07 | Phase 26 | Pending |
+| PLAN-07 | Phase 26 | Complete |
 | PLAN-08 | Phase 28 | Pending |
 | PLAN-09 | Phase 28 | Pending |
 | PLAN-10 | Phase 29 | Pending |
