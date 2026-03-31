@@ -7,6 +7,7 @@ import { Modal, Button } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast";
 import { RoadmapStep } from "@/components/student/RoadmapStep";
 import { ROADMAP_STEPS } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/types";
 
 type RoadmapProgress = Database["public"]["Tables"]["roadmap_progress"]["Row"];
@@ -77,6 +78,10 @@ export function RoadmapClient({ progress, joinedAt }: RoadmapClientProps) {
     }
   }, [confirmStep]);
 
+  const stages = [...new Map(
+    ROADMAP_STEPS.map(s => [s.stage, s.stageName])
+  ).entries()].map(([stage, stageName]) => ({ stage, stageName }));
+
   return (
     <>
       {/* Timeline */}
@@ -84,24 +89,41 @@ export function RoadmapClient({ progress, joinedAt }: RoadmapClientProps) {
         className="motion-safe:animate-slideUp"
         style={{ animationDelay: "200ms", animationFillMode: "backwards" }}
       >
-        {ROADMAP_STEPS.map((step, i) => {
-          const stepProgress =
-            progress.find((p) => p.step_number === step.step) ?? null;
+        {stages.map(({ stage, stageName }, stageIdx) => {
+          const stageSteps = ROADMAP_STEPS.filter(s => s.stage === stage);
           return (
-            <RoadmapStep
-              key={step.step}
-              step={{
-                step_number: step.step,
-                title: step.title,
-                description: step.description,
-                target_days: step.target_days,
-                unlock_url: step.unlock_url,
-              }}
-              progress={stepProgress}
-              isLast={i === ROADMAP_STEPS.length - 1}
-              joinedAt={joinedAt}
-              onComplete={(stepNumber) => setConfirmStep(stepNumber)}
-            />
+            <div key={stage}>
+              {/* Stage header */}
+              <div className={cn(
+                "flex items-center gap-3 pb-2",
+                stageIdx > 0 && "pt-8"
+              )}>
+                <span className="text-xs font-semibold uppercase tracking-wider text-ima-text-muted">
+                  {stageName}
+                </span>
+                <div className="flex-1 h-px bg-ima-border" aria-hidden="true" />
+              </div>
+              {/* Stage steps */}
+              {stageSteps.map((step, i) => {
+                const stepProgress = progress.find((p) => p.step_number === step.step) ?? null;
+                return (
+                  <RoadmapStep
+                    key={step.step}
+                    step={{
+                      step_number: step.step,
+                      title: step.title,
+                      description: step.description,
+                      target_days: step.target_days,
+                      unlock_url: step.unlock_url,
+                    }}
+                    progress={stepProgress}
+                    isLast={i === stageSteps.length - 1}
+                    joinedAt={joinedAt}
+                    onComplete={(stepNumber) => setConfirmStep(stepNumber)}
+                  />
+                );
+              })}
+            </div>
           );
         })}
       </div>
