@@ -53,7 +53,7 @@
 
 **v1.3 Roadmap Update, Session Planner & Coach Controls**
 
-- [ ] **Phase 25: Roadmap Config & Stage Headers** - Update step descriptions, unlock URLs, target_days, and add stage grouping headers to all roadmap views
+- [x] **Phase 25: Roadmap Config & Stage Headers** - Update step descriptions, unlock URLs, target_days, and add stage grouping headers to all roadmap views (completed 2026-03-31)
 - [ ] **Phase 26: Database Schema Foundation** - Add daily_plans and roadmap_undo_log tables with RLS, indexes, and UTC-safe constraints
 - [ ] **Phase 27: Coach/Owner Roadmap Undo** - PATCH /api/roadmap/undo with confirmation dialog, N+1 cascade re-lock, and audit logging
 - [ ] **Phase 28: Daily Session Planner API** - POST/GET /api/daily-plans with 4h cap enforcement, Zod plan_json schema, server-side cap on work-sessions
@@ -166,10 +166,10 @@ Plans:
   4. Step 8 displays a 14-day target and the deadline chip responds correctly to that target
   5. Student roadmap page groups steps under three visible stage headers: Setup & Preparation, Influencer Outreach, Brand Outreach
   6. Coach and owner roadmap tab shows the same three stage headers grouping the same step ranges
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 25-01-PLAN.md — Config updates (descriptions, URLs, target_days) and student RoadmapClient stage headers
-- [ ] 25-02-PLAN.md — Coach/owner RoadmapTab stage headers
+- [x] 25-02-PLAN.md — Coach/owner RoadmapTab stage headers
 **UI hint**: yes
 
 ### Phase 26: Database Schema Foundation
@@ -249,7 +249,7 @@ Plans:
 | 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 23. Security Audit | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 24. Infrastructure & Validation | v1.2 | 5/5 | Complete | 2026-03-31 |
-| 25. Roadmap Config & Stage Headers | v1.3 | 1/2 | In Progress|  |
+| 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete   | 2026-03-31 |
 | 26. Database Schema Foundation | v1.3 | 0/? | Not started | - |
 | 27. Coach/Owner Roadmap Undo | v1.3 | 0/? | Not started | - |
 | 28. Daily Session Planner API | v1.3 | 0/? | Not started | - |

@@ -14,7 +14,7 @@ Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Control
 - [x] **ROAD-03**: Step 6 description updated to "Build 100 Influencer Lead List, and Watch 3 Influencer Roast My Email"; step 7 updated to drafting emails only
 - [x] **ROAD-04**: Step 8 target_days set to 14
 - [x] **ROAD-05**: Student roadmap view groups steps by stage with visible stage headers (Setup & Preparation, Influencer Outreach, Brand Outreach)
-- [ ] **ROAD-06**: Coach and owner roadmap tab shows stage headers matching student view
+- [x] **ROAD-06**: Coach and owner roadmap tab shows stage headers matching student view
 
 ### Coach/Owner Undo
 
@@ -107,7 +107,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROAD-03 | Phase 25 | Complete |
 | ROAD-04 | Phase 25 | Complete |
 | ROAD-05 | Phase 25 | Complete |
-| ROAD-06 | Phase 25 | Pending |
+| ROAD-06 | Phase 25 | Complete |
 | UNDO-01 | Phase 27 | Pending |
 | UNDO-02 | Phase 27 | Pending |
 | UNDO-03 | Phase 27 | Pending |
