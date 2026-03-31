@@ -261,5 +261,5 @@ Plans:
 | 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete    | 2026-03-31 |
 | 26. Database Schema Foundation | v1.3 | 1/1 | Complete    | 2026-03-31 |
 | 27. Coach/Owner Roadmap Undo | v1.3 | 2/2 | Complete    | 2026-03-31 |
-| 28. Daily Session Planner API | v1.3 | 3/3 | Complete   | 2026-03-31 |
+| 28. Daily Session Planner API | v1.3 | 3/3 | Complete    | 2026-03-31 |
 | 29. Daily Session Planner Client | v1.3 | 0/? | Not started | - |
