@@ -8,6 +8,7 @@ import { WorkTimer } from "@/components/student/WorkTimer";
 import { CycleCard } from "@/components/student/CycleCard";
 import { PlannerUI } from "@/components/student/PlannerUI";
 import { PlannedSessionList } from "@/components/student/PlannedSessionList";
+import { MotivationalCard } from "@/components/student/MotivationalCard";
 import { planJsonSchema } from "@/lib/schemas/daily-plan";
 import type { PlanJson } from "@/lib/schemas/daily-plan";
 import { WORK_TRACKER, ROUTES } from "@/lib/config";
@@ -43,6 +44,12 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
   const [breakType, setBreakType] = useState<"short" | "long">("short");
   const [breakMinutes, setBreakMinutes] = useState<number>(WORK_TRACKER.breakOptions.short.presets[0]);
   const [showAllSessions, setShowAllSessions] = useState(false);
+
+  // Track motivational card display — once per day via localStorage (COMP-04)
+  const [hasSeenCard, setHasSeenCard] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(`ima-motivational-seen-${getToday()}`) === "1";
+  });
 
   // Keep sessions in sync when server re-renders with fresh initialSessions
   useEffect(() => {
@@ -343,6 +350,28 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
     setPhase({ kind: "idle" });
   }
 
+  function markCardSeen() {
+    localStorage.setItem(`ima-motivational-seen-${getToday()}`, "1");
+    setHasSeenCard(true);
+  }
+
+  const handleStartNextSession = useCallback(() => {
+    markCardSeen();
+    // Reset break state to defaults for ad-hoc mode (Pitfall 5)
+    setBreakType("short");
+    setBreakMinutes(WORK_TRACKER.breakOptions.short.presets[0]);
+    setSelectedMinutes(WORK_TRACKER.defaultSessionMinutes);
+    setPhase({ kind: "setup" });
+  }, []);
+
+  const handleDismissCard = useCallback(() => {
+    markCardSeen();
+    // Reset break state to defaults for ad-hoc mode (Pitfall 5)
+    setBreakType("short");
+    setBreakMinutes(WORK_TRACKER.breakOptions.short.presets[0]);
+    setSelectedMinutes(WORK_TRACKER.defaultSessionMinutes);
+  }, []);
+
   // --- Render ---
 
   return (
@@ -605,11 +634,22 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
         />
       )}
 
-      {/* Ad-hoc mode: plan fulfilled — show normal idle/setup (COMP-03, handled in Plan 03) */}
-      {mode === "adhoc" && phase.kind === "idle" && !activeSession && !pausedSession && (
+      {/* Motivational card — plan fulfilled, card not yet seen today (COMP-01, COMP-04) */}
+      {mode === "adhoc" && !hasSeenCard && !activeSession && !pausedSession && phase.kind !== "break" && phase.kind !== "setup" && (
+        <MotivationalCard
+          onStartNextSession={handleStartNextSession}
+          onDismiss={handleDismissCard}
+        />
+      )}
+
+      {/* Ad-hoc mode: plan fulfilled, card already seen — show normal idle/setup (COMP-03) */}
+      {mode === "adhoc" && hasSeenCard && phase.kind === "idle" && !activeSession && !pausedSession && (
         <div className="flex flex-col items-center gap-3 mb-6 text-center">
           <p className="text-lg font-semibold text-ima-text">
             Ready for Session {nextCycleNumber}
+          </p>
+          <p className="text-sm text-ima-text-secondary mb-1">
+            Plan complete — ad-hoc session (no daily cap)
           </p>
           <button
             onClick={() => setPhase({ kind: "setup" })}
