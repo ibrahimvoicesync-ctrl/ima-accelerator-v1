@@ -55,10 +55,10 @@ completed: 2026-03-31
 
 ## Performance
 
-- **Duration:** 1 min
+- **Duration:** ~15 min (Task 1 automated; Task 2 human deployment verification)
 - **Started:** 2026-03-31T06:50:00Z
-- **Completed:** 2026-03-31T06:51:00Z
-- **Tasks:** 1 of 2 complete (Task 2 is checkpoint:human-verify — awaiting deployment verification)
+- **Completed:** 2026-03-31
+- **Tasks:** 2 of 2 complete
 - **Files modified:** 1
 
 ## Accomplishments
@@ -67,15 +67,18 @@ completed: 2026-03-31
 - All 8 RLS policies use initplan wrappers — no per-row function evaluation
 - Append-only roadmap_undo_log enforced via RLS (no UPDATE/DELETE policies)
 - UNIQUE index on (student_id, date) enforces one-plan-per-student-per-day
-- Phase 27, 28, 29 unblocked pending Task 2 deployment verification
+- Migration deployed to production via `npx supabase db push --linked` — all 3 pending migrations applied without error
+- Both tables verified in Supabase Studio — columns, RLS enabled, and policies confirmed
+- Phases 27, 28, and 29 are now unblocked
 
 ## Task Commits
 
 Each task was committed atomically:
 
 1. **Task 1: Write migration 00013_daily_plans_undo_log.sql** - `8dce7a0` (feat)
+2. **Task 2: Deploy migration and verify schema** - Human-verify checkpoint; migration deployed by user (`npx supabase db push --linked`), schema verified in Supabase Studio
 
-**Plan metadata:** pending Task 2 checkpoint
+**Plan metadata:** pending final docs commit
 
 ## Files Created/Modified
 
@@ -97,7 +100,7 @@ None.
 
 ## User Setup Required
 
-Task 2 (checkpoint:human-verify) requires running `npx supabase db push --linked` to deploy the migration, then verifying the schema in Supabase Studio. See Task 2 in the plan file for full verification steps.
+None — migration was deployed by user running `npx supabase db push --linked`. No additional environment variables or dashboard configuration required.
 
 ## Known Stubs
 
@@ -105,12 +108,13 @@ None — this is a pure SQL migration with no application code.
 
 ## Next Phase Readiness
 
-- Migration file ready for deployment via `npx supabase db push --linked`
-- After Task 2 verification, Phases 27-29 are unblocked
-- Phase 27 (coach/owner undo API) inserts into roadmap_undo_log — actor_id must match the coach/owner's user ID or RLS INSERT policy will reject
-- Phase 28 (daily session planner API) reads/writes daily_plans — must use getTodayUTC() for date values and plan_json must include { version: 1, ... }
+- Phases 27, 28, and 29 are fully unblocked — both tables live in production
+- Phase 27 (coach/owner undo API): roadmap_undo_log exists with coach/owner INSERT policies and student index; actor_id must match the authenticated user's ID or RLS rejects
+- Phase 28 (daily session planner API): daily_plans exists with UNIQUE(student_id, date) and student INSERT/SELECT plus coach/owner SELECT policies; must use getTodayUTC() for date values; plan_json must include { version: 1, ... } (validated via Zod safeParse)
+- Phase 29 (daily session planner client): unblocked once Phase 28 API is complete
+- No blockers
 
-## Self-Check
+## Self-Check: PASSED
 
 - [x] supabase/migrations/00013_daily_plans_undo_log.sql exists
 - [x] 2 CREATE TABLE statements
@@ -118,6 +122,8 @@ None — this is a pure SQL migration with no application code.
 - [x] 2 ENABLE ROW LEVEL SECURITY statements
 - [x] 2 CREATE INDEX statements (1 UNIQUE, 1 regular)
 - [x] Commit 8dce7a0 exists
+- [x] .planning/phases/26-database-schema-foundation/26-01-SUMMARY.md exists
+- [x] Migration deployed to production (user confirmed)
 
 ---
 *Phase: 26-database-schema-foundation*
