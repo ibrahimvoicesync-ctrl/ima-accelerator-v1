@@ -6,6 +6,10 @@ import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
 import { WorkTimer } from "@/components/student/WorkTimer";
 import { CycleCard } from "@/components/student/CycleCard";
+import { PlannerUI } from "@/components/student/PlannerUI";
+import { PlannedSessionList } from "@/components/student/PlannedSessionList";
+import { planJsonSchema } from "@/lib/schemas/daily-plan";
+import type { PlanJson } from "@/lib/schemas/daily-plan";
 import { WORK_TRACKER, ROUTES } from "@/lib/config";
 import { getToday, formatPausedRemaining, formatHoursMinutes } from "@/lib/utils";
 import type { Database } from "@/lib/types";
@@ -24,8 +28,6 @@ interface WorkTrackerClientProps {
   initialPlan: DailyPlan | null;
 }
 
-// initialPlan will be used in a future plan to conditionally render PlannerUI
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerClientProps) {
   const routerRef = useRef(useRouter());
   const router = routerRef.current;
@@ -90,6 +92,23 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
   const dailyGoalMinutes = WORK_TRACKER.dailyGoalHours * 60;
   const progressPercent = Math.min(100, Math.round((totalMinutesWorked / dailyGoalMinutes) * 100));
 
+  // Parse plan_json through Zod — never trust raw JSONB (Pitfall 2)
+  const parsedPlan: PlanJson | null = (() => {
+    if (!initialPlan) return null;
+    const result = planJsonSchema.safeParse(initialPlan.plan_json);
+    if (!result.success) {
+      console.error("[WorkTrackerClient] Invalid plan_json:", result.error);
+      return null;
+    }
+    return result.data;
+  })();
+
+  // Derive mode from server data — never useState (survives refresh correctly)
+  const planFulfilled =
+    parsedPlan !== null && completedCount >= parsedPlan.sessions.length;
+  const mode: "planning" | "executing" | "adhoc" =
+    parsedPlan === null ? "planning" : !planFulfilled ? "executing" : "adhoc";
+
   // Phase initialization — sync phase with session state
   useEffect(() => {
     if (activeSession) {
@@ -98,7 +117,7 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
       setPhase({ kind: "working" }); // paused is still "working" phase
     } else if (phase.kind === "working") {
       // Session just ended — handled by handleComplete
-    } else if (phase.kind !== "setup" && phase.kind !== "break") {
+    } else if (phase.kind !== "setup" && phase.kind !== "break" && mode !== "planning" && mode !== "executing") {
       setPhase({ kind: "idle" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,6 +173,59 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
       setIsLoading(false);
     }
   }, [nextCycleNumber, selectedMinutes, router]);
+
+  const handleStartWithConfig = useCallback(
+    async (
+      sessionMinutes: number,
+      sessionBreakType: "short" | "long" | "none",
+      sessionBreakMinutes: number
+    ) => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/work-sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            date: getToday(),
+            cycle_number: nextCycleNumber,
+            session_minutes: sessionMinutes,
+          }),
+        });
+        if (!response.ok) {
+          const err = await response.json().catch((parseErr) => {
+            console.error("[WorkTrackerClient] Failed to parse error response:", parseErr);
+            return { error: null };
+          });
+          console.error("[WorkTrackerClient] Failed to start planned session:", err);
+          toastRef.current.toast({ type: "error", title: err.error || "Failed to start session" });
+          return;
+        }
+        const newSession = await response.json();
+        setSessions((prev) => [...prev, newSession]);
+        // Store break config for when this session completes
+        setBreakType(sessionBreakType === "none" ? "short" : sessionBreakType);
+        setBreakMinutes(sessionBreakType === "none" ? 0 : sessionBreakMinutes);
+        setPhase({ kind: "working" });
+        router.refresh();
+      } catch (err) {
+        console.error("[WorkTrackerClient] handleStartWithConfig error:", err);
+        toastRef.current.toast({ type: "error", title: "Something went wrong. Please try again." });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [nextCycleNumber, router]
+  );
+
+  const handleStartPlanned = useCallback(
+    (planIndex: number) => {
+      if (!parsedPlan) return;
+      const slot = parsedPlan.sessions[planIndex];
+      if (!slot) return;
+      handleStartWithConfig(slot.session_minutes, slot.break_type, slot.break_minutes);
+    },
+    [parsedPlan, handleStartWithConfig]
+  );
 
   const handleComplete = useCallback(async (sessionId: string) => {
     setIsLoading(true);
@@ -516,8 +588,25 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
         </div>
       )}
 
-      {/* Idle: no active or paused session */}
-      {phase.kind === "idle" && !activeSession && !pausedSession && (
+      {/* Planning mode: no plan exists yet — show PlannerUI (PLAN-01) */}
+      {mode === "planning" && !activeSession && !pausedSession && phase.kind !== "break" && (
+        <PlannerUI onPlanConfirmed={() => {}} />
+      )}
+
+      {/* Executing mode: plan exists, not yet fulfilled — show PlannedSessionList (D-02, PLAN-10) */}
+      {mode === "executing" && !activeSession && !pausedSession && phase.kind !== "break" && phase.kind !== "working" && (
+        <PlannedSessionList
+          plan={parsedPlan!}
+          completedCount={completedCount}
+          activeSession={!!activeSession}
+          pausedSession={!!pausedSession}
+          isLoading={isLoading}
+          onStartSession={handleStartPlanned}
+        />
+      )}
+
+      {/* Ad-hoc mode: plan fulfilled — show normal idle/setup (COMP-03, handled in Plan 03) */}
+      {mode === "adhoc" && phase.kind === "idle" && !activeSession && !pausedSession && (
         <div className="flex flex-col items-center gap-3 mb-6 text-center">
           <p className="text-lg font-semibold text-ima-text">
             Ready for Session {nextCycleNumber}
