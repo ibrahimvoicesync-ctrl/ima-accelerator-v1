@@ -223,7 +223,7 @@ export function OwnerStudentDetailClient({
           role="owner"
         />
       )}
-      {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} />}
+      {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} studentId={studentId} />}
     </div>
   );
 }

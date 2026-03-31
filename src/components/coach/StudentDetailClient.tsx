@@ -104,7 +104,7 @@ export function StudentDetailClient({
           role="coach"
         />
       )}
-      {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} />}
+      {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} studentId={studentId} />}
     </div>
   );
 }
