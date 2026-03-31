@@ -24,7 +24,9 @@ interface WorkTrackerClientProps {
   initialPlan: DailyPlan | null;
 }
 
-export function WorkTrackerClient({ initialSessions, initialPlan: _initialPlan }: WorkTrackerClientProps) {
+// initialPlan will be used in a future plan to conditionally render PlannerUI
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerClientProps) {
   const routerRef = useRef(useRouter());
   const router = routerRef.current;
   const toastRef = useRef(useToast());
