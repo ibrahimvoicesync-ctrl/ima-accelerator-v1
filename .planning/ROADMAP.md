@@ -227,10 +227,10 @@ Plans:
   4. After confirming, the planner disappears and WorkTracker executes the planned sessions in sequence; the phase-reset useEffect guard preserves plan-mode state across page refreshes
   5. After all planned sessions complete, a motivational card appears showing Arabic "اللهم بارك" (large, centered, dir="rtl") and English "You have done the bare minimum! Continue with your next work session"; the card shows once per day
   6. The card offers "Start Next Session" (opens ad-hoc duration picker) and "Dismiss" (returns to work tracker idle); ad-hoc sessions allow free duration and break type selection with no daily cap
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 Plans:
 - [x] 29-01-PLAN.md — Server-side plan fetch in page.tsx + PlannerUI session builder component
-- [ ] 29-02-PLAN.md — WorkTrackerClient plan-mode integration with PlannedSessionList and handleStartWithConfig
+- [x] 29-02-PLAN.md — WorkTrackerClient plan-mode integration with PlannedSessionList and handleStartWithConfig
 - [ ] 29-03-PLAN.md — MotivationalCard post-completion + ad-hoc mode wiring
 **UI hint**: yes
 
@@ -266,4 +266,4 @@ Plans:
 | 26. Database Schema Foundation | v1.3 | 1/1 | Complete    | 2026-03-31 |
 | 27. Coach/Owner Roadmap Undo | v1.3 | 2/2 | Complete    | 2026-03-31 |
 | 28. Daily Session Planner API | v1.3 | 3/3 | Complete    | 2026-03-31 |
-| 29. Daily Session Planner Client | v1.3 | 1/3 | In Progress|  |
+| 29. Daily Session Planner Client | v1.3 | 2/3 | In Progress|  |

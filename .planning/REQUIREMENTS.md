@@ -35,7 +35,7 @@ Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Control
 - [x] **PLAN-07**: daily_plans table stores one plan per student per day with plan_json (array of session configs), UNIQUE(student_id, date) constraint
 - [x] **PLAN-08**: POST /api/daily-plans validates 4h work cap server-side; returns existing plan on conflict (idempotent)
 - [x] **PLAN-09**: POST /api/work-sessions enforces 4h daily cap when a plan exists for the day
-- [ ] **PLAN-10**: Student must complete all planned sessions before doing additional sessions
+- [x] **PLAN-10**: Student must complete all planned sessions before doing additional sessions
 
 ### Post-Plan Completion
 
@@ -122,7 +122,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAN-07 | Phase 26 | Complete |
 | PLAN-08 | Phase 28 | Complete |
 | PLAN-09 | Phase 28 | Complete |
-| PLAN-10 | Phase 29 | Pending |
+| PLAN-10 | Phase 29 | Complete |
 | COMP-01 | Phase 29 | Pending |
 | COMP-02 | Phase 29 | Pending |
 | COMP-03 | Phase 29 | Pending |

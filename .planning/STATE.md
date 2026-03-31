@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Roadmap Update, Session Planner & Coach Controls
 status: executing
-stopped_at: Completed 29-01-PLAN.md
-last_updated: "2026-03-31T12:27:05.653Z"
+stopped_at: Completed 29-02-PLAN.md
+last_updated: "2026-03-31T12:37:39.949Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 11
   completed_phases: 9
   total_plans: 29
-  completed_plans: 26
+  completed_plans: 27
   percent: 95
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 29 (daily-session-planner-client) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-31
 
@@ -74,6 +74,8 @@ Critical v1.3 decisions from research:
 - [Phase 29-daily-session-planner-client]: initialPlan prop added to WorkTrackerClient with eslint-disable — consumed by plan 29-02 for conditional PlannerUI rendering
 - [Phase 29-daily-session-planner-client]: rebuildBreaks() helper ensures last-session=none invariant on every add/remove mutation
 - [Phase 29-daily-session-planner-client]: PlannerUI is standalone with onPlanConfirmed callback — no server data, calls router.refresh() + onPlanConfirmed after successful POST
+- [Phase 29]: mode derived from server props (parsedPlan + completedCount) — never useState so it survives refresh without re-initialization race conditions
+- [Phase 29]: handleStartWithConfig stores break config into state before setPhase(working) so handleComplete reads planned break duration correctly
 
 ### Pending Todos
 
@@ -87,6 +89,6 @@ None currently blocking Phase 25.
 
 ## Session Continuity
 
-Last session: 2026-03-31T12:27:05.649Z
-Stopped at: Completed 29-01-PLAN.md
+Last session: 2026-03-31T12:37:39.946Z
+Stopped at: Completed 29-02-PLAN.md
 Resume file: None
