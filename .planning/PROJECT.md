@@ -48,8 +48,8 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 <!-- Current scope. Building toward these for v1.3. -->
 
-- [ ] Roadmap step description updates — append parenthetical text to steps 1-8, move unlock_url step 6 → step 5, rewrite step 6/7 descriptions, set step 8 target_days: 14
-- [ ] Stage headers in student roadmap view — visual grouping by stage (Setup & Preparation, Influencer Outreach, Brand Outreach)
+- [x] Roadmap step description updates — append parenthetical text to steps 1-8, move unlock_url step 6 → step 5, rewrite step 6/7 descriptions, set step 8 target_days: 14 — Phase 25
+- [x] Stage headers in all roadmap views — student, coach, and owner views grouped by stage (Setup & Preparation, Influencer Outreach, Brand Outreach) — Phase 25
 - [ ] Coach/owner roadmap undo — revert completed steps to active with confirmation, PATCH /api/roadmap/undo, undo action logging
 - [ ] Daily session planner — daily_plans table, 4h work time cap (breaks excluded), automatic alternating breaks, planned session execution
 - [ ] Post-plan completion motivational card + ad-hoc session picker
@@ -97,6 +97,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **v1.2 Phase 23 complete** (2026-03-30): Security audit — 3-layer audit of all 12 API routes (auth, proxy, RLS), verifyOrigin() CSRF helper on all 10 mutation routes, reports/[id]/review ownership leak fixed (404 instead of 403). Gap closure: optimistic session state update eliminates timer startup delay, CycleCard shows "In progress" instead of redundant countdown for active sessions.
 
 **v1.2 milestone complete** (2026-03-31): 6 phases (19-24), 18 plans. Database indexes, RPC consolidation, server-side pagination, pg_cron pre-aggregation, rate limiting, security audit, load testing all shipped. Local Docker k6 confirms P95<1s at 5k students. Pro Small compute confirmed adequate.
+
+**v1.3 Phase 25 complete** (2026-03-31): Roadmap config & stage headers — ROADMAP_STEPS updated with parenthetical time guidance on steps 1-8, Step 5 unlock URL set to skool CRM, Step 6 URL cleared, Step 6/7 descriptions rewritten, Step 8 target_days set to 14. Stage headers (Setup & Preparation, Influencer Outreach, Brand Outreach) added to student, coach, and owner roadmap views.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
