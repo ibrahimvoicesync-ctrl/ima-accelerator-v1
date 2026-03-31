@@ -26,12 +26,12 @@ Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Control
 
 ### Session Planner
 
-- [ ] **PLAN-01**: Student sees a daily planner in Work Tracker page before their first session of the day
-- [ ] **PLAN-02**: Student can add sessions (30/45/60 min) with a running total showing planned work hours (breaks excluded from total)
-- [ ] **PLAN-03**: Break types alternate automatically: odd sessions (1st, 3rd, 5th) get short break, even sessions (2nd, 4th, 6th) get long break, last session has no break
-- [ ] **PLAN-04**: Short break options are 5 or 10 min; long break options are 15, 20, 25, or 30 min (fixed choices per break type)
-- [ ] **PLAN-05**: Student cannot plan more than 4 hours of work time; confirm button enabled when total reaches exactly 4h or nearest valid total below 4h
-- [ ] **PLAN-06**: After confirming plan, planner disappears and WorkTracker executes planned sessions in sequence with assigned breaks
+- [x] **PLAN-01**: Student sees a daily planner in Work Tracker page before their first session of the day
+- [x] **PLAN-02**: Student can add sessions (30/45/60 min) with a running total showing planned work hours (breaks excluded from total)
+- [x] **PLAN-03**: Break types alternate automatically: odd sessions (1st, 3rd, 5th) get short break, even sessions (2nd, 4th, 6th) get long break, last session has no break
+- [x] **PLAN-04**: Short break options are 5 or 10 min; long break options are 15, 20, 25, or 30 min (fixed choices per break type)
+- [x] **PLAN-05**: Student cannot plan more than 4 hours of work time; confirm button enabled when total reaches exactly 4h or nearest valid total below 4h
+- [x] **PLAN-06**: After confirming plan, planner disappears and WorkTracker executes planned sessions in sequence with assigned breaks
 - [x] **PLAN-07**: daily_plans table stores one plan per student per day with plan_json (array of session configs), UNIQUE(student_id, date) constraint
 - [x] **PLAN-08**: POST /api/daily-plans validates 4h work cap server-side; returns existing plan on conflict (idempotent)
 - [x] **PLAN-09**: POST /api/work-sessions enforces 4h daily cap when a plan exists for the day
@@ -113,12 +113,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UNDO-03 | Phase 27 | Complete |
 | UNDO-04 | Phase 27 | Complete |
 | UNDO-05 | Phase 26 | Complete |
-| PLAN-01 | Phase 29 | Pending |
-| PLAN-02 | Phase 29 | Pending |
-| PLAN-03 | Phase 29 | Pending |
-| PLAN-04 | Phase 29 | Pending |
-| PLAN-05 | Phase 29 | Pending |
-| PLAN-06 | Phase 29 | Pending |
+| PLAN-01 | Phase 29 | Complete |
+| PLAN-02 | Phase 29 | Complete |
+| PLAN-03 | Phase 29 | Complete |
+| PLAN-04 | Phase 29 | Complete |
+| PLAN-05 | Phase 29 | Complete |
+| PLAN-06 | Phase 29 | Complete |
 | PLAN-07 | Phase 26 | Complete |
 | PLAN-08 | Phase 28 | Complete |
 | PLAN-09 | Phase 28 | Complete |
