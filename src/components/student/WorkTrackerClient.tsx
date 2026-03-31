@@ -11,6 +11,7 @@ import { getToday, formatPausedRemaining, formatHoursMinutes } from "@/lib/utils
 import type { Database } from "@/lib/types";
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
+type DailyPlan = Database["public"]["Tables"]["daily_plans"]["Row"];
 
 type TrackerPhase =
   | { kind: "idle" }
@@ -20,9 +21,10 @@ type TrackerPhase =
 
 interface WorkTrackerClientProps {
   initialSessions: WorkSession[];
+  initialPlan: DailyPlan | null;
 }
 
-export function WorkTrackerClient({ initialSessions }: WorkTrackerClientProps) {
+export function WorkTrackerClient({ initialSessions, initialPlan: _initialPlan }: WorkTrackerClientProps) {
   const routerRef = useRef(useRouter());
   const router = routerRef.current;
   const toastRef = useRef(useToast());

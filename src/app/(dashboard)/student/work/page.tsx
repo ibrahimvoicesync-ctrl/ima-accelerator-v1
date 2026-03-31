@@ -4,6 +4,7 @@ import { WorkTrackerClient } from "@/components/student/WorkTrackerClient";
 import type { Database } from "@/lib/types";
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
+type DailyPlan = Database["public"]["Tables"]["daily_plans"]["Row"];
 
 export default async function WorkPage() {
   const user = await requireRole("student");
@@ -21,13 +22,27 @@ export default async function WorkPage() {
     console.error("[work page] Failed to load sessions:", error);
   }
 
+  const { data: plan, error: planError } = await admin
+    .from("daily_plans")
+    .select("*")
+    .eq("student_id", user.id)
+    .eq("date", today)
+    .maybeSingle();
+
+  if (planError) {
+    console.error("[work page] Failed to load daily plan:", planError);
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4">
       <h1 className="text-2xl font-bold text-ima-text mb-1">Work Tracker</h1>
       <p className="text-sm text-ima-text-secondary mb-6">
         Track your daily work sessions
       </p>
-      <WorkTrackerClient initialSessions={(sessions ?? []) as WorkSession[]} />
+      <WorkTrackerClient
+        initialSessions={(sessions ?? []) as WorkSession[]}
+        initialPlan={(plan ?? null) as DailyPlan | null}
+      />
     </div>
   );
 }
