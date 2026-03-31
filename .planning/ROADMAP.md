@@ -166,7 +166,10 @@ Plans:
   4. Step 8 displays a 14-day target and the deadline chip responds correctly to that target
   5. Student roadmap page groups steps under three visible stage headers: Setup & Preparation, Influencer Outreach, Brand Outreach
   6. Coach and owner roadmap tab shows the same three stage headers grouping the same step ranges
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 25-01-PLAN.md — Config updates (descriptions, URLs, target_days) and student RoadmapClient stage headers
+- [ ] 25-02-PLAN.md — Coach/owner RoadmapTab stage headers
 **UI hint**: yes
 
 ### Phase 26: Database Schema Foundation
@@ -246,7 +249,7 @@ Plans:
 | 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 23. Security Audit | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 24. Infrastructure & Validation | v1.2 | 5/5 | Complete | 2026-03-31 |
-| 25. Roadmap Config & Stage Headers | v1.3 | 0/? | Not started | - |
+| 25. Roadmap Config & Stage Headers | v1.3 | 0/2 | Not started | - |
 | 26. Database Schema Foundation | v1.3 | 0/? | Not started | - |
 | 27. Coach/Owner Roadmap Undo | v1.3 | 0/? | Not started | - |
 | 28. Daily Session Planner API | v1.3 | 0/? | Not started | - |
