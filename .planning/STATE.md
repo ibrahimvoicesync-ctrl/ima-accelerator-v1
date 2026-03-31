@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Roadmap Update, Session Planner & Coach Controls
-status: executing
-stopped_at: Completed 28-01-PLAN.md
-last_updated: "2026-03-31T08:44:39.553Z"
+status: verifying
+stopped_at: Completed 28-02-PLAN.md
+last_updated: "2026-03-31T08:52:42.179Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 11
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 25
-  completed_plans: 23
+  completed_plans: 24
   percent: 95
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 Phase: 28 (daily-session-planner-api) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-31
 
 Progress: [██████████] 95%
@@ -67,6 +67,9 @@ Critical v1.3 decisions from research:
 - [Phase 28-01]: plan_json uses version:1 literal for schema evolution safety (D-07)
 - [Phase 28-01]: GET /api/daily-plans omits CSRF and rate limit, consistent with /api/calendar read pattern
 - [Phase 28-01]: 23505 conflict returns existing plan with status 200 (idempotent D-06) rather than erroring
+- [Phase 28-02]: Plan-cap block inserted AFTER active-session conflict check and BEFORE insert — preserves all existing logic untouched
+- [Phase 28-02]: getTodayUTC() used for plan lookup, never client-supplied date field — prevents cap bypass via date manipulation (Pitfall 1)
+- [Phase 28-02]: Single query for completed sessions (select session_minutes) provides both count (fulfillment) and sum (cap check) — collapses 2 queries into 1 (Pitfall 4)
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ None currently blocking Phase 25.
 
 ## Session Continuity
 
-Last session: 2026-03-31T08:44:39.550Z
-Stopped at: Completed 28-01-PLAN.md
+Last session: 2026-03-31T08:52:42.176Z
+Stopped at: Completed 28-02-PLAN.md
 Resume file: None
