@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER } from "@/lib/config";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
+import { getTodayUTC } from "@/lib/utils";
+import { planJsonSchema } from "@/lib/schemas/daily-plan";
 
 const postSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -81,6 +83,72 @@ export async function POST(request: Request) {
       { status: 409 }
     );
   }
+
+  // ── Plan-aware cap enforcement (D-01 through D-05) ──────────────────
+  const today = getTodayUTC();
+
+  // Step 1: Fetch today's plan
+  const { data: todayPlan } = await admin
+    .from("daily_plans")
+    .select()
+    .eq("student_id", profile.id)
+    .eq("date", today)
+    .maybeSingle();
+
+  // D-01: No plan today → block session creation
+  if (!todayPlan) {
+    return NextResponse.json(
+      { error: "You must create a daily plan before starting a work session." },
+      { status: 400 }
+    );
+  }
+
+  // D-07: Parse plan_json safely — never TypeScript cast
+  const planParseResult = planJsonSchema.safeParse(todayPlan.plan_json);
+
+  if (!planParseResult.success) {
+    // D-07 + D-01: Treat parse failure as "no plan today" → block
+    // This surfaces data corruption immediately rather than silently bypassing the cap
+    console.error("[work-sessions POST] plan_json parse failed for student:", profile.id, planParseResult.error);
+    return NextResponse.json(
+      { error: "Your daily plan data is invalid. Please contact support." },
+      { status: 400 }
+    );
+  }
+
+  const planData = planParseResult.data;
+  const plannedSessionCount = planData.sessions.length;
+
+  // Step 2: Fetch today's completed sessions (one query for both count and sum per Pitfall 4)
+  const { data: completedSessions } = await admin
+    .from("work_sessions")
+    .select("session_minutes")
+    .eq("student_id", profile.id)
+    .eq("date", today)
+    .eq("status", "completed");
+
+  const completedCount = completedSessions?.length ?? 0;
+  const completedMinutes = (completedSessions ?? []).reduce(
+    (sum, s) => sum + s.session_minutes, 0
+  );
+
+  // D-04: Plan fulfilled when completed sessions >= planned sessions
+  const planFulfilled = completedCount >= plannedSessionCount;
+
+  // D-02: If plan exists and not fulfilled, enforce cap
+  if (!planFulfilled) {
+    const capMinutes = planData.total_work_minutes;
+    if (completedMinutes + session_minutes > capMinutes) {
+      return NextResponse.json(
+        {
+          error: `Daily work cap of ${capMinutes} minutes reached. Already completed: ${completedMinutes} min, requested: ${session_minutes} min.`,
+        },
+        { status: 400 }
+      );
+    }
+  }
+  // D-03: If plan fulfilled, cap lifted — fall through to insert
+  // ── End plan-aware cap enforcement ───────────────────────────────────
 
   // Insert new session
   const { data: session, error: insertError } = await admin
