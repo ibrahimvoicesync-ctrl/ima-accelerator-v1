@@ -1,8 +1,259 @@
 # Stack Research
 
 **Domain:** Coaching / student performance management platform
-**Researched:** 2026-03-27 (v1.1 update — new features only), 2026-03-29 (v1.2 update — performance, scale, security)
+**Researched:** 2026-03-27 (v1.1 update — new features only), 2026-03-29 (v1.2 update — performance, scale, security), 2026-03-31 (v1.3 update — roadmap text/undo, session planner, motivational card)
 **Confidence:** HIGH — versions verified against npm, official changelogs, and official docs
+
+---
+
+## v1.3 Additions (Roadmap Updates, Coach Undo, Session Planner, Motivational Card)
+
+The validated v1.0, v1.1, and v1.2 stacks remain unchanged. This section documents what is **added or changed** for the four v1.3 features.
+
+---
+
+### No New npm Dependencies Needed
+
+All v1.3 features are implementable with libraries already installed. Zero new packages.
+
+| Feature | Required Capability | Covered By |
+|---------|--------------------|-----------:|
+| daily_plans JSONB storage | JSONB column in Postgres migration | Supabase / Postgres — already in stack |
+| plan_json typed schema | Runtime validation | `zod` ^4.3.6 — already installed |
+| Coach undo audit log | Append-only log table | Supabase / Postgres — already in stack |
+| Undo PATCH endpoint | Route handler PATCH | Next.js 16 App Router — already in stack |
+| Motivational card animation | `AnimatePresence` entrance | `motion` ^12.37.0 — already installed |
+| Arabic text in motivational card | Unicode text + CSS direction | CSS `dir="rtl"` attribute + Inter font Unicode coverage |
+| 4h work-time cap enforcement | Client-side sum + server validation | React 19 state + Zod schema on API |
+| Alternating break type logic | Deterministic sequence | Pure TypeScript utility function |
+| Stage headers in roadmap view | Grouping logic | `ROADMAP_STEPS` config already has `stage` + `stageName` |
+
+---
+
+### Database Changes (Migration Only — No npm Packages)
+
+#### daily_plans Table
+
+```sql
+CREATE TABLE public.daily_plans (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id   uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  plan_date    date        NOT NULL,
+  plan_json    jsonb       NOT NULL DEFAULT '[]',
+  total_work_minutes integer NOT NULL DEFAULT 0,
+  status       text        NOT NULL DEFAULT 'active'
+                           CHECK (status IN ('active', 'completed')),
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (student_id, plan_date)
+);
+```
+
+**Why JSONB for plan_json:** The plan is a structured array of session blocks (`[{ session_minutes, break_type, break_minutes, work_session_id | null }]`). The schema is fixed at build time (validated by Zod on every write) but varies in array length per student per day. JSONB avoids 3-4 join tables, allows the plan to be read and written as a single atomic unit, and is fast for the access pattern (always fetch entire plan for one student+date — never queried across students). GIN index not needed because query is always by `(student_id, plan_date)` primary key.
+
+**Why total_work_minutes as a column:** The 4h cap (240 minutes, breaks excluded) is enforced on the server. Storing the pre-computed total as a regular column allows a simple `WHERE total_work_minutes <= 240` check without parsing JSONB on the DB side. The column is updated on every PATCH to the plan.
+
+**RLS policy:** Students can only read/write their own row. Coaches and owners can read (no write). Admin client used in API routes as per existing pattern.
+
+#### roadmap_undo_log Table
+
+```sql
+CREATE TABLE public.roadmap_undo_log (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id   uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  step_number  integer     NOT NULL CHECK (step_number BETWEEN 1 AND 15),
+  reverted_by  uuid        NOT NULL REFERENCES public.users(id),
+  reverted_at  timestamptz NOT NULL DEFAULT now(),
+  prev_status  text        NOT NULL,   -- 'completed' (what it was before undo)
+  new_status   text        NOT NULL    -- 'active' (what it became after undo)
+);
+```
+
+**Why a separate log table:** The undo action is an irreversible administrative act (coach/owner reverting a student's completed step). An append-only log makes the audit trail explicit without polluting `roadmap_progress` with metadata columns. The log is queried only for admin-visible audit displays; it never affects the read path for students.
+
+**RLS policy:** Insert allowed for coach/owner roles (via admin client in API route). Read allowed for coach/owner. Students cannot read or write this table.
+
+---
+
+### API Route Additions (No New Libraries)
+
+#### PATCH /api/roadmap/undo
+
+New route file: `src/app/api/roadmap/undo/route.ts`
+
+**Pattern:** Follows the existing `PATCH /api/roadmap` route exactly — same auth check, admin client, rate-limit check, verifyOrigin CSRF, Zod safeParse, try/catch with console.error.
+
+**Body schema:**
+```typescript
+const undoSchema = z.object({
+  student_id: z.string().uuid(),
+  step_number: z.number().int().min(1).max(15),
+})
+```
+
+**Authorization:** Caller must be `coach` or `owner`. Coaches must have an assignment to the target student (query `users.coach_id` to verify). Owners can undo for any student.
+
+**Steps:**
+1. Verify step is currently `completed`
+2. UPDATE `roadmap_progress` set `status = 'active'`, `completed_at = NULL`
+3. If `step_number + 1` exists and is `active`, set it back to `locked`
+4. INSERT into `roadmap_undo_log`
+5. Return updated progress rows
+
+**Why no next-step lock-back in step 3:** Only revert the next step if it is still `active` (student has not already completed it too). If student completed step N+1 after N, the coach must undo each step independently. This prevents accidental data loss on partial undos.
+
+---
+
+### Session Planner Architecture (No New Libraries)
+
+#### Plan State in React
+
+The planner uses React 19 `useState` for the plan array. The 4h cap is enforced both:
+- **Client-side:** Computed from `plan.reduce((sum, block) => sum + block.session_minutes, 0)` before allowing "Add Session" — button is disabled when `totalWorkMinutes >= 240`
+- **Server-side:** Zod schema validates `total_work_minutes <= 240` on every PATCH to `/api/daily-plans`
+
+No `useOptimistic` needed for the planner — the plan is the source of truth, not a dashboard feed. Changes to the plan array are local until explicitly saved/confirmed.
+
+#### Automatic Break Alternation
+
+Pure TypeScript utility in `src/lib/session.ts` (or inline in config):
+
+```typescript
+// Deterministic: short → long → short → long based on session index
+export function getNextBreakType(sessionIndex: number): "short" | "long" {
+  return sessionIndex % 2 === 0 ? "short" : "long";
+}
+```
+
+No library. Session index 0 = first session in the plan (short break after), index 1 = second session (long break after), etc.
+
+#### Plan Execution via Existing WorkTracker
+
+The daily session planner generates a plan but execution is handed off to the existing `WorkTrackerClient`. When a student starts a planned session, the planner passes `session_minutes` and the suggested `breakType` as props or URL params to the work tracker. The work session is created via the existing `POST /api/work-sessions` route. After completion, the plan's `work_session_id` is patched to link the completed session to the plan block.
+
+---
+
+### Motivational Card (No New Libraries)
+
+#### Animation
+
+`motion` is already installed at ^12.37.0. Use `AnimatePresence` + `motion.div` for the card entrance:
+
+```typescript
+import { AnimatePresence, motion } from "motion/react"
+
+// Card slides in from bottom, fades out when dismissed
+<AnimatePresence>
+  {showCard && (
+    <motion.div
+      key="motivational-card"
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
+      {/* card content */}
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
+All `animate-*` classes must use `motion-safe:` prefix per CLAUDE.md Hard Rules. When using motion.div props (not CSS classes), the `motion-safe:` prefix does not apply — the motion library respects `prefers-reduced-motion` via `useReducedMotion()` if needed.
+
+#### Arabic Text Rendering
+
+**No new library needed.** The motivational card includes Arabic text (motivational quotes from Abu Lahya). The approach:
+
+1. Wrap Arabic text in a `<span lang="ar" dir="rtl">` element inline
+2. Inter font (already loaded via next/font) includes Unicode coverage for Arabic characters — verified against the Inter font specimen
+3. If Inter renders Arabic with poor ligature support at design review, add Noto Sans Arabic via `next/font/google` at the page level (no npm package — it is part of `next/font`)
+
+**CSS pattern (no extra library):**
+```tsx
+<p className="text-center text-ima-text-secondary italic">
+  <span lang="ar" dir="rtl" className="font-medium not-italic">
+    العمل الصادق يفتح الأبواب
+  </span>
+</p>
+```
+
+The `dir="rtl"` scoped to the span prevents the surrounding LTR layout from being affected. Full-page RTL (`<html dir="rtl">`) is not needed since Arabic appears only in the motivational card — not sitewide.
+
+**Tailwind 4 RTL/LTR variants:** Tailwind CSS 4 ships with `rtl:` and `ltr:` variants and logical property utilities (`ms-`, `me-`, `ps-`, `pe-`). These are available if layout adjustments are needed around the Arabic span. No plugin required for Tailwind 4. Verified: Tailwind CSS 4 includes built-in support for logical properties from v3.3+ onward.
+
+---
+
+### Zod v4 Import Clarification (CLAUDE.md Hard Rule)
+
+The project has `zod` ^4.3.6 installed. The CLAUDE.md Hard Rule states: **`import { z } from "zod"` — never `"zod/v4"`**.
+
+This is correct. Zod 4's main export from `"zod"` provides the full v4 API. The `"zod/v4"` subpath was a transitional compatibility shim during the v3→v4 migration window. For this project, always use `import { z } from "zod"`. Verified against the Zod v4 migration guide at zod.dev/v4/changelog.
+
+**String validators in Zod v4:** `z.string().email()` and `z.string().uuid()` remain valid in Zod 4 (legacy method syntax still works). The top-level `z.email()` and `z.uuid()` forms are new aliases, not replacements. Either form works. Prefer the established method-chain form to match existing code in the project.
+
+---
+
+### Config Changes (No Migration)
+
+**ROADMAP_STEPS in `src/lib/config.ts`:** The v1.3 roadmap text updates are pure config changes — no migration needed. The `roadmap_progress` table stores only `step_number` and `status`; `step_name` and `description` are display values rendered from config at runtime. Updating config automatically updates all displays for all students.
+
+**Session planner config:** Add `PLANNER_CONFIG` constant to `src/lib/config.ts`:
+
+```typescript
+export const PLANNER_CONFIG = {
+  maxWorkMinutes: 240,        // 4h cap, breaks excluded
+  defaultSessionMinutes: 45,  // matches WORK_TRACKER.defaultSessionMinutes
+  breakAlternation: {
+    even: "short" as const,   // after session index 0, 2, 4...
+    odd: "long" as const,     // after session index 1, 3, 5...
+  },
+} as const;
+```
+
+---
+
+### What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `react-beautiful-dnd` or `@dnd-kit/core` | Drag-to-reorder sessions is V2+; v1.3 planner uses fixed ordered list | None — static add/remove UI |
+| `react-query` / `swr` for plan sync | Overkill for a form-based plan that saves on explicit action | `useState` + `fetch` + `revalidatePath` |
+| `i18next` / `next-intl` | Only the motivational card has Arabic; full i18n is V2+ | `lang="ar" dir="rtl"` inline span |
+| `@supabase/realtime` subscriptions for planner | Plan is per-student, one editor — no concurrent edit problem | Plain PATCH + `revalidatePath` |
+| Redis/Upstash for plan caching | Plan is user-specific, small (<1 KB), and mutated frequently — caching adds complexity with no benefit | `revalidatePath` after PATCH clears Next.js cache |
+| `jsonwebtoken` for plan tokens | Already installed for magic links; planner does not need separate tokens | None |
+| Noto Sans Arabic (npm install) | Not an npm package — if needed, load via `next/font/google` with no install step | `next/font/google` import |
+
+---
+
+## Version Compatibility
+
+All new code uses libraries already installed. No compatibility risk from new additions.
+
+| Package | Version in package.json | v1.3 Usage | Notes |
+|---------|------------------------|-----------|-------|
+| `motion` | ^12.37.0 | `AnimatePresence`, `motion.div` | React 19 compatible (verified: motion 12.1.0 fixed AnimatePresence strict mode issues with React 19) |
+| `zod` | ^4.3.6 | `z.object()`, `z.string().uuid()`, `z.number().int()` | Full v4 API via `import { z } from "zod"` |
+| `date-fns` | ^4.1.0 | No new usage in v1.3 | date-fns v4 has no breaking changes for existing format/parse utilities used in the project |
+| `lucide-react` | ^0.576.0 | New icons for planner UI (`CalendarPlus`, `Undo2`, `CheckCircle2`) | All required icons confirmed present in 0.576.0 |
+| `@supabase/supabase-js` | ^2.99.2 | New `daily_plans` and `roadmap_undo_log` table queries | No API changes needed — same `.from()` / `.rpc()` patterns |
+| `next` | 16.1.6 | New `PATCH /api/roadmap/undo` and `POST|PATCH /api/daily-plans` routes | Same App Router route handler pattern as all existing mutation routes |
+
+---
+
+## Sources
+
+- [Zod v4 changelog](https://zod.dev/v4/changelog) — confirmed `import { z } from "zod"` is correct for v4; "zod/v4" is a transitional shim only
+- [Supabase JSONB docs](https://supabase.com/docs/guides/database/json) — JSONB recommended for semi-structured data; GIN index when querying across keys (not needed here)
+- [Motion React docs](https://motion.dev/docs/react) — AnimatePresence, motion.div, React 19 compatibility confirmed
+- [Tailwind CSS RTL support](https://ryanschiang.com/tailwindcss-direction-rtl) — `rtl:` / `ltr:` variants and logical properties built into Tailwind 4; no plugin needed
+- [date-fns v4 release notes](https://blog.date-fns.org/v40-with-time-zone-support/) — v4 breaking changes are type-only; no behavioral changes affecting existing usage
+- [Next.js Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers) — PATCH route handler pattern confirmed for App Router
+
+---
+
+*Stack research for: coaching / student performance management platform (v1.3 additions only)*
+*Researched: 2026-03-31*
 
 ---
 
@@ -193,571 +444,184 @@ export const getStudentProfile = cache(async (studentId: string) => {
 })
 ```
 
-**`use cache` directive** — cross-request persistent caching (Next.js 16 built-in, requires `cacheComponents: true`):
+**`unstable_cache()` from Next.js** — cross-request persistent cache (replaces `fetch` cache for Supabase):
 
 ```typescript
-// Cache owner dashboard stats for 5 minutes; invalidate on mutation
-import { cacheLife, cacheTag } from "next/cache"
+import { unstable_cache } from "next/cache"
 
-export async function getOwnerDashboardStats() {
-  "use cache"
-  cacheLife("minutes")        // 5-minute stale time
-  cacheTag("owner-dashboard") // invalidation key
-
-  const admin = createAdminClient()
-  // ... queries
-}
-```
-
-**Invalidation after mutation:**
-
-```typescript
-// In API route handler after a write succeeds
-import { revalidateTag } from "next/cache"
-revalidateTag("owner-dashboard")
-```
-
-**Decision rule:**
-- Use `cache()` when: same data is accessed by multiple Server Components in one request, data must be fresh per-request (user-specific), or `use cache` is not enabled.
-- Use `use cache` when: data is shared across users (owner stats, platform-wide KPIs), acceptable to serve slightly stale data, or the computation is expensive enough to justify cross-request persistence.
-- Use `revalidatePath()` when: you know exactly which page to invalidate after a mutation.
-- Use `revalidateTag()` when: multiple pages share the same cached data and need simultaneous invalidation.
-
----
-
-### Load Testing with k6
-
-**Tool:** k6 v1.7.0 (latest as of 2026-03-25). Standalone CLI — not an npm package. Install on the machine running the test.
-
-**Why k6 over alternatives:**
-- Supabase themselves use k6 for their internal benchmarks
-- JavaScript/TypeScript test scripts — familiar syntax for this stack
-- Built-in `ramping-vus` executor exactly matches the "ramp to 5k users" scenario
-- Outputs P50/P95/P99 latency, throughput (req/s), error rate — the metrics needed to validate infrastructure
-- Free and open source with no cloud account required for local runs
-
-**Installation (CI or developer machine):**
-
-```bash
-# macOS
-brew install k6
-
-# Windows (Chocolatey)
-choco install k6
-
-# Linux
-sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
-  --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
-  | sudo tee /etc/apt/sources.list.d/k6.list
-sudo apt-get update && sudo apt-get install k6
-```
-
-**Script structure for 5k concurrent user test:**
-
-```javascript
-// .load-tests/owner-dashboard.js
-import http from "k6/http"
-import { check, sleep } from "k6"
-
-export const options = {
-  stages: [
-    { duration: "2m", target: 500  },   // ramp up
-    { duration: "5m", target: 5000 },   // hold at 5k
-    { duration: "2m", target: 0    },   // ramp down
-  ],
-  thresholds: {
-    http_req_duration: ["p(95)<2000"],  // 95th percentile under 2s
-    http_req_failed:   ["rate<0.01"],   // <1% error rate
+export const getOwnerDashboardStats = unstable_cache(
+  async () => {
+    const admin = createAdminClient()
+    const { data } = await admin.rpc('get_owner_dashboard_stats')
+    return data
   },
-}
-
-export default function () {
-  const res = http.get("https://ima-accelerator.vercel.app/dashboard/owner", {
-    headers: { Cookie: `sb-access-token=${__ENV.TEST_TOKEN}` },
-  })
-  check(res, { "status 200": (r) => r.status === 200 })
-  sleep(1)
-}
-```
-
-**Key metrics to capture:**
-- `http_req_duration` (P50, P95, P99) — latency targets
-- `http_req_failed` — error rate
-- Supabase Dashboard → Reports → Database CPU and connection count during the test
-
----
-
-### Security Hardening (No New Libraries)
-
-**What to audit (all built-in, no library needed):**
-
-1. **`server-only` import guard** — already installed (`server-only@^0.0.1`). Verify every file that imports `createAdminClient` has `import "server-only"` at the top. The package throws a build-time error if a server-only module is accidentally imported in a client bundle.
-
-2. **RLS verification** — use Supabase SQL Editor to run test queries *as a student user* (using `SET ROLE authenticated; SET request.jwt.claim.sub = '<student-id>'`) and verify they cannot read other students' rows. No library needed.
-
-3. **Auth + role check order in API routes** — audit that every route handler: (a) calls `getUser()`, (b) checks role, (c) validates input with Zod `safeParse`, (d) runs the query. Steps (a) and (b) must precede (c) and (d) on every route.
-
-4. **CSRF protection** — Next.js App Router API routes using `POST` with `Content-Type: application/json` are not susceptible to classical form-based CSRF (browsers cannot set `Content-Type: application/json` in a cross-origin form). The auth cookie is `SameSite=Lax` (Supabase default). No CSRF library needed, but verify the cookie settings haven't been overridden.
-
-5. **Security headers** — add to `next.config.ts` in the `headers()` async function. Minimum set:
-   - `Content-Security-Policy` (restrict script/frame sources)
-   - `X-Content-Type-Options: nosniff`
-   - `X-Frame-Options: DENY`
-   - `Referrer-Policy: strict-origin-when-cross-origin`
-   - `Permissions-Policy: camera=(), microphone=()`
-
-6. **CVE-2025-29927 (middleware bypass)** — this project uses `proxy.ts` not `middleware.ts`, so it is NOT affected by the x-middleware-subrequest header injection CVE. The proxy pattern provides the same protection without the vulnerability.
-
-7. **Cross-student data isolation** — audit every API route that accepts a student ID parameter to ensure it filters by the authenticated user's ID (or checks that the requester is a coach/owner with access to that student). RLS is defense-in-depth, not the only guard.
-
-**Optional library (`nosecone`) for complex CSP:** If the Content-Security-Policy header grows complex, `nosecone` (from Arcjet) simplifies composition. Skip for v1.2 unless the CSP string exceeds 5+ directives.
-
----
-
-### Admin Client Singleton Pattern
-
-**Current issue (pre-v1.2):** Each API route may call `createAdminClient()` which instantiates a new `@supabase/supabase-js` client. This is wasteful — each client creates an HTTP pool.
-
-**Fix (no new library):** Hoist the admin client to module scope.
-
-```typescript
-// src/lib/supabase/admin.ts
-import "server-only"
-import { createClient } from "@supabase/supabase-js"
-import type { Database } from "@/types/supabase"
-
-// Module-level singleton — initialized once per Node.js worker process
-const adminClient = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false, autoRefreshToken: false } }
+  ['owner-dashboard-stats'],    // cache key
+  {
+    revalidate: 300,             // 5-minute TTL
+    tags: ['dashboard-owner'],   // invalidation tag
+  }
 )
-
-export function createAdminClient() {
-  return adminClient  // returns the singleton, not a new instance
-}
 ```
 
-This pattern is safe because the admin client is stateless (no session stored between requests). Module-level initialization means it survives across multiple requests on the same Node.js worker.
+Call `revalidateTag('dashboard-owner')` from a mutation route to flush.
 
 ---
 
-## Installation
+### Security Pattern (API Routes)
 
-```bash
-# v1.2 addition — only one new npm dependency
-npm install lru-cache@^11.0.0
-
-# k6 — standalone CLI, not npm
-brew install k6          # macOS
-# or: choco install k6   # Windows
-
-# pg_cron, pg_stat_statements — Supabase Dashboard → Database → Extensions
-# (no npm install needed)
-```
-
----
-
-## Alternatives Considered (v1.2)
-
-| Recommended | Alternative | Why Not |
-|-------------|-------------|---------|
-| In-memory rate limiting (lru-cache) | @upstash/ratelimit + Redis/Upstash | Adds an external service dependency and ~$10-20/month cost. Appropriate if load tests show multi-instance deployment needed. PROJECT.md explicitly defers Redis until after load tests. |
-| In-memory rate limiting (lru-cache) | @vercel/kv | Vercel-specific. Locks platform choice. Same deferral rationale as Upstash. |
-| React `cache()` + `use cache` | `unstable_cache` | `unstable_cache` is deprecated in Next.js 15+. `use cache` is the replacement. |
-| k6 | Artillery | Both are solid. k6 is written in Go (low overhead), uses JS scripts, has better Supabase community precedent, and Grafana integration for metrics dashboards. |
-| k6 | Locust | Python-based; TypeScript team will find k6's JS API more natural. |
-| k6 | Apache JMeter | XML-based config, GUI-heavy, Java runtime. Overkill for a developer-run benchmark. |
-| Postgres RPC functions | N+1 individual `.from()` queries | Each `.from()` is a separate HTTP round trip through PostgREST. At 8+ queries per page load, consolidation to 1-2 RPC calls has significant latency impact. |
-| pg_cron aggregation | Supabase Edge Functions on schedule | Edge functions for aggregation require pg_net + HTTP invocation overhead. pg_cron runs pure SQL inside Postgres — faster, simpler, no extra billing. |
-
----
-
-## What NOT to Add (v1.2)
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| Redis / Upstash | Adds external service, cost, and latency until load tests prove in-memory is insufficient. PROJECT.md explicit decision. | In-memory `lru-cache` rate limit store |
-| Supavisor / PgBouncer | PostgREST already handles connection pooling. PROJECT.md explicit decision. | Existing PostgREST pool |
-| `nosecone` security headers library | Adds a dependency for a `next.config.ts` `headers()` function that takes 20 lines. Bring in only if CSP grows complex. | `next.config.ts` `headers()` built-in |
-| `express-rate-limit` | Designed for Express apps; requires wrapping Next.js route handlers in Express-compatible middleware adapter. Not idiomatic for App Router. | `lru-cache` + custom `checkRateLimit()` |
-| `helmet` | Express/Node middleware for security headers. Not compatible with Next.js App Router's `headers()` config. | `next.config.ts` `headers()` |
-| `artillery` | Redundant with k6. Two load testing tools in one project create confusion about canonical test suite. | k6 only |
-| `@types/k6` | k6 ships its own TypeScript definitions via `@grafana/k6-types`. Install that if IDE type support needed for test scripts. | `npm install -D @grafana/k6-types` |
-
----
-
-## Version Compatibility (v1.2 additions)
-
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| lru-cache@^11.0.0 | Node.js 18+, TypeScript ^5 | Written in TypeScript natively. No `@types/` package needed. ESM-first but ships CJS compat. TTL and `max` options supported. |
-| `cache()` from react@19.2.3 | Next.js 16, TypeScript ^5 | Built-in. No install. Deduplicates within one render pass only (not cross-request). |
-| `use cache` directive | Next.js 16.1.6 with `cacheComponents: true` | Requires opt-in in `next.config.ts`. Stable in Next.js 16. Replaces `unstable_cache`. |
-| `revalidateTag` / `revalidatePath` | Next.js 16, must call from Server Actions or Route Handlers | Cannot call from Client Components. Import from `"next/cache"`. |
-| pg_cron@1.6.4 | Supabase Pro plan | Available on Supabase hosted platform. Max 8 concurrent jobs. Enable via Dashboard. |
-| pg_stat_statements | Supabase Pro plan | Enable via Dashboard → Extensions. Last 5,000 statements tracked. |
-| k6@1.7.0 | Any OS (standalone binary) | Not an npm dependency. Run against deployed URL. Current as of 2026-03-25. |
-
----
-
-## Stack Patterns (v1.2 specific)
-
-**Rate limiting integration pattern:**
+Every mutation route (`POST`, `PATCH`, `DELETE`) must follow this exact sequence:
 
 ```typescript
-// Every API route handler — after auth check, before business logic
-import { checkRateLimit } from "@/lib/rate-limit"
+export async function PATCH(request: NextRequest) {
+  // 1. CSRF — Origin header must match
+  const csrfError = verifyOrigin(request)
+  if (csrfError) return csrfError
 
-export async function POST(request: Request) {
-  // 1. Auth check
+  // 2. Auth — Supabase session
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // 2. Rate limit check (uses user.id as key)
-  const { allowed, remaining } = checkRateLimit(user.id)
-  if (!allowed) {
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429, headers: { "Retry-After": "60", "X-RateLimit-Remaining": "0" } }
-    )
-  }
+  // 3. Profile + role — admin client bypasses RLS
+  const admin = createAdminClient()
+  const { data: profile } = await admin.from("users").select("id, role").eq("auth_id", user.id).single()
+  if (!profile || profile.role !== "student") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  // 3. Zod validation
-  // 4. Business logic
+  // 4. Rate limit
+  const { allowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/route-name")
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } })
+
+  // 5. Parse + validate body
+  let body: unknown
+  try { body = await request.json() } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }) }
+  const parsed = schema.safeParse(body)
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 })
+
+  // 6. Business logic
+  // ...
 }
 ```
 
-**Database index pattern (no library — pure SQL migration):**
+---
 
-```sql
--- Add indexes on high-traffic query paths
--- Only index columns used in WHERE clauses or JOINs
+## v1.1 Additions (Flexible Sessions, KPI Tracking, Calendar View, Roadmap Dates)
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_daily_reports_user_date
-  ON public.daily_reports (user_id, created_at DESC);
+The validated v1.0 stack remains unchanged. This section documents what is **added** for v1.1 features.
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_work_sessions_user_date
-  ON public.work_sessions (user_id, started_at DESC);
+---
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_roadmap_progress_user
-  ON public.roadmap_progress (user_id);
+### No New npm Dependencies Needed for v1.1
+
+| Feature | Capability | Covered By |
+|---------|-----------|-----------|
+| Session duration selector | UI state, config-driven options | React state + `WORK_TRACKER.sessionDurationOptions` config |
+| Break countdown timer | Interval-based countdown | `setInterval` / `useEffect` — no library |
+| Calendar month view | Month grid with activity dots | `react-day-picker` ^9.x — already in stack |
+| KPI progress banners | Percentage calculations, RAG colors | Pure math + Tailwind CSS color classes |
+| Roadmap deadline status | Date comparison, status enum | `date-fns` ^4.x — already in stack |
+
+`react-day-picker` was already included in the v1.0 stack for the calendar feature. No new packages are needed for any v1.1 feature.
+
+---
+
+### react-day-picker Usage Pattern
+
+```typescript
+import { DayPicker } from "react-day-picker"
+import "react-day-picker/dist/style.css"  // required base styles
+
+// Month grid with custom day content
+<DayPicker
+  mode="single"
+  month={displayMonth}
+  onMonthChange={setDisplayMonth}
+  components={{
+    Day: ({ date, ...props }) => (
+      <td {...props}>
+        <button className="relative">
+          {date.getDate()}
+          {hasActivity(date) && (
+            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-green-500" />
+          )}
+        </button>
+      </td>
+    )
+  }}
+/>
 ```
 
-`CONCURRENTLY` prevents table locks during index creation. Safe to run on production without downtime.
+**Version note:** `react-day-picker` v9 (installed) has a breaking API from v8. It no longer exports `format` from date-fns internally — pass `formatters` prop if custom date formatting is needed. The `DayPicker` component is the primary export; `Calendar` wrapper from shadcn is not used in this project.
 
 ---
 
-## Sources
+### date-fns Usage for Roadmap Deadlines
 
-**v1.2 specific sources:**
+```typescript
+import { differenceInCalendarDays, parseISO, addDays } from "date-fns"
 
-- [lru-cache npm (11.2.7)](https://libraries.io/npm/lru-cache) — version 11.2.7 current, TypeScript-native confirmed (HIGH confidence)
-- [Next.js 16 Caching docs](https://nextjs.org/docs/app/getting-started/caching) — `use cache` directive, `cacheLife`, `cacheTag`, `revalidateTag` patterns verified against live docs (version 16.2.1, updated 2026-03-25) (HIGH confidence)
-- [Supabase JS rpc() reference](https://supabase.com/docs/reference/javascript/rpc) — `.rpc()` API confirmed, PostgREST wraps in transaction (HIGH confidence)
-- [Supabase pg_cron docs](https://supabase.com/docs/guides/database/extensions/pg_cron) — version 1.6.4, schedule syntax, 8-job limit, 10-min execution limit (HIGH confidence)
-- [Supabase Cron guide](https://supabase.com/docs/guides/cron) — Dashboard enablement path confirmed (HIGH confidence)
-- [pg_stat_statements Supabase docs](https://supabase.com/docs/guides/database/extensions/pg_stat_statements) — slow query detection queries, enablement via Dashboard (HIGH confidence)
-- [k6 GitHub releases](https://github.com/grafana/k6/releases) — v1.7.0 latest release, 2026-03-25 (HIGH confidence)
-- [k6 documentation](https://grafana.com/docs/k6/latest/) — `ramping-vus` executor, `thresholds`, JS script API (HIGH confidence)
-- [Arcjet Next.js security checklist](https://blog.arcjet.com/next-js-security-checklist/) — security headers, server-only pattern, auth audit checklist (MEDIUM confidence)
-- WebSearch: CVE-2025-29927 middleware bypass — proxy.ts not affected, confirmed via multiple sources (MEDIUM confidence)
-- WebSearch: pg_cron aggregation INSERT syntax — INSERT ... SELECT ... ON CONFLICT pattern confirmed via community examples (MEDIUM confidence)
+// Determine deadline status for a roadmap step
+export function getDeadlineStatus(
+  joinedAt: string,
+  targetDays: number | null,
+  completedAt: string | null
+): "none" | "completed" | "on-track" | "due-soon" | "overdue" {
+  if (targetDays === null) return "none"
+  if (completedAt) return "completed"
 
----
+  const deadline = addDays(parseISO(joinedAt), targetDays)
+  const daysUntilDue = differenceInCalendarDays(deadline, new Date())
 
-## v1.1 Additions (New Feature Stack)
-
-The validated v1.0 stack remains unchanged. This section documents what is **added** for flexible work sessions, KPI progress tracking, calendar view, and roadmap deadline features.
-
-### New Library: react-day-picker
-
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| react-day-picker | ^9.14.0 | Month-grid calendar view | Actively maintained (v9.14.0 released 2026-02-26). Confirmed React 19 compatibility (fixed in 9.4.3). Relies on date-fns already in the project — no new peer dependency. WCAG 2.1 AA compliant out of the box. 24 swappable component slots via `components` prop including `DayButton` for custom day rendering (dot indicators for sessions/reports). Minimal CSS footprint — works with Tailwind. |
-
-react-day-picker is the **only new dependency** needed for v1.1. Everything else is built from the existing stack.
-
-### No New Libraries Needed For
-
-| Feature | Approach | Why No New Library |
-|---------|----------|-------------------|
-| Circular progress (KPI rings) | SVG `<circle>` with `strokeDasharray` / `strokeDashoffset` + `motion.circle` for animation | `motion` is already installed at ^12.37.0. SVG path animation via `pathLength` is first-class in motion v12. No extra library. |
-| Linear progress bars | `<div>` with Tailwind width utility + `motion.div` for animated fill | Already have motion + Tailwind. Native HTML progress or a simple div is sufficient. |
-| Break countdown timer | `setInterval` in `useEffect` + state — same pattern as existing work session timer | The existing timer component already uses this pattern. No timer library needed. |
-| Date arithmetic (deadlines, offsets) | `date-fns` functions already installed at ^4.1.0 | `differenceInDays`, `addDays`, `addWeeks`, `isBefore`, `isAfter`, `isSameDay`, `startOfMonth`, `endOfMonth`, `eachDayOfInterval`, `format` — all present in date-fns v4. |
-| Supabase schema changes | SQL migrations with `ALTER TABLE … ADD COLUMN` | Standard Postgres DDL, no library needed. See migration patterns below. |
+  if (daysUntilDue < 0) return "overdue"
+  if (daysUntilDue <= 2) return "due-soon"
+  return "on-track"
+}
+```
 
 ---
 
-## Existing Stack (v1.0 — unchanged)
+## Baseline v1.0 Stack
 
 ### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Next.js | 16.1.6 | Full-stack React framework | Stable LTS release (Oct 2025). App Router + Server Components. Turbopack default bundler. Breaking: uses `proxy.ts` not `middleware.ts`. Node.js 20.9+ required. |
-| React | 19.2.3 | UI rendering | Ships with Next.js 16. React 19.2 adds View Transitions and useEffectEvent. |
-| TypeScript | ^5 (5.9.x) | Type safety | Next.js 16 requires TS 5.1+. Strict mode required. |
-| Supabase (hosted) | — | Postgres + Auth + RLS | Managed Postgres with built-in Auth, RLS. Google OAuth first-class. |
-| Tailwind CSS | ^4 (4.2.1) | Utility-first CSS | v4 stable since Jan 2025. CSS-first config via `@theme` directive. |
-
-### Supabase Client Libraries
-
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| @supabase/supabase-js | ^2.99.2 | Core Supabase client | Admin client (service role) in server-only contexts. |
-| @supabase/ssr | ^0.9.0 | Cookie-based auth for SSR | `createServerClient` / `createBrowserClient` for App Router. |
+| Next.js | 16.1.6 | Full-stack React framework | App Router with Server Components eliminates separate API layer for reads; route handlers handle mutations. `src/proxy.ts` replaces middleware for route guarding in Next.js 16. |
+| React | 19.2.3 | UI library | Concurrent features, `useOptimistic`, `cache()` built-in. Required by Next.js 16. |
+| TypeScript | ^5 | Type safety | Strict mode enabled. Catches Supabase type mismatches at compile time. |
+| Supabase | `@supabase/supabase-js` ^2.99.2, `@supabase/ssr` ^0.9.0 | Auth + Postgres + RLS | Three client types: `createClient` (server, cookie-based), `createAdminClient` (server, service_role, bypasses RLS), browser client for auth callbacks. SSR package handles cookie management in App Router. |
+| Tailwind CSS | ^4 | Styling | CSS-first config in v4 — no `tailwind.config.js`. `ima-*` design tokens defined in CSS. CVA-based component primitives. |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| zod | ^4.3.6 | Schema validation | All API route inputs via `safeParse`. Import as `import { z } from "zod"` — never `"zod/v4"`. |
-| react-hook-form | ^7.71.2 | Form state management | All multi-field forms. |
-| class-variance-authority | ^0.7.1 | CVA variant system | All UI primitive components. |
-| tailwind-merge | ^3.5.0 | Merge conflicting Tailwind classes | Used in `cn()` utility. |
-| clsx | ^2.1.1 | Conditional class builder | Used inside `cn()`. |
-| lucide-react | ^0.576.0 | Icon set | Tree-shakable icon library. |
-| date-fns | ^4.1.0 | Date formatting and arithmetic | Calendar grid, deadline computation, session timestamps. |
-| recharts | ^3.7.0 | Data visualization | Owner analytics dashboard only. |
-| server-only | ^0.0.1 | Import guard | Files with service role key. |
-| motion | ^12.37.0 | Animation | UI transitions, circular progress rings, timer animations. |
+| `class-variance-authority` | ^0.7.1 | CVA component variants | All `src/components/ui/` primitives — Button, Badge, Card variants |
+| `clsx` + `tailwind-merge` | ^2.1.1 + ^3.5.0 | Class merging | `cn()` utility used everywhere for conditional class composition |
+| `zod` | ^4.3.6 | Schema validation | Every API route input — `safeParse` pattern, never `parse` (throws) |
+| `lucide-react` | ^0.576.0 | Icons | All UI icons — tree-shaken, consistent stroke style |
+| `react-hook-form` | ^7.71.2 | Form state management | Any form with >2 fields — daily report, invite forms |
+| `react-day-picker` | ^9.14.0 | Calendar month grid | Student calendar view on coach/owner detail pages |
+| `date-fns` | ^4.1.0 | Date utilities | Roadmap deadline calculations, calendar date formatting |
+| `motion` | ^12.37.0 | Animation | Work tracker phase transitions, motivational card entrance |
+| `jsonwebtoken` | ^9.0.3 | JWT signing | Magic link token generation and verification only |
+| `server-only` | ^0.0.1 | Server boundary enforcement | Import in any file that must never be bundled client-side (admin client, server queries) |
+
+### Development Tools
+
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| `supabase` CLI | ^2.78.1 | Local Postgres, Auth, Studio, migrations | `npx supabase start` spins up Docker containers. `npx supabase migration new` creates migration files. |
+| ESLint + `eslint-config-next` | ^9 + 16.1.6 | Linting | Next.js rules included. `npm run lint` runs it. |
+| TypeScript strict | ^5 | Type checking | `npx tsc --noEmit` — must pass with zero errors before any commit. |
 
 ---
 
-## Installation
+### Integration Points Summary
 
-```bash
-# v1.2 addition
-npm install lru-cache@^11.0.0
+**Admin client rule:** Every `.from()` query in an API route handler must use `createAdminClient()`. Never use the cookie-based `createClient()` for database queries in route handlers — it relies on RLS which can fail during profile resolution.
 
-# v1.1 addition
-npm install react-day-picker@^9.14.0
+**Route handler auth sequence:** CSRF check → Supabase auth → admin client profile → role check → rate limit → Zod validation → business logic. Never reorder these steps.
 
-# k6 (load testing CLI — not npm)
-brew install k6   # macOS
-# choco install k6  # Windows
+**Config is truth:** `src/lib/config.ts` is the single source for roles, nav items, roadmap steps, session options, KPI targets. Never hardcode these values in components.
 
-# pg_cron + pg_stat_statements — enable via Supabase Dashboard → Database → Extensions
-```
-
----
-
-## Implementation Patterns for v1.1 Features
-
-### 1. Calendar Month Grid
-
-Use react-day-picker in read-only (non-interactive) display mode. No `selected` or `onSelect` props — just `month`, `onMonthChange`, and `components.DayButton` for custom day rendering.
-
-```tsx
-import { DayPicker } from "react-day-picker"
-
-<DayPicker
-  mode="default"
-  month={currentMonth}
-  onMonthChange={setCurrentMonth}
-  components={{
-    DayButton: CustomDayButton,  // adds dot indicators for sessions/reports
-  }}
-/>
-```
-
-The `CustomDayButton` component receives `props.day.date` — use `isSameDay` from date-fns to match against fetched session/report dates and render dot indicators.
-
-Style overrides via `classNames` prop — map react-day-picker class names to ima-* Tailwind token classes (never hardcoded hex). The library ships with zero default CSS so Tailwind integration is clean.
-
-### 2. Circular Progress Ring (KPI)
-
-Build as a small Server-Component-safe primitive using SVG. No additional library.
-
-```tsx
-// Circumference formula: 2 * Math.PI * r
-// strokeDashoffset = circumference * (1 - percentage / 100)
-<svg viewBox="0 0 36 36">
-  <circle cx="18" cy="18" r="15.9" fill="none" className="stroke-ima-border" strokeWidth="3" />
-  <motion.circle
-    cx="18" cy="18" r="15.9" fill="none"
-    className="stroke-ima-primary"
-    strokeWidth="3"
-    strokeDasharray="100"
-    animate={{ strokeDashoffset: 100 - percentage }}
-    transition={{ duration: 0.6, ease: "easeOut" }}
-    strokeLinecap="round"
-    transform="rotate(-90 18 18)"
-  />
-</svg>
-```
-
-The `motion` package's `motion.circle` provides the animated fill. Wrap in `motion-safe:` for accessibility per CLAUDE.md hard rules.
-
-### 3. Break Countdown Timer
-
-The existing work session timer pattern already uses `setInterval` + `useEffect`. Reuse the same pattern for inter-cycle break countdowns. No additional library.
-
-```tsx
-useEffect(() => {
-  if (!breakActive) return
-  const id = setInterval(() => {
-    setSecondsLeft(s => {
-      if (s <= 1) { clearInterval(id); onBreakComplete(); return 0 }
-      return s - 1
-    })
-  }, 1000)
-  return () => clearInterval(id)
-}, [breakActive])
-```
-
-### 4. Date Deadline Computation
-
-All deadline math uses date-fns functions already in the project:
-
-```typescript
-import { addDays, addWeeks, differenceInDays, isBefore, isAfter } from "date-fns"
-
-// Compute target deadline for roadmap step relative to joined_at
-const targetDate = addDays(joinedAt, stepOffsetDays)
-
-// Determine status
-const daysRemaining = differenceInDays(targetDate, today)
-const status =
-  daysRemaining < 0 ? "overdue" :
-  daysRemaining <= 3 ? "due-soon" :
-  "on-track"
-```
-
-### 5. Supabase Migration — ALTER TABLE ADD COLUMN
-
-**Postgres 11+ behavior:** Adding a column with a constant (immutable) default does NOT rewrite the table — it is a metadata-only operation completing in ~1ms. Volatile defaults (e.g., `clock_timestamp()`) still require a full table rewrite.
-
-Safe pattern for v1.1 schema additions:
-
-```sql
--- Safe: constant default, no table rewrite (Postgres 11+)
-ALTER TABLE public.work_sessions
-  ADD COLUMN IF NOT EXISTS session_duration_minutes integer NOT NULL DEFAULT 45;
-
--- Safe: nullable, no default needed, no table rewrite
-ALTER TABLE public.work_sessions
-  ADD COLUMN IF NOT EXISTS break_duration_minutes integer;
-
--- Safe: constant string default
-ALTER TABLE public.daily_reports
-  ADD COLUMN IF NOT EXISTS outreach_emails integer NOT NULL DEFAULT 0;
-```
-
-Avoid `clock_timestamp()` or `gen_random_uuid()` as defaults in `ADD COLUMN` — these are volatile and will trigger a full table rewrite.
-
-Use `IF NOT EXISTS` in every `ADD COLUMN` so the migration is idempotent and safe to re-run.
-
-**Migration file naming** — Supabase CLI requires `YYYYMMDDHHmmss_description.sql` format:
-
-```
-supabase/migrations/20260327120000_v1_1_schema_updates.sql
-```
-
----
-
-## Alternatives Considered
-
-| Recommended | Alternative | Why Not |
-|-------------|-------------|---------|
-| react-day-picker v9 | Build custom month grid from scratch | Custom grid is ~100 lines of date-fns logic plus keyboard navigation, accessibility, and internationalization. react-day-picker handles all of this with a tiny API surface. No new peer dependencies since date-fns is already installed. |
-| react-day-picker v9 | FullCalendar / react-big-calendar | Both are heavyweight (FullCalendar ~150KB+ gzip, react-big-calendar requires moment.js or date-fns adapter). Over-engineered for a simple month-grid-with-dots view. |
-| SVG circular progress | react-circular-progressbar | Additional dependency for functionality achievable in 15 lines of SVG + motion. Not worth the dependency cost. |
-| SVG circular progress | daisyUI radial-progress | Project uses Tailwind v4 + ima-* tokens, not daisyUI. Mixing component frameworks creates token conflicts. |
-| setInterval countdown | react-countdown / use-countdown | Additional dependency for a ~10-line `useEffect`. The existing timer component already uses this pattern — no new library is justified. |
-
-## What NOT to Use
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| FullCalendar / react-big-calendar | 150KB+ bundles, designed for event scheduling not simple read-only month grids | react-day-picker v9 with custom DayButton |
-| react-circular-progressbar | Adds a dependency for functionality native to SVG + motion (already installed) | SVG `<circle>` with `strokeDashoffset` + `motion.circle` |
-| date-fns-tz / @date-fns/tz | v1.1 features operate in local/server time only, no cross-timezone deadline displays needed | date-fns v4 base (already installed) |
-| moment.js | Mutable, 72KB minified, deprecated in most modern projects | date-fns v4 (already installed, tree-shakable) |
-| Any state management library (zustand, jotai) | Sticky progress banner and KPI state are local component state — no cross-component global state needed | React `useState` + `useReducer` in Server/Client Component boundaries |
-
----
-
-## Version Compatibility
-
-| Package | Compatible With | Notes |
-|---------|-----------------|-------|
-| react-day-picker@^9.14.0 | react@19.2.3, date-fns@^4.1.0 | Confirmed React 19 compatible (fixed in 9.4.3). Uses date-fns as peer dependency — already installed. |
-| motion@^12.37.0 | react@19.2.3, next@16.1.6 | motion v12 is rebranded framer-motion. SVG `motion.circle` + `pathLength` fully supported. |
-| date-fns@^4.1.0 | TypeScript@^5 | v4 is 100% TypeScript with handcrafted types. `eachDayOfInterval`, `startOfMonth`, `endOfMonth`, `getDay`, `isSameDay`, `differenceInDays`, `addDays` all available. |
-| lru-cache@^11.0.0 | Node.js 18+, TypeScript@^5 | TypeScript-native. ESM-first with CJS compat. TTL and max-size options. |
-
----
-
-## Stack Patterns for This Project (v1.0 + v1.1 + v1.2)
-
-**Auth guard pattern (App Router, Next.js 16):**
-- Route protection lives in `src/proxy.ts` (not middleware)
-- `proxy.ts` reads cookies via `createServerClient`, calls `getUser()`, redirects unauthenticated users
-- Individual pages do a secondary check via admin client for role-based access
-
-**Server Component data access:**
-- Use `createServerClient` from `@supabase/ssr` for authenticated user-scoped reads
-- Use `createAdminClient` (service role) for cross-user queries (coach seeing student data, owner seeing all)
-- All admin client files must have `import 'server-only'` at the top
-- Admin client is a module-level singleton — one instance per worker process
-
-**Form pattern:**
-- `react-hook-form` + `zodResolver` for client-side forms
-- API route validates again with `zod.safeParse()` — never trust client-side validation alone
-
-**Design token pattern (Tailwind v4):**
-- All tokens defined in `globals.css` under `@theme` as `--ima-*` custom properties
-- Never use hardcoded hex values or `text-gray-*` — always `text-ima-*`
-- This applies to react-day-picker's `classNames` prop — override with ima-* classes
-
-**Calendar integration pattern:**
-- Fetch session/report dates as Server Component (async page), pass down as serialized date arrays
-- react-day-picker is a Client Component (needs `"use client"` for month navigation state)
-- Custom `DayButton` uses `isSameDay` from date-fns to match pre-fetched date arrays — no client-side Supabase calls
-
-**Motion/animation rules:**
-- Every `animate-*` class MUST use `motion-safe:animate-*` wrapper (CLAUDE.md hard rule)
-- SVG circular progress animation via `motion.circle` — include `motion-safe:` on the wrapper div if using Tailwind animate classes alongside
-
-**Rate limiting pattern (v1.2):**
-- `checkRateLimit(user.id)` in every API route, after auth check, before Zod validation
-- Return 429 with `Retry-After: 60` and `X-RateLimit-Remaining: 0` headers
-- Module-level `lru-cache` singleton — no external service
-
-**Caching decision tree (v1.2):**
-- Per-request dedup (same user, same render): `cache()` from React
-- Cross-request shared data (platform stats, owner dashboard): `use cache` directive
-- Invalidate after write: `revalidateTag()` or `revalidatePath()` from `"next/cache"`
-
----
-
-## Sources
-
-**v1.2 sources:**
-- [lru-cache (11.2.7 on Libraries.io)](https://libraries.io/npm/lru-cache) — current version, TypeScript-native (HIGH confidence)
-- [Next.js 16 Caching docs](https://nextjs.org/docs/app/getting-started/caching) — `use cache`, `cacheLife`, `cacheTag`, `revalidateTag` (HIGH confidence, docs dated 2026-03-25)
-- [Supabase JS rpc() docs](https://supabase.com/docs/reference/javascript/rpc) — `.rpc()` API, transaction semantics (HIGH confidence)
-- [Supabase pg_cron docs](https://supabase.com/docs/guides/database/extensions/pg_cron) — v1.6.4, scheduling syntax (HIGH confidence)
-- [Supabase pg_stat_statements docs](https://supabase.com/docs/guides/database/extensions/pg_stat_statements) — slow query detection (HIGH confidence)
-- [k6 GitHub releases](https://github.com/grafana/k6/releases) — v1.7.0 latest, 2026-03-25 (HIGH confidence)
-- [k6 documentation](https://grafana.com/docs/k6/latest/) — executor types, metrics (HIGH confidence)
-- [Arcjet Next.js security checklist](https://blog.arcjet.com/next-js-security-checklist/) — security audit items (MEDIUM confidence)
-- WebSearch: CVE-2025-29927 middleware bypass — proxy.ts not affected (MEDIUM confidence, cross-referenced multiple sources)
-
-**v1.1 sources:**
-- [react-day-picker changelog](https://daypicker.dev/changelog) — v9.14.0 confirmed latest (2026-02-26), React 19 compat fixed in 9.4.3 (HIGH confidence)
-- [react-day-picker custom components guide](https://daypicker.dev/guides/custom-components) — DayButton slot confirmed, 24 component slots available (HIGH confidence)
-- [react-day-picker custom modifiers guide](https://daypicker.dev/guides/custom-modifiers) — `modifiers` + `modifiersClassNames` props confirmed (HIGH confidence)
-- [PostgreSQL docs: ALTER TABLE](https://www.postgresql.org/docs/current/ddl-alter.html) — Constant DEFAULT = no table rewrite (Postgres 11+); volatile DEFAULT = full rewrite (HIGH confidence)
-- [motion SVG animation docs](https://motion.dev/docs/react-svg-animation) — `motion.circle`, `pathLength`, `strokeDashoffset` animation supported in motion v12 (HIGH confidence)
-- [date-fns npm](https://www.npmjs.com/package/date-fns) — v4.1.0 current stable, 100% TypeScript (HIGH confidence)
-- WebSearch: react-day-picker React 19 compatibility — multiple sources confirm 9.4.3+ fixes (MEDIUM confidence, corroborated by changelog)
-- WebSearch: circular progress SVG React pattern — multiple community implementations confirm SVG + strokeDashoffset approach without library (MEDIUM confidence)
-
----
-*Stack research for: IMA Accelerator v1.0, v1.1 — calendar, KPI progress, deadline features; v1.2 — performance, scale, security*
-*Researched: v1.0 initial, v1.1 2026-03-27, v1.2 2026-03-29*
+**`server-only` imports:** Any file that imports `createAdminClient` must either live in `src/app/api/` or import `server-only` at the top. This prevents accidental client bundle inclusion.

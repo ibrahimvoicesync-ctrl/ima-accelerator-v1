@@ -1,212 +1,193 @@
 # Project Research Summary
 
-**Project:** IMA Accelerator V1 — Performance, Scale & Security (v1.2)
-**Domain:** Coaching / Student Performance Management Platform
-**Researched:** 2026-03-29
+**Project:** IMA Accelerator v1.3
+**Domain:** Student performance & coaching platform — halal influencer marketing mentorship
+**Researched:** 2026-03-31
 **Confidence:** HIGH
 
 ## Executive Summary
 
-The IMA Accelerator is a Next.js 16 + Supabase platform for managing 5,000 concurrent coaching students. The v1.2 milestone is not a feature addition — it is a hardening milestone. The platform already ships and has real data. The research goal was to identify exactly what breaks when 5,000 students hit the system simultaneously (the nightly 11 PM submission spike) and how to fix it without adding unnecessary dependencies.
+IMA Accelerator v1.3 adds four feature groups to an already-shipped, production platform: roadmap content updates, a coach/owner roadmap undo capability, a daily session planner with a 4-hour work cap, and a post-plan motivational completion card with ad-hoc session access. All research was conducted against the live codebase, and the central finding is that every v1.3 feature can be built with zero new npm dependencies — the existing stack (Next.js 16, React 19, Supabase, Zod, motion, date-fns, lru-cache) covers every requirement. Two new database tables are required (`daily_plans`, `roadmap_undo_log`), two new API routes, and incremental changes to four existing files.
 
-The recommended approach is a layered optimization strategy: fix the most dangerous problems first (connection exhaustion, insecure rate limiting, RLS policy performance), then add performance wins (RPC consolidation, caching, pagination, nightly pre-aggregation), then validate the result (load testing with k6 against a seeded staging environment), and finally lock down security (CSRF on route handlers, cross-user isolation audit). The entire v1.2 upgrade requires only one new npm dependency (`lru-cache`) — everything else is built into Next.js 16, React 19, or the Supabase Pro platform.
+The recommended approach follows the platform's established patterns without deviation: Server Page + Thin Client for data loading, the CSRF → Auth → Role → RateLimit → Zod → DB mutation chain for all API routes, admin client for every `.from()` query in route handlers, and `src/lib/config.ts` as the single source of truth. The daily session planner is the most complex feature and must be built last because it integrates with `WorkTrackerClient`, depends on the `daily_plans` schema, and its plan-mode UI must not break the existing session state machine. Roadmap config updates and stage headers carry near-zero risk and should be deployed first.
 
-The dominant risk pattern across all research areas is the same: behaviors that appear correct in development because dev runs a single process, and only break under multi-instance or high-connection-count production conditions. Admin client per-call instantiation, in-memory rate limiting, `export const revalidate = 60` on Supabase JS routes, and `count: 'exact'` on large paginated queries all fall into this category. The mitigation pattern is also consistent: move shared state to the database (rate limits via `rate_limit_log` table, aggregates via `student_kpi_summaries`), deduplicate in-process connections (admin client singleton), and use Postgres for what Postgres is good at (RPC consolidation, pg_cron, advisory locks).
+The key risks are all implementation-level, not architectural. The top three: (1) the WorkTracker phase-reset `useEffect` guard must be updated atomically when introducing plan-mode state or the planner UI silently disappears on page refresh; (2) the undo endpoint must cascade and re-lock step N+1 atomically — a single-row UPDATE leaves two concurrent active steps and breaks sequential progression; (3) the 4h cap must be enforced server-side in `POST /api/work-sessions`, not only client-side, or the cap can be bypassed via API. All pitfalls are avoidable with disciplined adherence to existing codebase patterns.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The v1.0/v1.1 stack (Next.js 16, React 19, Supabase, Tailwind CSS 4) is unchanged for v1.2. One new npm package is added. All other capabilities come from enabling existing platform features or using built-in framework primitives.
+The v1.3 features require no new packages. The entire feature set is covered by libraries already installed. The two new database tables (`daily_plans` with a JSONB `plan_json` column, and `roadmap_undo_log` as an append-only audit table) are pure Supabase/Postgres additions delivered via a single migration file. The `motion` library already installed at ^12.37.0 handles the motivational card entrance animation. Arabic text rendering requires only a `dir="rtl"` attribute — no i18n library.
 
-**Core technologies:**
-- `lru-cache@^11.0.0`: In-memory sliding-window rate limit store — native TypeScript, LRU eviction prevents unbounded growth. Only appropriate for single-instance deployment; document Upstash as the upgrade path if Vercel serverless is adopted.
-- `React.cache()` (built-in, React 19): Per-request deduplication of identical Supabase queries within a single render tree. Not a substitute for cross-request caching.
-- `unstable_cache` (built-in, Next.js): Cross-request TTL caching for Supabase queries. Works for non-fetch async functions. Use `revalidateTag()` for mutation-driven invalidation.
-- `pg_cron@1.6.4` (Supabase Pro extension): Nightly SQL jobs for KPI pre-aggregation. Max 8 concurrent jobs, 10-minute limit each. Well within budget for this scale.
-- `pg_stat_statements` (Supabase Pro extension): Query performance monitoring. Use during Phase 19 baseline to identify slow queries before adding indexes.
-- `k6 v1.7.0` (standalone CLI, not npm): Load testing. JavaScript test scripts, ramping VUs, P50/P95/P99 metrics. Used by Supabase internally.
+**Core technologies used in v1.3:**
+- `next` 16.1.6: Two new route handlers (`POST/GET /api/daily-plans`, `PATCH /api/roadmap/undo`) using the existing App Router mutation pattern
+- `@supabase/supabase-js` ^2.99.2: New table queries via existing admin client; no API changes needed
+- `zod` ^4.3.6: Zod `safeParse` on `plan_json` at every read (never TypeScript cast); cap validation in API schema. Import as `import { z } from "zod"` — never `"zod/v4"`
+- `motion` ^12.37.0: `AnimatePresence` + `motion.div` for motivational card entrance; `motion-safe:` prefix applies only to CSS `animate-*` classes, not motion prop values
+- `lru-cache` ^11.0.0: New routes call existing `checkRateLimit()` unchanged — no changes to the rate limiter itself
 
-**What NOT to add:** Redis/Upstash (defer until load tests prove in-memory insufficient per PROJECT.md), PgBouncer/Supavisor (PostgREST already pools), `helmet`/`express-rate-limit` (not compatible with Next.js App Router), materialized views (PostgREST cannot query them the same as regular tables).
+**Critical version note:** `lucide-react` ^0.576.0 — icons `CalendarPlus`, `Undo2`, `CheckCircle2` confirmed present in this version for planner and undo UI.
 
 ### Expected Features
 
-This milestone covers nine capability areas. They are not user-facing features but infrastructure capabilities.
+**Must have (table stakes):**
+- Accurate roadmap step descriptions and correct `unlock_url` on step 5 — students read these daily; wrong content breaks guidance
+- Stage grouping headers in roadmap views — 15 steps without visual grouping is unnavigable; `stageName` already exists on every config entry, grouping is purely presentational
+- Coach/owner undo with confirmation dialog — correction power for coaches without manual DB edits; confirmation required per NN/G standards for irreversible operations; student cannot undo their own steps (accountability is the platform's core value)
+- 4h work cap enforced at the API level — plan cap is a core program rule; client-side-only enforcement is bypassable via direct API calls or stale tabs
+- Planned sessions executed via existing WorkTracker — no parallel timer UIs; plan stores intent, WorkTracker executes
+- Post-plan motivational completion card — after 4h of planned work, the idle "Set Up Session" CTA is inappropriate; a distinct non-dismissable completion state is needed
 
-**Must have (table stakes) — system breaks at 5k students without these:**
-- Admin client module-level singleton — prevents connection exhaustion under load
-- `(SELECT auth.uid())` wrapping in all RLS policies — prevents per-row volatile function full-table scans
-- Postgres RPC functions for owner/coach dashboard consolidation — reduces 8 round trips to 2
-- Server-side pagination with `.range()` on all owner list pages — fetching 5k rows per page load is a guaranteed timeout
-- Supabase-backed rate limiting via `rate_limit_log` table — in-memory rate limiting is silently broken in serverless (each container has its own counter)
-- CSRF Origin header check on all mutation route handlers — route handlers do NOT get Next.js automatic CSRF protection (only Server Actions do)
+**Should have (competitive differentiators):**
+- Bilingual motivational card (Arabic + English) — Abu Lahya's community is Arabic-speaking; brand resonance and cultural identity
+- Undo action audit log — coaches cannot silently revert progress; `roadmap_undo_log` table prevents misuse
+- Alternating break types (short/long by session index) — reduces decision friction; matches existing `breakOptions` config
+- Ad-hoc session picker after plan completion — blocking extra work is punitive for motivated students; uncapped, reuses existing WorkTracker
 
-**Should have (performance and operational quality):**
-- `React.cache()` on `getSessionUser()` and data-fetching functions — eliminates duplicate Supabase round trips within a single render
-- `unstable_cache` with 60s TTL on owner badge counts and dashboard aggregates
-- Nightly pg_cron KPI pre-aggregation into `student_kpi_summaries` table — reduces owner dashboard to PK lookups instead of full-table aggregates
-- `pg_try_advisory_lock()` guard in the aggregation function — prevents overlapping cron runs from corrupting summary data
-- Composite indexes with correct column ordering for hot query paths
-- `useOptimistic` on report submission and session complete — perceived performance improvement for the 11 PM write spike
-- Cross-user isolation audit — verify every admin-client query filters by authenticated user ID (RLS is bypassed, application code is the only gate)
-
-**Defer (v2+):**
-- Redis/Upstash distributed rate limiting — evaluate only if load tests prove in-memory insufficient
-- Cursor-based pagination — not needed until student count exceeds ~50,000
-- Supabase Edge Function rate-limit gateway — adds operational complexity; DB-backed approach is sufficient
-- Materialized views — incompatible with PostgREST; summary table + pg_cron is the established Supabase pattern
-- Real-time owner dashboard updates via Supabase Realtime — massive fanout at 5k students; 60s cached aggregates are sufficient
+**Defer to v2+:**
+- Student-editable plan durations — fixed plan is the intended v1.3 UX; mid-plan editing adds cap recalculation complexity
+- Streak tracking tied to plan completion — gamification milestone; partial gamification creates a worse UX than none
+- Push/in-app notifications for session reminders — no notification system in V1
+- Coach visibility of student daily plan tab — useful at scale; defer until multiple students use the planner actively
+- Drag-to-reorder sessions — V2+; v1.3 planner uses a fixed ordered list
 
 ### Architecture Approach
 
-The v1.2 architecture layers new patterns onto the existing structure without restructuring it. The existing layer separation (proxy.ts route guard, server components for reads, API route handlers for mutations, admin client for all server-side DB access) is correct and unchanged. Four new architectural patterns are added: admin client singleton (per-process, not per-call), React.cache() deduplication at the session and data-access layer, RPC function consolidation at the Supabase boundary, and a Supabase-backed rate limiter table replacing the broken in-memory approach.
+The platform's architecture is Server Page + Thin Client: async server components fetch all data at render time and pass typed props to a single `"use client"` component per interactive area. No client-side data loading on mount via `useEffect`. All mutations go through API route handlers following the fixed CSRF → Auth → Role → RateLimit → Zod → admin client → DB chain. The daily session planner introduces two new client components (`DailyPlannerClient`, `PlanCompletionCard`) and modifies `WorkTrackerClient` to accept an `initialPlan` prop that gates plan-mode behavior in the idle state. No new phase variants are added to the state machine; a `planMode` derived flag (from `initialPlan !== null`) controls which UI renders in the `idle` state.
 
-**Major components and v1.2 changes:**
-1. `src/lib/supabase/admin.ts` — MODIFIED: module-level singleton with `getAdminClient()` replaces 36 call sites of `createAdminClient()` that each created a new HTTP pool
-2. `src/lib/session.ts` — MODIFIED: `getSessionUser()` wrapped with `React.cache()` to deduplicate the auth+profile lookup that currently fires twice per request (layout + page)
-3. `src/lib/rate-limit.ts` — NEW: Supabase-backed sliding-window rate limiter; table `rate_limit_log` persists counts across serverless container instances
-4. `src/lib/rpc/types.ts` — NEW: hand-typed TypeScript interfaces for RPC response shapes until `supabase gen types` can be regenerated
-5. `supabase/migrations/00009_indexes.sql` — NEW: composite indexes for hot paths (`student_id+date` on `daily_reports`, `coach_id` on `users`)
-6. `supabase/migrations/00010_rpc_functions.sql` — NEW: `get_sidebar_badges()` and `get_owner_dashboard_stats()` consolidating 8 dashboard queries into 2
-7. `supabase/migrations/00011_summary_table.sql` — NEW: `student_kpi_summaries` table + `refresh_student_kpi_summaries()` function + pg_cron job at 2 AM UTC
-8. `supabase/migrations/00012_rate_limit_log.sql` — NEW: `rate_limit_log` table + cleanup cron job
+**Major components and their v1.3 roles:**
+1. `src/lib/config.ts` (modified) — Add `DAILY_PLAN` config block; update `ROADMAP_STEPS` text, `unlock_url`, `target_days`
+2. `src/app/api/daily-plans/route.ts` (new) — `POST` create plan with 4h cap Zod validation; `GET` today's plan or null; idempotent POST (returns existing plan on 409 conflict)
+3. `src/app/api/roadmap/undo/route.ts` (new) — `PATCH` coach/owner step undo with ownership assertion and N+1 cascade re-lock; inserts to `roadmap_undo_log`
+4. `DailyPlannerClient.tsx` (new) — Plan setup wizard; alternating break auto-generation; emits `onPlanCreated` callback triggering `router.refresh()`
+5. `PlanCompletionCard.tsx` (new) — Post-plan motivational card; no auto-dismiss; ad-hoc session trigger that re-enters standard WorkTracker setup phase
+6. `WorkTrackerClient.tsx` (modified) — Accepts `initialPlan` prop; plan-mode idle state; phase-reset guard updated to preserve plan state
+7. `coach/RoadmapTab.tsx` (modified) — Embeds `UndoStepButton` per completed step; no architectural change to RoadmapTab itself
+8. `supabase/migrations/00013_v1_3_schema.sql` (new) — `daily_plans` + `roadmap_undo_log` tables with RLS; `UNIQUE(student_id, date)` on daily_plans; UTC date default
 
 ### Critical Pitfalls
 
-1. **Admin client per-call instantiation exhausts DB connections at scale** — Fix: module-level singleton for `createAdminClient()` (service_role, stateless). Do NOT apply the same pattern to `createServerClient()` which reads request-scoped cookies — that throws a runtime `cookies was called outside a request scope` crash.
+1. **WorkTracker phase-reset guard not updated for plan-mode** — The `useEffect` that resets phase to `idle` uses an allowlist guard (`phase.kind !== "setup" && phase.kind !== "break"`). Any new derived condition not explicitly exempted causes the planner UI to silently reset on page refresh. Fix: add the plan-aware guard update atomically with modifying `WorkTrackerClient`.
 
-2. **In-memory rate limiting is silently broken in serverless** — Each Lambda container has its own memory. A user bypasses rate limits by hitting different container instances. Fix: use the `rate_limit_log` Postgres table with an atomic `INSERT + COUNT` pattern. One extra DB query per API call is acceptable at this scale.
+2. **Coach undo as single-row UPDATE leaves two active steps** — Undoing step N without re-locking step N+1 (if N+1 is currently `active` and not yet `completed`) creates two concurrent active steps, breaking the sequential progression invariant. Fix: read step N+1 status before writing step N, then conditionally re-lock N+1 in the same request.
 
-3. **`auth.uid()` in RLS policies without `(SELECT ...)` wrapper causes full table scans** — Postgres treats `auth.uid()` as a volatile function and re-evaluates it per row, preventing index use. Fix: `USING (student_id = (SELECT auth.uid()))` — the `SELECT` wrapper creates an initplan evaluated once per statement.
+3. **4h cap enforced client-side only** — `POST /api/work-sessions` does not currently check total minutes worked today. Fix: sum `session_minutes` for `(student_id, date)` in in-progress/completed sessions before allowing the insert; return 400 if cap exceeded.
 
-4. **`export const revalidate = 60` has no effect on Supabase JS queries** — The Next.js Data Cache only intercepts `fetch()` calls. Supabase JS uses its own HTTP client that bypasses it. Fix: use `unstable_cache` to wrap Supabase functions for cross-request persistence.
+4. **Date mismatch: client local time vs server UTC** — `getToday()` (local) and `getTodayUTC()` (UTC) already coexist in the codebase. Fix: use `getTodayUTC()` everywhere in the planner code path; migration default `DEFAULT CURRENT_DATE` on `daily_plans.date`; never pass client local date as plan identity.
 
-5. **pg_cron runs in UTC with no overlap protection** — Scheduling for UAE time (UTC+4) requires explicit UTC offset calculation. Fix: document intended local time in SQL comments, write UTC explicitly. Wrap the aggregation function with `pg_try_advisory_lock()` to skip overlapping runs.
+5. **plan_json schema evolution silently breaks existing rows** — JSONB columns have no schema migration path. TypeScript cast gives false confidence; old-shaped rows fail silently at runtime. Fix: include a `version: 1` field in `plan_json`; always use Zod `safeParse` at the data layer; treat parse failure as "no plan today."
 
-6. **Route handler CSRF is not automatic** — Only Server Actions get Next.js automatic CSRF protection. All `POST/PATCH/DELETE` route handlers need a manual Origin header check. Fix: `if (!origin || !origin.includes(host)) return 403` in every mutation handler.
-
-7. **Admin client bypasses RLS — application code is the only gate** — Every query using `getAdminClient()` must explicitly filter by the authenticated user's ID. Fix: audit every API route for the pattern `auth check → verify resource ownership → query`.
+---
 
 ## Implications for Roadmap
 
-Based on combined research, the work falls naturally into 6 phases ordered by dependency and risk. Fix breaking problems before adding optimizations. Validate before shipping.
+Based on research, the build order is determined by dependency chains: schema and config must precede API routes, which must precede components, which must precede page integration. The ARCHITECTURE.md dependency graph (Phase A → B → C) is well-reasoned and directly translates to roadmap phases.
 
-### Phase 19: Foundation — Indexes, Admin Singleton, and Monitoring Baseline
+### Phase 1: Config and Content Updates
 
-**Rationale:** The admin client singleton (Pitfall 1) is the highest-severity issue and must be fixed before any load testing makes sense. RLS policy performance (Pitfall 3) and composite index creation are pure database migrations with no functional dependencies. Establishing a pg_stat_statements baseline now lets subsequent phases measure actual improvement.
+**Rationale:** Pure config changes in `src/lib/config.ts` carry near-zero risk and can be deployed standalone before any schema migration. Stage headers are purely presentational and depend only on config values that already exist. Zero database changes.
+**Delivers:** Updated roadmap step descriptions, correct `unlock_url` on step 5, step 8 `target_days: 14`, stage grouping headers in both `RoadmapClient` and `RoadmapTab`
+**Addresses:** Table-stakes features — accurate roadmap text, visual grouping of 15 steps
+**Avoids:** Pitfall 8 — config text updates go live immediately for all students including those mid-step; this is intentional and acceptable, but step numbers must not be renumbered, only text fields updated
 
-**Delivers:** Connection exhaustion eliminated at the infrastructure level; slow query baseline captured; RLS policies emit index scans instead of sequential scans.
+### Phase 2: Database Schema Foundation
 
-**Addresses:** Admin client singleton (all 36 call sites renamed to `getAdminClient()`), `(SELECT auth.uid())` RLS policy audit, composite indexes on `daily_reports(student_id, date)` and `users(coach_id)`, pg_stat_statements query monitoring enabled, PostgREST pool size checked.
+**Rationale:** Both new tables (`daily_plans`, `roadmap_undo_log`) must exist before any API routes or components that reference them. Schema is independent of all application code and safe to run as a standalone migration.
+**Delivers:** `daily_plans` table with `UNIQUE(student_id, date)` and UTC date default; `plan_json` JSONB column; `roadmap_undo_log` append-only audit table; RLS policies for both tables
+**Addresses:** Pitfall 4 (UTC date default prevents midnight timezone mismatch), Pitfall 6 (UNIQUE constraint makes plan creation idempotent)
+**Avoids:** Deploying API code against a non-existent schema
 
-**Avoids:** Pitfall 1 (connection exhaustion), Pitfall 3 (RLS per-row volatile function scans), Pitfall 16 (wrong composite index column ordering — enumerate actual query shapes first, not table structure).
+### Phase 3: Coach/Owner Roadmap Undo
 
-### Phase 20: Dashboard Performance — RPC Consolidation and Caching
+**Rationale:** Self-contained feature with no dependency on the session planner. Depends only on the schema from Phase 2 and the existing `roadmap_progress` table. Building and validating it independently before the higher-complexity planner work provides a clean test of the new API pattern and audit log.
+**Delivers:** `PATCH /api/roadmap/undo` route with ownership assertion, N+1 cascade re-lock, and `roadmap_undo_log` insert; `UndoStepButton` component embedded in `RoadmapTab`; confirmation modal reusing existing Modal primitive
+**Addresses:** Coach correction power (P1 feature), audit trail for undo actions (differentiator)
+**Avoids:** Pitfall 2 (single-row undo leaving two active steps); security mistake (coach undoing steps for unassigned students via `coach_id` ownership check)
 
-**Rationale:** With the singleton in place, the next bottleneck is the 8+ round trips per owner dashboard load. RPC consolidation reduces PostgREST overhead. `React.cache()` and `unstable_cache` then layer caching on top. Pagination is included here because the owner student list is the worst-performing page for list operations.
+### Phase 4: Daily Session Planner — API Layer
 
-**Delivers:** Owner dashboard drops from 8 PostgREST round trips to 2; badge counts served from 60s cache; student list paginated at 25 rows with URL-driven state.
+**Rationale:** The API (`POST /api/daily-plans`, `GET /api/daily-plans`) must exist before the client components that call it. Server-side cap enforcement in `POST /api/work-sessions` is added here to close the security gap before any UI exposes the planner to students.
+**Delivers:** Plan creation API with Zod schema validating `total_work_minutes <= 240`; idempotent POST returning existing plan on 409 conflict; server-side 4h cap enforcement added to existing work sessions endpoint; `DAILY_PLAN` config block in `config.ts`
+**Addresses:** P1 features — daily session planner core, 4h cap; Pitfall 3 (server-side cap enforcement)
+**Avoids:** Pitfall 5 (Zod `safeParse` on `plan_json` at read time, never TypeScript cast; `version: 1` field in schema)
 
-**Addresses:** `get_sidebar_badges()` and `get_owner_dashboard_stats()` RPC functions; `React.cache()` on `getSessionUser()`; `unstable_cache` on owner badge counts; `.range()` pagination on all owner list pages with `count: 'estimated'`.
+### Phase 5: Daily Session Planner — Client Integration
 
-**Avoids:** Pitfall 7 (React.cache() vs unstable_cache confusion — they solve different scopes), Pitfall 8 (RPC over-consolidation — split by logical group, not one mega-function), Pitfall 13 (use `count: 'estimated'` not `count: 'exact'` on large paginated tables).
-
-### Phase 21: Nightly Pre-Aggregation and Optimistic UI
-
-**Rationale:** The pg_cron summary table is an independent database concern that can be built and tested before rate limiting. Optimistic UI for report submission is the highest-value perceived performance improvement for the 11 PM spike. Both are decoupled from security concerns.
-
-**Delivers:** Owner dashboard KPI aggregates served from nightly summary table (PK lookup instead of full-table scan); report submission and session complete show immediate UI feedback with automatic rollback on failure.
-
-**Addresses:** `student_kpi_summaries` table + `refresh_student_kpi_summaries()` function + 2 AM UTC pg_cron job; `useOptimistic` on report form and work tracker session complete; summary-first read path with live fallback.
-
-**Avoids:** Pitfall 5 (pg_cron UTC timezone — document UAE offset in SQL comments), Pitfall 6 (pg_try_advisory_lock() prevents overlapping runs from corrupting summary data), Pitfall 9 (PostgREST upsert requires UNIQUE CONSTRAINT not just a unique index), Pitfall 15 (disable submit button on first click; call `router.refresh()` on failure to replace all optimistic state with server ground truth).
-
-### Phase 22: Rate Limiting
-
-**Rationale:** Rate limiting must come after the singleton fix (Phase 19) because the rate limiter itself uses `getAdminClient()`. It comes before security audit and load testing because both verify the rate limiter's behavior.
-
-**Delivers:** Write paths protected at 30 req/min/user via Supabase-backed `rate_limit_log` table; 429 responses with `Retry-After` headers on all mutation routes; cleanup cron removes old rows nightly.
-
-**Addresses:** `rate_limit_log` table + cleanup cron; `checkRateLimit()` async helper; rate limit check inserted after auth but before Zod validation in all POST/PATCH/DELETE handlers for work sessions, daily reports, and roadmap progress.
-
-**Avoids:** Pitfall 3 (in-memory rate limiting is silently broken in serverless — must use DB-backed approach), Pitfall 10 (PostgREST pool ceiling — must be configured before high-throughput rate limit queries add load).
-
-### Phase 23: Security Audit
-
-**Rationale:** Security audit is a verification phase placed after all functional changes are complete. Auditing before Phase 20-22 changes are complete means re-auditing after each phase. This is a checklist phase, not a build phase.
-
-**Delivers:** Verified cross-user isolation on all API routes; CSRF Origin checks on all mutation handlers; RLS policy correctness confirmed with `SET ROLE authenticated` SQL tests; `server-only` import guards verified across all 36+ admin client imports.
-
-**Addresses:** Origin header CSRF check on all route handlers; cross-user isolation audit (every admin-client query filters by auth user ID); RLS verification with impersonated role SQL tests; `server-only` import enforcement audit.
-
-**Avoids:** Pitfall 11 (admin client bypasses RLS — application code is the only gate), Pitfall 12 (CSRF route handler protection is not automatic — manual Origin check required on every mutation handler).
-
-### Phase 24: Load Testing and Infrastructure Validation
-
-**Rationale:** Load testing is always last. All optimizations must be in place before testing them. The test validates whether the previous five phases achieved the performance targets for the 5,000-student 11 PM spike scenario, and produces a go/no-go decision on Redis adoption.
-
-**Delivers:** Measured P95 latency under 5k concurrent VUs; validated Postgres connection count stays below 70% of max during spike; confirmed rate limiter triggers correctly under simulated abuse; documented go/no-go decision on Redis evaluation.
-
-**Addresses:** k6 test scripts for read paths (owner dashboard) and write paths (report submission); staging environment with 5k seeded users and 90 days of reports (~500k rows); pre-generated static auth tokens for k6 (not per-VU auth which triggers Auth rate limits); PostgREST pool configuration validation.
-
-**Avoids:** Pitfall 14 (load testing triggers Supabase Auth rate limits — use pre-generated static JWTs; load test API layer not Auth layer), Pitfall 3 (verify rate limiter works across container instances by checking `rate_limit_log` counts during test).
+**Rationale:** Client components depend on the API being available. `WorkTrackerClient` modification is the highest-risk change in v1.3 — it modifies an existing production state machine. `DailyPlannerClient` and `PlanCompletionCard` are new isolated files and lower risk. The `work/page.tsx` change is additive (one extra parallel fetch).
+**Delivers:** `DailyPlannerClient` plan setup wizard with alternating break generation; modified `WorkTrackerClient` with `initialPlan` prop and plan-mode idle state; `PlanCompletionCard` with Arabic/English motivational card (no auto-dismiss) and ad-hoc session trigger; `work/page.tsx` parallel plan fetch via `Promise.all`
+**Addresses:** All session planner table-stakes features; post-plan motivational card (differentiator); ad-hoc session access
+**Avoids:** Pitfall 1 (phase-reset guard updated atomically with `WorkTrackerClient` changes); Pitfall 7 (Arabic text wrapped in `dir="rtl" lang="ar"` element, not just `text-right`)
 
 ### Phase Ordering Rationale
 
-- Phase 19 before everything: connection exhaustion crashes the platform before any other optimization matters; it is also the prerequisite for all other phases.
-- Phase 20 before Phase 21: RPC consolidation reduces the baseline query count; pre-aggregation then optimizes what is already reduced.
-- Phase 21 before Phase 22: the pg_cron jobs and optimistic UI are functionally independent; completing them before rate limiting means the rate limiter can be audited in its final state.
-- Phase 22 before Phase 23: the security audit verifies the completed rate limiter, not an in-progress one.
-- Phase 24 last: partial optimization produces misleading load test results; only run tests when all optimizations are in place.
+- Config changes deploy with zero risk and deliver immediate user-visible value (correct roadmap text, stage headers) without touching the database.
+- Schema migration is a prerequisite for both the undo API and the planner API — running it second keeps the critical path short and the migration isolated.
+- Coach undo is isolated from the session planner. Building it third validates the new API pattern, the ownership check, and the audit log before the more complex planner work begins.
+- The planner API is split from the client integration because API validation (especially the 4h cap server-side enforcement) is independently testable via curl/Postman before any UI exists.
+- Client integration comes last because it carries the highest regression risk (modifying `WorkTrackerClient`, a live production state machine) and must be the final integration step.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
+Phases with standard patterns (no additional research needed):
+- **Phase 1 (Config):** Pure config edit — established pattern, no unknowns
+- **Phase 2 (Schema):** Standard Supabase migration with JSONB and UNIQUE constraint — documented patterns from existing migrations
+- **Phase 3 (Undo):** Follows existing mutation chain exactly; only novel element is the N+1 cascade logic, which is completely specified in ARCHITECTURE.md and PITFALLS.md
 
-- **Phase 19 (RLS policy audit):** The existing RLS policies need to be enumerated and evaluated individually for `auth.uid()` without `(SELECT ...)` wrapping. This is a codebase-specific audit, not a general pattern — read current migrations before writing the fix migration.
-- **Phase 22 (rate limit DB overhead):** The `rate_limit_log` approach adds one synchronous DB write per API call. The actual latency impact is unknown until measured. If overhead exceeds ~10ms per call, Redis becomes necessary earlier than planned. Measure during Phase 19 baseline before committing.
-- **Phase 24 (k6 staging seed data):** Generating 5k students and 90 days of reports (~500k rows) requires a seeding script. Plan seeding work as part of Phase 24 setup.
+Phases that benefit from pre-build review before implementation:
+- **Phase 4 (Planner API):** The 4h cap enforcement modifies `POST /api/work-sessions`, a route already in production. The Zod schema for `plan_json` (including the `version` field and `safeParse` pattern) should be finalized before writing the API to avoid schema evolution pitfalls later. Confirm the ad-hoc vs planned session cap scoping (see Gaps section).
+- **Phase 5 (Client Integration):** The `WorkTrackerClient` phase-reset `useEffect` guard requires careful inspection of the existing dependency array before editing. The `DailyPlannerClient` → `router.refresh()` → server re-render → `WorkTrackerClient` receiving `initialPlan` data flow should be traced through the code before starting implementation.
 
-Phases with standard patterns (skip research-phase):
-
-- **Phase 20 (RPC + caching):** Exact SQL and TypeScript implementation documented in ARCHITECTURE.md and STACK.md. No ambiguity.
-- **Phase 21 (pg_cron aggregation):** Complete implementation pattern documented including advisory lock, upsert constraint requirements, and UTC scheduling.
-- **Phase 23 (Security audit):** Checklist-based phase with explicit patterns from PITFALLS.md. Follows CLAUDE.md hard rules already established.
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Versions verified against npm registry, official changelogs, and official docs. One new dependency (`lru-cache@^11.0.0`). All other tools are platform built-ins. |
-| Features | HIGH | Nine capability areas fully researched with table stakes, differentiators, and anti-features documented. Patterns verified against Next.js 16 and Supabase official docs. |
-| Architecture | HIGH | Based on direct codebase analysis (36 `createAdminClient()` call sites identified, existing migration numbering known) plus Next.js 16.2.1 official documentation. |
-| Pitfalls | HIGH | 16 pitfalls documented with primary sources (Supabase official docs, Next.js security blog, PostgREST docs, pg_cron Supabase discussions). All pitfalls are grounded in specific production failure modes, not theoretical concerns. |
+| Stack | HIGH | All library versions verified against npm. Zero new dependencies confirmed — all capabilities present in installed versions. Zod v4 import rule verified against official changelog. `lucide-react` icon availability confirmed at 0.576.0. |
+| Features | HIGH | Table-stakes and differentiators derive directly from existing platform requirements and Abu Lahya's program spec. Alternating break algorithm is MEDIUM — Pomodoro literature supports it but the specific even/odd index S/L pattern is a reasonable inference, not a documented standard. |
+| Architecture | HIGH | Derived from direct codebase inspection of all affected files. Build order validated against actual dependency graph. Anti-patterns name specific existing code paths, not hypothetical scenarios. |
+| Pitfalls | HIGH | All 8 critical pitfalls sourced from direct codebase audit of `WorkTrackerClient.tsx`, API route files, and migration history. Specific code paths, fix patterns, and "looks done but isn't" verification steps are documented. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Rate limiter DB overhead:** The `rate_limit_log` approach adds one synchronous DB write to every API call. The actual latency impact is unknown until measured against a baseline. If overhead exceeds ~10ms per call, Redis becomes necessary earlier than planned. Measure during Phase 19 baseline before fully committing to the DB-backed approach.
-- **Existing RLS policy state:** Research identified the `auth.uid()` wrapping pitfall but did not enumerate the specific existing policies that violate it. A focused audit of current migration files is needed at the start of Phase 19.
-- **PostgREST pool configuration:** The current PostgREST pool size on the Supabase Pro plan is unknown. Research identifies it should be ~40% of max_connections, but the actual configured value needs verification in the Supabase dashboard before Phase 24 load testing.
-- **`cacheComponents: true` status:** ARCHITECTURE.md confirms the app does NOT enable `cacheComponents: true`, meaning the `"use cache"` directive is unavailable. Confirm this in `next.config.ts` at the start of Phase 20 before choosing caching primitives.
+- **Alternating break algorithm confirmation:** The even-index = short, odd-index = long break pattern is inferred from Pomodoro literature and the existing `breakOptions` config. During Phase 5 implementation, confirm with Abu Lahya whether this is the intended pattern or whether the long break should occur at a specific session boundary (e.g., always after session 2 of 4) rather than by parity index.
+
+- **Motivational card content:** The Arabic quote and English translation for `PlanCompletionCard` are not specified in any research file. They must be provided by Abu Lahya before `PlanCompletionCard.tsx` can be finalized. The architecture (static content, `dir="rtl"` span, `lang="ar"`, `AnimatePresence` entrance) is confirmed; only the text content is missing.
+
+- **plan_json version field:** PITFALLS.md recommends a `version: 1` field in `plan_json` for schema evolution safety. ARCHITECTURE.md's schema example omits it. During Phase 2, decide whether to include the version field in the migration and API Zod schema, and document the decision.
+
+- **Ad-hoc session cap scoping:** PITFALLS.md security section states ad-hoc sessions should bypass the 4h plan cap (they are explicitly uncapped per FEATURES.md). However, the server-side cap enforcement added to `POST /api/work-sessions` in Phase 4 applies to all session creation. Resolve before Phase 4: either the cap check is only enforced when a plan exists for the day, or ad-hoc sessions require a distinct request flag that bypasses the cap server-side.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Next.js 16 official documentation — caching architecture (React.cache vs unstable_cache vs use cache), revalidation patterns, route handler CSRF
-- Supabase official documentation — pg_cron extension, PostgREST RPC, connection pooling, RLS policy performance (auth_rls_initplan lint)
-- React 19 release notes — useOptimistic API, cache() deduplication behavior
-- PostgREST documentation — upsert conflict resolution (constraint vs index distinction)
-- pg_cron Supabase community discussions — UTC scheduling confirmed, overlap protection with advisory locks
+- Direct codebase inspection: `src/components/student/WorkTrackerClient.tsx` — phase state machine and guard logic
+- Direct codebase inspection: `src/app/api/roadmap/route.ts` — complete/unlock cascade pattern to invert for undo
+- Direct codebase inspection: `src/app/api/work-sessions/route.ts` and `[id]/route.ts` — existing mutation chain and cap/state transition patterns
+- Direct codebase inspection: `src/lib/config.ts` — WORK_TRACKER, ROADMAP_STEPS, config-as-truth pattern
+- Direct codebase inspection: `supabase/migrations/00012_rate_limit_log.sql` — append-only audit table precedent
+- Direct codebase inspection: `supabase/migrations/00011_write_path.sql` — JSONB/RPC pattern precedent
+- [Zod v4 changelog](https://zod.dev/v4/changelog) — `import { z } from "zod"` confirmed for v4; `"zod/v4"` is a transitional shim only
+- [Supabase JSONB docs](https://supabase.com/docs/guides/database/json) — JSONB for variable-length structured data; GIN index not needed for single-row by PK access
+- [Motion React docs](https://motion.dev/docs/react) — AnimatePresence, motion.div, React 19 compatibility confirmed at motion 12.x
+- [Next.js Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers) — PATCH route handler pattern confirmed
 
 ### Secondary (MEDIUM confidence)
-- Supabase community and GitHub discussions — pg_cron UTC timezone behavior confirmed across multiple independent reports
-- k6 documentation — load test script structure; Supabase benchmark usage confirmed
+- [Confirmation Dialogs — NN/G](https://www.nngroup.com/articles/confirmation-dialog/) — destructive action confirmation requirement
+- [Tailwind CSS RTL support](https://ryanschiang.com/tailwindcss-direction-rtl) — `rtl:` variants and `dir` attribute requirement; `text-right` does not set bidi direction
+- [Pomodoro Technique — Todoist](https://www.todoist.com/productivity-methods/pomodoro-technique) — alternating break structure basis
+- [Goal-Gradient Effect — UI Patterns](https://ui-patterns.com/patterns/Completion) — post-goal motivation drop; motivational card as countermeasure
 
-### Tertiary (LOW confidence)
-- In-memory rate limiting serverless behavior — inferred from serverless architecture fundamentals; the actual number of concurrent Lambda instances on this specific deployment is not measured, only the failure mode is established
+### Tertiary (LOW confidence — needs validation)
+- Alternating break S/L/S pattern for 4-session plans — inferred from Pomodoro literature, needs Abu Lahya confirmation before Phase 5 implementation
+- Arabic bilingual card pattern in SaaS products — inferred from common Middle Eastern product practice; specific example not sourced
 
 ---
-*Research completed: 2026-03-29*
+*Research completed: 2026-03-31*
 *Ready for roadmap: yes*
