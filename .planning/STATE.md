@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Roadmap Update, Session Planner & Coach Controls
-status: planning
-stopped_at: Phase 25 context gathered
-last_updated: "2026-03-31T05:49:43.126Z"
-last_activity: 2026-03-31 — v1.3 roadmap created (5 phases, 25 requirements mapped)
+status: executing
+stopped_at: Completed 25-roadmap-config-stage-headers-01-PLAN.md
+last_updated: "2026-03-31T06:11:45.809Z"
+last_activity: 2026-03-31
 progress:
   total_phases: 11
   completed_phases: 5
-  total_plans: 18
-  completed_plans: 17
+  total_plans: 20
+  completed_plans: 18
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 25 — Roadmap Config & Stage Headers
+**Current focus:** Phase 25 — roadmap-config-stage-headers
 
 ## Current Position
 
-Phase: 25 of 29 (Roadmap Config & Stage Headers)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-31 — v1.3 roadmap created (5 phases, 25 requirements mapped)
+Phase: 25 (roadmap-config-stage-headers) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-03-31
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,8 @@ Critical v1.3 decisions from research:
 - [v1.3 research]: Arabic text requires dir="rtl" lang="ar" attribute wrapper, not just text-right Tailwind class
 - [v1.3 research]: WorkTracker phase-reset useEffect guard must be updated atomically with plan-mode changes — any new derived condition not exempted causes planner UI to silently reset on refresh
 - [v1.3 research]: Coach undo must cascade re-lock step N+1 in the same request — single-row UPDATE leaves two concurrent active steps, breaking sequential progression
+- [Phase 25-roadmap-config-stage-headers]: isLast prop is per-stage (stageSteps.length - 1) not global, so connecting lines stop at each stage boundary
+- [Phase 25-roadmap-config-stage-headers]: stages array derived from ROADMAP_STEPS config at render time (not hardcoded) per Config-is-truth rule
 
 ### Pending Todos
 
@@ -65,6 +67,6 @@ None currently blocking Phase 25.
 
 ## Session Continuity
 
-Last session: 2026-03-31T05:49:43.123Z
-Stopped at: Phase 25 context gathered
-Resume file: .planning/phases/25-roadmap-config-stage-headers/25-CONTEXT.md
+Last session: 2026-03-31T06:11:45.807Z
+Stopped at: Completed 25-roadmap-config-stage-headers-01-PLAN.md
+Resume file: None

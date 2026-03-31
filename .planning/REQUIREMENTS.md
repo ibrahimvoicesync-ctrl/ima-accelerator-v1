@@ -9,11 +9,11 @@ Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Control
 
 ### Roadmap Content
 
-- [ ] **ROAD-01**: Step descriptions 1-8 have parenthetical text appended (e.g., "Complete your onboarding and set up your profile (time asap)")
-- [ ] **ROAD-02**: Step 5 unlock_url set to the skool CRM link; step 6 unlock_url removed
-- [ ] **ROAD-03**: Step 6 description updated to "Build 100 Influencer Lead List, and Watch 3 Influencer Roast My Email"; step 7 updated to drafting emails only
-- [ ] **ROAD-04**: Step 8 target_days set to 14
-- [ ] **ROAD-05**: Student roadmap view groups steps by stage with visible stage headers (Setup & Preparation, Influencer Outreach, Brand Outreach)
+- [x] **ROAD-01**: Step descriptions 1-8 have parenthetical text appended (e.g., "Complete your onboarding and set up your profile (time asap)")
+- [x] **ROAD-02**: Step 5 unlock_url set to the skool CRM link; step 6 unlock_url removed
+- [x] **ROAD-03**: Step 6 description updated to "Build 100 Influencer Lead List, and Watch 3 Influencer Roast My Email"; step 7 updated to drafting emails only
+- [x] **ROAD-04**: Step 8 target_days set to 14
+- [x] **ROAD-05**: Student roadmap view groups steps by stage with visible stage headers (Setup & Preparation, Influencer Outreach, Brand Outreach)
 - [ ] **ROAD-06**: Coach and owner roadmap tab shows stage headers matching student view
 
 ### Coach/Owner Undo
@@ -102,11 +102,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ROAD-01 | Phase 25 | Pending |
-| ROAD-02 | Phase 25 | Pending |
-| ROAD-03 | Phase 25 | Pending |
-| ROAD-04 | Phase 25 | Pending |
-| ROAD-05 | Phase 25 | Pending |
+| ROAD-01 | Phase 25 | Complete |
+| ROAD-02 | Phase 25 | Complete |
+| ROAD-03 | Phase 25 | Complete |
+| ROAD-04 | Phase 25 | Complete |
+| ROAD-05 | Phase 25 | Complete |
 | ROAD-06 | Phase 25 | Pending |
 | UNDO-01 | Phase 27 | Pending |
 | UNDO-02 | Phase 27 | Pending |
