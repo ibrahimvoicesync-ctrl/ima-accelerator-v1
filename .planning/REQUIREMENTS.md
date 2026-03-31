@@ -1,46 +1,58 @@
 # Requirements: IMA Accelerator
 
-**Defined:** 2026-03-29
+**Defined:** 2026-03-31
 **Core Value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
 
-## v1.2 Requirements
+## v1.3 Requirements
 
-Requirements for milestone v1.2 (Performance, Scale & Security for 5,000 Students). Each maps to roadmap phases.
+Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Controls). Each maps to roadmap phases.
 
-### Database & Monitoring
+### Roadmap Content
 
-- [x] **DB-01**: Composite indexes exist on daily_reports(student_id, date), work_sessions(student_id, date, status), roadmap_progress(student_id) — verified with EXPLAIN ANALYZE
-- [x] **DB-02**: createAdminClient() is a module-level singleton reused across requests within the same process
-- [x] **DB-03**: All RLS policies use (SELECT auth.uid()) instead of auth.uid() for initplan optimization
-- [ ] **DB-04**: pg_stat_statements enabled, slow queries >200ms logged, baseline metrics recorded before and after index changes
+- [ ] **ROAD-01**: Step descriptions 1-8 have parenthetical text appended (e.g., "Complete your onboarding and set up your profile (time asap)")
+- [ ] **ROAD-02**: Step 5 unlock_url set to the skool CRM link; step 6 unlock_url removed
+- [ ] **ROAD-03**: Step 6 description updated to "Build 100 Influencer Lead List, and Watch 3 Influencer Roast My Email"; step 7 updated to drafting emails only
+- [ ] **ROAD-04**: Step 8 target_days set to 14
+- [ ] **ROAD-05**: Student roadmap view groups steps by stage with visible stage headers (Setup & Preparation, Influencer Outreach, Brand Outreach)
+- [ ] **ROAD-06**: Coach and owner roadmap tab shows stage headers matching student view
 
-### Query Optimization
+### Coach/Owner Undo
 
-- [x] **QUERY-01**: Dashboard layout owner path consolidated to ≤2 DB round trips via Postgres RPC functions (down from 8)
-- [x] **QUERY-02**: Student detail pages (coach/owner views) consolidated via Postgres RPC (down from 9-11 parallel queries)
-- [x] **QUERY-03**: React cache() wrappers on server component data fetches deduplicate within RSC render tree
-- [x] **QUERY-04**: Dashboard badge count computations use unstable_cache with 60s TTL (revalidate=N broken on auth routes due to cookies())
-- [x] **QUERY-05**: Owner student list page is server-side paginated with Supabase .range() and total count
-- [x] **QUERY-06**: Owner coach list page is server-side paginated with Supabase .range() and total count
+- [ ] **UNDO-01**: Coach can revert any completed roadmap step to active for their assigned students via PATCH /api/roadmap/undo
+- [ ] **UNDO-02**: Owner can revert any completed roadmap step to active for any student via the same endpoint
+- [ ] **UNDO-03**: Undo presents a confirmation dialog before executing ("Are you sure you want to reset Step X back to active?")
+- [ ] **UNDO-04**: If step N+1 is currently active (not completed), undoing step N re-locks N+1 to maintain sequential progression
+- [ ] **UNDO-05**: Every undo action is logged to roadmap_undo_log table (who, when, which student, which step)
 
-### Write Path
+### Session Planner
 
-- [ ] **WRITE-01**: pg_cron nightly aggregation job pre-computes KPI summaries into a summary table after the 11 PM submission window (UTC-aware scheduling, advisory lock protected, idempotent upsert)
-- [ ] **WRITE-02**: Student daily report submission uses optimistic UI via React 19 useOptimistic for instant feedback
-- [ ] **WRITE-03**: Write path audit documents report/session API call counts and confirms no unnecessary round trips
+- [ ] **PLAN-01**: Student sees a daily planner in Work Tracker page before their first session of the day
+- [ ] **PLAN-02**: Student can add sessions (30/45/60 min) with a running total showing planned work hours (breaks excluded from total)
+- [ ] **PLAN-03**: Break types alternate automatically: odd sessions (1st, 3rd, 5th) get short break, even sessions (2nd, 4th, 6th) get long break, last session has no break
+- [ ] **PLAN-04**: Short break options are 5 or 10 min; long break options are 15, 20, 25, or 30 min (fixed choices per break type)
+- [ ] **PLAN-05**: Student cannot plan more than 4 hours of work time; confirm button enabled when total reaches exactly 4h or nearest valid total below 4h
+- [ ] **PLAN-06**: After confirming plan, planner disappears and WorkTracker executes planned sessions in sequence with assigned breaks
+- [ ] **PLAN-07**: daily_plans table stores one plan per student per day with plan_json (array of session configs), UNIQUE(student_id, date) constraint
+- [ ] **PLAN-08**: POST /api/daily-plans validates 4h work cap server-side; returns existing plan on conflict (idempotent)
+- [ ] **PLAN-09**: POST /api/work-sessions enforces 4h daily cap when a plan exists for the day
+- [ ] **PLAN-10**: Student must complete all planned sessions before doing additional sessions
 
-### Security & Protection
+### Post-Plan Completion
 
-- [x] **SEC-01**: DB-backed rate limiting on mutation API routes enforces 30 requests/minute per user via Supabase table (in-memory breaks in serverless)
-- [x] **SEC-02**: Every API route's auth check and role verification is documented and verified correct
-- [x] **SEC-03**: All mutation route handlers verify Origin header for CSRF protection
-- [x] **SEC-04**: Cross-student data isolation verified — no student can access another student's data via param manipulation
+- [ ] **COMP-01**: When all planned sessions are complete, a motivational card appears with Arabic "اللهم بارك" (large, centered) and English "You have done the bare minimum! Continue with your next work session"
+- [ ] **COMP-02**: Card has two buttons: "Start Next Session" (goes to ad-hoc session picker) and "Dismiss" (closes card, returns to work tracker)
+- [ ] **COMP-03**: Ad-hoc sessions after plan: student picks duration (30/45/60 min) and break type (short or long) freely, same fixed break options
+- [ ] **COMP-04**: Motivational card appears once per day; returning to Work Tracker after seeing it goes straight to ad-hoc picker
 
-### Infrastructure & Validation
+## v1.2 Requirements (Completed)
 
-- [x] **INFRA-01**: k6 load test simulates 5k students with dashboard read mix and 11 PM write spike
-- [x] **INFRA-02**: Connection usage, query times, and capacity headroom are documented
-- [x] **INFRA-03**: Supabase compute add-on is right-sized based on load test data
+All 20 requirements completed. See .planning/milestones/ for archived details.
+
+### Database & Monitoring — 4/4 complete
+### Query Optimization — 6/6 complete
+### Write Path — 3/3 complete
+### Security & Protection — 4/4 complete
+### Infrastructure & Validation — 3/3 complete
 
 ## v1.1 Requirements (Completed)
 
@@ -54,7 +66,7 @@ All 29 requirements completed. See .planning/milestones/ for archived details.
 
 ## Future Requirements
 
-Deferred to v1.3+. Tracked but not in current roadmap.
+Deferred to v1.4+. Tracked but not in current roadmap.
 
 ### Enhancements
 
@@ -62,9 +74,12 @@ Deferred to v1.3+. Tracked but not in current roadmap.
 - **ENH-02**: Roadmap completion velocity label ("Steps 1-5 in 12 days, target: 21 days")
 - **ENH-03**: Session volume intensity shading on calendar cells (GitHub-style heat map)
 - **ENH-04**: Joined-date marker on calendar
-- **ENH-05**: Break duration proportional to session length (30 min → 10 min break, 60 min → 20 min)
+- **ENH-05**: Break duration proportional to session length (30 min -> 10 min break, 60 min -> 20 min)
 - **ENH-06**: Session count badge replacing cycle count display
-- **ENH-07**: Redis/Upstash cache layer (evaluate only if Phase 24 load testing proves Next.js cache insufficient)
+- **ENH-07**: Redis/Upstash cache layer (evaluate only if load testing proves Next.js cache insufficient)
+- **ENH-08**: Coach visibility of student daily plans
+- **ENH-09**: Student-editable plan durations (mid-plan editing with cap recalculation)
+- **ENH-10**: Drag-to-reorder sessions in planner
 
 ## Out of Scope
 
@@ -73,11 +88,12 @@ Explicitly excluded. Documented to prevent scope creep.
 | Feature | Reason |
 |---------|--------|
 | Supavisor/connection pooler setup | PostgREST has built-in connection pooler |
-| Redis/Upstash cache | Evaluate only if Phase 24 load testing proves insufficient |
-| In-memory rate limiting (lru-cache) | Silently broken in serverless — each container has isolated state |
-| export const revalidate on auth routes | cookies() makes routes dynamic; ISR cannot apply — use unstable_cache |
-| Switching API routes from admin to user client | Risk of breaking ownership-check patterns; defense-in-depth approach is correct |
-| Free-form duration input (text field) | v1.1 out of scope carry-over |
+| Redis/Upstash cache | Evaluate only if load testing proves insufficient |
+| In-memory rate limiting (lru-cache) | Broken in serverless — isolated per-container state |
+| Student self-undo on roadmap | Accountability is core value; only coaches/owners can undo |
+| Streak tracking tied to plan completion | Gamification is V2+ |
+| Push/in-app notifications for session reminders | No notification system in V1 |
+| Free-form duration input (text field) | V1.1 out of scope carry-over |
 | Per-student custom KPI targets | Program-wide targets; per-cohort targets are V2 |
 
 ## Traceability
@@ -86,32 +102,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DB-01 | Phase 19 | Complete |
-| DB-02 | Phase 19 | Complete |
-| DB-03 | Phase 23 | Complete |
-| DB-04 | Phase 19 | Pending |
-| QUERY-01 | Phase 20 | Complete |
-| QUERY-02 | Phase 20 | Complete |
-| QUERY-03 | Phase 20 | Complete |
-| QUERY-04 | Phase 20 | Complete |
-| QUERY-05 | Phase 20 | Complete |
-| QUERY-06 | Phase 20 | Complete |
-| WRITE-01 | Phase 21 | Pending |
-| WRITE-02 | Phase 21 | Pending |
-| WRITE-03 | Phase 21 | Pending |
-| SEC-01 | Phase 22 | Complete |
-| SEC-02 | Phase 23 | Complete |
-| SEC-03 | Phase 23 | Complete |
-| SEC-04 | Phase 23 | Complete |
-| INFRA-01 | Phase 24 | Complete — local Docker k6 tests executed with 5k students, 3 scenarios (write-spike, read-mix, combined) |
-| INFRA-02 | Phase 24 | Complete — CAPACITY.md updated with measured P50/P95/P99, connection stats, rate limiter data |
-| INFRA-03 | Phase 24 | Complete — STAY on Pro Small confirmed by measured P95<1s across all scenarios |
+| ROAD-01 | — | Pending |
+| ROAD-02 | — | Pending |
+| ROAD-03 | — | Pending |
+| ROAD-04 | — | Pending |
+| ROAD-05 | — | Pending |
+| ROAD-06 | — | Pending |
+| UNDO-01 | — | Pending |
+| UNDO-02 | — | Pending |
+| UNDO-03 | — | Pending |
+| UNDO-04 | — | Pending |
+| UNDO-05 | — | Pending |
+| PLAN-01 | — | Pending |
+| PLAN-02 | — | Pending |
+| PLAN-03 | — | Pending |
+| PLAN-04 | — | Pending |
+| PLAN-05 | — | Pending |
+| PLAN-06 | — | Pending |
+| PLAN-07 | — | Pending |
+| PLAN-08 | — | Pending |
+| PLAN-09 | — | Pending |
+| PLAN-10 | — | Pending |
+| COMP-01 | — | Pending |
+| COMP-02 | — | Pending |
+| COMP-03 | — | Pending |
+| COMP-04 | — | Pending |
 
 **Coverage:**
-- v1.2 requirements: 20 total
-- Mapped to phases: 20
-- Unmapped: 0 ✓
+- v1.3 requirements: 25 total
+- Mapped to phases: 0
+- Unmapped: 25
 
 ---
-*Requirements defined: 2026-03-29*
-*Last updated: 2026-03-30 — SEC-02, SEC-03, SEC-04, DB-03 completed in Phase 23*
+*Requirements defined: 2026-03-31*
+*Last updated: 2026-03-31 after initial definition*
