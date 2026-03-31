@@ -1,10 +1,15 @@
 "use client";
 
-import { CheckCircle2, Lock, Circle, Route, Calendar } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Lock, Circle, Route, Calendar, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROADMAP_STEPS } from "@/lib/config";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 import { getDeadlineStatus } from "@/lib/roadmap-utils";
 
 type RoadmapProgressRow = { step_number: number; status: "locked" | "active" | "completed"; completed_at: string | null };
@@ -12,9 +17,51 @@ type RoadmapProgressRow = { step_number: number; status: "locked" | "active" | "
 interface RoadmapTabProps {
   roadmap: RoadmapProgressRow[];
   joinedAt: string;
+  studentId: string;
 }
 
-export function RoadmapTab({ roadmap, joinedAt }: RoadmapTabProps) {
+export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
+  const routerRef = useRef(useRouter());
+  const { toast } = useToast();
+  const toastRef = useRef(toast);
+  useEffect(() => { toastRef.current = toast; }, [toast]);
+
+  const [confirmStep, setConfirmStep] = useState<number | null>(null);
+  const [undoing, setUndoing] = useState(false);
+
+  const handleUndo = useCallback(async () => {
+    if (confirmStep === null) return;
+    setUndoing(true);
+    try {
+      const res = await fetch("/api/roadmap/undo", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, step_number: confirmStep }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toastRef.current({ type: "error", title: (err as { error?: string }).error ?? "Failed to undo step" });
+      } else {
+        const json = await res.json();
+        const cascade = json?.data?.cascade === true;
+        const stepTitle = ROADMAP_STEPS.find(s => s.step === confirmStep)?.title ?? `Step ${confirmStep}`;
+        const nextTitle = ROADMAP_STEPS.find(s => s.step === confirmStep + 1)?.title;
+        toastRef.current({
+          type: "success",
+          title: cascade && nextTitle
+            ? `Step ${confirmStep} reset to active, Step ${confirmStep + 1} re-locked`
+            : `Step ${confirmStep}: "${stepTitle}" reset to active`,
+        });
+        routerRef.current.refresh();
+      }
+    } catch {
+      toastRef.current({ type: "error", title: "Failed to undo step" });
+    } finally {
+      setUndoing(false);
+      setConfirmStep(null);
+    }
+  }, [confirmStep, studentId]);
+
   if (roadmap.length === 0) {
     return (
       <div role="tabpanel" id="tabpanel-roadmap" aria-labelledby="tab-roadmap">
@@ -137,6 +184,18 @@ export function RoadmapTab({ roadmap, joinedAt }: RoadmapTabProps) {
                           </Badge>
                         )}
                       </div>
+
+                      {/* Undo button — coach/owner only, completed steps only */}
+                      {status === "completed" && (
+                        <button
+                          onClick={() => setConfirmStep(step.step)}
+                          className="mt-1 inline-flex items-center gap-1 text-xs text-ima-text-secondary hover:text-ima-primary motion-safe:transition-colors min-h-[44px] min-w-[44px]"
+                          aria-label={`Undo Step ${step.step}: ${step.title}`}
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                          Undo
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -145,6 +204,46 @@ export function RoadmapTab({ roadmap, joinedAt }: RoadmapTabProps) {
           );
         })}
       </div>
+
+      {/* Undo confirmation modal */}
+      {(() => {
+        const nextStepRow = confirmStep !== null
+          ? roadmap.find(r => r.step_number === confirmStep + 1)
+          : null;
+        const nextStepIsActive = nextStepRow?.status === "active";
+        const stepConfig = confirmStep !== null
+          ? ROADMAP_STEPS.find(s => s.step === confirmStep)
+          : null;
+        const nextStepConfig = confirmStep !== null
+          ? ROADMAP_STEPS.find(s => s.step === confirmStep + 1)
+          : null;
+
+        const dialogDescription = nextStepIsActive && nextStepConfig
+          ? `Are you sure you want to reset Step ${confirmStep}: "${stepConfig?.title}" back to active? Step ${(confirmStep ?? 0) + 1}: "${nextStepConfig.title}" (currently active) will also be re-locked.`
+          : `Are you sure you want to reset Step ${confirmStep}: "${stepConfig?.title}" back to active?`;
+
+        return (
+          <Modal
+            open={confirmStep !== null}
+            onClose={() => { if (!undoing) setConfirmStep(null); }}
+            title="Undo Step?"
+            description={dialogDescription}
+          >
+            <div className="flex gap-3 mt-4">
+              <Button
+                variant="danger"
+                loading={undoing}
+                onClick={handleUndo}
+              >
+                Reset to Active
+              </Button>
+              <Button variant="ghost" onClick={() => setConfirmStep(null)} disabled={undoing}>
+                Cancel
+              </Button>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
