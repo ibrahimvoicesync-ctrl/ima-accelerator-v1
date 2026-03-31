@@ -249,7 +249,7 @@ Plans:
 | 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 23. Security Audit | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 24. Infrastructure & Validation | v1.2 | 5/5 | Complete | 2026-03-31 |
-| 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete   | 2026-03-31 |
+| 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete    | 2026-03-31 |
 | 26. Database Schema Foundation | v1.3 | 0/? | Not started | - |
 | 27. Coach/Owner Roadmap Undo | v1.3 | 0/? | Not started | - |
 | 28. Daily Session Planner API | v1.3 | 0/? | Not started | - |
