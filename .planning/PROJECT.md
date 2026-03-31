@@ -50,7 +50,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 - [x] Roadmap step description updates — append parenthetical text to steps 1-8, move unlock_url step 6 → step 5, rewrite step 6/7 descriptions, set step 8 target_days: 14 — Phase 25
 - [x] Stage headers in all roadmap views — student, coach, and owner views grouped by stage (Setup & Preparation, Influencer Outreach, Brand Outreach) — Phase 25
-- [ ] Coach/owner roadmap undo — revert completed steps to active with confirmation, PATCH /api/roadmap/undo, undo action logging
+- [x] Coach/owner roadmap undo — revert completed steps to active with full cascade (all subsequent steps re-locked), PATCH /api/roadmap/undo, undo action logging — Phase 27
 - [ ] Daily session planner — daily_plans table, 4h work time cap (breaks excluded), automatic alternating breaks, planned session execution
 - [ ] Post-plan completion motivational card + ad-hoc session picker
 
@@ -165,4 +165,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — Phase 26 complete: daily_plans and roadmap_undo_log tables deployed with RLS, indexes, and constraints*
+*Last updated: 2026-03-31 — Phase 27 complete: coach/owner roadmap undo with full cascade re-lock, confirmation modal, audit logging*
