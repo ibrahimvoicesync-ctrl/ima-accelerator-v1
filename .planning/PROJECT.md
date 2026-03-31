@@ -51,8 +51,8 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - [x] Roadmap step description updates — append parenthetical text to steps 1-8, move unlock_url step 6 → step 5, rewrite step 6/7 descriptions, set step 8 target_days: 14 — Phase 25
 - [x] Stage headers in all roadmap views — student, coach, and owner views grouped by stage (Setup & Preparation, Influencer Outreach, Brand Outreach) — Phase 25
 - [x] Coach/owner roadmap undo — revert completed steps to active with full cascade (all subsequent steps re-locked), PATCH /api/roadmap/undo, undo action logging — Phase 27
-- [~] Daily session planner — daily_plans table, 4h work time cap (breaks excluded), automatic alternating breaks, planned session execution — API layer complete (Phase 28), client UI pending (Phase 29)
-- [ ] Post-plan completion motivational card + ad-hoc session picker
+- [x] Daily session planner — daily_plans table, 4h work time cap (breaks excluded), automatic alternating breaks, planned session execution — API (Phase 28) + client UI (Phase 29)
+- [x] Post-plan completion motivational card (Arabic + English) + ad-hoc session picker — Phase 29
 
 ### Out of Scope
 
@@ -101,6 +101,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **v1.3 Phase 25 complete** (2026-03-31): Roadmap config & stage headers — ROADMAP_STEPS updated with parenthetical time guidance on steps 1-8, Step 5 unlock URL set to skool CRM, Step 6 URL cleared, Step 6/7 descriptions rewritten, Step 8 target_days set to 14. Stage headers (Setup & Preparation, Influencer Outreach, Brand Outreach) added to student, coach, and owner roadmap views.
 
 **v1.3 Phase 28 complete** (2026-03-31): Daily session planner API — planJsonSchema Zod module (version:1, 240-min cap, config-driven session options), POST/GET /api/daily-plans with idempotent 23505 conflict handling, plan-aware cap enforcement in POST /api/work-sessions (block without plan, enforce cap while unfulfilled, lift after completion).
+
+**v1.3 Phase 29 complete** (2026-03-31): Daily session planner client — PlannerUI (session builder with auto-break assignment, 4h cap, config-driven presets), PlannedSessionList (completed/current/upcoming visual states, Start bypasses setup phase), MotivationalCard (Arabic dir=rtl text, localStorage once-per-day), WorkTrackerClient mode derivation (planning/executing/adhoc) with Zod safeParse on plan_json.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
@@ -167,4 +169,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — Phase 28 complete: daily session planner API with plan-aware cap enforcement and toast error display*
+*Last updated: 2026-03-31 — Phase 29 complete: daily session planner client UI — PlannerUI, PlannedSessionList, MotivationalCard, ad-hoc mode*
