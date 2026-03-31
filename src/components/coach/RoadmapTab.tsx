@@ -34,6 +34,10 @@ export function RoadmapTab({ roadmap, joinedAt }: RoadmapTabProps) {
   // Build lookup for full row (status + completed_at)
   const rowMap = new Map(roadmap.map((r) => [r.step_number, r]));
 
+  const stages = [...new Map(
+    ROADMAP_STEPS.map(s => [s.stage, s.stageName])
+  ).entries()].map(([stage, stageName]) => ({ stage, stageName }));
+
   return (
     <div role="tabpanel" id="tabpanel-roadmap" aria-labelledby="tab-roadmap" className="space-y-6">
       {/* Progress bar */}
@@ -58,70 +62,85 @@ export function RoadmapTab({ roadmap, joinedAt }: RoadmapTabProps) {
       </div>
 
       {/* Timeline */}
-      <div className="space-y-4">
-        {ROADMAP_STEPS.map((step) => {
-          const row = rowMap.get(step.step);
-          const status = row?.status ?? "locked";
-          const completedAt = row?.completed_at ?? null;
-          const ds = getDeadlineStatus(step.target_days, joinedAt, status, completedAt);
-
+      <div className="space-y-6">
+        {stages.map(({ stage, stageName }) => {
+          const stageSteps = ROADMAP_STEPS.filter(s => s.stage === stage);
           return (
-            <div key={step.step} className="flex items-start gap-3">
-              {/* Icon */}
-              {status === "completed" ? (
-                <CheckCircle2 className="h-6 w-6 text-ima-success shrink-0 mt-0.5" aria-hidden="true" />
-              ) : status === "active" ? (
-                <Circle className="h-6 w-6 text-ima-primary shrink-0 mt-0.5" aria-hidden="true" />
-              ) : (
-                <Lock className="h-6 w-6 text-ima-text-muted shrink-0 mt-0.5" aria-hidden="true" />
-              )}
-              <div className="flex-1">
-                <p
-                  className={cn(
-                    "text-sm font-medium",
-                    status === "completed" && "text-ima-success",
-                    status === "active" && "text-ima-text",
-                    status === "locked" && "text-ima-text-muted"
-                  )}
-                >
-                  Step {step.step}: {step.title}
-                </p>
-                <p className="text-xs text-ima-text-secondary">{step.description}</p>
-
-                {/* Deadline status chips — same logic as student RoadmapStep */}
-                <div className="mt-1">
-                  {ds.kind === "completed" && (
-                    <Badge variant="success" size="sm">
-                      Completed {new Date(ds.completedAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        timeZone: "UTC",
-                      })}
-                      {ds.daysLate !== null && (
-                        <span className="ml-1 opacity-75">({ds.daysLate}d late)</span>
-                      )}
-                    </Badge>
-                  )}
-                  {ds.kind === "on-track" && (
-                    <Badge variant="success" size="sm">
-                      <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
-                      On Track — {ds.deadlineLabel}
-                    </Badge>
-                  )}
-                  {ds.kind === "due-soon" && (
-                    <Badge variant="warning" size="sm">
-                      <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
-                      Due Soon — {ds.deadlineLabel}
-                    </Badge>
-                  )}
-                  {ds.kind === "overdue" && (
-                    <Badge variant="error" size="sm">
-                      <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
-                      Overdue — {ds.daysOverdue}d
-                    </Badge>
-                  )}
-                </div>
+            <div key={stage} className="space-y-3">
+              {/* Stage header */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ima-text-muted">
+                  {stageName}
+                </span>
+                <div className="flex-1 h-px bg-ima-border" aria-hidden="true" />
               </div>
+              {/* Stage steps */}
+              {stageSteps.map((step) => {
+                const row = rowMap.get(step.step);
+                const status = row?.status ?? "locked";
+                const completedAt = row?.completed_at ?? null;
+                const ds = getDeadlineStatus(step.target_days, joinedAt, status, completedAt);
+
+                return (
+                  <div key={step.step} className="flex items-start gap-3">
+                    {/* Icon */}
+                    {status === "completed" ? (
+                      <CheckCircle2 className="h-6 w-6 text-ima-success shrink-0 mt-0.5" aria-hidden="true" />
+                    ) : status === "active" ? (
+                      <Circle className="h-6 w-6 text-ima-primary shrink-0 mt-0.5" aria-hidden="true" />
+                    ) : (
+                      <Lock className="h-6 w-6 text-ima-text-muted shrink-0 mt-0.5" aria-hidden="true" />
+                    )}
+                    <div className="flex-1">
+                      <p
+                        className={cn(
+                          "text-sm font-medium",
+                          status === "completed" && "text-ima-success",
+                          status === "active" && "text-ima-text",
+                          status === "locked" && "text-ima-text-muted"
+                        )}
+                      >
+                        Step {step.step}: {step.title}
+                      </p>
+                      <p className="text-xs text-ima-text-secondary">{step.description}</p>
+
+                      {/* Deadline status chips — same logic as student RoadmapStep */}
+                      <div className="mt-1">
+                        {ds.kind === "completed" && (
+                          <Badge variant="success" size="sm">
+                            Completed {new Date(ds.completedAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              timeZone: "UTC",
+                            })}
+                            {ds.daysLate !== null && (
+                              <span className="ml-1 opacity-75">({ds.daysLate}d late)</span>
+                            )}
+                          </Badge>
+                        )}
+                        {ds.kind === "on-track" && (
+                          <Badge variant="success" size="sm">
+                            <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
+                            On Track — {ds.deadlineLabel}
+                          </Badge>
+                        )}
+                        {ds.kind === "due-soon" && (
+                          <Badge variant="warning" size="sm">
+                            <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
+                            Due Soon — {ds.deadlineLabel}
+                          </Badge>
+                        )}
+                        {ds.kind === "overdue" && (
+                          <Badge variant="error" size="sm">
+                            <Calendar className="h-3 w-3 mr-1" aria-hidden="true" />
+                            Overdue — {ds.daysOverdue}d
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
