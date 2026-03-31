@@ -44,12 +44,12 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
       } else {
         const json = await res.json();
         const cascade = json?.data?.cascade === true;
+        const cascadeCount = json?.data?.cascadeCount ?? 0;
         const stepTitle = ROADMAP_STEPS.find(s => s.step === confirmStep)?.title ?? `Step ${confirmStep}`;
-        const nextTitle = ROADMAP_STEPS.find(s => s.step === confirmStep + 1)?.title;
         toastRef.current({
           type: "success",
-          title: cascade && nextTitle
-            ? `Step ${confirmStep} reset to active, Step ${confirmStep + 1} re-locked`
+          title: cascade
+            ? `Step ${confirmStep} reset to active, ${cascadeCount} subsequent step${cascadeCount > 1 ? "s" : ""} re-locked`
             : `Step ${confirmStep}: "${stepTitle}" reset to active`,
         });
         routerRef.current.refresh();
@@ -207,19 +207,15 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
 
       {/* Undo confirmation modal */}
       {(() => {
-        const nextStepRow = confirmStep !== null
-          ? roadmap.find(r => r.step_number === confirmStep + 1)
-          : null;
-        const nextStepIsActive = nextStepRow?.status === "active";
         const stepConfig = confirmStep !== null
           ? ROADMAP_STEPS.find(s => s.step === confirmStep)
           : null;
-        const nextStepConfig = confirmStep !== null
-          ? ROADMAP_STEPS.find(s => s.step === confirmStep + 1)
-          : null;
+        const laterSteps = confirmStep !== null
+          ? roadmap.filter(r => r.step_number > confirmStep && (r.status === "active" || r.status === "completed"))
+          : [];
 
-        const dialogDescription = nextStepIsActive && nextStepConfig
-          ? `Are you sure you want to reset Step ${confirmStep}: "${stepConfig?.title}" back to active? Step ${(confirmStep ?? 0) + 1}: "${nextStepConfig.title}" (currently active) will also be re-locked.`
+        const dialogDescription = laterSteps.length > 0
+          ? `Are you sure you want to reset Step ${confirmStep}: "${stepConfig?.title}" back to active? ${laterSteps.length} subsequent step${laterSteps.length > 1 ? "s" : ""} will also be re-locked.`
           : `Are you sure you want to reset Step ${confirmStep}: "${stepConfig?.title}" back to active?`;
 
         return (

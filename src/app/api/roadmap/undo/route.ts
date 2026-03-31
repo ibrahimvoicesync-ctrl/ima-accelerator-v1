@@ -103,18 +103,17 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Cascade re-lock N+1: only if step N+1 is currently active
-    let relocked = null;
+    // Cascade re-lock all steps after N: revert any active/completed steps beyond N to locked
+    let relocked: { step_number: number; status: string }[] = [];
     if (step_number < ROADMAP_STEPS.length) {
-      const { data: nextStep } = await admin
+      const { data: lockedSteps } = await admin
         .from("roadmap_progress")
-        .update({ status: "locked" })
+        .update({ status: "locked", completed_at: null })
         .eq("student_id", studentId)
-        .eq("step_number", step_number + 1)
-        .eq("status", "active")
-        .select()
-        .single();
-      relocked = nextStep ?? null;
+        .gt("step_number", step_number)
+        .in("status", ["active", "completed"])
+        .select("step_number, status");
+      relocked = lockedSteps ?? [];
     }
 
     // Audit log — record the undo action
@@ -126,7 +125,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     return NextResponse.json({
-      data: { reverted, relocked, cascade: relocked !== null },
+      data: { reverted, relocked, cascade: relocked.length > 0, cascadeCount: relocked.length },
     });
   } catch (error) {
     console.error("PATCH /api/roadmap/undo error:", error);
