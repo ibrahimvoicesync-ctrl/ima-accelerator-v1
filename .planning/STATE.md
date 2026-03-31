@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Roadmap Update, Session Planner & Coach Controls
-status: verifying
-stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-03-31T09:01:53.267Z"
+status: executing
+stopped_at: Completed 28-03-PLAN.md
+last_updated: "2026-03-31T09:32:40.652Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 11
   completed_phases: 9
-  total_plans: 25
-  completed_plans: 24
+  total_plans: 26
+  completed_plans: 25
   percent: 95
 ---
 
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 29
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 28 (daily-session-planner-api) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-03-31
 
 Progress: [██████████] 95%
@@ -70,6 +70,7 @@ Critical v1.3 decisions from research:
 - [Phase 28-02]: Plan-cap block inserted AFTER active-session conflict check and BEFORE insert — preserves all existing logic untouched
 - [Phase 28-02]: getTodayUTC() used for plan lookup, never client-supplied date field — prevents cap bypass via date manipulation (Pitfall 1)
 - [Phase 28-02]: Single query for completed sessions (select session_minutes) provides both count (fulfillment) and sum (cap check) — collapses 2 queries into 1 (Pitfall 4)
+- [Phase 28-03]: useRef(useToast()) for stable ref pattern — keeps toast out of useCallback deps, consistent with existing routerRef convention
 
 ### Pending Todos
 
@@ -83,6 +84,6 @@ None currently blocking Phase 25.
 
 ## Session Continuity
 
-Last session: 2026-03-31T08:52:42.176Z
-Stopped at: Completed 28-02-PLAN.md
+Last session: 2026-03-31T09:32:40.649Z
+Stopped at: Completed 28-03-PLAN.md
 Resume file: None
