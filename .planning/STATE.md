@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Performance, Scale & Security
-status: executing
-stopped_at: Completed 24-04-PLAN.md
-last_updated: "2026-03-30T19:00:07.126Z"
-last_activity: 2026-03-30
+milestone: v1.3
+milestone_name: Roadmap Update, Session Planner & Coach Controls
+status: defining-requirements
+stopped_at: null
+last_updated: "2026-03-31"
+last_activity: 2026-03-31
 progress:
-  total_phases: 6
-  completed_phases: 5
-  total_plans: 18
-  completed_plans: 17
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -18,36 +18,24 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-29)
+See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 24 — infrastructure-validation
+**Current focus:** Defining requirements for v1.3
 
 ## Current Position
 
-Phase: 24 (infrastructure-validation) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
-Last activity: 2026-03-30
-
-Progress: [░░░░░░░░░░] 0% (0/6 phases)
-
-## Phases at a Glance
-
-| # | Phase | Gate |
-|---|-------|------|
-| 19 | Database Foundation | — |
-| 20 | Query Consolidation & Caching | HALT after completion |
-| 21 | Write Path & Pre-Aggregation | — |
-| 22 | Spike Protection & Rate Limiting | — |
-| 23 | Security Audit | requires-human-review |
-| 24 | Infrastructure & Validation | — |
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-31 — Milestone v1.3 started
 
 ## Performance Metrics
 
 **v1.0 completed:** 2026-03-18 | 12 phases | 38 plans | 218 commits | 12,742 LOC
 **v1.1 completed:** 2026-03-28 | 6 phases | 16 plans
-**v1.2 started:** 2026-03-29
+**v1.2 completed:** 2026-03-31 | 6 phases | 18 plans
+**v1.3 started:** 2026-03-31
 
 ## Accumulated Context
 
@@ -93,13 +81,10 @@ Critical v1.2 decisions from research:
 
 ### Blockers/Concerns
 
-Human action required before Plans 24-02 and 24-03 can proceed: staging Supabase project must be provisioned (same compute tier + region as production), migrations applied, and credentials provided (STAGING_SUPABASE_URL, STAGING_JWT_SECRET, STAGING_SUPABASE_ANON_KEY).
-
-- [Phase 24-01]: Deterministic auth_id UUID pattern (00000000-0000-4000-a000-{N padded}) allows JWT script to generate matching sub claims without querying DB
-- [Phase 24-01]: Set-based INSERT...SELECT with generate_series chosen over PL/pgSQL loop to stay under Supabase SQL editor timeout
+None for v1.3.
 
 ## Session Continuity
 
-Last session: 2026-03-30T19:00:07.122Z
-Stopped at: Completed 24-04-PLAN.md
+Last session: 2026-03-31
+Stopped at: Milestone v1.3 initialization
 Resume file: None

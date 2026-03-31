@@ -37,22 +37,22 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ Coach/owner student KPI visibility — read-only KPI summary on coach and owner detail pages — v1.1
 - ✓ Calendar view — month grid on student detail pages replacing work sessions + reports tabs — v1.1
 - ✓ Roadmap date KPIs — deadline status chips per roadmap step, completed_at display — v1.1
+- ✓ Database indexes + admin client singleton + RLS initplan fix + monitoring baseline — v1.2
+- ✓ RPC consolidation (owner 8→2 round trips) + React cache() + unstable_cache + server-side pagination — v1.2
+- ✓ pg_cron nightly KPI pre-aggregation + optimistic UI on report submission — v1.2
+- ✓ DB-backed rate limiting (30 req/min/user) on all mutation routes — v1.2
+- ✓ Security audit: auth/RLS verification, CSRF Origin headers, cross-student isolation — v1.2
+- ✓ Infrastructure validation: local Docker k6 load tests confirm P95<1s at 5k students — v1.2
 
 ### Active
 
-<!-- Current scope. Building toward these for v1.2. -->
+<!-- Current scope. Building toward these for v1.3. -->
 
-- [x] Database indexes on high-traffic query paths (daily_reports, work_sessions, roadmap_progress) — Validated in Phase 19: Database Foundation
-- [x] Admin client singleton (module-level reuse, not per-call instantiation) — Validated in Phase 19: Database Foundation
-- [x] Query performance monitoring baseline and slow query logging (>200ms) — Validated in Phase 19: Database Foundation
-- [ ] Dashboard layout RPC consolidation (owner path: 8 → ≤2 round trips)
-- [ ] Server-side pagination on owner list pages (students, coaches)
-- [ ] React cache() dedup + route-level revalidation on dashboard routes
-- [x] pg_cron nightly pre-aggregation for KPI summaries — Validated in Phase 21: Write Path & Pre-Aggregation
-- [x] Optimistic UI on student report submission — Validated in Phase 21: Write Path & Pre-Aggregation
-- [x] API route-level rate limiting (30 req/min/user) — Validated in Phase 22: Spike Protection & Rate Limiting
-- [x] Security audit: auth checks, RLS verification, CSRF, cross-student isolation — Validated in Phase 23: Security Audit
-- [x] Infrastructure validation under 5k simulated load — Validated in Phase 24: local Docker k6 load tests confirm P95<1s across all scenarios (write-spike 6.74ms, read-mix 929.76ms, combined 240.51ms)
+- [ ] Roadmap step description updates — append parenthetical text to steps 1-8, move unlock_url step 6 → step 5, rewrite step 6/7 descriptions, set step 8 target_days: 14
+- [ ] Stage headers in student roadmap view — visual grouping by stage (Setup & Preparation, Influencer Outreach, Brand Outreach)
+- [ ] Coach/owner roadmap undo — revert completed steps to active with confirmation, PATCH /api/roadmap/undo, undo action logging
+- [ ] Daily session planner — daily_plans table, 4h work time cap (breaks excluded), automatic alternating breaks, planned session execution
+- [ ] Post-plan completion motivational card + ad-hoc session picker
 
 ### Out of Scope
 
@@ -96,6 +96,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 **v1.2 Phase 23 complete** (2026-03-30): Security audit — 3-layer audit of all 12 API routes (auth, proxy, RLS), verifyOrigin() CSRF helper on all 10 mutation routes, reports/[id]/review ownership leak fixed (404 instead of 403). Gap closure: optimistic session state update eliminates timer startup delay, CycleCard shows "In progress" instead of redundant countdown for active sessions.
 
+**v1.2 milestone complete** (2026-03-31): 6 phases (19-24), 18 plans. Database indexes, RPC consolidation, server-side pagination, pg_cron pre-aggregation, rate limiting, security audit, load testing all shipped. Local Docker k6 confirms P95<1s at 5k students. Pro Small compute confirmed adequate.
+
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
 **Invite system (v1.0):** Email whitelist model — no registration URL generated. Coach/owner enters email, auth callback auto-registers whitelisted users on Google sign-in. Magic links available as alternative.
@@ -133,21 +135,15 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | alert_dismissals with time-windowed keys | Dismissed alerts re-trigger in new window (daily/weekly/monthly) | ✓ Good — prevents stale dismissals masking new issues |
 | Phase 24 | Compute sizing: STAY on Pro Small — local Docker k6 load tests with 5k students show P95=929.76ms read-mix (100 VUs), P95=6.74ms write-spike (500 VUs), P95=240.51ms combined (350 VUs). All under 1s threshold. Connection usage low. Write ops extremely fast; read aggregation RPCs are the bottleneck but pass. Cloud Pro Small has lower max_connections (60 vs local 100) — monitor if cloud P95 exceeds 1s. | 2026-03-30 |
 
-## Current Milestone: v1.2 Performance, Scale & Security
+## Current Milestone: v1.3 Roadmap Update, Session Planner & Coach Controls
 
-**Goal:** Optimize queries, add caching and pagination, harden the 11 PM write spike, audit security, and validate under realistic 5k-student load.
+**Goal:** Update roadmap step text and unlock URLs, give coaches roadmap undo power, and add a daily session planner with structured 4h work blocks plus ad-hoc sessions.
 
 **Target features:**
-- Database indexes + admin client singleton + monitoring baseline
-- RPC consolidation + server-side pagination + caching for dashboard queries
-- pg_cron nightly pre-aggregation + optimistic UI
-- API route-level rate limiting (30 req/min/user)
-- Security audit (auth checks, RLS, CSRF, cross-student isolation)
-- Infrastructure validation under 5k simulated load
-
-**Milestone gates:**
-- HALT after Phase 20 — human confirms load test results before proceeding
-- HALT at Phase 23 — security audit requires human review before applying changes
+- Roadmap step description updates (append parenthetical text), unlock_url move (step 6 → step 5), step 6/7 description rewrites, step 8 target_days: 14, stage headers in student roadmap view
+- Coach/owner roadmap undo — revert completed steps to active, with confirmation dialog, API endpoint, and undo action logging
+- Daily session planner — new daily_plans table, 4h work time cap (breaks excluded), automatic alternating break types, planned session execution via existing WorkTracker
+- Post-plan completion motivational card (Arabic + English) + ad-hoc session picker after plan complete
 
 ## Evolution
 
@@ -167,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after Phase 23 gap closure complete — timer delay fix, CycleCard display simplified*
+*Last updated: 2026-03-31 after milestone v1.3 started*
