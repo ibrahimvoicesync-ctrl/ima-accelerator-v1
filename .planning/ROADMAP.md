@@ -55,7 +55,7 @@
 
 - [x] **Phase 25: Roadmap Config & Stage Headers** - Update step descriptions, unlock URLs, target_days, and add stage grouping headers to all roadmap views (completed 2026-03-31)
 - [x] **Phase 26: Database Schema Foundation** - Add daily_plans and roadmap_undo_log tables with RLS, indexes, and UTC-safe constraints (completed 2026-03-31)
-- [ ] **Phase 27: Coach/Owner Roadmap Undo** - PATCH /api/roadmap/undo with confirmation dialog, N+1 cascade re-lock, and audit logging
+- [x] **Phase 27: Coach/Owner Roadmap Undo** - PATCH /api/roadmap/undo with confirmation dialog, N+1 cascade re-lock, and audit logging (completed 2026-03-31)
 - [ ] **Phase 28: Daily Session Planner API** - POST/GET /api/daily-plans with 4h cap enforcement, Zod plan_json schema, server-side cap on work-sessions
 - [ ] **Phase 29: Daily Session Planner Client** - DailyPlannerClient wizard, WorkTrackerClient plan-mode, PlanCompletionCard with ad-hoc session picker
 
@@ -195,10 +195,10 @@ Plans:
   3. If step N+1 was active (not yet completed) at the time step N was undone, step N+1 is locked back to its pre-active state in the same server request
   4. A coach can only undo steps for students assigned to them; an owner can undo steps for any student; attempting to undo an unassigned student's step returns 403
   5. Every undo action is visible in the roadmap_undo_log table with the actor's ID, role, target student, step number, and timestamp
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 27-01-PLAN.md — PATCH /api/roadmap/undo route with auth, cascade re-lock, and audit logging
-- [ ] 27-02-PLAN.md — RoadmapTab undo button + confirmation modal, studentId prop thread from parent components
+- [x] 27-02-PLAN.md — RoadmapTab undo button + confirmation modal, studentId prop thread from parent components
 **UI hint**: yes
 
 ### Phase 28: Daily Session Planner API
@@ -256,6 +256,6 @@ Plans:
 | 24. Infrastructure & Validation | v1.2 | 5/5 | Complete | 2026-03-31 |
 | 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete    | 2026-03-31 |
 | 26. Database Schema Foundation | v1.3 | 1/1 | Complete    | 2026-03-31 |
-| 27. Coach/Owner Roadmap Undo | v1.3 | 1/2 | In Progress|  |
+| 27. Coach/Owner Roadmap Undo | v1.3 | 2/2 | Complete   | 2026-03-31 |
 | 28. Daily Session Planner API | v1.3 | 0/? | Not started | - |
 | 29. Daily Session Planner Client | v1.3 | 0/? | Not started | - |

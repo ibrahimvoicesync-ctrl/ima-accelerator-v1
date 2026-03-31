@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Roadmap Update, Session Planner & Coach Controls
-status: executing
-stopped_at: Completed 27-coach-owner-roadmap-undo-01-PLAN.md
-last_updated: "2026-03-31T07:36:38.105Z"
+status: verifying
+stopped_at: "Completed 27-coach-owner-roadmap-undo-02-PLAN.md (Tasks 1-2); Task 3 is checkpoint:human-verify"
+last_updated: "2026-03-31T07:42:34.836Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 11
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 22
   percent: 95
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 Phase: 27 (coach-owner-roadmap-undo) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-31
 
 Progress: [██████████] 95%
@@ -63,6 +63,7 @@ Critical v1.3 decisions from research:
 - [Phase 26-database-schema-foundation]: D-04: No DB-level JSONB constraints on plan_json; Zod safeParse enforcement at application layer (Phase 28)
 - [Phase 27-coach-owner-roadmap-undo]: Cascade re-lock guards against completed N+1 steps using .eq('status','active') — only active steps are re-locked
 - [Phase 27-coach-owner-roadmap-undo]: Audit log INSERT placed after successful revert — ensures log only records actual state transitions, never phantom undo events
+- [Phase 27-coach-owner-roadmap-undo]: Use IIFE in JSX for modal cascade-description computation; (confirmStep ?? 0) + 1 avoids non-null assertion; build failure is pre-existing Google Fonts network error, tsc --noEmit passes
 
 ### Pending Todos
 
@@ -76,6 +77,6 @@ None currently blocking Phase 25.
 
 ## Session Continuity
 
-Last session: 2026-03-31T07:36:38.102Z
-Stopped at: Completed 27-coach-owner-roadmap-undo-01-PLAN.md
+Last session: 2026-03-31T07:42:34.832Z
+Stopped at: Completed 27-coach-owner-roadmap-undo-02-PLAN.md (Tasks 1-2); Task 3 is checkpoint:human-verify
 Resume file: None

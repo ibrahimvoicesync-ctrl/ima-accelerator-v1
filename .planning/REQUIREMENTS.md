@@ -18,10 +18,10 @@ Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Control
 
 ### Coach/Owner Undo
 
-- [ ] **UNDO-01**: Coach can revert any completed roadmap step to active for their assigned students via PATCH /api/roadmap/undo
-- [ ] **UNDO-02**: Owner can revert any completed roadmap step to active for any student via the same endpoint
-- [ ] **UNDO-03**: Undo presents a confirmation dialog before executing ("Are you sure you want to reset Step X back to active?")
-- [ ] **UNDO-04**: If step N+1 is currently active (not completed), undoing step N re-locks N+1 to maintain sequential progression
+- [x] **UNDO-01**: Coach can revert any completed roadmap step to active for their assigned students via PATCH /api/roadmap/undo
+- [x] **UNDO-02**: Owner can revert any completed roadmap step to active for any student via the same endpoint
+- [x] **UNDO-03**: Undo presents a confirmation dialog before executing ("Are you sure you want to reset Step X back to active?")
+- [x] **UNDO-04**: If step N+1 is currently active (not completed), undoing step N re-locks N+1 to maintain sequential progression
 - [x] **UNDO-05**: Every undo action is logged to roadmap_undo_log table (who, when, which student, which step)
 
 ### Session Planner
@@ -108,10 +108,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROAD-04 | Phase 25 | Complete |
 | ROAD-05 | Phase 25 | Complete |
 | ROAD-06 | Phase 25 | Complete |
-| UNDO-01 | Phase 27 | Pending |
-| UNDO-02 | Phase 27 | Pending |
-| UNDO-03 | Phase 27 | Pending |
-| UNDO-04 | Phase 27 | Pending |
+| UNDO-01 | Phase 27 | Complete |
+| UNDO-02 | Phase 27 | Complete |
+| UNDO-03 | Phase 27 | Complete |
+| UNDO-04 | Phase 27 | Complete |
 | UNDO-05 | Phase 26 | Complete |
 | PLAN-01 | Phase 29 | Pending |
 | PLAN-02 | Phase 29 | Pending |
