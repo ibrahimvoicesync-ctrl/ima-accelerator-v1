@@ -28,6 +28,10 @@ export function verifyOrigin(request: Request): NextResponse | null {
   try {
     const originHost = new URL(origin).host;
     if (originHost !== expectedHost) {
+      console.error(
+        "CSRF check: origin host mismatch",
+        { originHost, expectedHost, NEXT_PUBLIC_APP_URL: appUrl }
+      );
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   } catch {
