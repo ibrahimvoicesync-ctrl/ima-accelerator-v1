@@ -12,8 +12,9 @@ export type OwnerDashboardStats = {
 };
 
 export type SidebarBadgesResult = {
-  active_alerts?: number;       // owner only
-  unreviewed_reports?: number;  // coach only
+  active_alerts?: number;          // owner only
+  unreviewed_reports?: number;     // coach only
+  coach_milestone_alerts?: number; // coach only — 100h milestone alerts
 };
 
 export type StudentDetailResult = {

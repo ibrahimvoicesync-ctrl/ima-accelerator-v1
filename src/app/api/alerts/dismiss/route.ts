@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2. Profile + role check (owner only)
+  // 2. Profile + role check (owner or coach)
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("users")
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   if (!profile) {
     return NextResponse.json({ error: "User profile not found" }, { status: 404 });
   }
-  if (profile.role !== "owner") {
+  if (profile.role !== "owner" && profile.role !== "coach") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

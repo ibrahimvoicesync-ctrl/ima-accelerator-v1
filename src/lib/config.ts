@@ -64,6 +64,7 @@ export const ROUTES = {
     invites: "/coach/invites",
     reports: "/coach/reports",
     analytics: "/coach/analytics",
+    alerts: "/coach/alerts",
   },
   student: {
     dashboard: "/student",
@@ -172,6 +173,8 @@ export const COACH_CONFIG = {
   atRiskRatingThreshold: 2,
   maxStudentsPerCoach: 50,
   reportInboxDays: 7,
+  milestoneMinutesThreshold: 6000,  // 100 hours in minutes
+  milestoneDaysWindow: 45,          // days since joined_at
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -266,6 +269,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Reports",         href: "/coach/reports",   icon: "FileText",      badge: "unreviewed_reports" },
     { label: "Invite Students", href: "/coach/invites",   icon: "UserPlus",      separator: true },
     { label: "Analytics",       href: "/coach/analytics", icon: "BarChart3" },
+    { label: "Alerts",          href: "/coach/alerts",    icon: "Bell",          badge: "coach_milestone_alerts" },
   ],
   student: [
     { label: "Dashboard",     href: "/student",        icon: "LayoutDashboard" },
