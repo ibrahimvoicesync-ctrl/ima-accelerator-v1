@@ -113,6 +113,25 @@ export default async function OwnerStudentDetailPage({
 
   const isAtRisk = reasons.length > 0;
 
+  // 100h milestone check — total completed session minutes
+  const { data: milestoneData } = await admin
+    .from("work_sessions")
+    .select("session_minutes")
+    .eq("student_id", student.id)
+    .eq("status", "completed");
+
+  const totalMinutes = (milestoneData ?? []).reduce(
+    (sum, r) => sum + (r.session_minutes ?? 0),
+    0
+  );
+  const endOfTodayMs = new Date(today + "T23:59:59Z").getTime();
+  const daysSinceJoin = Math.floor(
+    (endOfTodayMs - new Date(student.joined_at).getTime()) / 86400000
+  );
+  const hasMilestone =
+    totalMinutes >= COACH_CONFIG.milestoneMinutesThreshold &&
+    daysSinceJoin <= COACH_CONFIG.milestoneDaysWindow;
+
   return (
     <OwnerStudentDetailClient
       student={{
@@ -138,6 +157,7 @@ export default async function OwnerStudentDetailPage({
         joinedAt: student.joined_at,
         currentStepNumber,
       }}
+      milestone={hasMilestone ? { totalHours: Math.floor(totalMinutes / 60), days: daysSinceJoin } : null}
     />
   );
 }

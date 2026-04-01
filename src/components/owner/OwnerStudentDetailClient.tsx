@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
@@ -58,6 +58,7 @@ interface OwnerStudentDetailClientProps {
     joinedAt: string;
     currentStepNumber: number | null;
   };
+  milestone: { totalHours: number; days: number } | null;
 }
 
 export function OwnerStudentDetailClient({
@@ -73,6 +74,7 @@ export function OwnerStudentDetailClient({
   coaches,
   currentCoachId,
   kpiData,
+  milestone,
 }: OwnerStudentDetailClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -200,6 +202,20 @@ export function OwnerStudentDetailClient({
           )}
         </div>
       </div>
+
+      {milestone && (
+        <div className="flex items-center gap-3 rounded-lg bg-ima-success/10 border border-ima-success/20 p-4">
+          <div className="w-10 h-10 rounded-lg bg-ima-success/20 flex items-center justify-center shrink-0">
+            <Trophy className="h-5 w-5 text-ima-success" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-ima-text">100+ Hours Milestone</p>
+            <p className="text-xs text-ima-text-secondary">
+              {milestone.totalHours} hours reached in {milestone.days} days
+            </p>
+          </div>
+        </div>
+      )}
 
       <StudentKpiSummary
         lifetimeOutreach={kpiData.lifetimeOutreach}
