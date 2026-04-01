@@ -88,12 +88,20 @@ export async function POST(request: Request) {
   const today = getTodayUTC();
 
   // Step 1: Fetch today's plan
-  const { data: todayPlan } = await admin
+  const { data: todayPlan, error: dailyPlanError } = await admin
     .from("daily_plans")
     .select()
     .eq("student_id", profile.id)
     .eq("date", today)
     .maybeSingle();
+
+  if (dailyPlanError) {
+    console.error("[work-sessions POST] daily_plans query failed:", dailyPlanError);
+    return NextResponse.json(
+      { error: "Failed to check daily plan. Please try again." },
+      { status: 500 }
+    );
+  }
 
   // D-01: No plan today → block session creation
   if (!todayPlan) {
