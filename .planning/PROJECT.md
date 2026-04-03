@@ -112,6 +112,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 **v1.3 milestone complete** (2026-04-03): 5 phases (25-29), 11 plans. Roadmap config & stage headers, coach/owner undo, daily session planner (API + client), motivational card + ad-hoc sessions all shipped.
 
+**v1.4 Phase 30 complete** (2026-04-03): Database migration — migration 00015 adds 4 new tables (report_comments, messages, resources, glossary_terms), expands role CHECK constraints to include student_diy on users/invites/magic_links, enables RLS with 30 role-appropriate policies on all new tables, updates TypeScript types with 4 table triplets and expanded Role union in 9 locations.
+
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
 **Invite system (v1.0):** Email whitelist model — no registration URL generated. Coach/owner enters email, auth callback auto-registers whitelisted users on Google sign-in. Magic links available as alternative.
@@ -126,7 +128,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 - **Tech stack**: Next.js App Router + Supabase + Tailwind CSS + TypeScript strict
 - **Auth**: Google OAuth only, no password flows — Supabase Auth handles OAuth
 - **Architecture**: Server components for all reads (async pages, no useEffect), small "use client" components only for interactivity, createAdminClient() for server queries
-- **Database**: Supabase Postgres with RLS + server-side user ID filtering (defense in depth), 6 tables (users, invites, magic_links, work_sessions, roadmap_progress, daily_reports) + alert_dismissals
+- **Database**: Supabase Postgres with RLS + server-side user ID filtering (defense in depth), 10 tables (users, invites, magic_links, work_sessions, roadmap_progress, daily_reports, report_comments, messages, resources, glossary_terms) + alert_dismissals + daily_plans + roadmap_undo_log
 - **Styling**: Light theme, blue primary (#2563EB), Inter font, ima-* design tokens, CVA-based UI primitives
 - **Validation**: Zod on all API inputs, safeParse pattern
 - **Access**: Invite-only registration, role-based route guards via proxy (not middleware)
@@ -194,4 +196,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after milestone v1.4 started*
+*Last updated: 2026-04-03 after Phase 30 (database-migration) complete*
