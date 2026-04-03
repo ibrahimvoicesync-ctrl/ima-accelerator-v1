@@ -5,7 +5,8 @@
 - ✅ **v1.0 IMA Accelerator V1** — Phases 1-12 (shipped 2026-03-18)
 - ✅ **v1.1 V2 Feature Build** — Phases 13-18 (shipped 2026-03-28)
 - ✅ **v1.2 Performance, Scale & Security** — Phases 19-24 (shipped 2026-03-31)
-- 🚧 **v1.3 Roadmap Update, Session Planner & Coach Controls** — Phases 25-29 (in progress)
+- ✅ **v1.3 Roadmap Update, Session Planner & Coach Controls** — Phases 25-29 (shipped 2026-04-03)
+- 🚧 **v1.4 Roles, Chat & Resources** — Phases 30-37 (in progress)
 
 ## Phases
 
@@ -51,13 +52,27 @@
 
 </details>
 
-**v1.3 Roadmap Update, Session Planner & Coach Controls**
+<details>
+<summary>✅ v1.3 Roadmap Update, Session Planner & Coach Controls (Phases 25-29) — SHIPPED 2026-04-03</summary>
 
-- [x] **Phase 25: Roadmap Config & Stage Headers** - Update step descriptions, unlock URLs, target_days, and add stage grouping headers to all roadmap views (completed 2026-03-31)
-- [x] **Phase 26: Database Schema Foundation** - Add daily_plans and roadmap_undo_log tables with RLS, indexes, and UTC-safe constraints (completed 2026-03-31)
-- [x] **Phase 27: Coach/Owner Roadmap Undo** - PATCH /api/roadmap/undo with confirmation dialog, N+1 cascade re-lock, and audit logging (completed 2026-03-31)
-- [x] **Phase 28: Daily Session Planner API** - POST/GET /api/daily-plans with 4h cap enforcement, Zod plan_json schema, server-side cap on work-sessions (completed 2026-03-31)
-- [x] **Phase 29: Daily Session Planner Client** - DailyPlannerClient wizard, WorkTrackerClient plan-mode, PlanCompletionCard with ad-hoc session picker (completed 2026-03-31)
+- [x] **Phase 25: Roadmap Config & Stage Headers** — completed 2026-03-31
+- [x] **Phase 26: Database Schema Foundation** — completed 2026-03-31
+- [x] **Phase 27: Coach/Owner Roadmap Undo** — completed 2026-03-31
+- [x] **Phase 28: Daily Session Planner API** — completed 2026-03-31
+- [x] **Phase 29: Daily Session Planner Client** — completed 2026-03-31
+
+</details>
+
+**v1.4 Roles, Chat & Resources**
+
+- [ ] **Phase 30: Database Migration** - Migration 00015 adds 4 tables, expands role CHECK constraints, enables RLS, and updates TypeScript types
+- [ ] **Phase 31: Student_DIY Role** - 4th role with reduced feature set (dashboard + work tracker + roadmap), 8-location atomic update across proxy/config/types/DB
+- [ ] **Phase 32: Skip Tracker** - "X days skipped this week" badge on coach/owner student cards via UTC-safe Postgres RPC
+- [ ] **Phase 33: Coach Assignments** - Coaches get full assignment power via /coach/assignments page mirroring owner experience
+- [ ] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API
+- [ ] **Phase 35: Chat System** - Polling-based (5s) WhatsApp-style 1:1 + broadcast chat with sidebar unread badges
+- [ ] **Phase 36: Resources Tab** - URL links + Discord WidgetBot iframe + searchable glossary for owner/coach/student
+- [ ] **Phase 37: Invite Link max_uses** - Default max_uses of 10 on magic links, usage count display, cap enforcement
 
 ## Phase Details
 
@@ -234,6 +249,111 @@ Plans:
 - [x] 29-03-PLAN.md — MotivationalCard post-completion + ad-hoc mode wiring
 **UI hint**: yes
 
+### Phase 30: Database Migration
+**Goal**: The database is ready for all v1.4 features — 4 new tables created, role constraints expanded to include student_diy, RLS policies written, and TypeScript types updated
+**Depends on**: Phase 29
+**Requirements**: SCHEMA-01, SCHEMA-02, SCHEMA-03, SCHEMA-04
+**Success Criteria** (what must be TRUE):
+  1. Migration 00015 executes cleanly and creates report_comments, messages, resources, and glossary_terms tables with correct columns, foreign keys, and indexes
+  2. The users, invites, and magic_links role CHECK constraints all accept 'student_diy' as a valid value without rejecting existing 'owner', 'coach', or 'student' values
+  3. RLS is enabled on all 4 new tables with policies that restrict reads and writes to appropriate roles; student_diy-specific policies are included in the same migration
+  4. TypeScript types file includes Row/Insert/Update types for all 4 new tables and the Role union type reads `'owner' | 'coach' | 'student' | 'student_diy'`
+**Plans**: 1 plan
+Plans:
+- [ ] 30-01-PLAN.md — Migration 00015 (4 new tables, role CHECK ALTERs, RLS policies, indexes, triggers) and TypeScript types update
+
+### Phase 31: Student_DIY Role
+**Goal**: The student_diy role is fully wired across all 8 integration points — users can register, be routed correctly, and access only the three permitted features
+**Depends on**: Phase 30
+**Requirements**: ROLE-01, ROLE-02, ROLE-03, ROLE-04, ROLE-05, ROLE-06, ROLE-07
+**Success Criteria** (what must be TRUE):
+  1. A user invited with a student_diy invite link completes Google OAuth registration and is assigned role 'student_diy' in the users table; no other role is assigned
+  2. After login, a student_diy user is immediately redirected to /student_diy/dashboard with no redirect loop or blank screen; all other roles continue routing correctly
+  3. The student_diy sidebar renders exactly 3 navigation items — Dashboard, Work Tracker, and Roadmap — with no other items visible regardless of URL manipulation
+  4. Work Tracker and Roadmap pages function identically for student_diy as for student; no regressions in session start/complete/abandon or roadmap step progression
+  5. Navigating directly to /student_diy/report, /student_diy/chat, or /student_diy/resources redirects to the dashboard with a 403 or equivalent guard response
+  6. Owner and coach invite creation forms include student_diy as a selectable role option; created invites insert with role = 'student_diy'
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 32: Skip Tracker
+**Goal**: Coaches and owners can see at a glance how many days each student has skipped this week, enabling proactive intervention
+**Depends on**: Phase 30
+**Requirements**: SKIP-01, SKIP-02, SKIP-03, SKIP-04, SKIP-05
+**Success Criteria** (what must be TRUE):
+  1. Every student card on the coach dashboard shows a "X skipped" badge where X is the count of weekdays (Mon-Fri of the current ISO week) with zero completed work sessions AND zero submitted reports, counting only past days and today
+  2. The skip count resets to 0 on Monday morning — a student with 3 skips on Friday shows 0 skips the following Monday
+  3. The skip badge correctly reflects today as a skip day only after the day has passed without activity; it does not count future weekdays in the current week
+  4. Owner student list and student detail views display the same skip count badge using the same computation as the coach view
+  5. The skip count is computed by a Postgres RPC function (get_student_skip_count or equivalent) that accepts a p_today DATE parameter; the application passes getTodayUTC() as that parameter, never relying on CURRENT_DATE inside the function
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 33: Coach Assignments
+**Goal**: Coaches can assign, reassign, and unassign students independently — same power as owner — without exposing cross-platform student data
+**Depends on**: Phase 30
+**Requirements**: ASSIGN-01, ASSIGN-02, ASSIGN-03, ASSIGN-04, ASSIGN-05, ASSIGN-06
+**Success Criteria** (what must be TRUE):
+  1. A coach can navigate to /coach/assignments and see all unassigned students plus their own currently-assigned students in a searchable list
+  2. A coach can assign an unassigned student to any active coach (including themselves) and the student's coach_id updates immediately in the UI without page reload
+  3. A coach can reassign one of their own students to a different coach; the student disappears from the coach's list and appears under the target coach
+  4. A coach can unassign a student (set coach_id to null); the student moves to the unassigned pool
+  5. A student or student_diy user attempting to call the assignment API receives a 403 response; the assignment API does not modify the coach view for owner (ASSIGN-06)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 34: Report Comments
+**Goal**: Coaches can leave a single comment on any of their students' daily reports; students see the feedback inline on their report history
+**Depends on**: Phase 30
+**Requirements**: COMMENT-01, COMMENT-02, COMMENT-03, COMMENT-04, COMMENT-05
+**Success Criteria** (what must be TRUE):
+  1. A coach viewing a student's daily report sees a comment textarea (max 1000 chars) and a Save button; submitting creates or updates the single comment for that report (upsert — no duplicates)
+  2. Resubmitting a comment on the same report replaces the existing comment rather than creating a second one; the report_comments table never has more than one row per report_id
+  3. A student viewing their report history sees a read-only "Coach feedback" card below each report that has a comment; reports without comments show nothing
+  4. An owner can comment on any student's report using the same textarea and Save button visible on the coach view
+  5. A student or student_diy calling POST /api/reports/[id]/comment receives a 403; the API performs a two-step ownership check (fetch report → verify student.coach_id matches requesting coach) before writing, matching the v1.2 Phase 23 pattern
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 35: Chat System
+**Goal**: Coaches and students can exchange messages in 1:1 conversations and coaches can broadcast to all assigned students, with messages appearing within 5 seconds via polling
+**Depends on**: Phase 31
+**Requirements**: CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05, CHAT-06, CHAT-07, CHAT-08, CHAT-09, CHAT-10, CHAT-11, CHAT-12, CHAT-13
+**Success Criteria** (what must be TRUE):
+  1. A coach sees a conversation list at /coach/chat showing all assigned students with the last message preview, relative timestamp, and an unread indicator dot for conversations with unread messages
+  2. Opening a conversation loads message history in WhatsApp-style bubbles (coach messages right-aligned, student messages left-aligned); the view auto-scrolls to the newest message on open and on each new incoming message
+  3. A message sent by a coach appears in the student's conversation within 5 seconds and vice versa; the polling interval does not call checkRateLimit() (GET endpoints are excluded from rate limiting)
+  4. A coach can send a broadcast message that delivers to all assigned students as a distinct card with a megaphone icon; the broadcast is not displayed as a regular bubble
+  5. The sidebar shows an unread message badge count for coach and student roles; the badge clears when the conversation is opened; student_diy has no chat navigation item and cannot access /student/chat
+  6. Scrolling to the top of a conversation loads older messages via cursor-based pagination without losing the current scroll position
+  7. The chat composer enforces a 2000-character limit with a visible remaining-character counter; the send button is disabled when the composer is empty
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 36: Resources Tab
+**Goal**: Owners, coaches, and students have a unified Resources tab with curated links, an embedded Discord community, and a searchable glossary; student_diy cannot access it
+**Depends on**: Phase 31
+**Requirements**: RES-01, RES-02, RES-03, RES-04, RES-05, RES-06, RES-07, RES-08, RES-09
+**Success Criteria** (what must be TRUE):
+  1. Owner, coach, and student sidebars show a "Resources" navigation item; student_diy sidebar does not show it; navigating directly to /student_diy/resources is blocked by the proxy guard
+  2. The Resources page has three tabs — Links, Community, Glossary — controlled by React state (not URL segments); switching tabs does not navigate away or break the Discord iframe back button
+  3. Owner and coach can add resource links (URL + title + optional comment) and delete them; students see the same list in read-only mode with all links opening in a new tab
+  4. The Community tab renders a Discord WidgetBot iframe with the configured guild and channel; the next.config.ts CSP header includes `frame-src 'self' https://e.widgetbot.io`; when NEXT_PUBLIC_DISCORD_GUILD_ID is absent the tab shows a "Discord not configured" placeholder matching the existing Coming Soon card pattern
+  5. Owner and coach can add, edit, and delete glossary terms (term + definition); all eligible roles can filter terms by typing in a search box; the search is case-insensitive client-side filter
+  6. The glossary_terms table enforces a case-insensitive unique constraint on term name (CREATE UNIQUE INDEX on lower(term)); attempting to add a duplicate term shows a user-facing error
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 37: Invite Link max_uses
+**Goal**: Magic link invites default to 10 uses and display a live usage count; registration via an exhausted link is rejected
+**Depends on**: Phase 30
+**Requirements**: INVITE-01, INVITE-02, INVITE-03
+**Success Criteria** (what must be TRUE):
+  1. Creating a new magic link without specifying max_uses produces a link with max_uses = 10; the creation form accepts an optional override; existing null-max_uses rows are grandfathered (unlimited) per migration design
+  2. Each magic link card on the invite management page displays "X / Y used" where X is the current use_count and Y is max_uses (null renders as "∞")
+  3. A user attempting to register via a magic link where use_count >= max_uses receives a clear rejection response; the /api/auth/callback enforces this check before creating the user account
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -262,8 +382,16 @@ Plans:
 | 22. Spike Protection & Rate Limiting | v1.2 | 2/2 | Complete | 2026-03-30 |
 | 23. Security Audit | v1.2 | 3/3 | Complete | 2026-03-30 |
 | 24. Infrastructure & Validation | v1.2 | 5/5 | Complete | 2026-03-31 |
-| 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete    | 2026-03-31 |
-| 26. Database Schema Foundation | v1.3 | 1/1 | Complete    | 2026-03-31 |
-| 27. Coach/Owner Roadmap Undo | v1.3 | 2/2 | Complete    | 2026-03-31 |
-| 28. Daily Session Planner API | v1.3 | 3/3 | Complete    | 2026-03-31 |
-| 29. Daily Session Planner Client | v1.3 | 3/3 | Complete    | 2026-03-31 |
+| 25. Roadmap Config & Stage Headers | v1.3 | 2/2 | Complete | 2026-03-31 |
+| 26. Database Schema Foundation | v1.3 | 1/1 | Complete | 2026-03-31 |
+| 27. Coach/Owner Roadmap Undo | v1.3 | 2/2 | Complete | 2026-03-31 |
+| 28. Daily Session Planner API | v1.3 | 3/3 | Complete | 2026-03-31 |
+| 29. Daily Session Planner Client | v1.3 | 3/3 | Complete | 2026-03-31 |
+| 30. Database Migration | v1.4 | 0/1 | In Progress | - |
+| 31. Student_DIY Role | v1.4 | 0/? | Not started | - |
+| 32. Skip Tracker | v1.4 | 0/? | Not started | - |
+| 33. Coach Assignments | v1.4 | 0/? | Not started | - |
+| 34. Report Comments | v1.4 | 0/? | Not started | - |
+| 35. Chat System | v1.4 | 0/? | Not started | - |
+| 36. Resources Tab | v1.4 | 0/? | Not started | - |
+| 37. Invite Link max_uses | v1.4 | 0/? | Not started | - |
