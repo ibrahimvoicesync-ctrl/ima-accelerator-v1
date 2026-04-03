@@ -34,10 +34,10 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 
 ### Coach Assignments
 
-- [ ] **ASSIGN-01**: Coach can view all students (not just their own) on a /coach/assignments page
-- [ ] **ASSIGN-02**: Coach can assign an unassigned student to any active coach
-- [ ] **ASSIGN-03**: Coach can reassign a student from one coach to another
-- [ ] **ASSIGN-04**: Coach can unassign a student (set coach_id to null)
+- [x] **ASSIGN-01**: Coach can view all students (not just their own) on a /coach/assignments page
+- [x] **ASSIGN-02**: Coach can assign an unassigned student to any active coach
+- [x] **ASSIGN-03**: Coach can reassign a student from one coach to another
+- [x] **ASSIGN-04**: Coach can unassign a student (set coach_id to null)
 - [x] **ASSIGN-05**: API returns 403 for student and student_diy roles attempting assignment changes
 - [x] **ASSIGN-06**: Owner assignments page continues to work unchanged
 
@@ -142,10 +142,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SKIP-03 | Phase 32 | Pending |
 | SKIP-04 | Phase 32 | Complete |
 | SKIP-05 | Phase 32 | Pending |
-| ASSIGN-01 | Phase 33 | Pending |
-| ASSIGN-02 | Phase 33 | Pending |
-| ASSIGN-03 | Phase 33 | Pending |
-| ASSIGN-04 | Phase 33 | Pending |
+| ASSIGN-01 | Phase 33 | Complete |
+| ASSIGN-02 | Phase 33 | Complete |
+| ASSIGN-03 | Phase 33 | Complete |
+| ASSIGN-04 | Phase 33 | Complete |
 | ASSIGN-05 | Phase 33 | Complete |
 | ASSIGN-06 | Phase 33 | Complete |
 | COMMENT-01 | Phase 34 | Pending |
