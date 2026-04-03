@@ -211,16 +211,14 @@ export function Sidebar({
               const Icon = ICON_MAP[item.icon];
               const active = isActive(item.href);
               return (
-                <>
+                <li key={item.href}>
                   {/* Render separator divider BEFORE items with separator: true */}
                   {item.separator && (
                     <div
-                      key={`${item.href}-sep`}
-                      className="my-2 mx-3 border-t border-ima-border"
+                      className="my-2 mx-3 border-t border-ima-border -mt-0.5 mb-2"
                       aria-hidden="true"
                     />
                   )}
-                  <li key={item.href}>
                     <Link
                       href={item.href}
                       onClick={close}
@@ -269,8 +267,7 @@ export function Sidebar({
                         />
                       )}
                     </Link>
-                  </li>
-                </>
+                </li>
               );
             })}
           </ul>
