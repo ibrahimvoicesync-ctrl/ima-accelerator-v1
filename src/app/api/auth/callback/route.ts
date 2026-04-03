@@ -156,8 +156,8 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/register/${inviteCode}?error=auth_failed`);
     }
 
-    // If student, seed roadmap progress
-    if (invite.role === "student") {
+    // If student or student_diy, seed roadmap progress
+    if (invite.role === "student" || invite.role === "student_diy") {
       const roadmapRows = ROADMAP_STEPS.map((step) => ({
         student_id: newUser.id,
         step_number: step.step,
@@ -307,8 +307,8 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/register?magic=${magicCode}&error=auth_failed`);
     }
 
-    // If student, seed roadmap progress
-    if (magicLink.role === "student") {
+    // If student or student_diy, seed roadmap progress
+    if (magicLink.role === "student" || magicLink.role === "student_diy") {
       const mlRoadmapRows = ROADMAP_STEPS.map((step) => ({
         student_id: mlNewUser.id,
         step_number: step.step,
@@ -413,8 +413,8 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/no-access`);
       }
 
-      // If student, seed roadmap progress
-      if (whitelistInvite.role === "student") {
+      // If student or student_diy, seed roadmap progress
+      if (whitelistInvite.role === "student" || whitelistInvite.role === "student_diy") {
         const wlRoadmapRows = ROADMAP_STEPS.map((step) => ({
           student_id: wlNewUser.id,
           step_number: step.step,
