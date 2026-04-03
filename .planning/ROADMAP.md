@@ -67,7 +67,7 @@
 
 - [x] **Phase 30: Database Migration** - Migration 00015 adds 4 tables, expands role CHECK constraints, enables RLS, and updates TypeScript types (completed 2026-04-03)
 - [x] **Phase 31: Student_DIY Role** - 4th role with reduced feature set (dashboard + work tracker + roadmap), 8-location atomic update across proxy/config/types/DB (completed 2026-04-03)
-- [ ] **Phase 32: Skip Tracker** - "X days skipped this week" badge on coach/owner student cards via UTC-safe Postgres RPC
+- [x] **Phase 32: Skip Tracker** - "X days skipped this week" badge on coach/owner student cards via UTC-safe Postgres RPC (completed 2026-04-03)
 - [ ] **Phase 33: Coach Assignments** - Coaches get full assignment power via /coach/assignments page mirroring owner experience
 - [ ] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API
 - [ ] **Phase 35: Chat System** - Polling-based (5s) WhatsApp-style 1:1 + broadcast chat with sidebar unread badges
@@ -292,8 +292,8 @@ Plans:
   5. The skip count is computed by a Postgres RPC function (get_student_skip_count or equivalent) that accepts a p_today DATE parameter; the application passes getTodayUTC() as that parameter, never relying on CURRENT_DATE inside the function
 **Plans**: 2 plans
 Plans:
-- [ ] 32-01-PLAN.md — Migration 00016 (get_weekly_skip_counts RPC) + coach dashboard integration with skip badge on StudentCard
-- [ ] 32-02-PLAN.md — Owner students list skip badge + owner student detail skip count display
+- [x] 32-01-PLAN.md — Migration 00016 (get_weekly_skip_counts RPC) + coach dashboard integration with skip badge on StudentCard
+- [x] 32-02-PLAN.md — Owner students list skip badge + owner student detail skip count display
 **UI hint**: yes
 
 ### Phase 33: Coach Assignments
@@ -396,7 +396,7 @@ Plans:
 | 29. Daily Session Planner Client | v1.3 | 3/3 | Complete | 2026-03-31 |
 | 30. Database Migration | v1.4 | 0/1 | Complete    | 2026-04-03 |
 | 31. Student_DIY Role | v1.4 | 3/3 | Complete    | 2026-04-03 |
-| 32. Skip Tracker | v1.4 | 0/2 | Not started | - |
+| 32. Skip Tracker | v1.4 | 2/2 | Complete   | 2026-04-03 |
 | 33. Coach Assignments | v1.4 | 0/? | Not started | - |
 | 34. Report Comments | v1.4 | 0/? | Not started | - |
 | 35. Chat System | v1.4 | 0/? | Not started | - |

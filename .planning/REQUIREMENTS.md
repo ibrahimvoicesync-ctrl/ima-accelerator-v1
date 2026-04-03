@@ -29,7 +29,7 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 - [ ] **SKIP-01**: Coach sees "X skipped" badge on each student card showing days with zero completed work sessions AND zero submitted reports in the current Mon-Sun ISO week
 - [ ] **SKIP-02**: Skip count only includes past days and today, not future days in the week
 - [ ] **SKIP-03**: Skip count resets to 0 on Monday (new ISO week)
-- [ ] **SKIP-04**: Owner student views also display the skip count badge
+- [x] **SKIP-04**: Owner student views also display the skip count badge
 - [ ] **SKIP-05**: Skip count is computed via a Postgres RPC function using UTC-safe date math
 
 ### Coach Assignments
@@ -140,7 +140,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SKIP-01 | Phase 32 | Pending |
 | SKIP-02 | Phase 32 | Pending |
 | SKIP-03 | Phase 32 | Pending |
-| SKIP-04 | Phase 32 | Pending |
+| SKIP-04 | Phase 32 | Complete |
 | SKIP-05 | Phase 32 | Pending |
 | ASSIGN-01 | Phase 33 | Pending |
 | ASSIGN-02 | Phase 33 | Pending |
