@@ -43,11 +43,11 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 
 ### Report Comments
 
-- [ ] **COMMENT-01**: Coach can submit a text comment (max 1000 chars) on any of their students' daily reports
-- [ ] **COMMENT-02**: Only one comment per report is allowed (upsert behavior — resubmitting updates the existing comment)
+- [x] **COMMENT-01**: Coach can submit a text comment (max 1000 chars) on any of their students' daily reports
+- [x] **COMMENT-02**: Only one comment per report is allowed (upsert behavior — resubmitting updates the existing comment)
 - [ ] **COMMENT-03**: Student sees coach comment on their report history page as a read-only feedback card
-- [ ] **COMMENT-04**: Owner can also comment on any student's report
-- [ ] **COMMENT-05**: API returns 403 for student and student_diy roles attempting to comment
+- [x] **COMMENT-04**: Owner can also comment on any student's report
+- [x] **COMMENT-05**: API returns 403 for student and student_diy roles attempting to comment
 
 ### Chat System
 
@@ -148,11 +148,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ASSIGN-04 | Phase 33 | Complete |
 | ASSIGN-05 | Phase 33 | Complete |
 | ASSIGN-06 | Phase 33 | Complete |
-| COMMENT-01 | Phase 34 | Pending |
-| COMMENT-02 | Phase 34 | Pending |
+| COMMENT-01 | Phase 34 | Complete |
+| COMMENT-02 | Phase 34 | Complete |
 | COMMENT-03 | Phase 34 | Pending |
-| COMMENT-04 | Phase 34 | Pending |
-| COMMENT-05 | Phase 34 | Pending |
+| COMMENT-04 | Phase 34 | Complete |
+| COMMENT-05 | Phase 34 | Complete |
 | CHAT-01 | Phase 35 | Pending |
 | CHAT-02 | Phase 35 | Pending |
 | CHAT-03 | Phase 35 | Pending |

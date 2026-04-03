@@ -324,7 +324,7 @@ Plans:
   5. A student or student_diy calling POST /api/reports/[id]/comment receives a 403; the API performs a two-step ownership check (fetch report → verify student.coach_id matches requesting coach) before writing, matching the v1.2 Phase 23 pattern
 **Plans**: 2 plans
 Plans:
-- [ ] 34-01-PLAN.md — Comment API endpoint + CommentForm + CoachFeedbackCard components
+- [x] 34-01-PLAN.md — Comment API endpoint + CommentForm + CoachFeedbackCard components
 - [ ] 34-02-PLAN.md — Wire CommentForm into coach/owner views + student history feedback display
 **UI hint**: yes
 
@@ -404,7 +404,7 @@ Plans:
 | 31. Student_DIY Role | v1.4 | 3/3 | Complete    | 2026-04-03 |
 | 32. Skip Tracker | v1.4 | 2/2 | Complete    | 2026-04-03 |
 | 33. Coach Assignments | v1.4 | 2/2 | Complete    | 2026-04-03 |
-| 34. Report Comments | v1.4 | 0/? | Not started | - |
+| 34. Report Comments | v1.4 | 1/2 | In Progress|  |
 | 35. Chat System | v1.4 | 0/? | Not started | - |
 | 36. Resources Tab | v1.4 | 0/? | Not started | - |
 | 37. Invite Link max_uses | v1.4 | 0/? | Not started | - |
