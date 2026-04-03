@@ -1,85 +1,108 @@
-# Requirements: IMA Accelerator
+# Requirements: IMA Accelerator v1.4
 
-**Defined:** 2026-03-31
+**Defined:** 2026-04-03
 **Core Value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
 
-## v1.3 Requirements
+## v1.4 Requirements
 
-Requirements for milestone v1.3 (Roadmap Update, Session Planner & Coach Controls). Each maps to roadmap phases.
+Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap phases.
 
-### Roadmap Content
+### Schema & Foundation
 
-- [x] **ROAD-01**: Step descriptions 1-8 have parenthetical text appended (e.g., "Complete your onboarding and set up your profile (time asap)")
-- [x] **ROAD-02**: Step 5 unlock_url set to the skool CRM link; step 6 unlock_url removed
-- [x] **ROAD-03**: Step 6 description updated to "Build 100 Influencer Lead List, and Watch 3 Influencer Roast My Email"; step 7 updated to drafting emails only
-- [x] **ROAD-04**: Step 8 target_days set to 14
-- [x] **ROAD-05**: Student roadmap view groups steps by stage with visible stage headers (Setup & Preparation, Influencer Outreach, Brand Outreach)
-- [x] **ROAD-06**: Coach and owner roadmap tab shows stage headers matching student view
+- [ ] **SCHEMA-01**: All 4 new tables (report_comments, messages, resources, glossary_terms) exist with correct columns, constraints, and indexes in a single migration (00015)
+- [ ] **SCHEMA-02**: Users, invites, and magic_links role CHECK constraints accept 'student_diy' as a valid value
+- [ ] **SCHEMA-03**: RLS policies are enabled on all 4 new tables with appropriate read/write restrictions
+- [ ] **SCHEMA-04**: TypeScript types include Row/Insert/Update types for all 4 new tables and the Role union includes 'student_diy'
 
-### Coach/Owner Undo
+### Student_DIY Role
 
-- [x] **UNDO-01**: Coach can revert any completed roadmap step to active for their assigned students via PATCH /api/roadmap/undo
-- [x] **UNDO-02**: Owner can revert any completed roadmap step to active for any student via the same endpoint
-- [x] **UNDO-03**: Undo presents a confirmation dialog before executing ("Are you sure you want to reset Step X back to active?")
-- [x] **UNDO-04**: If step N+1 is currently active (not completed), undoing step N re-locks N+1 to maintain sequential progression
-- [x] **UNDO-05**: Every undo action is logged to roadmap_undo_log table (who, when, which student, which step)
+- [ ] **ROLE-01**: User can register with a student_diy invite and be assigned role 'student_diy' via Google OAuth callback
+- [ ] **ROLE-02**: Student_DIY user is redirected to /student_diy dashboard after login
+- [ ] **ROLE-03**: Student_DIY sidebar shows exactly 3 items: Dashboard, Work Tracker, Roadmap
+- [ ] **ROLE-04**: Student_DIY user can access work tracker and roadmap with full functionality (same as student)
+- [ ] **ROLE-05**: Student_DIY user cannot access Ask Abu Lahya, Daily Report, Resources, or Chat pages
+- [ ] **ROLE-06**: Student_DIY user cannot be assigned to a coach (fully independent)
+- [ ] **ROLE-07**: Owner and coach can create student_diy invites
 
-### Session Planner
+### Skip Tracker
 
-- [x] **PLAN-01**: Student sees a daily planner in Work Tracker page before their first session of the day
-- [x] **PLAN-02**: Student can add sessions (30/45/60 min) with a running total showing planned work hours (breaks excluded from total)
-- [x] **PLAN-03**: Break types alternate automatically: odd sessions (1st, 3rd, 5th) get short break, even sessions (2nd, 4th, 6th) get long break, last session has no break
-- [x] **PLAN-04**: Short break options are 5 or 10 min; long break options are 15, 20, 25, or 30 min (fixed choices per break type)
-- [x] **PLAN-05**: Student cannot plan more than 4 hours of work time; confirm button enabled when total reaches exactly 4h or nearest valid total below 4h
-- [x] **PLAN-06**: After confirming plan, planner disappears and WorkTracker executes planned sessions in sequence with assigned breaks
-- [x] **PLAN-07**: daily_plans table stores one plan per student per day with plan_json (array of session configs), UNIQUE(student_id, date) constraint
-- [x] **PLAN-08**: POST /api/daily-plans validates 4h work cap server-side; returns existing plan on conflict (idempotent)
-- [x] **PLAN-09**: POST /api/work-sessions enforces 4h daily cap when a plan exists for the day
-- [x] **PLAN-10**: Student must complete all planned sessions before doing additional sessions
+- [ ] **SKIP-01**: Coach sees "X skipped" badge on each student card showing days with zero completed work sessions AND zero submitted reports in the current Mon-Sun ISO week
+- [ ] **SKIP-02**: Skip count only includes past days and today, not future days in the week
+- [ ] **SKIP-03**: Skip count resets to 0 on Monday (new ISO week)
+- [ ] **SKIP-04**: Owner student views also display the skip count badge
+- [ ] **SKIP-05**: Skip count is computed via a Postgres RPC function using UTC-safe date math
 
-### Post-Plan Completion
+### Coach Assignments
 
-- [ ] **COMP-01**: When all planned sessions are complete, a motivational card appears with Arabic "اللهم بارك" (large, centered) and English "You have done the bare minimum! Continue with your next work session"
-- [ ] **COMP-02**: Card has two buttons: "Start Next Session" (goes to ad-hoc session picker) and "Dismiss" (closes card, returns to work tracker)
-- [ ] **COMP-03**: Ad-hoc sessions after plan: student picks duration (30/45/60 min) and break type (short or long) freely, same fixed break options
-- [ ] **COMP-04**: Motivational card appears once per day; returning to Work Tracker after seeing it goes straight to ad-hoc picker
+- [ ] **ASSIGN-01**: Coach can view all students (not just their own) on a /coach/assignments page
+- [ ] **ASSIGN-02**: Coach can assign an unassigned student to any active coach
+- [ ] **ASSIGN-03**: Coach can reassign a student from one coach to another
+- [ ] **ASSIGN-04**: Coach can unassign a student (set coach_id to null)
+- [ ] **ASSIGN-05**: API returns 403 for student and student_diy roles attempting assignment changes
+- [ ] **ASSIGN-06**: Owner assignments page continues to work unchanged
 
-## v1.2 Requirements (Completed)
+### Report Comments
 
-All 20 requirements completed. See .planning/milestones/ for archived details.
+- [ ] **COMMENT-01**: Coach can submit a text comment (max 1000 chars) on any of their students' daily reports
+- [ ] **COMMENT-02**: Only one comment per report is allowed (upsert behavior — resubmitting updates the existing comment)
+- [ ] **COMMENT-03**: Student sees coach comment on their report history page as a read-only feedback card
+- [ ] **COMMENT-04**: Owner can also comment on any student's report
+- [ ] **COMMENT-05**: API returns 403 for student and student_diy roles attempting to comment
 
-### Database & Monitoring — 4/4 complete
-### Query Optimization — 6/6 complete
-### Write Path — 3/3 complete
-### Security & Protection — 4/4 complete
-### Infrastructure & Validation — 3/3 complete
+### Chat System
 
-## v1.1 Requirements (Completed)
+- [ ] **CHAT-01**: Coach sees a conversation list with all assigned students, showing last message preview, timestamp, and unread indicator
+- [ ] **CHAT-02**: Coach can open a 1:1 conversation with a student and see message history in WhatsApp-style bubbles
+- [ ] **CHAT-03**: Coach can send a message that appears as a right-aligned bubble; student sees it within 5 seconds as a left-aligned bubble
+- [ ] **CHAT-04**: Student can reply to their coach; coach sees reply within 5 seconds
+- [ ] **CHAT-05**: Coach can send a broadcast message to all assigned students; students see it as a distinct system-style card with megaphone icon
+- [ ] **CHAT-06**: Unread message count appears as a sidebar badge for coach and student roles
+- [ ] **CHAT-07**: Opening a conversation marks its messages as read (unread indicator clears)
+- [ ] **CHAT-08**: Scrolling up in a conversation loads older messages via cursor-based pagination
+- [ ] **CHAT-09**: Chat auto-scrolls to newest message on send and on new incoming messages
+- [ ] **CHAT-10**: Mobile layout: conversation list is default view; tapping a conversation navigates to thread with back button
+- [ ] **CHAT-11**: Student_DIY does NOT have chat navigation or access to /student/chat
+- [ ] **CHAT-12**: Chat composer enforces 2000 character limit with visible counter
+- [ ] **CHAT-13**: Empty state displays when no conversations exist yet
 
-All 29 requirements completed. See .planning/milestones/ for archived details.
+### Resources Tab
 
-### Work Sessions — 9/9 complete
-### Outreach KPIs — 7/7 complete
-### Coach/Owner Visibility — 4/4 complete
-### Calendar — 4/4 complete
-### Roadmap — 5/5 complete
+- [ ] **RES-01**: Owner, coach, and student see "Resources" in their sidebar navigation
+- [ ] **RES-02**: Student_DIY does NOT see Resources in sidebar
+- [ ] **RES-03**: Resources page has three tabs: Links, Community (Discord), Glossary
+- [ ] **RES-04**: Owner and coach can add resource links (URL + title + optional comment) and delete them
+- [ ] **RES-05**: Students can view resource links in read-only mode; links open in a new tab
+- [ ] **RES-06**: Community tab shows Discord WidgetBot iframe embed with the configured server/channel
+- [ ] **RES-07**: Owner and coach can add, edit, and delete glossary terms (term + definition)
+- [ ] **RES-08**: All eligible roles can search/filter glossary terms by name
+- [ ] **RES-09**: Glossary terms have case-insensitive unique constraint on term name
 
-## Future Requirements
+### Invite Enhancement
 
-Deferred to v1.4+. Tracked but not in current roadmap.
+- [ ] **INVITE-01**: Magic link creation accepts an optional max_uses field, defaulting to 10
+- [ ] **INVITE-02**: UI shows "X/Y used" on existing magic link cards
+- [ ] **INVITE-03**: Registration via magic link is rejected when use_count >= max_uses
 
-### Enhancements
+## v2 Requirements
 
-- **ENH-01**: Days-to-target projection on KPI banner ("At current pace, you'll hit 2,500 in ~47 days")
-- **ENH-02**: Roadmap completion velocity label ("Steps 1-5 in 12 days, target: 21 days")
-- **ENH-03**: Session volume intensity shading on calendar cells (GitHub-style heat map)
-- **ENH-04**: Joined-date marker on calendar
-- **ENH-05**: Break duration proportional to session length (30 min -> 10 min break, 60 min -> 20 min)
-- **ENH-06**: Session count badge replacing cycle count display
-- **ENH-07**: Redis/Upstash cache layer (evaluate only if load testing proves Next.js cache insufficient)
-- **ENH-08**: Coach visibility of student daily plans
-- **ENH-09**: Student-editable plan durations (mid-plan editing with cap recalculation)
-- **ENH-10**: Drag-to-reorder sessions in planner
+Deferred to future release. Tracked but not in current roadmap.
+
+### Chat Enhancements
+
+- **CHAT-V2-01**: User can edit or delete sent messages
+- **CHAT-V2-02**: User can send images/files in chat (Supabase Storage)
+- **CHAT-V2-03**: Threaded replies within conversations
+- **CHAT-V2-04**: Supabase Realtime migration (when connection limits allow)
+
+### Notifications
+
+- **NOTF-01**: User receives in-app notifications for key events
+- **NOTF-02**: User receives email notifications (Resend integration)
+
+### Advanced Resources
+
+- **RES-V2-01**: Per-student resource visibility (tier/segment system)
+- **RES-V2-02**: Resource categories and tagging
 
 ## Out of Scope
 
@@ -87,14 +110,15 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Supavisor/connection pooler setup | PostgREST has built-in connection pooler |
-| Redis/Upstash cache | Evaluate only if load testing proves insufficient |
-| In-memory rate limiting (lru-cache) | Broken in serverless — isolated per-container state |
-| Student self-undo on roadmap | Accountability is core value; only coaches/owners can undo |
-| Streak tracking tied to plan completion | Gamification is V2+ |
-| Push/in-app notifications for session reminders | No notification system in V1 |
-| Free-form duration input (text field) | V1.1 out of scope carry-over |
-| Per-student custom KPI targets | Program-wide targets; per-cohort targets are V2 |
+| Message editing/deletion | Audit trail concern — defer to v2 |
+| File/image uploads in chat | Supabase Storage complexity — defer to v2 |
+| Supabase Realtime for chat | 500 concurrent connection limit on Pro plan; polling adequate (D-07) |
+| Threaded replies | Flat chat is correct v1 model |
+| Email notifications | Resend integration explicitly deferred |
+| Per-student resource visibility | Requires tier/segment system not yet built |
+| Settings pages | No name/niche editing in v1 |
+| Tier system / gamification | V2+ feature |
+| Leaderboard and rankings | V2+ feature |
 
 ## Traceability
 
@@ -102,37 +126,64 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ROAD-01 | Phase 25 | Complete |
-| ROAD-02 | Phase 25 | Complete |
-| ROAD-03 | Phase 25 | Complete |
-| ROAD-04 | Phase 25 | Complete |
-| ROAD-05 | Phase 25 | Complete |
-| ROAD-06 | Phase 25 | Complete |
-| UNDO-01 | Phase 27 | Complete |
-| UNDO-02 | Phase 27 | Complete |
-| UNDO-03 | Phase 27 | Complete |
-| UNDO-04 | Phase 27 | Complete |
-| UNDO-05 | Phase 26 | Complete |
-| PLAN-01 | Phase 29 | Complete |
-| PLAN-02 | Phase 29 | Complete |
-| PLAN-03 | Phase 29 | Complete |
-| PLAN-04 | Phase 29 | Complete |
-| PLAN-05 | Phase 29 | Complete |
-| PLAN-06 | Phase 29 | Complete |
-| PLAN-07 | Phase 26 | Complete |
-| PLAN-08 | Phase 28 | Complete |
-| PLAN-09 | Phase 28 | Complete |
-| PLAN-10 | Phase 29 | Complete |
-| COMP-01 | Phase 29 | Pending |
-| COMP-02 | Phase 29 | Pending |
-| COMP-03 | Phase 29 | Pending |
-| COMP-04 | Phase 29 | Pending |
+| SCHEMA-01 | — | Pending |
+| SCHEMA-02 | — | Pending |
+| SCHEMA-03 | — | Pending |
+| SCHEMA-04 | — | Pending |
+| ROLE-01 | — | Pending |
+| ROLE-02 | — | Pending |
+| ROLE-03 | — | Pending |
+| ROLE-04 | — | Pending |
+| ROLE-05 | — | Pending |
+| ROLE-06 | — | Pending |
+| ROLE-07 | — | Pending |
+| SKIP-01 | — | Pending |
+| SKIP-02 | — | Pending |
+| SKIP-03 | — | Pending |
+| SKIP-04 | — | Pending |
+| SKIP-05 | — | Pending |
+| ASSIGN-01 | — | Pending |
+| ASSIGN-02 | — | Pending |
+| ASSIGN-03 | — | Pending |
+| ASSIGN-04 | — | Pending |
+| ASSIGN-05 | — | Pending |
+| ASSIGN-06 | — | Pending |
+| COMMENT-01 | — | Pending |
+| COMMENT-02 | — | Pending |
+| COMMENT-03 | — | Pending |
+| COMMENT-04 | — | Pending |
+| COMMENT-05 | — | Pending |
+| CHAT-01 | — | Pending |
+| CHAT-02 | — | Pending |
+| CHAT-03 | — | Pending |
+| CHAT-04 | — | Pending |
+| CHAT-05 | — | Pending |
+| CHAT-06 | — | Pending |
+| CHAT-07 | — | Pending |
+| CHAT-08 | — | Pending |
+| CHAT-09 | — | Pending |
+| CHAT-10 | — | Pending |
+| CHAT-11 | — | Pending |
+| CHAT-12 | — | Pending |
+| CHAT-13 | — | Pending |
+| RES-01 | — | Pending |
+| RES-02 | — | Pending |
+| RES-03 | — | Pending |
+| RES-04 | — | Pending |
+| RES-05 | — | Pending |
+| RES-06 | — | Pending |
+| RES-07 | — | Pending |
+| RES-08 | — | Pending |
+| RES-09 | — | Pending |
+| INVITE-01 | — | Pending |
+| INVITE-02 | — | Pending |
+| INVITE-03 | — | Pending |
 
 **Coverage:**
-- v1.3 requirements: 25 total
-- Mapped to phases: 25
-- Unmapped: 0
+- v1.4 requirements: 48 total
+- Mapped to phases: 0
+- Unmapped: 48 (pending roadmap creation)
 
 ---
-*Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after v1.3 roadmap creation — all 25 requirements mapped*
+*Requirements defined: 2026-04-03*
+*Last updated: 2026-04-03 after initial definition*
