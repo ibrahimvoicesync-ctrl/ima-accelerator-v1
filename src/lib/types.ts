@@ -11,7 +11,7 @@ export type Database = {
           auth_id: string | null;
           email: string;
           name: string;
-          role: "owner" | "coach" | "student";
+          role: "owner" | "coach" | "student" | "student_diy";
           coach_id: string | null;
           niche: string | null;
           status: "active" | "inactive" | "suspended";
@@ -24,7 +24,7 @@ export type Database = {
           auth_id?: string | null;
           email: string;
           name: string;
-          role: "owner" | "coach" | "student";
+          role: "owner" | "coach" | "student" | "student_diy";
           coach_id?: string | null;
           niche?: string | null;
           status?: "active" | "inactive" | "suspended";
@@ -37,7 +37,7 @@ export type Database = {
           auth_id?: string | null;
           email?: string;
           name?: string;
-          role?: "owner" | "coach" | "student";
+          role?: "owner" | "coach" | "student" | "student_diy";
           coach_id?: string | null;
           niche?: string | null;
           status?: "active" | "inactive" | "suspended";
@@ -59,7 +59,7 @@ export type Database = {
         Row: {
           id: string;
           email: string;
-          role: "coach" | "student";
+          role: "coach" | "student" | "student_diy";
           invited_by: string;
           coach_id: string | null;
           code: string;
@@ -70,7 +70,7 @@ export type Database = {
         Insert: {
           id?: string;
           email: string;
-          role: "coach" | "student";
+          role: "coach" | "student" | "student_diy";
           invited_by: string;
           coach_id?: string | null;
           code: string;
@@ -81,7 +81,7 @@ export type Database = {
         Update: {
           id?: string;
           email?: string;
-          role?: "coach" | "student";
+          role?: "coach" | "student" | "student_diy";
           invited_by?: string;
           coach_id?: string | null;
           code?: string;
@@ -110,7 +110,7 @@ export type Database = {
         Row: {
           id: string;
           code: string;
-          role: "coach" | "student";
+          role: "coach" | "student" | "student_diy";
           created_by: string;
           expires_at: string | null;
           max_uses: number | null;
@@ -121,7 +121,7 @@ export type Database = {
         Insert: {
           id?: string;
           code: string;
-          role: "coach" | "student";
+          role: "coach" | "student" | "student_diy";
           created_by: string;
           expires_at?: string | null;
           max_uses?: number | null;
@@ -132,7 +132,7 @@ export type Database = {
         Update: {
           id?: string;
           code?: string;
-          role?: "coach" | "student";
+          role?: "coach" | "student" | "student_diy";
           created_by?: string;
           expires_at?: string | null;
           max_uses?: number | null;
@@ -483,6 +483,173 @@ export type Database = {
           {
             foreignKeyName: "roadmap_undo_log_student_id_fkey";
             columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      report_comments: {
+        Row: {
+          id: string;
+          report_id: string;
+          coach_id: string;
+          comment: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          report_id: string;
+          coach_id: string;
+          comment: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          report_id?: string;
+          coach_id?: string;
+          comment?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "report_comments_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: true;
+            referencedRelation: "daily_reports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "report_comments_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      messages: {
+        Row: {
+          id: string;
+          coach_id: string;
+          sender_id: string;
+          recipient_id: string | null;
+          is_broadcast: boolean;
+          content: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          sender_id: string;
+          recipient_id?: string | null;
+          is_broadcast?: boolean;
+          content: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coach_id?: string;
+          sender_id?: string;
+          recipient_id?: string | null;
+          is_broadcast?: boolean;
+          content?: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "messages_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_recipient_id_fkey";
+            columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      resources: {
+        Row: {
+          id: string;
+          title: string;
+          url: string;
+          comment: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          url: string;
+          comment?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          url?: string;
+          comment?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "resources_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      glossary_terms: {
+        Row: {
+          id: string;
+          term: string;
+          definition: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          term: string;
+          definition: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          term?: string;
+          definition?: string;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "glossary_terms_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
