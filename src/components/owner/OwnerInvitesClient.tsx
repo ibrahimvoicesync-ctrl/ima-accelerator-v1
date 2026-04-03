@@ -49,7 +49,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
   toastRef.current = toast;
 
   const [activeTab, setActiveTab] = useState<Tab>("email");
-  const [selectedRole, setSelectedRole] = useState<"coach" | "student">("student");
+  const [selectedRole, setSelectedRole] = useState<"coach" | "student" | "student_diy">("student");
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastUrl, setLastUrl] = useState<string | null>(null);
@@ -187,12 +187,13 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
         <select
           id="invite-role"
           value={selectedRole}
-          onChange={(e) => setSelectedRole(e.target.value as "coach" | "student")}
+          onChange={(e) => setSelectedRole(e.target.value as "coach" | "student" | "student_diy")}
           className="w-full sm:w-48 rounded-lg border border-ima-border bg-ima-surface px-3 py-2 text-sm text-ima-text min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ima-primary"
           aria-label="Select role for invite"
         >
           <option value="student">Student</option>
           <option value="coach">Coach</option>
+          <option value="student_diy">Student DIY</option>
         </select>
       </div>
 

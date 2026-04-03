@@ -49,6 +49,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
   toastRef.current = toast;
 
   const [activeTab, setActiveTab] = useState<Tab>("email");
+  const [selectedRole, setSelectedRole] = useState<"student" | "student_diy">("student");
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastUrl, setLastUrl] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
       const res = await fetch("/api/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), role: selectedRole }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
@@ -84,7 +85,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [email, isSubmitting]);
+  }, [email, isSubmitting, selectedRole]);
 
   // --- Magic link ---
   const handleCreateMagicLink = useCallback(async () => {
@@ -94,7 +95,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
       const res = await fetch("/api/magic-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ role: selectedRole }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
@@ -111,7 +112,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting]);
+  }, [isSubmitting, selectedRole]);
 
   // --- Copy URL ---
   const handleCopy = useCallback(async () => {
@@ -178,6 +179,23 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
 
   return (
     <div className="mt-6 space-y-6">
+      {/* Role selector */}
+      <div className="mb-4">
+        <label htmlFor="coach-invite-role" className="block text-sm font-medium text-ima-text mb-1">
+          Invite Role
+        </label>
+        <select
+          id="coach-invite-role"
+          value={selectedRole}
+          onChange={(e) => setSelectedRole(e.target.value as "student" | "student_diy")}
+          className="w-full sm:w-48 rounded-lg border border-ima-border bg-ima-surface px-3 py-2 text-sm text-ima-text min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ima-primary"
+          aria-label="Select role for invite"
+        >
+          <option value="student">Student</option>
+          <option value="student_diy">Student DIY</option>
+        </select>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-2 border-b border-ima-border">
         <button
@@ -216,7 +234,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
           <CardContent className="p-5">
             <h2 className="text-base font-semibold text-ima-text mb-1">Generate Email Invite</h2>
             <p className="text-xs text-ima-text-secondary mb-4">
-              Whitelist an email address. The student can then sign in with Google to create their account. Expires in 72 hours.
+              Whitelist an email address. The {selectedRole === "student_diy" ? "Student DIY" : "student"} can then sign in with Google to create their account. Expires in 72 hours.
             </p>
             <form onSubmit={handleCreateInvite} className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
@@ -251,8 +269,7 @@ export function CoachInvitesClient({ invites, magicLinks }: Props) {
           <CardContent className="p-5">
             <h2 className="text-base font-semibold text-ima-text mb-1">Generate Invite Link</h2>
             <p className="text-xs text-ima-text-secondary mb-4">
-              Invite links can be shared with any student. Anyone with the link can register as a student
-              assigned to you. No email restriction, no expiry.
+              Invite links can be shared with anyone. Anyone with the link can register as a {selectedRole === "student_diy" ? "Student DIY (independent)" : "student assigned to you"}. No email restriction, no expiry.
             </p>
             <Button
               type="button"
