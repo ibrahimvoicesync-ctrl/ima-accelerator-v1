@@ -54,6 +54,19 @@ export default async function OwnerStudentDetailPage({
     console.error("[owner student detail] RPC failed:", detailError);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: skipData, error: skipError } = await (admin as any).rpc("get_weekly_skip_counts", {
+    p_student_ids: [student.id],
+    p_today: getTodayUTC(),
+    p_current_hour: new Date().getUTCHours(),
+  });
+
+  if (skipError) {
+    console.error("[owner student detail] Failed to load skip counts:", skipError);
+  }
+
+  const skippedDays = ((skipData ?? {}) as Record<string, number>)[student.id] ?? 0;
+
   const detail = (detailData as unknown as StudentDetailResult) ?? {
     sessions: [], roadmap: [], reports: [],
     lifetime_outreach: 0, today_outreach: 0, today_minutes_worked: 0,
@@ -158,6 +171,7 @@ export default async function OwnerStudentDetailPage({
         currentStepNumber,
       }}
       milestone={hasMilestone ? { totalHours: Math.floor(totalMinutes / 60), days: daysSinceJoin } : null}
+      skippedDays={skippedDays}
     />
   );
 }

@@ -59,6 +59,7 @@ interface OwnerStudentDetailClientProps {
     currentStepNumber: number | null;
   };
   milestone: { totalHours: number; days: number } | null;
+  skippedDays: number;
 }
 
 export function OwnerStudentDetailClient({
@@ -75,6 +76,7 @@ export function OwnerStudentDetailClient({
   currentCoachId,
   kpiData,
   milestone,
+  skippedDays,
 }: OwnerStudentDetailClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -190,6 +192,11 @@ export function OwnerStudentDetailClient({
               )}
             </div>
           </div>
+
+          {/* Skip badge */}
+          {skippedDays > 0 && (
+            <Badge variant="warning" size="sm">{skippedDays} skipped this week</Badge>
+          )}
 
           {/* At-risk badge */}
           {isAtRisk && (
