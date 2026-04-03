@@ -6,12 +6,14 @@ const DEFAULT_ROUTES: Record<string, string> = {
   owner: "/owner",
   coach: "/coach",
   student: "/student",
+  student_diy: "/student_diy",
 };
 
 const ROLE_ROUTE_ACCESS: Record<string, string[]> = {
   owner: ["/owner"],
   coach: ["/coach"],
   student: ["/student"],
+  student_diy: ["/student_diy"],
 };
 
 export async function proxy(request: NextRequest) {
