@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest) {
   if (!profile) {
     return NextResponse.json({ error: "User profile not found" }, { status: 404 });
   }
-  if (profile.role !== "owner") {
+  if (profile.role !== "owner" && profile.role !== "coach") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

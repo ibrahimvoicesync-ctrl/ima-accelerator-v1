@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Roles, Chat & Resources
 status: executing
-stopped_at: Phase 33 context gathered
-last_updated: "2026-04-03T20:14:50.163Z"
+stopped_at: Completed 33-01-PLAN.md
+last_updated: "2026-04-03T20:18:34.394Z"
 last_activity: 2026-04-03 -- Phase 33 execution started
 progress:
   total_phases: 19
@@ -95,8 +95,12 @@ Progress: [░░░░░░░░░░] 0% (v1.4)
 - [Phase 29-daily-session-planner-client]: PlannerUI is standalone with onPlanConfirmed callback — no server data, calls router.refresh() + onPlanConfirmed after successful POST
 - [Phase 29]: mode derived from server props (parsedPlan + completedCount) — never useState so it survives refresh without re-initialization race conditions
 - [Phase 29]: handleStartWithConfig stores break config into state before setPhase(working) so handleComplete reads planned break duration correctly
+<<<<<<< HEAD
 - [Phase 30]: Single migration 00015 for all 4 tables and role CHECK ALTERs (D-03); student_diy blocked at app layer only, no RLS exclusion (D-04)
 - [Phase 30]: report_comments UNIQUE on report_id for upsert pattern; messages uses is_broadcast + NULL recipient_id for broadcasts (D-01); read_at on messages for unread tracking (D-02)
+=======
+- [Phase 33-coach-assignments]: D-04: Reuse existing /api/assignments route — expand role check to owner+coach, no separate endpoint
+>>>>>>> worktree-agent-ad6d1574
 
 ### Pending Todos
 
@@ -114,6 +118,7 @@ None currently blocking Phase 30.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260401-cwd | Coach 100h milestone alert (computed, coach-only) | 2026-04-01 | 4477e3f | [260401-cwd-add-coach-notification-for-100-hours-in-](./quick/260401-cwd-add-coach-notification-for-100-hours-in-/) |
+<<<<<<< HEAD
 | 260401-tuq | Fix work sessions production bugs: CSRF logging + daily_plans error handling | 2026-04-01 | e534448 | [260401-tuq-bug-work-sessions-fail-in-production-dia](./quick/260401-tuq-bug-work-sessions-fail-in-production-dia/) |
 | Phase 31 P01 | 15 | 3 tasks | 4 files |
 | Phase 31 P03 | 3 | 2 tasks | 4 files |
@@ -125,3 +130,12 @@ None currently blocking Phase 30.
 Last session: 2026-04-03T19:59:47.692Z
 Stopped at: Phase 33 context gathered
 Resume file: .planning/phases/33-coach-assignments/33-CONTEXT.md
+=======
+| Phase 33-coach-assignments P01 | 2 | 2 tasks | 2 files |
+
+## Session Continuity
+
+Last session: 2026-04-03T20:18:34.388Z
+Stopped at: Completed 33-01-PLAN.md
+Resume file: None
+>>>>>>> worktree-agent-ad6d1574

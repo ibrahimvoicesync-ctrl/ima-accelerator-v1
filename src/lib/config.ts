@@ -67,6 +67,7 @@ export const ROUTES = {
     reports: "/coach/reports",
     analytics: "/coach/analytics",
     alerts: "/coach/alerts",
+    assignments: "/coach/assignments",
   },
   student: {
     dashboard: "/student",
@@ -273,12 +274,13 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Alerts",      href: "/owner/alerts",      icon: "Bell",          badge: "active_alerts" },
   ],
   coach: [
-    { label: "Dashboard",       href: "/coach",           icon: "LayoutDashboard" },
-    { label: "My Students",     href: "/coach/students",  icon: "Users" },
-    { label: "Reports",         href: "/coach/reports",   icon: "FileText",      badge: "unreviewed_reports" },
-    { label: "Invite Students", href: "/coach/invites",   icon: "UserPlus",      separator: true },
-    { label: "Analytics",       href: "/coach/analytics", icon: "BarChart3" },
-    { label: "Alerts",          href: "/coach/alerts",    icon: "Bell",          badge: "coach_milestone_alerts" },
+    { label: "Dashboard",       href: "/coach",              icon: "LayoutDashboard" },
+    { label: "My Students",     href: "/coach/students",     icon: "Users" },
+    { label: "Reports",         href: "/coach/reports",      icon: "FileText",      badge: "unreviewed_reports" },
+    { label: "Invite Students", href: "/coach/invites",      icon: "UserPlus",      separator: true },
+    { label: "Assignments",     href: "/coach/assignments",  icon: "ArrowLeftRight" },
+    { label: "Analytics",       href: "/coach/analytics",    icon: "BarChart3" },
+    { label: "Alerts",          href: "/coach/alerts",       icon: "Bell",          badge: "coach_milestone_alerts" },
   ],
   student: [
     { label: "Dashboard",     href: "/student",        icon: "LayoutDashboard" },
