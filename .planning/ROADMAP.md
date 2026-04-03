@@ -285,7 +285,7 @@ Plans:
 **Depends on**: Phase 30
 **Requirements**: SKIP-01, SKIP-02, SKIP-03, SKIP-04, SKIP-05
 **Success Criteria** (what must be TRUE):
-  1. Every student card on the coach dashboard shows a "X skipped" badge where X is the count of weekdays (Mon-Fri of the current ISO week) with zero completed work sessions AND zero submitted reports, counting only past days and today
+  1. Every student card on the coach dashboard shows a "X skipped" badge where X is the count of days (Mon-Sun of the current ISO week, all 7 days per D-01) with zero completed work sessions AND zero submitted reports, counting only past days and today
   2. The skip count resets to 0 on Monday morning — a student with 3 skips on Friday shows 0 skips the following Monday
   3. The skip badge correctly reflects today as a skip day only after the day has passed without activity; it does not count future weekdays in the current week
   4. Owner student list and student detail views display the same skip count badge using the same computation as the coach view
