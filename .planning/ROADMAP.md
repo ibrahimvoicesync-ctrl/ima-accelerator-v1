@@ -322,7 +322,10 @@ Plans:
   3. A student viewing their report history sees a read-only "Coach feedback" card below each report that has a comment; reports without comments show nothing
   4. An owner can comment on any student's report using the same textarea and Save button visible on the coach view
   5. A student or student_diy calling POST /api/reports/[id]/comment receives a 403; the API performs a two-step ownership check (fetch report → verify student.coach_id matches requesting coach) before writing, matching the v1.2 Phase 23 pattern
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 34-01-PLAN.md — Comment API endpoint + CommentForm + CoachFeedbackCard components
+- [ ] 34-02-PLAN.md — Wire CommentForm into coach/owner views + student history feedback display
 **UI hint**: yes
 
 ### Phase 35: Chat System
