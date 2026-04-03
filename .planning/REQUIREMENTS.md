@@ -16,12 +16,12 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 
 ### Student_DIY Role
 
-- [ ] **ROLE-01**: User can register with a student_diy invite and be assigned role 'student_diy' via Google OAuth callback
-- [ ] **ROLE-02**: Student_DIY user is redirected to /student_diy dashboard after login
-- [ ] **ROLE-03**: Student_DIY sidebar shows exactly 3 items: Dashboard, Work Tracker, Roadmap
+- [x] **ROLE-01**: User can register with a student_diy invite and be assigned role 'student_diy' via Google OAuth callback
+- [x] **ROLE-02**: Student_DIY user is redirected to /student_diy dashboard after login
+- [x] **ROLE-03**: Student_DIY sidebar shows exactly 3 items: Dashboard, Work Tracker, Roadmap
 - [ ] **ROLE-04**: Student_DIY user can access work tracker and roadmap with full functionality (same as student)
-- [ ] **ROLE-05**: Student_DIY user cannot access Ask Abu Lahya, Daily Report, Resources, or Chat pages
-- [ ] **ROLE-06**: Student_DIY user cannot be assigned to a coach (fully independent)
+- [x] **ROLE-05**: Student_DIY user cannot access Ask Abu Lahya, Daily Report, Resources, or Chat pages
+- [x] **ROLE-06**: Student_DIY user cannot be assigned to a coach (fully independent)
 - [ ] **ROLE-07**: Owner and coach can create student_diy invites
 
 ### Skip Tracker
@@ -130,12 +130,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCHEMA-02 | Phase 30 | Complete |
 | SCHEMA-03 | Phase 30 | Complete |
 | SCHEMA-04 | Phase 30 | Complete |
-| ROLE-01 | Phase 31 | Pending |
-| ROLE-02 | Phase 31 | Pending |
-| ROLE-03 | Phase 31 | Pending |
+| ROLE-01 | Phase 31 | Complete |
+| ROLE-02 | Phase 31 | Complete |
+| ROLE-03 | Phase 31 | Complete |
 | ROLE-04 | Phase 31 | Pending |
-| ROLE-05 | Phase 31 | Pending |
-| ROLE-06 | Phase 31 | Pending |
+| ROLE-05 | Phase 31 | Complete |
+| ROLE-06 | Phase 31 | Complete |
 | ROLE-07 | Phase 31 | Pending |
 | SKIP-01 | Phase 32 | Pending |
 | SKIP-02 | Phase 32 | Pending |
