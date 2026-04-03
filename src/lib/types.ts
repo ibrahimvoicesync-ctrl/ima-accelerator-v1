@@ -11,7 +11,7 @@ export type Database = {
           auth_id: string | null;
           email: string;
           name: string;
-          role: "owner" | "coach" | "student";
+          role: "owner" | "coach" | "student" | "student_diy";
           coach_id: string | null;
           niche: string | null;
           status: "active" | "inactive" | "suspended";
@@ -24,7 +24,7 @@ export type Database = {
           auth_id?: string | null;
           email: string;
           name: string;
-          role: "owner" | "coach" | "student";
+          role: "owner" | "coach" | "student" | "student_diy";
           coach_id?: string | null;
           niche?: string | null;
           status?: "active" | "inactive" | "suspended";
@@ -37,7 +37,7 @@ export type Database = {
           auth_id?: string | null;
           email?: string;
           name?: string;
-          role?: "owner" | "coach" | "student";
+          role?: "owner" | "coach" | "student" | "student_diy";
           coach_id?: string | null;
           niche?: string | null;
           status?: "active" | "inactive" | "suspended";
@@ -483,6 +483,48 @@ export type Database = {
           {
             foreignKeyName: "roadmap_undo_log_student_id_fkey";
             columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      report_comments: {
+        Row: {
+          id: string;
+          report_id: string;
+          coach_id: string;
+          comment: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          report_id: string;
+          coach_id: string;
+          comment: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          report_id?: string;
+          coach_id?: string;
+          comment?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "report_comments_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: true;
+            referencedRelation: "daily_reports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "report_comments_coach_id_fkey";
+            columns: ["coach_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
