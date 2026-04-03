@@ -306,7 +306,10 @@ Plans:
   3. A coach can reassign one of their own students to a different coach; the student disappears from the coach's list and appears under the target coach
   4. A coach can unassign a student (set coach_id to null); the student moves to the unassigned pool
   5. A student or student_diy user attempting to call the assignment API receives a 403 response; the assignment API does not modify the coach view for owner (ASSIGN-06)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 33-01-PLAN.md — Config registration (ROUTES + NAVIGATION) and API role guard expansion (owner+coach)
+- [ ] 33-02-PLAN.md — Coach assignments server page and CoachAssignmentsClient component
 **UI hint**: yes
 
 ### Phase 34: Report Comments
@@ -397,7 +400,7 @@ Plans:
 | 30. Database Migration | v1.4 | 0/1 | Complete    | 2026-04-03 |
 | 31. Student_DIY Role | v1.4 | 3/3 | Complete    | 2026-04-03 |
 | 32. Skip Tracker | v1.4 | 2/2 | Complete    | 2026-04-03 |
-| 33. Coach Assignments | v1.4 | 0/? | Not started | - |
+| 33. Coach Assignments | v1.4 | 0/2 | Planned | - |
 | 34. Report Comments | v1.4 | 0/? | Not started | - |
 | 35. Chat System | v1.4 | 0/? | Not started | - |
 | 36. Resources Tab | v1.4 | 0/? | Not started | - |
