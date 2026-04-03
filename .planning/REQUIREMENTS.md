@@ -9,10 +9,10 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 
 ### Schema & Foundation
 
-- [ ] **SCHEMA-01**: All 4 new tables (report_comments, messages, resources, glossary_terms) exist with correct columns, constraints, and indexes in a single migration (00015)
-- [ ] **SCHEMA-02**: Users, invites, and magic_links role CHECK constraints accept 'student_diy' as a valid value
-- [ ] **SCHEMA-03**: RLS policies are enabled on all 4 new tables with appropriate read/write restrictions
-- [ ] **SCHEMA-04**: TypeScript types include Row/Insert/Update types for all 4 new tables and the Role union includes 'student_diy'
+- [x] **SCHEMA-01**: All 4 new tables (report_comments, messages, resources, glossary_terms) exist with correct columns, constraints, and indexes in a single migration (00015)
+- [x] **SCHEMA-02**: Users, invites, and magic_links role CHECK constraints accept 'student_diy' as a valid value
+- [x] **SCHEMA-03**: RLS policies are enabled on all 4 new tables with appropriate read/write restrictions
+- [x] **SCHEMA-04**: TypeScript types include Row/Insert/Update types for all 4 new tables and the Role union includes 'student_diy'
 
 ### Student_DIY Role
 
@@ -126,64 +126,64 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHEMA-01 | — | Pending |
-| SCHEMA-02 | — | Pending |
-| SCHEMA-03 | — | Pending |
-| SCHEMA-04 | — | Pending |
-| ROLE-01 | — | Pending |
-| ROLE-02 | — | Pending |
-| ROLE-03 | — | Pending |
-| ROLE-04 | — | Pending |
-| ROLE-05 | — | Pending |
-| ROLE-06 | — | Pending |
-| ROLE-07 | — | Pending |
-| SKIP-01 | — | Pending |
-| SKIP-02 | — | Pending |
-| SKIP-03 | — | Pending |
-| SKIP-04 | — | Pending |
-| SKIP-05 | — | Pending |
-| ASSIGN-01 | — | Pending |
-| ASSIGN-02 | — | Pending |
-| ASSIGN-03 | — | Pending |
-| ASSIGN-04 | — | Pending |
-| ASSIGN-05 | — | Pending |
-| ASSIGN-06 | — | Pending |
-| COMMENT-01 | — | Pending |
-| COMMENT-02 | — | Pending |
-| COMMENT-03 | — | Pending |
-| COMMENT-04 | — | Pending |
-| COMMENT-05 | — | Pending |
-| CHAT-01 | — | Pending |
-| CHAT-02 | — | Pending |
-| CHAT-03 | — | Pending |
-| CHAT-04 | — | Pending |
-| CHAT-05 | — | Pending |
-| CHAT-06 | — | Pending |
-| CHAT-07 | — | Pending |
-| CHAT-08 | — | Pending |
-| CHAT-09 | — | Pending |
-| CHAT-10 | — | Pending |
-| CHAT-11 | — | Pending |
-| CHAT-12 | — | Pending |
-| CHAT-13 | — | Pending |
-| RES-01 | — | Pending |
-| RES-02 | — | Pending |
-| RES-03 | — | Pending |
-| RES-04 | — | Pending |
-| RES-05 | — | Pending |
-| RES-06 | — | Pending |
-| RES-07 | — | Pending |
-| RES-08 | — | Pending |
-| RES-09 | — | Pending |
-| INVITE-01 | — | Pending |
-| INVITE-02 | — | Pending |
-| INVITE-03 | — | Pending |
+| SCHEMA-01 | Phase 30 | Complete |
+| SCHEMA-02 | Phase 30 | Complete |
+| SCHEMA-03 | Phase 30 | Complete |
+| SCHEMA-04 | Phase 30 | Complete |
+| ROLE-01 | Phase 31 | Pending |
+| ROLE-02 | Phase 31 | Pending |
+| ROLE-03 | Phase 31 | Pending |
+| ROLE-04 | Phase 31 | Pending |
+| ROLE-05 | Phase 31 | Pending |
+| ROLE-06 | Phase 31 | Pending |
+| ROLE-07 | Phase 31 | Pending |
+| SKIP-01 | Phase 32 | Pending |
+| SKIP-02 | Phase 32 | Pending |
+| SKIP-03 | Phase 32 | Pending |
+| SKIP-04 | Phase 32 | Pending |
+| SKIP-05 | Phase 32 | Pending |
+| ASSIGN-01 | Phase 33 | Pending |
+| ASSIGN-02 | Phase 33 | Pending |
+| ASSIGN-03 | Phase 33 | Pending |
+| ASSIGN-04 | Phase 33 | Pending |
+| ASSIGN-05 | Phase 33 | Pending |
+| ASSIGN-06 | Phase 33 | Pending |
+| COMMENT-01 | Phase 34 | Pending |
+| COMMENT-02 | Phase 34 | Pending |
+| COMMENT-03 | Phase 34 | Pending |
+| COMMENT-04 | Phase 34 | Pending |
+| COMMENT-05 | Phase 34 | Pending |
+| CHAT-01 | Phase 35 | Pending |
+| CHAT-02 | Phase 35 | Pending |
+| CHAT-03 | Phase 35 | Pending |
+| CHAT-04 | Phase 35 | Pending |
+| CHAT-05 | Phase 35 | Pending |
+| CHAT-06 | Phase 35 | Pending |
+| CHAT-07 | Phase 35 | Pending |
+| CHAT-08 | Phase 35 | Pending |
+| CHAT-09 | Phase 35 | Pending |
+| CHAT-10 | Phase 35 | Pending |
+| CHAT-11 | Phase 35 | Pending |
+| CHAT-12 | Phase 35 | Pending |
+| CHAT-13 | Phase 35 | Pending |
+| RES-01 | Phase 36 | Pending |
+| RES-02 | Phase 36 | Pending |
+| RES-03 | Phase 36 | Pending |
+| RES-04 | Phase 36 | Pending |
+| RES-05 | Phase 36 | Pending |
+| RES-06 | Phase 36 | Pending |
+| RES-07 | Phase 36 | Pending |
+| RES-08 | Phase 36 | Pending |
+| RES-09 | Phase 36 | Pending |
+| INVITE-01 | Phase 37 | Pending |
+| INVITE-02 | Phase 37 | Pending |
+| INVITE-03 | Phase 37 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 48 total
-- Mapped to phases: 0
-- Unmapped: 48 (pending roadmap creation)
+- Mapped to phases: 48
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-03*
-*Last updated: 2026-04-03 after initial definition*
+*Last updated: 2026-04-03 after roadmap creation (Phases 30-37)*
