@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
 import { Users } from "lucide-react";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { getTodayUTC } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
 
@@ -38,6 +39,28 @@ export default async function OwnerStudentsPage({
 
   if (error) {
     console.error("[owner students] Failed to load students:", error);
+  }
+
+  const studentIds = (students ?? []).map((s) => s.id);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: skipData, error: skipError } = studentIds.length > 0
+    ? await (admin as any).rpc("get_weekly_skip_counts", {
+        p_student_ids: studentIds,
+        p_today: getTodayUTC(),
+        p_current_hour: new Date().getUTCHours(),
+      })
+    : { data: null, error: null };
+
+  if (skipError) {
+    console.error("[owner students] Failed to load skip counts:", skipError);
+  }
+
+  const skipCountMap = new Map<string, number>();
+  for (const [id, val] of Object.entries((skipData ?? {}) as Record<string, number>)) {
+    if (typeof val === "number" && val > 0) {
+      skipCountMap.set(id, val);
+    }
   }
 
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
@@ -100,18 +123,25 @@ export default async function OwnerStudentsPage({
                         <p className="text-sm font-semibold text-ima-text truncate">{s.name}</p>
                         <p className="text-xs text-ima-text-secondary truncate">{s.email}</p>
                       </div>
-                      <Badge
-                        variant={
-                          s.status === "active"
-                            ? "success"
-                            : s.status === "suspended"
-                            ? "warning"
-                            : "default"
-                        }
-                        size="sm"
-                      >
-                        {s.status}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1">
+                        {(skipCountMap.get(s.id) ?? 0) > 0 && (
+                          <Badge variant="warning" size="sm">
+                            {skipCountMap.get(s.id)} skipped
+                          </Badge>
+                        )}
+                        <Badge
+                          variant={
+                            s.status === "active"
+                              ? "success"
+                              : s.status === "suspended"
+                              ? "warning"
+                              : "default"
+                          }
+                          size="sm"
+                        >
+                          {s.status}
+                        </Badge>
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>
