@@ -41,6 +41,7 @@ interface OwnerStudentDetailClientProps {
     improvements: string | null;
     reviewed_by: string | null;
   }[];
+  calendarComments: Record<string, { comment: string }>;
   currentMonth: string;
   roadmap: {
     step_number: number;
@@ -68,6 +69,7 @@ export function OwnerStudentDetailClient({
   atRiskReasons,
   calendarSessions,
   calendarReports,
+  calendarComments,
   currentMonth,
   roadmap,
   initialTab,
@@ -241,6 +243,7 @@ export function OwnerStudentDetailClient({
         <CalendarTab
           sessions={calendarSessions}
           reports={calendarReports}
+          comments={calendarComments}
           currentMonth={currentMonth}
           studentId={studentId}
           role="owner"

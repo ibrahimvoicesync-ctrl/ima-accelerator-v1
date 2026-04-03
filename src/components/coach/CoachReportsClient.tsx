@@ -20,6 +20,7 @@ export type ReportItem = {
   submitted_at: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  existingComment: string | null;
 };
 
 type StudentItem = { id: string; name: string };

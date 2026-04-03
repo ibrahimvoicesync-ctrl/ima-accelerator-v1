@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatHoursMinutes } from "@/lib/utils";
 import { CalendarDays } from "lucide-react";
+import { CommentForm } from "@/components/shared/CommentForm";
 
 type CalendarSessionRow = {
   id: string;
@@ -31,9 +32,14 @@ type CalendarReportRow = {
 
 type DayActivity = "full" | "partial" | "none";
 
+type CalendarComment = {
+  comment: string;
+};
+
 type CalendarTabProps = {
   sessions: CalendarSessionRow[];
   reports: CalendarReportRow[];
+  comments: Record<string, CalendarComment>;
   currentMonth: string; // "YYYY-MM"
   studentId: string;
   role: "coach" | "owner";
@@ -51,10 +57,11 @@ function dateStrLocal(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function CalendarTab({ sessions, reports, currentMonth, studentId, role }: CalendarTabProps) {
+export function CalendarTab({ sessions, reports, comments, currentMonth, studentId, role }: CalendarTabProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [displaySessions, setDisplaySessions] = useState<CalendarSessionRow[]>(sessions);
   const [displayReports, setDisplayReports] = useState<CalendarReportRow[]>(reports);
+  const [displayComments, setDisplayComments] = useState<Record<string, CalendarComment>>(comments);
   const [displayMonth, setDisplayMonth] = useState<string>(currentMonth);
   const [isLoadingMonth, setIsLoadingMonth] = useState(false);
 
@@ -119,6 +126,7 @@ export function CalendarTab({ sessions, reports, currentMonth, studentId, role }
       const data = await res.json();
       setDisplaySessions(data.sessions);
       setDisplayReports(data.reports);
+      setDisplayComments(data.comments ?? {});
     } catch (err) {
       console.error("[CalendarTab] Error fetching calendar data:", err);
     } finally {
@@ -256,6 +264,11 @@ export function CalendarTab({ sessions, reports, currentMonth, studentId, role }
                       <p className="text-sm text-ima-text">{selectedReport.improvements}</p>
                     </div>
                   )}
+                  {/* Comment form for coach/owner */}
+                  <CommentForm
+                    reportId={selectedReport.id}
+                    initialComment={displayComments[selectedReport.id]?.comment ?? null}
+                  />
                 </div>
               )}
             </CardContent>

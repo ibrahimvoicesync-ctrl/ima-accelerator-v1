@@ -68,6 +68,20 @@ export default async function StudentDetailPage({
   }>;
   const calendarReports = detail.reports;
 
+  // Fetch initial comments for CalendarTab
+  const calendarReportIds = calendarReports.map((r: { id: string }) => r.id);
+  const { data: calendarCommentsData } = calendarReportIds.length > 0
+    ? await admin
+        .from("report_comments")
+        .select("report_id, comment")
+        .in("report_id", calendarReportIds)
+    : { data: [] };
+
+  const calendarComments: Record<string, { comment: string }> = {};
+  for (const c of calendarCommentsData ?? []) {
+    calendarComments[c.report_id] = { comment: c.comment };
+  }
+
   // KPI values — already computed by RPC
   const lifetimeOutreach = detail.lifetime_outreach;
   const dailyOutreach = detail.today_outreach;
@@ -136,6 +150,7 @@ export default async function StudentDetailPage({
       atRiskReasons={reasons}
       calendarSessions={calendarSessions}
       calendarReports={calendarReports}
+      calendarComments={calendarComments}
       currentMonth={monthStr}
       roadmap={roadmap}
       initialTab={typeof tab === "string" ? tab : undefined}

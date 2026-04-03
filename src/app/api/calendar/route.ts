@@ -99,9 +99,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to load reports" }, { status: 500 });
     }
 
+    // Fetch comments for the fetched reports
+    const reportIds = (reportsResult.data ?? []).map((r) => r.id);
+    const { data: commentsData } = reportIds.length > 0
+      ? await admin
+          .from("report_comments")
+          .select("report_id, comment")
+          .in("report_id", reportIds)
+      : { data: [] };
+
+    const commentsMap: Record<string, { comment: string }> = {};
+    for (const c of commentsData ?? []) {
+      commentsMap[c.report_id] = { comment: c.comment };
+    }
+
     return NextResponse.json({
       sessions: sessionsResult.data ?? [],
       reports: reportsResult.data ?? [],
+      comments: commentsMap,
     });
   } catch (err) {
     console.error("[GET /api/calendar] Unexpected error:", err);

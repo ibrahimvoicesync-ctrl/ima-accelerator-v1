@@ -84,6 +84,21 @@ export default async function CoachReportsPage({
 
   const allReports = reports ?? [];
 
+  // Fetch comments for all report IDs
+  const reportIds = allReports.map((r) => r.id);
+  const { data: commentsData } = reportIds.length > 0
+    ? await admin
+        .from("report_comments")
+        .select("report_id, comment")
+        .in("report_id", reportIds)
+    : { data: [] };
+
+  // Build comment lookup map
+  const commentMap: Record<string, string> = {};
+  for (const c of commentsData ?? []) {
+    commentMap[c.report_id] = c.comment;
+  }
+
   // Compute stat values server-side
   const totalReports = allReports.length;
   const pendingCount = allReports.filter((r) => r.reviewed_by === null).length;
@@ -109,6 +124,12 @@ export default async function CoachReportsPage({
       (r) => r.student_id === sp.student_id
     );
   }
+
+  // Map each report to include its existing comment
+  const reportsWithComments = filteredReports.map((r) => ({
+    ...r,
+    existingComment: commentMap[r.id] ?? null,
+  }));
 
   // Build student name map
   const studentMap: Record<string, string> = {};
@@ -197,7 +218,7 @@ export default async function CoachReportsPage({
       {/* Report inbox client component */}
       <CoachReportsClient
         key={`${sp.reviewed ?? "all"}-${sp.student_id ?? ""}`}
-        reports={filteredReports}
+        reports={reportsWithComments}
         students={studentList}
         studentMap={studentMap}
         currentFilter={sp.reviewed ?? "all"}

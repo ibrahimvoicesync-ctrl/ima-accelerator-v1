@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CheckCircle } from "lucide-react";
 import type { ReportItem } from "@/components/coach/CoachReportsClient";
+import { CommentForm } from "@/components/shared/CommentForm";
 
 type Props = {
   report: ReportItem;
@@ -168,6 +169,11 @@ export function ReportRow({
               No details provided
             </p>
           )}
+        </CardContent>
+
+        {/* Coach comment form */}
+        <CardContent className="px-4 pb-4 pt-0">
+          <CommentForm reportId={report.id} initialComment={report.existingComment} />
         </CardContent>
       </details>
     </Card>

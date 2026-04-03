@@ -82,6 +82,20 @@ export default async function OwnerStudentDetailPage({
   }>;
   const calendarReports = detail.reports;
 
+  // Fetch initial comments for CalendarTab
+  const calendarReportIds = calendarReports.map((r: { id: string }) => r.id);
+  const { data: calendarCommentsData } = calendarReportIds.length > 0
+    ? await admin
+        .from("report_comments")
+        .select("report_id, comment")
+        .in("report_id", calendarReportIds)
+    : { data: [] };
+
+  const calendarComments: Record<string, { comment: string }> = {};
+  for (const c of calendarCommentsData ?? []) {
+    calendarComments[c.report_id] = { comment: c.comment };
+  }
+
   // Coach options for reassignment UI — computed by RPC
   const coachOptions = (detail.coaches ?? []).map((c) => ({
     id: c.id,
@@ -157,6 +171,7 @@ export default async function OwnerStudentDetailPage({
       atRiskReasons={reasons}
       calendarSessions={calendarSessions}
       calendarReports={calendarReports}
+      calendarComments={calendarComments}
       currentMonth={monthStr}
       roadmap={roadmap}
       initialTab={typeof tab === "string" ? tab : undefined}
