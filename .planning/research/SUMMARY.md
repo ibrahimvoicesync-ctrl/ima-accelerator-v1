@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** IMA Accelerator v1.3
-**Domain:** Student performance & coaching platform — halal influencer marketing mentorship
-**Researched:** 2026-03-31
+**Project:** IMA Accelerator v1.4 — Roles, Chat & Resources
+**Domain:** Student performance & coaching platform (Next.js 16 + Supabase)
+**Researched:** 2026-04-03
 **Confidence:** HIGH
 
 ## Executive Summary
 
-IMA Accelerator v1.3 adds four feature groups to an already-shipped, production platform: roadmap content updates, a coach/owner roadmap undo capability, a daily session planner with a 4-hour work cap, and a post-plan motivational completion card with ad-hoc session access. All research was conducted against the live codebase, and the central finding is that every v1.3 feature can be built with zero new npm dependencies — the existing stack (Next.js 16, React 19, Supabase, Zod, motion, date-fns, lru-cache) covers every requirement. Two new database tables are required (`daily_plans`, `roadmap_undo_log`), two new API routes, and incremental changes to four existing files.
+IMA Accelerator v1.4 adds seven feature groups on top of a production v1.0–v1.3 system: a fourth user role (student_diy), a polling-based chat system, a resources/glossary tab, a weekly skip tracker, coach assignment parity, report comments, and invite link usage limits. This is an incremental integration release, not a greenfield build. The research is grounded in direct codebase inspection, locked decisions from `.planning/PROJECT.md` (D-01 through D-14), and verified external sources. Every new npm dependency was evaluated and rejected — all seven feature groups are implementable with the existing stack.
 
-The recommended approach follows the platform's established patterns without deviation: Server Page + Thin Client for data loading, the CSRF → Auth → Role → RateLimit → Zod → DB mutation chain for all API routes, admin client for every `.from()` query in route handlers, and `src/lib/config.ts` as the single source of truth. The daily session planner is the most complex feature and must be built last because it integrates with `WorkTrackerClient`, depends on the `daily_plans` schema, and its plan-mode UI must not break the existing session state machine. Roadmap config updates and stage headers carry near-zero risk and should be deployed first.
+The recommended approach is to treat the work as a strict phase dependency chain with a single hard prerequisite: Phase A (DB schema + config.ts + proxy.ts + types.ts) must ship first and atomically. Eight interdependent locations control the student_diy role — the DB CHECK constraint, proxy.ts DEFAULT_ROUTES, proxy.ts ROLE_ROUTE_ACCESS, config.ts ROLES, config.ts Role type, config.ts ROLE_HIERARCHY, config.ts NAVIGATION, and config.ts INVITE_CONFIG. Only after all eight are updated and TypeScript compiles cleanly should any page code be written. Phases B through H can then be sequenced from lowest to highest complexity.
 
-The key risks are all implementation-level, not architectural. The top three: (1) the WorkTracker phase-reset `useEffect` guard must be updated atomically when introducing plan-mode state or the planner UI silently disappears on page refresh; (2) the undo endpoint must cascade and re-lock step N+1 atomically — a single-row UPDATE leaves two concurrent active steps and breaks sequential progression; (3) the 4h cap must be enforced server-side in `POST /api/work-sessions`, not only client-side, or the cap can be bypassed via API. All pitfalls are avoidable with disciplined adherence to existing codebase patterns.
+The primary risks are: (1) partial role expansion causing runtime redirect loops or silent empty dashboards; (2) chat polling memory leaks and rate limiter misuse that bloats the rate_limit_log table at scale; (3) missing ownership verification on the report comment endpoint (a known pattern from v1.2 that must be repeated); and (4) Discord iframe CSP failures that are invisible on localhost but break silently in Vercel production. All four risks have concrete, documented prevention strategies and are well understood from prior v1.x work.
 
 ---
 
@@ -19,125 +19,158 @@ The key risks are all implementation-level, not architectural. The top three: (1
 
 ### Recommended Stack
 
-The v1.3 features require no new packages. The entire feature set is covered by libraries already installed. The two new database tables (`daily_plans` with a JSONB `plan_json` column, and `roadmap_undo_log` as an append-only audit table) are pure Supabase/Postgres additions delivered via a single migration file. The `motion` library already installed at ^12.37.0 handles the motivational card entrance animation. Arabic text rendering requires only a `dir="rtl"` attribute — no i18n library.
+No new npm packages are needed for v1.4. The full feature set — polling chat, Discord iframe, glossary search, CRUD forms, role expansion — is covered by the existing stack: React 19 useEffect/useRef/useState for polling, native HTML iframe for WidgetBot, Array.filter for glossary search, react-hook-form ^7.71.2 for CRUD, and Supabase/Postgres for schema additions.
 
-**Core technologies used in v1.3:**
-- `next` 16.1.6: Two new route handlers (`POST/GET /api/daily-plans`, `PATCH /api/roadmap/undo`) using the existing App Router mutation pattern
-- `@supabase/supabase-js` ^2.99.2: New table queries via existing admin client; no API changes needed
-- `zod` ^4.3.6: Zod `safeParse` on `plan_json` at every read (never TypeScript cast); cap validation in API schema. Import as `import { z } from "zod"` — never `"zod/v4"`
-- `motion` ^12.37.0: `AnimatePresence` + `motion.div` for motivational card entrance; `motion-safe:` prefix applies only to CSS `animate-*` classes, not motion prop values
-- `lru-cache` ^11.0.0: New routes call existing `checkRateLimit()` unchanged — no changes to the rate limiter itself
+The one infrastructure addition is a CSP header block in `next.config.ts` (currently empty). This is not a package install — it is a config file edit that must ship before the Discord embed component is written, because CSP failures are invisible on localhost and only surface on Vercel production deployments.
 
-**Critical version note:** `lucide-react` ^0.576.0 — icons `CalendarPlus`, `Undo2`, `CheckCircle2` confirmed present in this version for planner and undo UI.
+**Core technologies:**
+- Next.js 16 App Router + proxy.ts: route guard and role-based redirect — no changes to core routing model
+- React 19 useEffect + useRef: `useInterval` custom hook for 5s polling chat — useRef prevents stale closures, useEffect cleanup prevents memory leaks
+- Supabase Postgres: 4 new tables (report_comments, messages, resources, glossary_terms), 3 modified CHECK constraints, 1 updated RPC (get_sidebar_badges)
+- config.ts as single source of truth: role expansion touches config first, code second — TypeScript errors propagate to all eight integration points automatically
+- next.config.ts headers(): CSP for `frame-src https://e.widgetbot.io` — required before any iframe component is written
+
+**No new dependencies confirmed:** zero npm installs for v1.4.
 
 ### Expected Features
 
-**Must have (table stakes):**
-- Accurate roadmap step descriptions and correct `unlock_url` on step 5 — students read these daily; wrong content breaks guidance
-- Stage grouping headers in roadmap views — 15 steps without visual grouping is unnavigable; `stageName` already exists on every config entry, grouping is purely presentational
-- Coach/owner undo with confirmation dialog — correction power for coaches without manual DB edits; confirmation required per NN/G standards for irreversible operations; student cannot undo their own steps (accountability is the platform's core value)
-- 4h work cap enforced at the API level — plan cap is a core program rule; client-side-only enforcement is bypassable via direct API calls or stale tabs
-- Planned sessions executed via existing WorkTracker — no parallel timer UIs; plan stores intent, WorkTracker executes
-- Post-plan motivational completion card — after 4h of planned work, the idle "Set Up Session" CTA is inappropriate; a distinct non-dismissable completion state is needed
+**Must have (table stakes) — P1:**
+- student_diy role: 4th role with dashboard/work tracker/roadmap only; no chat, no reports, no resources — prerequisite for chat and resources gating
+- Skip tracker: "X days skipped this week" on coach/owner student rows — ISO Mon-Sun week, Mon-Fri weekdays only, derived from existing work_sessions with no new table
+- Coach assignments parity: coach gets /coach/assignments page mirroring owner, scoped to own students and unassigned students only
+- Report comments: single nullable coach comment per daily_reports row; coach writes, student reads
+- Invite max_uses UI: default 10, use_count/max_uses displayed on invite list (schema columns already exist)
+- Chat system: 1:1 coach-student and broadcast, 5s polling, unread badge in sidebar
+- Resources tab: URL link list + Discord WidgetBot embed + searchable glossary
 
-**Should have (competitive differentiators):**
-- Bilingual motivational card (Arabic + English) — Abu Lahya's community is Arabic-speaking; brand resonance and cultural identity
-- Undo action audit log — coaches cannot silently revert progress; `roadmap_undo_log` table prevents misuse
-- Alternating break types (short/long by session index) — reduces decision friction; matches existing `breakOptions` config
-- Ad-hoc session picker after plan completion — blocking extra work is punitive for motivated students; uncapped, reuses existing WorkTracker
+**Should have (differentiators):**
+- Weekly skip count prominently surfaced on coach dashboard student cards (proactive intervention signal)
+- Broadcast with per-student read status (read by X/Y count on coach broadcast messages)
+- Discord embed as first-class tab (keeps students in accountability environment vs. external Discord link)
+- Report comments as async micro-feedback (30-second coaching note without scheduling a call)
+- student_diy as self-service on-ramp (lower barrier for informal learners without diluting premium experience)
 
-**Defer to v2+:**
-- Student-editable plan durations — fixed plan is the intended v1.3 UX; mid-plan editing adds cap recalculation complexity
-- Streak tracking tied to plan completion — gamification milestone; partial gamification creates a worse UX than none
-- Push/in-app notifications for session reminders — no notification system in V1
-- Coach visibility of student daily plan tab — useful at scale; defer until multiple students use the planner actively
-- Drag-to-reorder sessions — V2+; v1.3 planner uses a fixed ordered list
+**Defer to v1.5+:**
+- Message editing/deletion (audit trail concern)
+- File/image uploads in chat (Supabase Storage complexity)
+- Per-student resource visibility (requires tier/segment system)
+- Threaded replies (flat chat is the correct v1 model)
+- Email notifications (Resend integration is explicitly out of scope — PROJECT.md)
+- Supabase Realtime (polling is adequate; Realtime hits 500 concurrent connection limit on Pro plan)
 
 ### Architecture Approach
 
-The platform's architecture is Server Page + Thin Client: async server components fetch all data at render time and pass typed props to a single `"use client"` component per interactive area. No client-side data loading on mount via `useEffect`. All mutations go through API route handlers following the fixed CSRF → Auth → Role → RateLimit → Zod → admin client → DB chain. The daily session planner introduces two new client components (`DailyPlannerClient`, `PlanCompletionCard`) and modifies `WorkTrackerClient` to accept an `initialPlan` prop that gates plan-mode behavior in the idle state. No new phase variants are added to the state machine; a `planMode` derived flag (from `initialPlan !== null`) controls which UI renders in the `idle` state.
+The existing architecture pattern — async Server Components for reads passing props to thin "use client" islands for interactivity, with all mutations going through a strict API pipeline (CSRF → Auth → Role → RateLimit → Zod → Ownership → Logic) — applies unchanged to all v1.4 features. The chat system introduces the only client-side polling pattern in the codebase, implemented as a `useInterval` custom hook that uses `useRef` to hold a stable callback reference and pauses on `document.hidden`. Initial messages are server-rendered and passed as `initialMessages` props; the polling loop fetches only messages newer than the cursor.
 
-**Major components and their v1.3 roles:**
-1. `src/lib/config.ts` (modified) — Add `DAILY_PLAN` config block; update `ROADMAP_STEPS` text, `unlock_url`, `target_days`
-2. `src/app/api/daily-plans/route.ts` (new) — `POST` create plan with 4h cap Zod validation; `GET` today's plan or null; idempotent POST (returns existing plan on 409 conflict)
-3. `src/app/api/roadmap/undo/route.ts` (new) — `PATCH` coach/owner step undo with ownership assertion and N+1 cascade re-lock; inserts to `roadmap_undo_log`
-4. `DailyPlannerClient.tsx` (new) — Plan setup wizard; alternating break auto-generation; emits `onPlanCreated` callback triggering `router.refresh()`
-5. `PlanCompletionCard.tsx` (new) — Post-plan motivational card; no auto-dismiss; ad-hoc session trigger that re-enters standard WorkTracker setup phase
-6. `WorkTrackerClient.tsx` (modified) — Accepts `initialPlan` prop; plan-mode idle state; phase-reset guard updated to preserve plan state
-7. `coach/RoadmapTab.tsx` (modified) — Embeds `UndoStepButton` per completed step; no architectural change to RoadmapTab itself
-8. `supabase/migrations/00013_v1_3_schema.sql` (new) — `daily_plans` + `roadmap_undo_log` tables with RLS; `UNIQUE(student_id, date)` on daily_plans; UTC date default
+**Major components:**
+1. **proxy.ts** — must be updated atomically with config.ts; student_diy added to DEFAULT_ROUTES and ROLE_ROUTE_ACCESS
+2. **src/lib/config.ts** — expanded ROLES, ROLE_HIERARCHY, NAVIGATION, INVITE_CONFIG; the TypeScript Role type propagates errors to all integration points
+3. **(dashboard)/student_diy/ route group** — thin wrappers reusing WorkTrackerClient and RoadmapClient via props; own layout.tsx with reduced nav
+4. **ChatClient.tsx** (shared component) — polling loop, cursor-based fetch, tab visibility optimization; used by both /coach/chat and /student/chat pages
+5. **API routes (7 new + 2 modified)** — /api/reports/[id]/comment, /api/messages, /api/resources, /api/resources/[id], /api/glossary, /api/glossary/[id], /api/assignments — all follow the established pipeline without exception
+6. **ResourcesTab / DiscordEmbed / GlossaryTab** (shared components) — tabbed sub-navigation controlled by React state, not URL segments (WidgetBot back-button is broken per docs)
+7. **get_sidebar_badges RPC** — extended to return unread_messages count; sidebar badge passes server-rendered count on page load; no polling interval inside Sidebar
 
 ### Critical Pitfalls
 
-1. **WorkTracker phase-reset guard not updated for plan-mode** — The `useEffect` that resets phase to `idle` uses an allowlist guard (`phase.kind !== "setup" && phase.kind !== "break"`). Any new derived condition not explicitly exempted causes the planner UI to silently reset on page refresh. Fix: add the plan-aware guard update atomically with modifying `WorkTrackerClient`.
+1. **Partial role expansion (Pitfall 1)** — Adding student_diy to the DB but missing any of the other seven locations causes infinite redirect loops or runtime TypeError. Prevention: update all eight locations in a single atomic commit; let the TypeScript Role type compile errors guide which sites need updating.
 
-2. **Coach undo as single-row UPDATE leaves two active steps** — Undoing step N without re-locking step N+1 (if N+1 is currently `active` and not yet `completed`) creates two concurrent active steps, breaking the sequential progression invariant. Fix: read step N+1 status before writing step N, then conditionally re-lock N+1 in the same request.
+2. **RLS policies missing student_diy (Pitfall 2)** — Admin client bypasses RLS so dev tests pass; anon client hits default-deny and returns empty data or 500 errors. Prevention: write student_diy RLS policies in the same migration, validate with anon client directly in Supabase Studio.
 
-3. **4h cap enforced client-side only** — `POST /api/work-sessions` does not currently check total minutes worked today. Fix: sum `session_minutes` for `(student_id, date)` in in-progress/completed sessions before allowing the insert; return 400 if cap exceeded.
+3. **Chat polling setInterval memory leak and stale closure (Pitfall 3)** — Missing clearInterval in useEffect cleanup lets intervals fire after navigation; missing useRef causes stale conversationId. Prevention: always use the useInterval custom hook pattern with useRef.
 
-4. **Date mismatch: client local time vs server UTC** — `getToday()` (local) and `getTodayUTC()` (UTC) already coexist in the codebase. Fix: use `getTodayUTC()` everywhere in the planner code path; migration default `DEFAULT CURRENT_DATE` on `daily_plans.date`; never pass client local date as plan identity.
+4. **Discord iframe blocked by missing CSP in production (Pitfall 4)** — next.config.ts is currently empty; Vercel injects SAMEORIGIN headers that block the WidgetBot iframe. Invisible on localhost. Prevention: add `frame-src 'self' https://e.widgetbot.io` to next.config.ts as the first step of the resources phase; test on Vercel preview before marking complete.
 
-5. **plan_json schema evolution silently breaks existing rows** — JSONB columns have no schema migration path. TypeScript cast gives false confidence; old-shaped rows fail silently at runtime. Fix: include a `version: 1` field in `plan_json`; always use Zod `safeParse` at the data layer; treat parse failure as "no plan today."
+5. **Chat GET polling endpoint hit by rate limiter (Pitfall 7)** — checkRateLimit() INSERTs a row per request; 5k students polling at 12 req/min = 60k inserts/min into rate_limit_log. Prevention: never call checkRateLimit() in read-only GET endpoints; it is for mutation routes only.
+
+6. **Report comment endpoint missing ownership verification (Pitfall 8)** — Any coach can comment on any student's report without an ownership check. This identical gap was fixed in v1.2 for /api/reports/[id]/review. Prevention: two-step check — fetch report to get student_id, verify student.coach_id matches requesting coach.
+
+7. **ISO week skip tracker UTC mismatch (Pitfall 5)** — CURRENT_DATE in Postgres is UTC; student local "today" diverges for UTC+ timezones. Prevention: pass getTodayUTC() from the application layer as a parameter to the RPC function; never use CURRENT_DATE inside the function.
 
 ---
 
 ## Implications for Roadmap
 
-Based on research, the build order is determined by dependency chains: schema and config must precede API routes, which must precede components, which must precede page integration. The ARCHITECTURE.md dependency graph (Phase A → B → C) is well-reasoned and directly translates to roadmap phases.
+Based on the dependency graph from ARCHITECTURE.md and the risk analysis from PITFALLS.md, the following phase structure is recommended. All phases after Phase A are unblocked by Phase A's completion, but Phases F and G are the highest complexity and should not be parallelized.
 
-### Phase 1: Config and Content Updates
+### Phase A: DB Schema + Config Foundation
+**Rationale:** Every other phase gates on student_diy being defined in config.ts and the DB. The TypeScript Role type propagates errors to all call sites, making this the only correct atomic change point. Partial execution is the top critical pitfall.
+**Delivers:** student_diy added to all eight role gate locations; 4 new tables created (report_comments, messages, resources, glossary_terms); 3 CHECK constraints updated (users, invites, magic_links); types.ts updated; TypeScript compiles cleanly.
+**Addresses:** student_diy role foundation, chat/resources table schema, invite constraint
+**Avoids:** Pitfall 1 (partial role expansion), Pitfall 2 (RLS gaps — student_diy RLS written in same migration)
+**Research flag:** Standard — config-is-truth is the established codebase convention; no additional research needed.
 
-**Rationale:** Pure config changes in `src/lib/config.ts` carry near-zero risk and can be deployed standalone before any schema migration. Stage headers are purely presentational and depend only on config values that already exist. Zero database changes.
-**Delivers:** Updated roadmap step descriptions, correct `unlock_url` on step 5, step 8 `target_days: 14`, stage grouping headers in both `RoadmapClient` and `RoadmapTab`
-**Addresses:** Table-stakes features — accurate roadmap text, visual grouping of 15 steps
-**Avoids:** Pitfall 8 — config text updates go live immediately for all students including those mid-step; this is intentional and acceptable, but step numbers must not be renumbered, only text fields updated
+### Phase B: student_diy Route Group
+**Rationale:** The simplest new role feature; validates Phase A in a real user flow with zero additional tables. Reuses WorkTrackerClient and RoadmapClient as thin wrappers — no code duplication.
+**Delivers:** /student_diy/ dashboard, /student_diy/work, /student_diy/roadmap; proxy correctly routes the 4th role; invite flow accepts student_diy as a role option.
+**Addresses:** student_diy user experience, invite flow role expansion
+**Avoids:** Anti-Pattern 4 (no copy-pasting WorkTrackerClient into student_diy directory)
+**Research flag:** Standard — proxy.ts and route group patterns are identical to existing roles.
 
-### Phase 2: Database Schema Foundation
+### Phase C: Skip Tracker
+**Rationale:** Zero table dependencies (reads existing work_sessions), high coach value, low risk. Quick win after Phase A confirms config is live.
+**Delivers:** skip_days_this_week scalar on coach and owner student rows; SkipBadge component
+**Addresses:** Skip tracker table stakes feature
+**Avoids:** Pitfall 5 (UTC mismatch — pass getTodayUTC() as p_today parameter to RPC; never use CURRENT_DATE inside the function)
+**Research flag:** Standard — Postgres date_trunc week behavior confirmed; implementation is a single RPC function.
 
-**Rationale:** Both new tables (`daily_plans`, `roadmap_undo_log`) must exist before any API routes or components that reference them. Schema is independent of all application code and safe to run as a standalone migration.
-**Delivers:** `daily_plans` table with `UNIQUE(student_id, date)` and UTC date default; `plan_json` JSONB column; `roadmap_undo_log` append-only audit table; RLS policies for both tables
-**Addresses:** Pitfall 4 (UTC date default prevents midnight timezone mismatch), Pitfall 6 (UNIQUE constraint makes plan creation idempotent)
-**Avoids:** Deploying API code against a non-existent schema
+### Phase D: Coach Assignments Parity
+**Rationale:** Low complexity (role check expansion and one new page), no new tables. Validates that the expanded /api/assignments route does not introduce privilege escalation.
+**Delivers:** /coach/assignments page; coaches can assign/unassign from their own students pool and unassigned students
+**Addresses:** Coach assignments table stakes
+**Avoids:** Pitfall 6 (unbounded student enumeration — filter server-side to role='student' AND coach_id IS NULL; coaches never see all-platform students)
+**Research flag:** One product decision to confirm with Abu Lahya — whether coaches see unassigned students only, or also their own already-assigned students, in the picker. Assume "both" based on research; verify before launch.
 
-### Phase 3: Coach/Owner Roadmap Undo
+### Phase E: Report Comments
+**Rationale:** Low complexity (nullable columns on existing table). Must include ownership verification matching the v1.2 review endpoint pattern — this is the only security-critical requirement.
+**Delivers:** POST/DELETE /api/reports/[id]/comment; inline comment textarea on coach report review; read-only comment block on student report history
+**Addresses:** Report comment table stakes and async micro-feedback differentiator
+**Avoids:** Pitfall 8 (ownership check — two-step: fetch report, verify student.coach_id = requesting coach — same pattern as existing /api/reports/[id]/review fix from v1.2 Phase 23)
+**Research flag:** Standard — pattern established in v1.2.
 
-**Rationale:** Self-contained feature with no dependency on the session planner. Depends only on the schema from Phase 2 and the existing `roadmap_progress` table. Building and validating it independently before the higher-complexity planner work provides a clean test of the new API pattern and audit log.
-**Delivers:** `PATCH /api/roadmap/undo` route with ownership assertion, N+1 cascade re-lock, and `roadmap_undo_log` insert; `UndoStepButton` component embedded in `RoadmapTab`; confirmation modal reusing existing Modal primitive
-**Addresses:** Coach correction power (P1 feature), audit trail for undo actions (differentiator)
-**Avoids:** Pitfall 2 (single-row undo leaving two active steps); security mistake (coach undoing steps for unassigned students via `coach_id` ownership check)
+### Phase F: Chat System
+**Rationale:** Highest implementation complexity in this release (2 new tables, polling hook, broadcast model, sidebar badge integration). Must follow Phase A (messages table must exist) and Phase B (student_diy role must be defined for feature gating).
+**Delivers:** GET/POST /api/messages with cursor-based polling; ChatClient useInterval component; /coach/chat and /student/chat pages; sidebar unread badge via server-rendered count from updated get_sidebar_badges RPC
+**Addresses:** Chat system P1 features, unread badge table stakes, broadcast read-status differentiator
+**Avoids:** Pitfall 3 (useInterval hook with useRef), Pitfall 7 (checkRateLimit NOT called on GET polling endpoint), Pitfall 11 (no setInterval inside Sidebar — unread count is server-rendered on page load only)
+**Research flag:** Standard — polling pattern is fully documented with implementation examples in STACK.md and FEATURES.md. Confirm broadcast filtering logic (students receive only broadcasts from their assigned coach) before implementing the broadcast message query.
 
-### Phase 4: Daily Session Planner — API Layer
+### Phase G: Resources Tab
+**Rationale:** Second-highest complexity (2 new tables, 3 sub-tabs, Discord CSP). CSP headers must be added to next.config.ts as the very first step, before any iframe component is written. Has one external prerequisite outside the codebase.
+**Delivers:** CRUD /api/resources and /api/glossary; ResourcesTab, DiscordEmbed, GlossaryTab shared components; /student/resources, /coach/resources, /owner/resources pages; next.config.ts CSP headers
+**Addresses:** Resources tab P2 features, Discord embed differentiator, inline glossary differentiator
+**Avoids:** Pitfall 4 (CSP first, test on Vercel preview), Pitfall 9 (case-insensitive UNIQUE index: CREATE UNIQUE INDEX idx_glossary_term_lower ON glossary (lower(term)))
+**Research flag:** Needs external validation — WidgetBot bot must be added to the Discord server by Abu Lahya before the iframe renders. UI must display "Discord not configured" placeholder (matching existing Ask AI "Coming Soon" card pattern) when NEXT_PUBLIC_DISCORD_GUILD_ID is absent. Confirm env vars are set in Vercel production before testing the live embed.
 
-**Rationale:** The API (`POST /api/daily-plans`, `GET /api/daily-plans`) must exist before the client components that call it. Server-side cap enforcement in `POST /api/work-sessions` is added here to close the security gap before any UI exposes the planner to students.
-**Delivers:** Plan creation API with Zod schema validating `total_work_minutes <= 240`; idempotent POST returning existing plan on 409 conflict; server-side 4h cap enforcement added to existing work sessions endpoint; `DAILY_PLAN` config block in `config.ts`
-**Addresses:** P1 features — daily session planner core, 4h cap; Pitfall 3 (server-side cap enforcement)
-**Avoids:** Pitfall 5 (Zod `safeParse` on `plan_json` at read time, never TypeScript cast; `version: 1` field in schema)
-
-### Phase 5: Daily Session Planner — Client Integration
-
-**Rationale:** Client components depend on the API being available. `WorkTrackerClient` modification is the highest-risk change in v1.3 — it modifies an existing production state machine. `DailyPlannerClient` and `PlanCompletionCard` are new isolated files and lower risk. The `work/page.tsx` change is additive (one extra parallel fetch).
-**Delivers:** `DailyPlannerClient` plan setup wizard with alternating break generation; modified `WorkTrackerClient` with `initialPlan` prop and plan-mode idle state; `PlanCompletionCard` with Arabic/English motivational card (no auto-dismiss) and ad-hoc session trigger; `work/page.tsx` parallel plan fetch via `Promise.all`
-**Addresses:** All session planner table-stakes features; post-plan motivational card (differentiator); ad-hoc session access
-**Avoids:** Pitfall 1 (phase-reset guard updated atomically with `WorkTrackerClient` changes); Pitfall 7 (Arabic text wrapped in `dir="rtl" lang="ar"` element, not just `text-right`)
+### Phase H: Invite max_uses UI
+**Rationale:** Schema columns already exist. This is a migration default-value change plus two UI changes. Smallest phase in the release.
+**Delivers:** magic_links.max_uses DEFAULT 10 migration; max_uses input in invite creation form; use_count/max_uses display on invite list rows
+**Addresses:** Invite max_uses table stakes
+**Avoids:** Pitfall 10 (null guard in capacity check: max_uses !== null && use_count >= max_uses; render null as '∞'; migration must document whether existing null rows are grandfathered or retroactively capped)
+**Research flag:** One implementation detail to verify — inspect the existing invite callback (/api/auth/callback) to confirm it enforces max_uses before treating this as a pure UI change. If the callback has no cap check, that logic must be added in this phase.
 
 ### Phase Ordering Rationale
 
-- Config changes deploy with zero risk and deliver immediate user-visible value (correct roadmap text, stage headers) without touching the database.
-- Schema migration is a prerequisite for both the undo API and the planner API — running it second keeps the critical path short and the migration isolated.
-- Coach undo is isolated from the session planner. Building it third validates the new API pattern, the ownership check, and the audit log before the more complex planner work begins.
-- The planner API is split from the client integration because API validation (especially the 4h cap server-side enforcement) is independently testable via curl/Postman before any UI exists.
-- Client integration comes last because it carries the highest regression risk (modifying `WorkTrackerClient`, a live production state machine) and must be the final integration step.
+- Phase A is the only hard prerequisite; it must ship before a single page or API route is written.
+- Phases B–E are low complexity and validate the foundational role expansion in real user flows before the complex new systems are built.
+- Phase F should not start until Phase A is confirmed working in production (student_diy gating logic depends on the role constant being live in config and the DB).
+- Phase G is P2 and can slip to a point release without blocking the core coaching loop; it also carries an external dependency that Abu Lahya must fulfill.
+- Phase H is the smallest change in the release and can slot in at any point after Phase A.
 
 ### Research Flags
 
-Phases with standard patterns (no additional research needed):
-- **Phase 1 (Config):** Pure config edit — established pattern, no unknowns
-- **Phase 2 (Schema):** Standard Supabase migration with JSONB and UNIQUE constraint — documented patterns from existing migrations
-- **Phase 3 (Undo):** Follows existing mutation chain exactly; only novel element is the N+1 cascade logic, which is completely specified in ARCHITECTURE.md and PITFALLS.md
+Phases needing external validation or product confirmation:
+- **Phase G (Resources/Discord):** WidgetBot bot setup is an external action by Abu Lahya. Build the "not configured" placeholder first. Confirm NEXT_PUBLIC_DISCORD_GUILD_ID and NEXT_PUBLIC_DISCORD_CHANNEL_ID are in Vercel production env before testing the live embed.
+- **Phase D (Coach Assignments):** Confirm with Abu Lahya whether coaches see unassigned students only, or also their own currently-assigned students, in the assignment picker.
+- **Phase H (Invite limits):** Verify existing /api/auth/callback enforces the max_uses cap before treating this as a pure UI phase.
 
-Phases that benefit from pre-build review before implementation:
-- **Phase 4 (Planner API):** The 4h cap enforcement modifies `POST /api/work-sessions`, a route already in production. The Zod schema for `plan_json` (including the `version` field and `safeParse` pattern) should be finalized before writing the API to avoid schema evolution pitfalls later. Confirm the ad-hoc vs planned session cap scoping (see Gaps section).
-- **Phase 5 (Client Integration):** The `WorkTrackerClient` phase-reset `useEffect` guard requires careful inspection of the existing dependency array before editing. The `DailyPlannerClient` → `router.refresh()` → server re-render → `WorkTrackerClient` receiving `initialPlan` data flow should be traced through the code before starting implementation.
+Phases with standard patterns (skip additional research):
+- **Phase A:** config-is-truth pattern fully established; TypeScript Role type is the safety net.
+- **Phase B:** Route group and proxy patterns are identical to existing roles.
+- **Phase C:** Postgres date_trunc week confirmed; one RPC function.
+- **Phase E:** Ownership check pattern established in v1.2 Phase 23.
+- **Phase F:** Polling pattern fully documented with code examples in research files.
+- **Phase H:** Schema is already in place.
 
 ---
 
@@ -145,49 +178,40 @@ Phases that benefit from pre-build review before implementation:
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All library versions verified against npm. Zero new dependencies confirmed — all capabilities present in installed versions. Zod v4 import rule verified against official changelog. `lucide-react` icon availability confirmed at 0.576.0. |
-| Features | HIGH | Table-stakes and differentiators derive directly from existing platform requirements and Abu Lahya's program spec. Alternating break algorithm is MEDIUM — Pomodoro literature supports it but the specific even/odd index S/L pattern is a reasonable inference, not a documented standard. |
-| Architecture | HIGH | Derived from direct codebase inspection of all affected files. Build order validated against actual dependency graph. Anti-patterns name specific existing code paths, not hypothetical scenarios. |
-| Pitfalls | HIGH | All 8 critical pitfalls sourced from direct codebase audit of `WorkTrackerClient.tsx`, API route files, and migration history. Specific code paths, fix patterns, and "looks done but isn't" verification steps are documented. |
+| Stack | HIGH | All v1.4 features verified against existing stack; zero new packages confirmed; versions locked in package.json |
+| Features | HIGH | Decisions D-01 through D-14 are locked in PROJECT.md; feature scope is defined, not exploratory |
+| Architecture | HIGH | Derived from direct codebase inspection of proxy.ts, config.ts, existing API routes, layout.tsx, and RPC types |
+| Pitfalls | HIGH | All 11 pitfalls grounded in codebase audit and prior v1.x incident records (v1.1 UTC gap closure, v1.2 ownership fix) |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Alternating break algorithm confirmation:** The even-index = short, odd-index = long break pattern is inferred from Pomodoro literature and the existing `breakOptions` config. During Phase 5 implementation, confirm with Abu Lahya whether this is the intended pattern or whether the long break should occur at a specific session boundary (e.g., always after session 2 of 4) rather than by parity index.
-
-- **Motivational card content:** The Arabic quote and English translation for `PlanCompletionCard` are not specified in any research file. They must be provided by Abu Lahya before `PlanCompletionCard.tsx` can be finalized. The architecture (static content, `dir="rtl"` span, `lang="ar"`, `AnimatePresence` entrance) is confirmed; only the text content is missing.
-
-- **plan_json version field:** PITFALLS.md recommends a `version: 1` field in `plan_json` for schema evolution safety. ARCHITECTURE.md's schema example omits it. During Phase 2, decide whether to include the version field in the migration and API Zod schema, and document the decision.
-
-- **Ad-hoc session cap scoping:** PITFALLS.md security section states ad-hoc sessions should bypass the 4h plan cap (they are explicitly uncapped per FEATURES.md). However, the server-side cap enforcement added to `POST /api/work-sessions` in Phase 4 applies to all session creation. Resolve before Phase 4: either the cap check is only enforced when a plan exists for the day, or ad-hoc sessions require a distinct request flag that bypasses the cap server-side.
+- **Coach assignment picker scope (Phase D):** Whether coaches see only unassigned students or also their own assigned students is a product decision not confirmed with Abu Lahya. Implement as "unassigned + own students" during development; verify before launch.
+- **WidgetBot allowlist (Phase G):** The production Vercel domain must be registered in the WidgetBot dashboard by Abu Lahya. Flag as a deployment-time prerequisite in Phase G success criteria.
+- **get_sidebar_badges RPC extension (Phase F):** The exact current return shape of this RPC must be read from src/lib/rpc/types.ts before writing the unread_messages extension. Low risk but requires verification during Phase F implementation.
+- **Invite callback max_uses enforcement (Phase H):** The existing /api/auth/callback may or may not already enforce max_uses. Inspect before writing the Phase H migration to avoid introducing a duplicate or conflicting check.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct codebase inspection: `src/components/student/WorkTrackerClient.tsx` — phase state machine and guard logic
-- Direct codebase inspection: `src/app/api/roadmap/route.ts` — complete/unlock cascade pattern to invert for undo
-- Direct codebase inspection: `src/app/api/work-sessions/route.ts` and `[id]/route.ts` — existing mutation chain and cap/state transition patterns
-- Direct codebase inspection: `src/lib/config.ts` — WORK_TRACKER, ROADMAP_STEPS, config-as-truth pattern
-- Direct codebase inspection: `supabase/migrations/00012_rate_limit_log.sql` — append-only audit table precedent
-- Direct codebase inspection: `supabase/migrations/00011_write_path.sql` — JSONB/RPC pattern precedent
-- [Zod v4 changelog](https://zod.dev/v4/changelog) — `import { z } from "zod"` confirmed for v4; `"zod/v4"` is a transitional shim only
-- [Supabase JSONB docs](https://supabase.com/docs/guides/database/json) — JSONB for variable-length structured data; GIN index not needed for single-row by PK access
-- [Motion React docs](https://motion.dev/docs/react) — AnimatePresence, motion.div, React 19 compatibility confirmed at motion 12.x
-- [Next.js Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers) — PATCH route handler pattern confirmed
+- `.planning/PROJECT.md` — locked v1.4 decisions D-01 through D-14 (canonical product requirements)
+- Direct codebase inspection: `src/proxy.ts`, `src/lib/config.ts`, `src/lib/session.ts`, `src/lib/csrf.ts`, `src/lib/rate-limit.ts`, `src/lib/supabase/admin.ts`, `src/app/api/reports/route.ts`, `src/app/(dashboard)/layout.tsx`, `src/lib/types.ts`, `supabase/migrations/`
+- [WidgetBot iframe documentation](https://docs.widgetbot.io/tutorial/iframes) — iframe URL format, bot requirement, back-button caveat, allow attributes
+- [PostgreSQL date_trunc week — Medium](https://medium.com/@raileohang/postgresql-date-trunc-week-gotcha-b8a90960026c) — confirmed Monday-start ISO 8601 behavior and Sunday edge case
+- [usePolling custom hook — Dave Gray](https://www.davegray.codes/posts/usepolling-custom-hook-for-auto-fetching-in-nextjs) — setInterval + useEffect polling pattern in Next.js
 
 ### Secondary (MEDIUM confidence)
-- [Confirmation Dialogs — NN/G](https://www.nngroup.com/articles/confirmation-dialog/) — destructive action confirmation requirement
-- [Tailwind CSS RTL support](https://ryanschiang.com/tailwindcss-direction-rtl) — `rtl:` variants and `dir` attribute requirement; `text-right` does not set bidi direction
-- [Pomodoro Technique — Todoist](https://www.todoist.com/productivity-methods/pomodoro-technique) — alternating break structure basis
-- [Goal-Gradient Effect — UI Patterns](https://ui-patterns.com/patterns/Completion) — post-goal motivation drop; motivational card as countermeasure
-
-### Tertiary (LOW confidence — needs validation)
-- Alternating break S/L/S pattern for 4-session plans — inferred from Pomodoro literature, needs Abu Lahya confirmation before Phase 5 implementation
-- Arabic bilingual card pattern in SaaS products — inferred from common Middle Eastern product practice; specific example not sourced
+- [Long Polling vs WebSockets — Ably](https://ably.com/blog/websockets-vs-long-polling) — confirms polling is valid for async coaching chat at this scale
+- [Real-Time Features in SaaS — TwoCents](https://www.twocents.software/blog/real-time-features-in-saas/) — confirms polling correct for Supabase Pro connection constraints
+- [Chat UX Best Practices — GetStream](https://getstream.io/blog/chat-ux/) — broadcast vs 1:1 mental models, unread indicators
+- [16 Chat UI Design Patterns — BricxLabs](https://bricxlabs.com/blogs/message-screen-ui-deisgn) — message bubble patterns, sender labels, broadcast channel UI
+- [Fuse.js in Next.js — Medium](https://medium.com/@ketchasso72/implementing-client-side-search-in-next-js-with-fuse-js-7bbf241b874f) — confirms client-side Array.filter sufficient for glossary scale
+- [Designing Permissions for SaaS — UX Collective](https://uxdesign.cc/design-permissions-for-a-saas-app-db6c1825f20e) — tiered role feature-gating patterns
 
 ---
-*Research completed: 2026-03-31*
+
+*Research completed: 2026-04-03*
 *Ready for roadmap: yes*

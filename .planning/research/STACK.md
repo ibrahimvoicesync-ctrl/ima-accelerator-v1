@@ -1,8 +1,469 @@
 # Stack Research
 
 **Domain:** Coaching / student performance management platform
-**Researched:** 2026-03-27 (v1.1 update — new features only), 2026-03-29 (v1.2 update — performance, scale, security), 2026-03-31 (v1.3 update — roadmap text/undo, session planner, motivational card)
+**Researched:** 2026-03-27 (v1.1 update — new features only), 2026-03-29 (v1.2 update — performance, scale, security), 2026-03-31 (v1.3 update — roadmap text/undo, session planner, motivational card), 2026-04-03 (v1.4 update — student_diy role, chat, resources tab, Discord embed, glossary, skip tracker, coach assignments, report comments, configurable invite limits)
 **Confidence:** HIGH — versions verified against npm, official changelogs, and official docs
+
+---
+
+## v1.4 Additions (Roles, Chat & Resources)
+
+The validated v1.0, v1.1, v1.2, and v1.3 stacks remain unchanged. This section documents what is **added or changed** for the nine v1.4 features.
+
+---
+
+### No New npm Dependencies Needed
+
+All v1.4 features are implementable with libraries already installed. Zero new packages required.
+
+| Feature | Required Capability | Covered By |
+|---------|--------------------|-----------:|
+| Polling chat (5s interval) | `setInterval` + `clearInterval` cleanup | `useEffect` / `useRef` — built into React 19, no library |
+| Chat message state | Local state + fetch | React 19 `useState` — no library |
+| Chat unread badge | Count-based derived state | React 19 state — no library |
+| Discord WidgetBot embed | `<iframe>` with `src="https://e.widgetbot.io/channels/SERVER_ID/CHANNEL_ID"` | Native HTML iframe — no npm package (D-10 confirmed) |
+| Glossary search | `Array.filter` + `String.includes` (case-insensitive) | Pure JavaScript — no search library needed for in-memory data |
+| Glossary CRUD | Form state + fetch | `react-hook-form` ^7.71.2 — already installed |
+| Resource link CRUD | Form state + fetch | `react-hook-form` ^7.71.2 — already installed |
+| student_diy role (4th role) | Role type extension in config + proxy + types | `src/lib/config.ts` + `src/proxy.ts` — config-only changes |
+| Skip tracker (ISO week days) | Postgres `date_trunc('week', ...)` + RPC | Supabase / Postgres — already in stack |
+| Report comments | Single text column on daily_reports or separate table | Supabase / Postgres — already in stack |
+| Coach assignment power | Existing assignments pattern extended to coach role | Next.js route handlers + Supabase — already in stack |
+| Configurable invite max_uses | Integer column on invites table | Supabase / Postgres — already in stack |
+
+**Confirmed: zero new npm installs for v1.4.**
+
+---
+
+### Why No Search Library for Glossary
+
+The glossary is an owner/coach-managed list of terms — at V1 scale this is a few dozen to a few hundred entries, loaded once per page view. Client-side filtering with `Array.filter()` and `String.toLowerCase().includes()` handles this perfectly:
+
+```typescript
+const filtered = glossaryTerms.filter(
+  (term) =>
+    term.title.toLowerCase().includes(query.toLowerCase()) ||
+    term.definition.toLowerCase().includes(query.toLowerCase())
+)
+```
+
+Fuse.js (14 KB min+gzip) and similar fuzzy-search libraries solve a different problem: typo-tolerant search across thousands of records. For a glossary of coaching terms that students search by exact word, substring match is more predictable and requires no configuration. Add Fuse.js only if fuzzy matching becomes a user complaint in V2.
+
+---
+
+### Why No npm Package for Discord WidgetBot
+
+Decision D-10 specifies iframe embed. The `@widgetbot/react-embed` npm package (v1.10.0) is **effectively unmaintained** — last GitHub commit was 2+ years ago, Snyk health analysis rates it as Inactive. The package itself is just a thin React wrapper around the same `<iframe src="https://e.widgetbot.io/...">` element; there is no additional functionality the package provides beyond what a plain iframe gives.
+
+Plain iframe approach:
+
+```tsx
+// src/components/discord-embed.tsx
+// "use client" — required because iframe dimensions may need ResizeObserver
+
+export function DiscordEmbed({
+  serverId,
+  channelId,
+}: {
+  serverId: string
+  channelId: string
+}) {
+  return (
+    <iframe
+      src={`https://e.widgetbot.io/channels/${serverId}/${channelId}`}
+      allow="clipboard-write; fullscreen"
+      className="w-full h-[600px] rounded-lg border border-ima-border"
+      title="Discord community channel"
+    />
+  )
+}
+```
+
+**CSP requirement:** The `next.config.ts` headers must include `frame-src 'self' https://e.widgetbot.io` to allow the WidgetBot iframe to load. Without this, browsers with a strict CSP will block the embed. Add to the `headers()` config in `next.config.ts`:
+
+```typescript
+// next.config.ts
+const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-src 'self' https://e.widgetbot.io;",
+          },
+        ],
+      },
+    ]
+  },
+}
+```
+
+Note: The existing `next.config.ts` is currently empty (`/* config options here */`). The CSP header is a new addition — not a change to any existing header.
+
+---
+
+### Polling Chat Architecture (No New Libraries)
+
+Decision D-07 specifies polling (not Supabase Realtime) to avoid the 500 peak connection limit on Supabase Pro.
+
+**Pattern: `useInterval` custom hook**
+
+```typescript
+// src/lib/hooks/use-interval.ts
+import { useEffect, useRef } from "react"
+
+export function useInterval(callback: () => void, delay: number | null) {
+  const savedCallback = useRef(callback)
+
+  // Keep ref current without resetting the interval
+  useEffect(() => {
+    savedCallback.current = callback
+  }, [callback])
+
+  useEffect(() => {
+    if (delay === null) return
+    const id = setInterval(() => savedCallback.current(), delay)
+    return () => clearInterval(id)
+  }, [delay])
+}
+```
+
+**Usage in chat component:**
+
+```typescript
+// Poll every 5 seconds while tab is visible
+useInterval(fetchMessages, 5000)
+```
+
+**Why `useRef` pattern over plain `useEffect`:** A naive `useEffect(() => { setInterval(fetch, 5000) }, [fetch])` re-registers the interval every time `fetch` is recreated. The `useRef` approach keeps a stable interval registration while always calling the latest version of the callback. This is especially important here because `fetch` depends on `conversationId` which can change.
+
+**Fetch pattern:**
+
+```typescript
+// Only fetch messages newer than the last-seen message
+const params = new URLSearchParams({
+  conversation_id: conversationId,
+  after: lastMessageTimestamp ?? "",  // ISO string or empty
+})
+const res = await fetch(`/api/chat/messages?${params}`)
+if (!res.ok) return  // fail silently on network error — next poll will retry
+```
+
+Polling fetches only new messages (using `after` timestamp) to keep payloads small. The API route returns an empty array when there are no new messages. No backoff or exponential retry needed at this scale — 5s fixed interval is stable.
+
+---
+
+### student_diy Role Integration Points (Config + Proxy Only)
+
+Decision D-14 expands the role type to four values. Changes touch three files:
+
+**`src/lib/config.ts`:**
+- Add `STUDENT_DIY: "student_diy"` to `ROLES` constant
+- Update `Role` type to include `"student_diy"`
+- Add `ROLE_HIERARCHY` entry: `student_diy: 1` (same tier as student)
+- Add `ROLE_REDIRECTS` entry pointing to student_diy dashboard route
+- Add student_diy nav items (dashboard + work tracker + roadmap only — no reports, no AI, no resources, no chat)
+- Add student_diy routes to `ROUTES` constant
+
+**`src/proxy.ts`:**
+- Add `student_diy` to the role guard routing table
+- Route `student_diy` requests to `/student-diy/...` paths
+- Student_diy cannot access `/student/...`, `/coach/...`, or `/owner/...`
+
+**`src/lib/types.ts`:**
+- Add `"student_diy"` to `users.Row.role` union: `"owner" | "coach" | "student" | "student_diy"`
+- Update Insert and Update types to match
+
+**Database:**
+- `users.role` column: add `"student_diy"` to the CHECK constraint in a migration
+- No new tables required for the role itself
+
+**Features student_diy has (D-06):** dashboard, work tracker, roadmap
+**Features student_diy does NOT have (D-05):** Ask Abu Lahya, daily report, resources tab, chat
+**No coach assignment (D-04):** `coach_id` is NULL for all student_diy users
+
+---
+
+### Skip Tracker — RPC Function (No New Libraries)
+
+Decision D-01: "This week" = Monday-Sunday ISO week.
+
+The skip tracker shows "X days skipped this week" on coach/owner dashboards. A skip = a calendar day in the current ISO week where the student has no completed work sessions.
+
+**Implementation: Postgres RPC function**
+
+```sql
+-- Count "active" days in the current ISO week where a student has no
+-- completed work sessions. Returns an integer 0-7.
+CREATE OR REPLACE FUNCTION get_skip_count_this_week(p_student_id uuid)
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH
+  -- Monday of the current ISO week (date_trunc('week') returns Monday)
+  week_start AS (
+    SELECT date_trunc('week', now())::date AS monday
+  ),
+  -- All calendar days in this week up to (not including) today
+  -- Only count days that have passed — today is not a skip yet
+  week_days AS (
+    SELECT generate_series(
+      (SELECT monday FROM week_start),
+      LEAST(now()::date - interval '1 day', (SELECT monday FROM week_start) + interval '6 days'),
+      interval '1 day'
+    )::date AS day
+  ),
+  -- Days with at least one completed session
+  active_days AS (
+    SELECT DISTINCT started_at::date AS day
+    FROM work_sessions
+    WHERE student_id = p_student_id
+      AND status = 'completed'
+      AND started_at >= (SELECT monday FROM week_start)
+      AND started_at < (SELECT monday FROM week_start) + interval '7 days'
+  )
+  SELECT count(*)::integer
+  FROM week_days
+  WHERE day NOT IN (SELECT day FROM active_days)
+$$;
+```
+
+**Why RPC not a computed column:** Skip count is derived from `work_sessions`, not stored. Computing it in Postgres avoids sending all work session rows to the application layer just to count calendar gaps. The `STABLE` marker allows Postgres to cache the result within the same transaction.
+
+**Call from Server Component:**
+```typescript
+const { data: skipCount } = await adminClient.rpc("get_skip_count_this_week", {
+  p_student_id: studentId,
+})
+```
+
+---
+
+### Report Comments Table (No New Libraries)
+
+Decision D-03: Single comment per report, coach-only write, students can read on history.
+
+**New table** `report_comments`:
+
+```sql
+CREATE TABLE public.report_comments (
+  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id      uuid        NOT NULL REFERENCES public.daily_reports(id) ON DELETE CASCADE,
+  coach_id       uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  comment_text   text        NOT NULL CHECK (char_length(comment_text) <= 1000),
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (report_id)  -- one comment per report
+);
+```
+
+**Alternative considered:** Adding a `comment_text` column directly to `daily_reports`. Rejected because: (a) it mixes the student's report data with the coach's feedback in one row, (b) the comment has its own author (`coach_id`) and timestamp that belong on the comment, not the report, (c) a separate table enables future multi-comment threading (V2+) without a schema change.
+
+**RLS:** Coach can INSERT/UPDATE only their own comments (`coach_id = auth_user_id`). Students can SELECT comments on their own reports. Owner can read all.
+
+---
+
+### Glossary Table (No New Libraries)
+
+Decision D-12: Owner + coaches can CRUD glossary entries.
+
+**New table** `glossary_terms`:
+
+```sql
+CREATE TABLE public.glossary_terms (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  term        text        NOT NULL CHECK (char_length(term) <= 100),
+  definition  text        NOT NULL CHECK (char_length(definition) <= 1000),
+  created_by  uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+```
+
+**RLS:** Owner and coach can INSERT/UPDATE/DELETE. All authenticated users (owner/coach/student) can SELECT — student_diy cannot (no Resources tab per D-11). Enforce at the proxy level by not exposing the Resources tab to student_diy.
+
+---
+
+### Resource Links Table (No New Libraries)
+
+**New table** `resource_links`:
+
+```sql
+CREATE TABLE public.resource_links (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  title       text        NOT NULL CHECK (char_length(title) <= 200),
+  url         text        NOT NULL CHECK (url ~* '^https?://'),
+  description text        CHECK (char_length(description) <= 500),
+  created_by  uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+```
+
+**RLS:** Owner and coach can INSERT/DELETE. All authenticated users (owner/coach/student) can SELECT.
+
+---
+
+### Chat Tables (No New Libraries)
+
+Two tables for polling-based 1:1 + broadcast chat.
+
+**`chat_conversations`** — groups messages by participant pair or broadcast channel:
+
+```sql
+CREATE TABLE public.chat_conversations (
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  type            text        NOT NULL CHECK (type IN ('direct', 'broadcast')),
+  -- For 'direct': coach_id + student_id both non-null
+  -- For 'broadcast': coach_id non-null, student_id null
+  coach_id        uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  student_id      uuid        REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (coach_id, student_id)  -- one direct conversation per coach-student pair
+);
+```
+
+**`chat_messages`** — individual messages within a conversation:
+
+```sql
+CREATE TABLE public.chat_messages (
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid        NOT NULL REFERENCES public.chat_conversations(id) ON DELETE CASCADE,
+  sender_id       uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  content         text        NOT NULL CHECK (char_length(content) <= 2000),
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+```
+
+**Index for polling:** Add `CREATE INDEX ON chat_messages (conversation_id, created_at DESC)` — the poll query always filters by `conversation_id` and orders by `created_at` to get only messages after the last-seen timestamp.
+
+**Unread count:** Derive client-side from messages loaded since the chat tab was opened. No `read_at` column needed for V1 — unread badge resets on tab open.
+
+**RLS:** A student can only read messages from conversations they are a participant in (their `student_id` matches). A coach can read messages from their conversations. Broadcast conversations are readable by all students linked to that coach.
+
+---
+
+### Invite max_uses Change (No New Tables)
+
+Decision D-13: `invites.max_uses` defaults to 10 (was NULL/unlimited).
+
+**Migration change only** — `ALTER TABLE public.invites ALTER COLUMN max_uses SET DEFAULT 10` if the column already exists, or add it if missing:
+
+```sql
+-- Check if max_uses already exists (it was added in an earlier migration)
+-- If not: ALTER TABLE public.invites ADD COLUMN max_uses integer NOT NULL DEFAULT 10;
+-- If yes: ALTER TABLE public.invites ALTER COLUMN max_uses SET DEFAULT 10;
+--          UPDATE public.invites SET max_uses = 10 WHERE max_uses IS NULL;
+```
+
+The UI shows usage count — `current_uses` is a computed count of rows in a `invite_usages` table or a counter column on `invites`. The simpler V1 approach: add `use_count integer NOT NULL DEFAULT 0` to `invites` and increment on each use.
+
+---
+
+### API Route Additions (No New Libraries)
+
+New routes follow the exact same auth sequence as all existing mutation routes:
+`verifyOrigin → auth → admin profile → role check → checkRateLimit → Zod safeParse → business logic`
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/chat/conversations` | GET | List conversations for current user |
+| `/api/chat/messages` | GET | Poll messages for a conversation (accepts `after` param) |
+| `/api/chat/messages` | POST | Send a message |
+| `/api/reports/[id]/comment` | POST/PATCH | Add or update coach comment on a report |
+| `/api/glossary` | GET | List all terms (paginated) |
+| `/api/glossary` | POST | Create a term (owner/coach only) |
+| `/api/glossary/[id]` | PATCH | Update a term (owner/coach only) |
+| `/api/glossary/[id]` | DELETE | Delete a term (owner/coach only) |
+| `/api/resources` | GET | List resource links |
+| `/api/resources` | POST | Create a resource link (owner/coach only) |
+| `/api/resources/[id]` | DELETE | Delete a resource link (owner/coach only) |
+| `/api/assignments` | POST/DELETE | Coach creates/removes student assignments (extended from owner-only) |
+| `/api/invites/[id]` | PATCH | Update `max_uses` on an invite |
+
+GET routes for chat polling do not need `verifyOrigin` (reads, no mutation). All POST/PATCH/DELETE routes must include `verifyOrigin`.
+
+---
+
+### Config Changes (No Migration)
+
+**`src/lib/config.ts` additions for v1.4:**
+
+```typescript
+// 4th role
+export const ROLES = {
+  OWNER: "owner",
+  COACH: "coach",
+  STUDENT: "student",
+  STUDENT_DIY: "student_diy",
+} as const
+
+// Chat polling interval
+export const CHAT_CONFIG = {
+  pollIntervalMs: 5000,       // 5-second polling interval
+  maxMessageLength: 2000,     // matches DB CHECK constraint
+  pageSize: 50,               // messages loaded per poll
+} as const
+
+// Invite defaults
+export const INVITE_CONFIG = {
+  defaultMaxUses: 10,
+  expiryDays: 30,
+} as const
+```
+
+---
+
+### What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `@widgetbot/react-embed` | Unmaintained (last commit 2+ years ago). It is a thin wrapper over the same `<iframe>` tag — no additional value. | Native `<iframe src="https://e.widgetbot.io/channels/...">` |
+| `fuse.js` / `microfuzz` | Overkill for a few-hundred-row glossary. Fuzzy matching isn't needed for coaching terms. | `Array.filter` + `String.toLowerCase().includes()` |
+| `socket.io` / `pusher-js` | Supabase Realtime avoided (D-07) due to 500 connection limit on Pro. WebSocket libraries solve the same problem. | `setInterval` polling via `useInterval` hook |
+| `@supabase/realtime-js` (standalone) | Same reason as above — polling is the explicit decision to avoid connection pressure. | `useInterval` hook + `fetch` |
+| `swr` / `react-query` | Chat polls every 5s; the custom `useInterval` + `fetch` pattern is 10 lines and has no caching indirection. | `useInterval` + `useState` |
+| `lru-cache` (for chat) | Rate limiting already uses DB-backed `rate_limit_log` as of v1.2; the in-memory approach in v1.2 STACK.md was superseded by the DB implementation actually shipped. No in-memory cache needed for chat. | `checkRateLimit()` from `src/lib/rate-limit.ts` |
+| `react-virtualized` / `react-window` | Chat messages are paginated (50 per fetch); virtualization is not needed at this scale. | Standard scrolling `<ul>` with `overflow-y-auto` |
+| `marked` / `react-markdown` | Chat messages are plain text. Markdown rendering is not in scope. | Plain `<p>` with whitespace-preserved CSS |
+
+---
+
+## Version Compatibility
+
+All new code uses libraries already installed. No compatibility risk from new additions.
+
+| Package | Version in package.json | v1.4 Usage | Notes |
+|---------|------------------------|-----------|-------|
+| `react` | 19.2.3 | `useState`, `useEffect`, `useRef`, `useCallback` for polling hook | All hooks used are stable in React 19 |
+| `zod` | ^4.3.6 | New schemas for chat messages, glossary terms, resource links | No new patterns — same `z.object().safeParse()` used throughout |
+| `react-hook-form` | ^7.71.2 | Glossary CRUD form, resource link form | Already used for daily report; same pattern |
+| `lucide-react` | ^0.576.0 | New icons: `MessageSquare`, `BookOpen`, `ExternalLink`, `Hash` | All icons confirmed present in 0.576.0 |
+| `@supabase/supabase-js` | ^2.99.2 | New tables: chat_conversations, chat_messages, report_comments, glossary_terms, resource_links | Same `.from()` / `.rpc()` patterns as existing tables |
+| `next` | 16.1.6 | New API routes for chat/glossary/resources; CSP header in `next.config.ts` | Same App Router route handler pattern |
+| `date-fns` | ^4.1.0 | Chat message timestamps, ISO week boundaries for skip tracker display | No new functions beyond existing usage |
+
+---
+
+## Sources
+
+- [WidgetBot iframe docs](https://docs.widgetbot.io/tutorial/iframes) — confirmed iframe URL format `https://e.widgetbot.io/channels/SERVER_ID/CHANNEL_ID`, required `allow="clipboard-write; fullscreen"` attributes
+- [@widgetbot/react-embed npm](https://www.npmjs.com/package/@widgetbot/react-embed) — confirmed package is inactive (last npm publish 5 months ago, last GitHub commit 2+ years ago); plain iframe is the better choice
+- [Snyk @widgetbot/react-embed health](https://snyk.io/advisor/npm-package/@widgetbot/react-embed) — Inactive maintenance status confirmed
+- [MDN frame-src CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/frame-src) — `frame-src 'self' https://e.widgetbot.io` required to allow WidgetBot iframe
+- [Next.js headers config](https://nextjs.org/docs/advanced-features/security-headers) — `headers()` in `next.config.ts` is the correct place for CSP
+- [PostgreSQL date_trunc ISO week](https://weeknumber.com/how-to/postgres) — `date_trunc('week', now())` returns Monday of the current ISO week; `generate_series` for day enumeration
+- [React useInterval pattern](https://www.davegray.codes/posts/usepolling-custom-hook-for-auto-fetching-in-nextjs) — `useRef` + `useEffect` pattern for stable polling without re-registration
+- [Fuse.js](https://www.fusejs.io/) — evaluated and rejected; `Array.filter` is sufficient for glossary at this scale
+
+---
+
+*Stack research for: coaching / student performance management platform (v1.4 additions only)*
+*Researched: 2026-04-03*
 
 ---
 
@@ -81,7 +542,7 @@ CREATE TABLE public.roadmap_undo_log (
 
 New route file: `src/app/api/roadmap/undo/route.ts`
 
-**Pattern:** Follows the existing `PATCH /api/roadmap` route exactly — same auth check, admin client, rate-limit check, verifyOrigin CSRF, Zod safeParse, try/catch with console.error.
+**Pattern:** Follows the existing `PATCH /api/roadmap` route exactly — same auth check, admin client, rate-limit check, verifyOrigin CSRF, Zod safeParse, try-catch with console.error.
 
 **Body schema:**
 ```typescript
@@ -212,7 +673,7 @@ export const PLANNER_CONFIG = {
 
 ---
 
-### What NOT to Add
+### What NOT to Add (v1.3)
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
@@ -241,7 +702,7 @@ All new code uses libraries already installed. No compatibility risk from new ad
 
 ---
 
-## Sources
+## Sources (v1.3)
 
 - [Zod v4 changelog](https://zod.dev/v4/changelog) — confirmed `import { z } from "zod"` is correct for v4; "zod/v4" is a transitional shim only
 - [Supabase JSONB docs](https://supabase.com/docs/guides/database/json) — JSONB recommended for semi-structured data; GIN index when querying across keys (not needed here)
@@ -271,6 +732,8 @@ The validated v1.0 and v1.1 stacks remain unchanged. This section documents what
 
 `lru-cache` is the **only new npm dependency** for v1.2. Everything else is either a Supabase Platform feature (pg_cron, pg_stat_statements), a Next.js 16 built-in (React `cache()`, `use cache` directive, `revalidatePath`), or a standalone CLI tool (k6).
 
+**Note:** The v1.2 STACK.md documented `lru-cache` as the rate-limiting implementation. The actual shipped implementation in `src/lib/rate-limit.ts` uses DB-backed rate limiting via the `rate_limit_log` table instead. The `lru-cache` package may not be in `package.json`. New v1.4 code should use `checkRateLimit()` from `src/lib/rate-limit.ts` (DB-backed), not an in-memory LRU store.
+
 ---
 
 ### No New Libraries Needed For
@@ -291,48 +754,23 @@ The validated v1.0 and v1.1 stacks remain unchanged. This section documents what
 
 ### Rate Limiting Architecture (API Routes)
 
-**Approach: In-memory sliding window with `lru-cache`**
+**Approach: DB-backed rate limiting via `rate_limit_log` table**
 
-This is an invite-only platform with a known small user base (the 5k target is a *load test scenario*, not the current active count). In-memory rate limiting in a module-level singleton is correct for this deployment profile.
-
-**Why not Redis/Upstash:** The PROJECT.md explicitly defers Redis to "evaluate only if Phase 24 load testing proves Next.js cache insufficient." Single-instance Next.js on Vercel (or any single host) keeps the in-memory store consistent across requests on the same worker. At the scale of this platform, in-memory is sufficient and avoids adding an external service dependency.
-
-**Implementation pattern:**
+The `src/lib/rate-limit.ts` uses the `rate_limit_log` table (added in migration 00012) with a covering index. `checkRateLimit(userId, endpoint)` counts recent requests within the rolling window and inserts a log row on success.
 
 ```typescript
-// src/lib/rate-limit.ts
-import { LRUCache } from "lru-cache"
-
-type RateLimitEntry = { count: number; windowStart: number }
-
-// Module-level singleton — persists across requests on the same Node.js worker
-const rateLimitStore = new LRUCache<string, RateLimitEntry>({
-  max: 5000,          // max number of unique users tracked
-  ttl: 60 * 1000,    // 60-second TTL — auto-evict stale entries
-})
-
-const WINDOW_MS = 60 * 1000  // 1 minute window
-const MAX_REQUESTS = 30       // 30 req/min/user
-
-export function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
-  const now = Date.now()
-  const entry = rateLimitStore.get(userId)
-
-  if (!entry || now - entry.windowStart > WINDOW_MS) {
-    rateLimitStore.set(userId, { count: 1, windowStart: now })
-    return { allowed: true, remaining: MAX_REQUESTS - 1 }
-  }
-
-  if (entry.count >= MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  rateLimitStore.set(userId, { count: entry.count + 1, windowStart: entry.windowStart })
-  return { allowed: true, remaining: MAX_REQUESTS - entry.count - 1 }
+// Usage in every API mutation route:
+const { allowed, remaining, retryAfterSeconds } = await checkRateLimit(
+  profile.id,
+  "/api/route-name"
+)
+if (!allowed) {
+  return NextResponse.json(
+    { error: "Too many requests" },
+    { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+  )
 }
 ```
-
-**Integration point:** Call `checkRateLimit(user.id)` at the start of every API route handler, *after* the auth check but *before* business logic. Return 429 with `Retry-After` header on rejection.
 
 ---
 
@@ -495,7 +933,7 @@ export async function PATCH(request: NextRequest) {
   let body: unknown
   try { body = await request.json() } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }) }
   const parsed = schema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 })
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 }) 
 
   // 6. Business logic
   // ...

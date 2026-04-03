@@ -1,8 +1,8 @@
 # Architecture Research
 
-**Domain:** Student performance & coaching platform — v1.3 feature additions
-**Researched:** 2026-03-31
-**Confidence:** HIGH (derived from direct codebase inspection)
+**Domain:** Student performance & coaching platform — v1.4 integration architecture
+**Researched:** 2026-04-03
+**Confidence:** HIGH (derived from direct codebase inspection + first-principles analysis)
 
 ---
 
@@ -14,502 +14,525 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     BROWSER (React 19)                               │
 │  ┌───────────────┐  ┌────────────────────┐  ┌──────────────────┐    │
-│  │ Server Pages  │  │  "use client"       │  │  "use client"    │    │
-│  │ (reads only)  │  │  WorkTrackerClient  │  │  RoadmapClient   │    │
-│  │ async/await   │  │  (state machine)    │  │  (confirm modal) │    │
+│  │ Server Pages  │  │  "use client"       │  │  Polling client  │    │
+│  │ (reads only)  │  │  WorkTrackerClient  │  │  ChatClient      │    │
+│  │ async/await   │  │  (state machine)    │  │  (5s interval)   │    │
 │  └──────┬────────┘  └────────┬───────────┘  └────────┬─────────┘    │
-│         │                   │  fetch()                │ fetch()      │
-├─────────┴───────────────────┴─────────────────────────┴─────────────┤
-│                     NEXT.JS 16 APP ROUTER                            │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │ src/proxy.ts  — Route guard (not middleware.ts)                │  │
-│  │   • requireRole() used in server pages                         │  │
-│  │   • Redirects by role on wrong path                            │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │ API Routes  src/app/api/                                       │  │
-│  │   CSRF → Auth → Role → RateLimit → Body → Zod → DB            │  │
-│  │   Always: verifyOrigin() + createAdminClient() queries         │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────────┤
-│                     SUPABASE                                         │
-│  ┌──────────┐  ┌─────────────────┐  ┌─────────────────────────┐     │
-│  │  Auth    │  │  Postgres + RLS │  │  RPCs (SECURITY DEFINER)│     │
-│  │  Google  │  │  9+ tables      │  │  get_student_detail     │     │
-│  │  OAuth   │  │  admin client   │  │  get_owner_dashboard    │     │
-│  │          │  │  for all writes │  │  get_sidebar_badges     │     │
-│  └──────────┘  └─────────────────┘  └─────────────────────────┘     │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │ pg_cron (Supabase Pro)                                         │  │
-│  │   • 2 AM UTC: refresh_student_kpi_summaries (advisory lock)   │  │
-│  │   • 3:30 AM UTC: cleanup rate_limit_log (2h window)           │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+├─────────┼───────────────────┼────────────────────────┼──────────────┤
+│                      Next.js 16 App Router                           │
+│  ┌────────────────────────────────────────────────────────────┐      │
+│  │  proxy.ts route guard (CSRF, auth, role, redirect)          │      │
+│  └────────────────────────────────────────────────────────────┘      │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐      │
+│  │ (auth)/      │  │ (dashboard)/ │  │ api/                   │      │
+│  │ login        │  │ owner/       │  │ reports/ work-sessions/ │      │
+│  │ register     │  │ coach/       │  │ roadmap/ assignments/   │      │
+│  │ no-access    │  │ student/     │  │ messages/ resources/    │      │
+│  └──────────────┘  │ student_diy/ │  │ glossary/              │      │
+│                    └──────────────┘  └────────────────────────┘      │
+├──────────────────────────────────────────────────────────────────────┤
+│                      Supabase (Postgres + RLS)                        │
+│  users  invites  magic_links  work_sessions  roadmap_progress         │
+│  daily_reports  alert_dismissals  student_kpi_summaries               │
+│  rate_limit_log  daily_plans  roadmap_undo_log                        │
+│  [NEW] report_comments  messages  resources  glossary_terms           │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | Existing State |
-|-----------|----------------|----------------|
-| `WorkTrackerClient` | State machine: idle→setup→working→break. Owns session lifecycle via fetch to `/api/work-sessions`. | Existing — needs plan-awareness |
-| `RoadmapClient` | Step completion flow: confirm modal → PATCH → unlock URL modal. Read from config. | Existing — no changes needed for undo |
-| `coach/RoadmapTab` | Read-only roadmap progress display with deadline chips. | Existing — add undo button |
-| `src/lib/config.ts` | Single source of truth for ROADMAP_STEPS, WORK_TRACKER, navigation. | Existing — needs DAILY_PLAN config additions |
-| API Route handlers | Pattern: CSRF → Auth → Role → RateLimit → Zod → admin client. | Existing pattern — new routes follow exactly |
+| Component | Responsibility | Typical Implementation |
+|-----------|----------------|------------------------|
+| proxy.ts | Route guard — auth check + role-based redirect | Server-side, runs before every non-API page request |
+| (dashboard)/layout.tsx | Sidebar + badge fetch + ToastProvider | Server component, unstable_cache for badges |
+| Sidebar.tsx | Navigation + unread badges + sign-out | "use client" — needs pathname + auth.signOut() |
+| API routes | Mutations only — CSRF → Auth → Role → RateLimit → Zod → Ownership → Logic | Server-side, admin client for all DB queries |
+| Server pages | All reads — parallel data fetching, pass to client components | async Server Components with createAdminClient() |
+| Client components | Interactive UI — form state, optimistic updates, polling | Minimal "use client" islands |
+| src/lib/config.ts | Single source of truth — roles, nav, routes, constants | Imported everywhere, never duplicated |
 
 ---
 
-## Recommended Project Structure for v1.3 Additions
+## Recommended Project Structure (v1.4 additions)
 
 ```
 src/
 ├── app/
+│   ├── (auth)/                         # Unchanged
 │   ├── (dashboard)/
-│   │   └── student/
-│   │       └── work/
-│   │           └── page.tsx          # MODIFIED: fetch today's plan + sessions
+│   │   ├── layout.tsx                  # MODIFIED: add unread_messages badge
+│   │   ├── owner/
+│   │   │   ├── students/               # MODIFIED: add skip_days_this_week column
+│   │   │   ├── assignments/            # UNCHANGED (owner already has this)
+│   │   │   └── invites/                # MODIFIED: show max_uses/use_count on magic links
+│   │   ├── coach/
+│   │   │   ├── students/               # MODIFIED: add skip_days_this_week column
+│   │   │   ├── reports/                # MODIFIED: add comment inline in ReportRow
+│   │   │   ├── assignments/            # NEW: duplicate of owner/assignments (coach-scoped)
+│   │   │   └── chat/                   # NEW: polling chat UI
+│   │   ├── student/
+│   │   │   ├── chat/                   # NEW: 1:1 + broadcast chat UI
+│   │   │   └── resources/              # NEW: URL links + Discord + glossary tabs
+│   │   └── student_diy/                # NEW: 4th role dashboard (clone of student, reduced)
+│   │       ├── layout.tsx              # NEW: same dashboard layout, student_diy nav
+│   │       ├── page.tsx                # NEW: dashboard (work sessions + roadmap summary)
+│   │       ├── work/                   # NEW: work tracker (identical to student/work)
+│   │       └── roadmap/                # NEW: roadmap view (identical to student/roadmap)
 │   └── api/
-│       ├── daily-plans/
-│       │   └── route.ts              # NEW: POST (create plan), GET (today's plan)
-│       └── roadmap/
-│           ├── route.ts              # EXISTING: student step complete (PATCH)
-│           └── undo/
-│               └── route.ts          # NEW: PATCH (coach/owner step undo)
+│       ├── reports/[id]/comment/       # NEW: POST/DELETE coach comment on report
+│       ├── messages/                   # NEW: GET (poll) + POST (send)
+│       ├── resources/                  # NEW: GET (list) + POST (create)
+│       ├── resources/[id]/             # NEW: PATCH + DELETE
+│       ├── glossary/                   # NEW: GET (list) + POST (create)
+│       ├── glossary/[id]/              # NEW: PATCH + DELETE
+│       └── assignments/                # NEW: PATCH (coach can now reassign students)
 ├── components/
+│   ├── coach/
+│   │   ├── CoachAssignmentsClient.tsx  # NEW: clone of OwnerAssignmentsClient, coach-scoped
+│   │   └── ReportRow.tsx               # MODIFIED: add inline comment field
 │   ├── student/
-│   │   ├── WorkTrackerClient.tsx     # MODIFIED: plan-mode awareness + cap enforcement
-│   │   ├── DailyPlannerClient.tsx    # NEW: plan setup wizard (session count, durations)
-│   │   ├── PlanCompletionCard.tsx    # NEW: motivational card + ad-hoc session picker
-│   │   └── RoadmapClient.tsx         # UNCHANGED (undo is coach/owner only)
-│   └── coach/
-│       └── RoadmapTab.tsx            # MODIFIED: add undo button per completed step
+│   │   └── ChatClient.tsx              # NEW: polling chat — student view
+│   ├── shared/
+│   │   ├── ChatClient.tsx              # NEW: or role-prop variant — shared chat component
+│   │   ├── ResourcesTab.tsx            # NEW: URL links list + add form
+│   │   ├── DiscordEmbed.tsx            # NEW: WidgetBot iframe wrapper
+│   │   └── GlossaryTab.tsx             # NEW: searchable glossary list + CRUD
+│   └── layout/
+│       └── Sidebar.tsx                 # MODIFIED: add unread_messages badge support
 └── lib/
-    └── config.ts                     # MODIFIED: DAILY_PLAN config block + ROADMAP_STEPS updates
+    └── config.ts                       # MODIFIED: add student_diy role, routes, nav, invite rules
 ```
-
-### Structure Rationale
-
-- **`api/daily-plans/`:** New top-level route directory matching existing convention (work-sessions, roadmap, reports). GET returns today's plan for the student (or null). POST creates a new plan.
-- **`api/roadmap/undo/`:** Sub-path under `/api/roadmap` scoped to the undo action. Separate route file prevents bloating the existing route.ts and signals clearly it is a new operation with different role requirements (coach + owner, not student).
-- **`DailyPlannerClient.tsx`:** Isolated "use client" component for the plan setup wizard. Keeps WorkTrackerClient focused on session execution; planner owns the plan creation step.
-- **`PlanCompletionCard.tsx`:** Shown after plan is complete (all planned sessions done). Owns the post-plan motivational content and ad-hoc session trigger. Separate component makes it independently swappable.
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: API Route Mutation Chain
+### Pattern 1: Server Component for Reads, Client Island for Interactivity
 
-Every mutation route in the codebase follows this exact order:
+**What:** Every page is an async Server Component that fetches data and passes it to a thin "use client" child component only when interaction is needed.
 
-```
-verifyOrigin()          → 403 if CSRF mismatch
-supabase.auth.getUser() → 401 if no session
-admin.from("users")     → 404 if profile missing
-role check              → 403 if wrong role
-checkRateLimit()        → 429 if over limit
-request.json()          → 400 if invalid JSON
-zod.safeParse()         → 400 if schema fails
-ownership assertion     → 404 if not their data
-DB mutation             → 500 if DB error
-return response         → 200/201
-```
+**When to use:** All page-level data loading. Applies to new resources, glossary, skip tracker, and report comments pages.
 
-All new API routes (`POST /api/daily-plans`, `PATCH /api/roadmap/undo`) must follow this identical chain. The undo route role-check must allow both `coach` and `owner` (not just one).
+**Trade-offs:** Requires a clean data/interaction boundary. Avoids client-side data fetching waterfalls. Next.js cache() deduplicates repeated calls within the same render tree.
 
-### Pattern 2: Server Page + Thin Client
-
-Every dashboard page is a server component that fetches all data on the server, then passes typed props to a single "use client" component for interactivity:
-
+**Example (new resources page):**
 ```typescript
-// Server page (page.tsx) — existing pattern
-export default async function WorkPage() {
-  const user = await requireRole("student");
+// src/app/(dashboard)/student/resources/page.tsx — server component
+export default async function ResourcesPage() {
+  await requireRole(["owner", "coach", "student"]);
   const admin = createAdminClient();
-  // Parallel fetch: sessions AND today's plan
-  const [sessions, planResult] = await Promise.all([
-    admin.from("work_sessions").select("*").eq("student_id", user.id).eq("date", today),
-    admin.from("daily_plans").select("*").eq("student_id", user.id).eq("date", today).maybeSingle(),
+  const [resources, glossary] = await Promise.all([
+    admin.from("resources").select("*").order("created_at", { ascending: false }),
+    admin.from("glossary_terms").select("*").order("term"),
   ]);
-  return <WorkTrackerClient initialSessions={sessions ?? []} initialPlan={planResult.data ?? null} />;
+  return <ResourcesClient resources={resources.data ?? []} glossary={glossary.data ?? []} />;
 }
 ```
 
-The `work/page.tsx` adds one parallel query for today's `daily_plans` row alongside the existing sessions fetch.
+### Pattern 2: API Route Pipeline (CSRF → Auth → Role → RateLimit → Zod → Ownership → Logic)
 
-**Why:** Avoids client-side data loading on mount. The plan state at page load is always fresh from the server.
+**What:** Every mutation API route follows the exact same middleware chain in the same order.
 
-### Pattern 3: plan_json Column Design
+**When to use:** All 7 new API routes must follow this pattern. No exceptions.
 
-The `daily_plans` table uses a `plan_json` JSONB column to store the planned session sequence. This allows flexible structure without additional join tables:
+**Trade-offs:** Verbose but maximally safe. The order matters: CSRF is cheapest (no DB), auth is next, role gates before expensive DB work.
 
+**Example (new comment endpoint skeleton):**
 ```typescript
-type PlanSession = {
-  type: "work" | "break";
-  minutes: number;
+// src/app/api/reports/[id]/comment/route.ts
+export async function POST(request: NextRequest, { params }) {
+  const csrfError = verifyOrigin(request);    // 1. CSRF
+  if (csrfError) return csrfError;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); // 2. Auth
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("users").select("id, role").eq("auth_id", user.id).single();
+  if (!profile || profile.role !== "coach") return NextResponse.json({ error: "Forbidden" }, { status: 403 }); // 3. Role
+
+  const { allowed } = await checkRateLimit(profile.id, "/api/reports/comment"); // 4. Rate limit
+  // ... 5. Zod, 6. Ownership, 7. Logic
+}
+```
+
+### Pattern 3: Cursor-Based Polling for Chat
+
+**What:** Chat messages use a `cursor` (last received message ID or timestamp) to fetch only new messages since the last poll. Client polls every 5 seconds via setInterval.
+
+**When to use:** The messages table with polling architecture. This is the only place in the codebase that uses client-side polling.
+
+**Trade-offs:** Simple, no WebSockets, no Supabase Realtime subscription (avoids 500 connection limit). Adds 5s latency maximum. Acceptable for async coaching chat. setInterval must be cleared in useEffect cleanup to prevent memory leaks.
+
+**Example:**
+```typescript
+// Polling hook — inside ChatClient.tsx
+useEffect(() => {
+  const poll = async () => {
+    const res = await fetch(`/api/messages?channel_id=${channelId}&after=${cursor}`);
+    if (!res.ok) return;
+    const { data } = await res.json();
+    if (data.length > 0) {
+      setMessages(prev => [...prev, ...data]);
+      setCursor(data[data.length - 1].id);  // advance cursor
+    }
+  };
+  const interval = setInterval(poll, 5000);
+  return () => clearInterval(interval);  // cleanup on unmount
+}, [channelId, cursor]);
+```
+
+### Pattern 4: Config-Driven Role Expansion
+
+**What:** The `student_diy` role is added to config.ts exactly like existing roles — ROLES constant, ROLE_HIERARCHY, ROUTES, NAVIGATION, ROLE_REDIRECTS, INVITE_CONFIG.
+
+**When to use:** Any role-related feature. proxy.ts and session.ts derive behavior from config constants, not hardcoded strings.
+
+**Trade-offs:** One edit to config.ts propagates everywhere. The `Role` type must be updated in config, types.ts, and the DB migration simultaneously to avoid TypeScript errors.
+
+**Required config.ts changes:**
+```typescript
+export const ROLES = {
+  OWNER: "owner",
+  COACH: "coach",
+  STUDENT: "student",
+  STUDENT_DIY: "student_diy",        // NEW
+} as const;
+
+export const ROLE_HIERARCHY: Record<Role, number> = {
+  owner: 3,
+  coach: 2,
+  student: 1,
+  student_diy: 1,                    // NEW — same level as student
 };
 
-type PlanJson = {
-  sessions: PlanSession[];    // ordered list: work, break, work, break, ...
-  total_work_minutes: number; // pre-computed, enforced <= 240 (4h cap)
-};
+// ROUTES.student_diy — only dashboard, work, roadmap
+// NAVIGATION.student_diy — 3 items (no Ask AI, no Daily Report, no Resources, no Chat)
+// ROLE_REDIRECTS.student_diy — "/student_diy"
+// INVITE_CONFIG.inviteRules — owner can invite student_diy, coach can invite student_diy
 ```
 
-**Why JSONB over normalized rows:** The plan is immutable after creation (individual planned sessions are never edited). It is only read as a whole to drive WorkTrackerClient. JSONB avoids a `plan_sessions` join table and a second query. Matches the pattern used in `get_student_detail` RPC which also returns JSONB aggregates.
+### Pattern 5: Shared Components via Role Prop
 
-**Constraint enforcement:** The `total_work_minutes <= 240` (4h cap) is enforced at the API layer via Zod validation before insert — not as a DB check constraint. This matches the existing pattern where business rules live in route handlers.
+**What:** For features that are nearly identical across roles (assignments, chat), use a shared component with a `role` or `scope` prop rather than duplicating code into role-specific component folders.
 
-### Pattern 4: State Machine Extension for Plan-Mode
+**When to use:** CoachAssignmentsClient can be a role-scoped view of the same OwnerAssignmentsClient pattern. Chat UI is identical for coach and student views (just filtering differs server-side).
 
-WorkTrackerClient already uses a discriminated union phase state:
-
-```typescript
-type TrackerPhase =
-  | { kind: "idle" }
-  | { kind: "setup" }
-  | { kind: "working" }
-  | { kind: "break"; secondsRemaining: number };
-```
-
-When a plan exists, the `idle` → `setup` transition is replaced by plan-driven flow. No new phase variants are needed — instead a `planMode: boolean` derived from `initialPlan !== null` gates which UI renders in the `idle` state:
-
-- No plan → existing "Set Up Session" button → manual setup unchanged
-- Plan exists, not complete → "Start Planned Session N (Xm)" button → skips setup, uses plan's predetermined duration
-- Plan complete → `PlanCompletionCard` renders instead of idle prompt
-
-**Why no new phase variants:** Avoids rewriting the break countdown and working-state logic. Plan-mode affects only the idle→start transition and the post-completion UI.
-
-### Pattern 5: Undo Logging Table
-
-The coach roadmap undo requires an audit trail. A new `roadmap_undo_log` table follows the `rate_limit_log` precedent (append-only, admin client only, no JWT RLS policies, separate from the main business table):
-
-```sql
-CREATE TABLE public.roadmap_undo_log (
-  id          bigserial PRIMARY KEY,
-  student_id  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  step_number integer NOT NULL,
-  undone_by   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  undone_at   timestamptz NOT NULL DEFAULT now()
-);
--- RLS enabled, no policies — admin client (service_role) only
-```
-
-This keeps `roadmap_progress` clean and separates the audit concern.
+**Trade-offs:** Reduces duplication but requires careful prop typing. Prefer this over copy-paste when >80% of the component logic is shared.
 
 ---
 
 ## Data Flow
 
-### Daily Plan Creation Flow
+### Chat Polling Flow
 
 ```
-Student opens /student/work (no plan today)
+[ChatClient mounts]
     ↓
-Server page: parallel fetch sessions + daily_plans WHERE date = today
-    ↓ plan is null
-WorkTrackerClient renders in "no-plan" state → shows DailyPlannerClient
-    ↓ student picks session count (1-4) and duration per session
-    ↓ DailyPlannerClient auto-generates alternating breaks
-    ↓ pre-computes total_work_minutes; enforces <= 240 client-side
-POST /api/daily-plans { date, plan_json }
-    ↓ CSRF → Auth → Role(student) → RateLimit → Zod (validates total_work_minutes) → INSERT daily_plans
-    ↓ 201 { id, date, plan_json, status: "active" }
-router.refresh() → server page re-fetches → WorkTrackerClient receives plan
-    ↓ renders plan-mode idle: "Start Planned Session 1 (45 min)"
-```
-
-### Plan Session Execution Flow
-
-```
-Student clicks "Start Planned Session N"
+[GET /api/messages?channel_id=X&after=null] ← initial load (last 50 messages)
     ↓
-WorkTrackerClient derives session_minutes from plan_json.sessions[workIndex].minutes
-    → calls existing handleStart() with that duration (no new fetch pattern needed)
-    → POST /api/work-sessions { date, cycle_number, session_minutes }
-Session completes (manual or timer)
-    ↓ PATCH /api/work-sessions/[id] { status: "completed" }
-    ↓ WorkTrackerClient checks: completedCount == plan work session count?
-    → No: show plan-specified break duration, then next planned session
-    → Yes: render PlanCompletionCard
+[setInterval 5s] → [GET /api/messages?channel_id=X&after=<last_id>]
+    ↓
+[append new messages to local state]
+    ↓
+[POST /api/messages] ← user sends message
+    ↓
+[optimistic append to local state, cursor advances]
 ```
 
-### Coach Roadmap Undo Flow
+### Sidebar Badge Flow (modified for unread messages)
 
 ```
-Coach views student detail → RoadmapTab
-    ↓ completed step row shows UndoStepButton (new component)
-    ↓ coach clicks undo → confirmation modal
-    ↓ coach confirms
-PATCH /api/roadmap/undo { student_id, step_number }
-    ↓ CSRF → Auth → Role(coach|owner) → RateLimit → Zod
-    ↓ ownership: if coach, verify student.coach_id === profile.id
-    ↓ DB transaction:
-        UPDATE roadmap_progress SET status='active', completed_at=null WHERE step=N
-        UPDATE roadmap_progress SET status='locked' WHERE step=N+1 (if not completed)
-        INSERT roadmap_undo_log (student_id, step_number, undone_by, undone_at)
-    ↓ 200 { undone: step row }
-RoadmapTab: router.refresh() re-fetches coach student detail page
+[Dashboard layout.tsx renders]
+    ↓
+[unstable_cache(getSidebarBadges, ['sidebar-badges'], { revalidate: 60 })]
+    ↓
+[get_sidebar_badges RPC] ← MODIFIED: add unread_messages_count to result
+    ↓
+[badgeCounts passed to <Sidebar>]
+    ↓
+[NAVIGATION config badge key 'unread_messages' matched to count]
 ```
 
-### Post-Plan Completion Flow
+**Note:** The 60-second revalidation means badge counts can lag by up to 1 minute. This is acceptable for unread message counts (not time-critical). If chat badge needs to be real-time, the ChatClient can manually call `revalidateTag("badges")` after reading messages — but this requires a server action, not a fetch call, to trigger cache invalidation from the client.
+
+### Report Comment Flow
 
 ```
-WorkTrackerClient: completedCount === plan work session count
-    ↓ renders PlanCompletionCard instead of idle prompt
-PlanCompletionCard:
-    - Arabic + English motivational message
-    - "Add Ad-Hoc Session" button
-    ↓ student clicks "Add Ad-Hoc Session"
-    ↓ WorkTrackerClient re-enters setup phase (standard duration picker, no plan cap)
-    ↓ POST /api/work-sessions (same as existing, no plan_id needed)
-    ↓ session tracked normally — ad-hoc sessions are uncapped
+[Coach views report in ReportRow]
+    ↓
+[comment_text textarea inline in ReportRow]
+    ↓
+[POST /api/reports/[id]/comment] → { text: string }
+    ↓
+[INSERT into report_comments (report_id, coach_id, text)]
+    ↓
+[optimistic update: show comment inline in ReportRow]
+    ↓
+[student views /student/report history]
+    ↓
+[server component fetches daily_reports JOIN report_comments]
+    ↓
+[comment shown read-only below report fields]
 ```
 
----
+### skip_days_this_week Computation Flow
 
-## New vs Modified: Explicit Inventory
-
-### New Files
-
-| File | Type | Purpose |
-|------|------|---------|
-| `src/app/api/daily-plans/route.ts` | API Route | POST create plan, GET today's plan |
-| `src/app/api/roadmap/undo/route.ts` | API Route | PATCH undo step (coach/owner only) |
-| `src/components/student/DailyPlannerClient.tsx` | Client Component | Plan setup wizard UI |
-| `src/components/student/PlanCompletionCard.tsx` | Client Component | Post-plan motivational card + ad-hoc picker |
-| `supabase/migrations/00013_v1_3_schema.sql` | Migration | daily_plans + roadmap_undo_log tables + RLS |
-
-### Modified Files
-
-| File | Change | Why |
-|------|--------|-----|
-| `src/app/(dashboard)/student/work/page.tsx` | Add parallel fetch for today's `daily_plans` row | Server page passes plan to WorkTrackerClient |
-| `src/components/student/WorkTrackerClient.tsx` | Accept `initialPlan` prop, plan-mode logic in idle state, plan-driven session start | Plan-driven session execution |
-| `src/components/coach/RoadmapTab.tsx` | Embed UndoStepButton per completed step | Coach undo capability |
-| `src/lib/config.ts` | Add `DAILY_PLAN` config block (4h cap constant, default break minutes) | Config-as-truth pattern |
-| `src/lib/config.ts` | Update ROADMAP_STEPS (text appends, unlock_url move step 6→5, step 6/7 rewrites, step 8 target_days: 14) | Roadmap text updates per requirements |
-
-### Unchanged Files
-
-| File | Rationale |
-|------|-----------|
-| `src/app/api/roadmap/route.ts` | Student step completion is unchanged — undo is a new separate route |
-| `src/components/student/RoadmapClient.tsx` | Students cannot undo their own steps — no changes needed |
-| `src/lib/rate-limit.ts` | New routes call existing `checkRateLimit()` unchanged |
-| `src/lib/csrf.ts` | New routes call existing `verifyOrigin()` unchanged |
-| All coach analytics, calendar, KPI summary components | Out of scope for v1.3 |
-
----
-
-## Database Schema Additions
-
-### daily_plans table
-
-```sql
-CREATE TABLE public.daily_plans (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id  uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  date        date NOT NULL,
-  plan_json   jsonb NOT NULL,
-  status      varchar(20) NOT NULL DEFAULT 'active'
-              CHECK (status IN ('active', 'completed')),
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (student_id, date)
-);
-
-CREATE INDEX idx_daily_plans_student_date ON public.daily_plans(student_id, date DESC);
-
--- RLS: student sees own plans; coach sees assigned students; owner sees all
-ALTER TABLE public.daily_plans ENABLE ROW LEVEL SECURITY;
 ```
-
-**plan_json shape (example: 3 work sessions):**
-
-```json
-{
-  "sessions": [
-    { "type": "work",  "minutes": 45 },
-    { "type": "break", "minutes": 10 },
-    { "type": "work",  "minutes": 45 },
-    { "type": "break", "minutes": 10 },
-    { "type": "work",  "minutes": 45 }
-  ],
-  "total_work_minutes": 135
-}
-```
-
-Break auto-generation rule (enforced in DailyPlannerClient before submit, mirrored in API Zod schema):
-- After each work block except the last: insert a short break (default 10 min)
-- No break appended after the final work block
-- Breaks excluded from the 240-min cap calculation
-
-### roadmap_undo_log table
-
-```sql
-CREATE TABLE public.roadmap_undo_log (
-  id          bigserial PRIMARY KEY,
-  student_id  uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  step_number integer NOT NULL,
-  undone_by   uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  undone_at   timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_undo_log_student ON public.roadmap_undo_log(student_id, undone_at DESC);
-
--- Admin client only — no JWT RLS policies (matches rate_limit_log pattern)
-ALTER TABLE public.roadmap_undo_log ENABLE ROW LEVEL SECURITY;
+[Coach/Owner student list page loads]
+    ↓
+[server component fetches work_sessions WHERE date >= ISO week Monday]
+    ↓
+[compute: days in Mon-Sun week with no completed sessions = skipped days]
+    ↓  (or better: add to get_student_detail RPC or new RPC)
+[pass skip_count to student list row component]
 ```
 
 ---
 
-## Integration Points
+## Integration Points: New vs Modified
 
-### WorkTrackerClient ↔ DailyPlannerClient
+### Components: NEW
 
-WorkTrackerClient renders DailyPlannerClient inline when the student has no plan yet and no active/paused session. DailyPlannerClient signals completion via `onPlanCreated(plan)` callback prop, triggering `router.refresh()` to re-render with the new plan. No route navigation required.
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `ChatClient.tsx` | `src/components/shared/` | Polling chat UI, works for coach and student views |
+| `ResourcesTab.tsx` | `src/components/shared/` | URL link list with add/delete (owner/coach) |
+| `DiscordEmbed.tsx` | `src/components/shared/` | WidgetBot iframe wrapper with CSP note |
+| `GlossaryTab.tsx` | `src/components/shared/` | Searchable glossary, CRUD for owner/coach |
+| `CoachAssignmentsClient.tsx` | `src/components/coach/` | Assignment UI for coach role (mirrors owner pattern) |
+| `StudentDIYDashboard.tsx` | `src/components/student_diy/` | DIY-specific dashboard widgets |
 
-```
-WorkTrackerClient state decision:
-  initialPlan === null AND no active/paused session → render DailyPlannerClient inline
-  initialPlan !== null AND plan not complete        → render plan-mode session buttons
-  initialPlan !== null AND plan complete            → render PlanCompletionCard
-  activeSession exists                              → render WorkTimer (unchanged)
-```
+### Components: MODIFIED
 
-### WorkTrackerClient ↔ PlanCompletionCard
+| Component | File | Change |
+|-----------|------|--------|
+| `Sidebar.tsx` | `src/components/layout/Sidebar.tsx` | Add `unread_messages` badge key + new icon (MessageSquare already imported) |
+| `ReportRow.tsx` | `src/components/coach/ReportRow.tsx` | Add inline comment textarea + submit button |
+| `NAVIGATION` | `src/lib/config.ts` | Add `student_diy` nav array, add Chat + Resources to student/coach/owner navs |
+| `ROLES` / `Role` type | `src/lib/config.ts` | Add `student_diy` to enum + hierarchy |
+| `INVITE_CONFIG` | `src/lib/config.ts` | Add `student_diy` to inviteRules for owner and coach |
+| `ROUTES` | `src/lib/config.ts` | Add `student_diy` routes, chat routes, resources routes |
 
-After all planned work sessions complete:
-- Derivation: `completedCount` (from `sessions` state) equals `plan_json.sessions.filter(s => s.type === 'work').length`
-- WorkTrackerClient renders PlanCompletionCard in place of the idle prompt
-- PlanCompletionCard's "Add Ad-Hoc Session" calls back into WorkTrackerClient to re-enter standard setup phase (`setPhase({ kind: "setup" })`) with cap enforcement bypassed
+### API Routes: NEW
 
-### coach/RoadmapTab ↔ PATCH /api/roadmap/undo
+| Route | Method | Actor | Purpose |
+|-------|--------|-------|---------|
+| `/api/reports/[id]/comment` | POST | coach | Add/replace single comment on a report |
+| `/api/reports/[id]/comment` | DELETE | coach | Remove comment |
+| `/api/messages` | GET | coach, student | Poll messages (cursor-based, filter by channel) |
+| `/api/messages` | POST | coach, student | Send message |
+| `/api/resources` | GET | owner, coach, student | List resources |
+| `/api/resources` | POST | owner, coach | Create resource (URL link) |
+| `/api/resources/[id]` | PATCH | owner, coach | Update resource |
+| `/api/resources/[id]` | DELETE | owner, coach | Delete resource |
+| `/api/glossary` | GET | owner, coach, student | List glossary terms |
+| `/api/glossary` | POST | owner, coach | Create term |
+| `/api/glossary/[id]` | PATCH | owner, coach | Update term |
+| `/api/glossary/[id]` | DELETE | owner, coach | Delete term |
+| `/api/assignments` | PATCH | owner, coach | Reassign student to coach |
 
-RoadmapTab is currently a display-only "use client" component. Adding undo adds mutations. To minimise diff, extract per-step undo into a new `UndoStepButton` client component embedded per completed step row. RoadmapTab renders it alongside the existing step display — no architectural change to RoadmapTab itself.
+### API Routes: MODIFIED
 
-### /api/roadmap/undo ↔ Ownership Check
+| Route | Change |
+|-------|--------|
+| `/api/invites` | Accept `student_diy` as valid role for invite creation |
+| `/api/auth/callback` | Accept `student_diy` role during registration |
 
-The undo route must verify the coach owns the student before mutating. This mirrors the ownership check pattern established in Phase 23 (reports/[id]/review fix):
+### Database: NEW TABLES
+
+| Table | Key Columns | Notes |
+|-------|-------------|-------|
+| `report_comments` | `id, report_id, coach_id, text, created_at, updated_at` | UNIQUE on `report_id` — one comment per report, coach-only write |
+| `messages` | `id, channel_id, sender_id, text, created_at` | `channel_id` = concat of sorted user IDs for 1:1; broadcast uses special channel ID |
+| `resources` | `id, title, url, description, created_by, created_at` | Visible to owner/coach/student, NOT student_diy |
+| `glossary_terms` | `id, term, definition, created_by, updated_at` | UNIQUE on `term`, managed by owner/coach |
+
+### Database: MODIFIED TABLES/TYPES
+
+| Table/Type | Change |
+|-----------|--------|
+| `users.role` | Add `student_diy` to CHECK constraint or enum |
+| `magic_links.role` | Add `student_diy` to CHECK constraint |
+| `invites.role` | Add `student_diy` to CHECK constraint |
+| `roadmap_undo_log.actor_role` | Unchanged (only coach/owner undo roadmap steps) |
+| `get_sidebar_badges` RPC | Add `unread_messages` return field |
+
+### Proxy: MODIFIED
 
 ```typescript
-if (profile.role === "coach") {
-  const { data: studentRow } = await admin
-    .from("users")
-    .select("coach_id")
-    .eq("id", body.student_id)
-    .single();
-  if (!studentRow || studentRow.coach_id !== profile.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-}
-// owner: no ownership check — can undo any student's step
+// proxy.ts — add student_diy to both maps
+const DEFAULT_ROUTES: Record<string, string> = {
+  owner: "/owner",
+  coach: "/coach",
+  student: "/student",
+  student_diy: "/student_diy",        // NEW
+};
+
+const ROLE_ROUTE_ACCESS: Record<string, string[]> = {
+  owner: ["/owner"],
+  coach: ["/coach"],
+  student: ["/student"],
+  student_diy: ["/student_diy"],      // NEW
+};
+```
+
+### Session: MODIFIED
+
+```typescript
+// session.ts — role check for student_diy route group works via requireRole()
+// No code change needed IF Role type from config.ts is updated
+// requireRole(["student"]) will correctly EXCLUDE student_diy
+// requireRole(["student", "student_diy"]) for shared features
 ```
 
 ---
 
-## Build Order
-
-Build order is determined by dependency chains: schema → config → API → components → page integration.
-
-### Phase A: Config + Schema Foundation (no deps, safe to deploy standalone)
-
-1. **ROADMAP_STEPS updates in `config.ts`** — Text edits, unlock_url move, target_days change. Zero risk. Deploy first because coach/student UI uses config directly.
-2. **Stage headers in `RoadmapClient.tsx` + `RoadmapTab.tsx`** — Config-driven grouping by `step.stage`. Depends only on config step A1.
-3. **Migration `00013_v1_3_schema.sql`** — Creates `daily_plans` + `roadmap_undo_log` tables with RLS. No application code needed yet.
-
-### Phase B: Coach Roadmap Undo (self-contained, no dependency on Phase C)
-
-4. **`PATCH /api/roadmap/undo` route** — New API file. Requires `roadmap_undo_log` from A3. Follows existing mutation chain.
-5. **`UndoStepButton` component + integration into `RoadmapTab`** — Depends on B4 API. Confirm modal → fetch → router.refresh().
-
-### Phase C: Daily Session Planner (build in sequence)
-
-6. **`DAILY_PLAN` config block in `config.ts`** — `maxWorkMinutes: 240`, `defaultBreakMinutes: 10`. Zero deps.
-7. **`DailyPlannerClient.tsx`** — Client component, UI only. Calls POST endpoint built next.
-8. **`POST /api/daily-plans` route** — Requires schema A3. Zod validates `total_work_minutes <= 240`.
-9. **`GET /api/daily-plans` route** — Returns today's plan row or null. Used by server page.
-10. **`work/page.tsx` modification** — Add `daily_plans` fetch to existing `Promise.all`. Pass `initialPlan` to WorkTrackerClient.
-11. **`WorkTrackerClient.tsx` modification** — Accept `initialPlan` prop. Plan-mode idle state, plan-driven session start.
-12. **`PlanCompletionCard.tsx`** — Depends on WorkTrackerClient changes from C11.
-
-### Dependency Graph
+## Build Order (Phase Dependency Graph)
 
 ```
-A1 (config text)
-  └─→ A2 (stage headers)
+Phase A: DB Migration + Config Foundation
+  ├── Add student_diy to role CHECK constraints (users, invites, magic_links)
+  ├── Create report_comments, messages, resources, glossary_terms tables
+  ├── Update config.ts (ROLES, ROUTES, NAVIGATION, INVITE_CONFIG)
+  └── Update types.ts + proxy.ts
+        ↓
+Phase B: student_diy Route Group (unblocked after proxy + config)
+  ├── src/app/(dashboard)/student_diy/ layout + page + work + roadmap
+  └── Reuse student components (WorkTrackerClient, RoadmapClient) — no duplication
+        ↓
+Phase C: Skip Tracker (unblocked after schema — reads work_sessions, no new tables)
+  ├── Computation logic in coach/owner student list server component
+  └── SkipBadge component in student row
+        ↓
+Phase D: Coach Assignments (unblocked after config — adds /coach/assignments route)
+  ├── GET /api/assignments endpoint (or reuse /api/assignments PATCH for reassign)
+  ├── CoachAssignmentsClient (mirrors OwnerAssignmentsClient pattern)
+  └── /coach/assignments page
 
-A3 (migration)
-  ├─→ B4 (undo API) → B5 (undo button UI)
-  └─→ C8 (daily-plans POST API)
+Phase E: Report Comments (unblocked after report_comments table from Phase A)
+  ├── POST/DELETE /api/reports/[id]/comment
+  ├── Modify ReportRow to show inline comment
+  └── Modify student report history to show coach comment read-only
 
-C6 (DAILY_PLAN config)
-  └─→ C7 (DailyPlannerClient) → needs C8 running
+Phase F: Chat System (unblocked after messages table from Phase A)
+  ├── GET/POST /api/messages
+  ├── ChatClient polling component
+  ├── /coach/chat + /student/chat pages
+  └── Sidebar unread badge (get_sidebar_badges RPC update)
 
-C8 + C9 (POST + GET API)
-  └─→ C10 (work page) → C11 (WorkTrackerClient) → C12 (PlanCompletionCard)
+Phase G: Resources Tab (unblocked after resources + glossary tables from Phase A)
+  ├── GET/POST/PATCH/DELETE /api/resources
+  ├── GET/POST/PATCH/DELETE /api/glossary
+  ├── ResourcesTab, DiscordEmbed, GlossaryTab components
+  └── /student/resources + /coach/resources + /owner/resources pages
+
+Phase H: Invite max_uses UI (unblocked after schema already has max_uses)
+  └── Modify CoachInvitesClient + OwnerInvitesClient to show use_count/max_uses
+      and default max_uses to 10 in invite creation forms
 ```
 
----
-
-## Scaling Considerations
-
-| Concern | Current (5k students) | v1.3 Impact |
-|---------|----------------------|-------------|
-| `daily_plans` reads | One row per student per day | Negligible — indexed on `(student_id, date)` |
-| `roadmap_undo_log` writes | Rare manual coach action | No measurable load |
-| `plan_json` storage | ~500 bytes per row | No concern at any scale |
-| Rate limiting | 30 req/min per endpoint | New routes inherit same limit |
-| Plan cap enforcement | Client-side + API Zod validation | No additional DB queries |
+**Critical constraint:** Phase A (DB + config) must ship first. Phases B–H can proceed in any order after Phase A, but F and G are the most complex (new tables + polling + multi-component) so should not be parallelized.
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Fetching Plan Client-Side on Mount
+### Anti-Pattern 1: New Route Group Without Config Update
 
-**What people do:** Add a `useEffect` in WorkTrackerClient to `fetch('/api/daily-plans?date=today')` on mount.
+**What people do:** Create `src/app/(dashboard)/student_diy/` but forget to update `ROLES`, `NAVIGATION`, `ROLE_REDIRECTS`, and `INVITE_CONFIG` in config.ts.
 
-**Why it's wrong:** Violates the Server Page + Thin Client pattern. Causes layout shift (blank state while fetching). Server already knows the plan at render time.
+**Why it's wrong:** proxy.ts and Sidebar.tsx derive all behavior from config. An unmapped role will hit the fallback redirect `"/"` in proxy.ts and have no nav items.
 
-**Do this instead:** Server page (`work/page.tsx`) fetches plan in the existing `Promise.all` and passes as `initialPlan` prop.
+**Do this instead:** Update config.ts first. Import the updated `Role` type everywhere before creating the route group. Let TypeScript errors guide what else needs updating.
 
-### Anti-Pattern 2: Adding Undo to the Existing Student PATCH /api/roadmap
+### Anti-Pattern 2: useEffect for Initial Chat Load
 
-**What people do:** Add a `undo: true` flag to the existing student roadmap PATCH route.
+**What people do:** Put the initial message fetch inside a useEffect, creating an empty state flash.
 
-**Why it's wrong:** That route enforces `profile.role === "student"` and only advances steps forward. Mixing student-complete and coach-undo in one handler requires complex role branching and risks privilege escalation bugs.
+**Why it's wrong:** The page is a Server Component. Fetch the last 50 messages server-side on page load; pass as `initialMessages` prop to the client ChatClient. Only the polling loop goes in useEffect.
 
-**Do this instead:** New route at `/api/roadmap/undo` with its own role check (`coach | owner`), its own Zod schema (requires `student_id`), and its own ownership assertion.
+**Do this instead:**
+```typescript
+// Server component passes initial data
+<ChatClient initialMessages={initialMessages} channelId={channel.id} />
+// Client component starts polling from last message ID
+```
 
-### Anti-Pattern 3: Storing Plan Execution Index in daily_plans
+### Anti-Pattern 3: Skipping CSRF on New Mutation Routes
 
-**What people do:** Add a `current_session_index` column to `daily_plans`, increment it on every session completion.
+**What people do:** Add `/api/messages` POST or `/api/glossary` POST without the `verifyOrigin()` call at the top.
 
-**Why it's wrong:** Execution position is fully derivable: `plan_position = sessions WHERE date=today AND status=completed COUNT`. Writing to `daily_plans` on every session completion adds unnecessary mutations and a second table to update atomically.
+**Why it's wrong:** All mutation routes require CSRF protection. The security audit in v1.2 explicitly established this as a hard rule. Missing it on new routes is a regression.
 
-**Do this instead:** Derive plan position from the existing `completedCount` in WorkTrackerClient state. Zero DB changes needed.
+**Do this instead:** Copy the exact pipeline from an existing route (e.g., `reports/route.ts`). The first line of every POST/PATCH/DELETE handler is `verifyOrigin()`.
 
-### Anti-Pattern 4: Adding plan_id Foreign Key to work_sessions
+### Anti-Pattern 4: Duplicating Student Work Tracker for student_diy
 
-**What people do:** Add `plan_id uuid REFERENCES daily_plans(id)` on `work_sessions`.
+**What people do:** Copy `src/app/(dashboard)/student/work/` files into `student_diy/work/` and rename things.
 
-**Why it's wrong:** There is only ever one plan per student per date. The association is already captured by `student_id + date` matching. A foreign key adds migration complexity, a join to every session query, and no functional benefit in V1.
+**Why it's wrong:** Any future changes to the work tracker must be made twice. WorkTrackerClient and RoadmapClient don't know about routes — they work from props.
 
-**Do this instead:** Derive plan association from `work_sessions.date = daily_plans.date` for the same `student_id`. The implicit join by date is sufficient.
+**Do this instead:** Create `student_diy/work/page.tsx` as a thin wrapper that imports the same server-side data fetching pattern and passes to the same `WorkTrackerClient` component. The only difference is the `requireRole("student_diy")` guard.
+
+### Anti-Pattern 5: Polling Without Cursor (Fetching All Messages Every 5s)
+
+**What people do:** `GET /api/messages?channel_id=X` returns all messages every poll.
+
+**Why it's wrong:** With 1:1 chats and broadcast, a busy channel could have thousands of messages. Fetching all every 5s is O(n) DB work per poll per user.
+
+**Do this instead:** Accept an `after` query param (message ID or timestamp). Return only messages `WHERE id > $after` (if using sequential IDs) or `WHERE created_at > $after`. The client tracks the cursor client-side.
+
+### Anti-Pattern 6: student_diy in report_comments / chat / resources
+
+**What people do:** Forget that student_diy has a reduced feature set and allow them to access chat, report, or resources routes.
+
+**Why it's wrong:** Decision D-05 explicitly excludes these features for student_diy. Allowing access is a product requirement violation, not just a code smell.
+
+**Do this instead:** Every API route and page for chat/reports/resources does `requireRole(["owner", "coach", "student"])` — student_diy is intentionally excluded from this array.
+
+---
+
+## Scaling Considerations
+
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| Current (100-500 students) | Polling at 5s is fine. DB-backed rate limiting covers abuse. |
+| 1k-5k students | Chat polling creates N requests every 5s (N = active users). If 1k students all have chat open, that's 200 req/s hitting /api/messages. Rate limit the GET endpoint at 30 req/min (matches existing pattern). |
+| Supabase Pro limit | 500 concurrent Realtime connections avoided by using polling. 60 max_connections on Pro Small — watch if chat + glossary + resources add significant read load alongside existing RPC calls. |
+
+### Scaling Priorities
+
+1. **First bottleneck:** Chat polling volume. If >500 active chat users, consider increasing poll interval to 10s or batching channel polls.
+2. **Second bottleneck:** `get_sidebar_badges` RPC called on every page layout render (60s cache). Adding `unread_messages` to this RPC is a safe extension since it's already cached.
+
+---
+
+## Integration Points Summary Table
+
+| Feature | New Files | Modified Files | New DB | Modified DB |
+|---------|-----------|----------------|--------|-------------|
+| student_diy role | `(dashboard)/student_diy/**` | `config.ts`, `proxy.ts`, `types.ts` | — | `users.role`, `invites.role`, `magic_links.role` |
+| Skip tracker | `SkipBadge.tsx` | coach/owner student list pages | — | — (reads work_sessions) |
+| Coach assignments | `(dashboard)/coach/assignments/page.tsx`, `CoachAssignmentsClient.tsx` | — | — | — (PATCH users.coach_id already exists) |
+| Report comments | `api/reports/[id]/comment/route.ts` | `ReportRow.tsx`, student report history | `report_comments` | — |
+| Chat | `api/messages/**`, `ChatClient.tsx`, chat pages | `Sidebar.tsx`, `get_sidebar_badges` RPC | `messages` | — |
+| Resources | `api/resources/**`, `ResourcesTab.tsx`, `DiscordEmbed.tsx` | — | `resources` | — |
+| Glossary | `api/glossary/**`, `GlossaryTab.tsx` | — | `glossary_terms` | — |
+| Invite max_uses | — | `CoachInvitesClient.tsx`, invite creation UI | — | `magic_links.max_uses` default |
 
 ---
 
 ## Sources
 
-- Direct inspection: `src/app/api/roadmap/route.ts` — existing PATCH mutation pattern
-- Direct inspection: `src/app/api/work-sessions/route.ts` — POST mutation chain template
-- Direct inspection: `src/components/student/WorkTrackerClient.tsx` — phase state machine
-- Direct inspection: `src/components/coach/RoadmapTab.tsx` — current read-only display
-- Direct inspection: `supabase/migrations/00012_rate_limit_log.sql` — undo_log table precedent
-- Direct inspection: `supabase/migrations/00011_write_path.sql` — JSONB/RPC pattern precedent
-- Direct inspection: `src/lib/config.ts` — WORK_TRACKER, ROADMAP_STEPS, config-as-truth pattern
-- Direct inspection: `.planning/PROJECT.md` — v1.3 active requirements
+- Direct codebase inspection: `src/proxy.ts`, `src/lib/config.ts`, `src/lib/session.ts`, `src/lib/csrf.ts`, `src/lib/rate-limit.ts`, `src/lib/supabase/admin.ts`
+- Existing route patterns: `src/app/api/reports/route.ts`, `src/app/api/reports/[id]/review/route.ts`
+- Dashboard layout: `src/app/(dashboard)/layout.tsx`, `src/components/layout/Sidebar.tsx`
+- Schema: `src/lib/types.ts`, `supabase/migrations/00013_daily_plans_undo_log.sql`
+- Project decisions: `.planning/PROJECT.md` (D-01 through D-14)
+- RPC types: `src/lib/rpc/types.ts`
 
 ---
-*Architecture research for: IMA Accelerator v1.3 — Daily Planner, Coach Undo, Roadmap Updates*
-*Researched: 2026-03-31*
+*Architecture research for: IMA Accelerator v1.4 — Roles, Chat & Resources*
+*Researched: 2026-04-03*
