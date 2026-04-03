@@ -65,7 +65,7 @@
 
 **v1.4 Roles, Chat & Resources**
 
-- [ ] **Phase 30: Database Migration** - Migration 00015 adds 4 tables, expands role CHECK constraints, enables RLS, and updates TypeScript types
+- [x] **Phase 30: Database Migration** - Migration 00015 adds 4 tables, expands role CHECK constraints, enables RLS, and updates TypeScript types (completed 2026-04-03)
 - [ ] **Phase 31: Student_DIY Role** - 4th role with reduced feature set (dashboard + work tracker + roadmap), 8-location atomic update across proxy/config/types/DB
 - [ ] **Phase 32: Skip Tracker** - "X days skipped this week" badge on coach/owner student cards via UTC-safe Postgres RPC
 - [ ] **Phase 33: Coach Assignments** - Coaches get full assignment power via /coach/assignments page mirroring owner experience
@@ -387,7 +387,7 @@ Plans:
 | 27. Coach/Owner Roadmap Undo | v1.3 | 2/2 | Complete | 2026-03-31 |
 | 28. Daily Session Planner API | v1.3 | 3/3 | Complete | 2026-03-31 |
 | 29. Daily Session Planner Client | v1.3 | 3/3 | Complete | 2026-03-31 |
-| 30. Database Migration | v1.4 | 0/1 | In Progress | - |
+| 30. Database Migration | v1.4 | 0/1 | Complete    | 2026-04-03 |
 | 31. Student_DIY Role | v1.4 | 0/? | Not started | - |
 | 32. Skip Tracker | v1.4 | 0/? | Not started | - |
 | 33. Coach Assignments | v1.4 | 0/? | Not started | - |
