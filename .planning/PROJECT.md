@@ -55,7 +55,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - [x] Student_DIY role — 4th role (dashboard + work tracker + roadmap only, no reports/AI/resources/chat) — Validated in Phase 31
 - [x] Skip tracker — "X days skipped this week" (Mon-Sun ISO week) on coach/owner dashboards — Validated in Phase 32
 - [ ] Coach assignments — coaches get same assignment power as owner (any student → any coach)
-- [ ] Report comments — single coach comment per daily report, students see on history
+- [x] Report comments — single coach comment per daily report, students see on history — Validated in Phase 34
 - [ ] Chat system — polling-based WhatsApp-style chat (5s poll), 1:1 coach↔student + broadcast
 - [ ] Resources tab — URL links + Discord WidgetBot embed + searchable glossary (owner/coach/student, NOT student_diy)
 - [ ] Invite link configurable max_uses — default 10, UI shows usage count
