@@ -15,6 +15,7 @@ interface StudentCardProps {
     lastActiveLabel: string;      // "Mar 14", "Never", or "New"
     todayReportSubmitted: boolean;
     currentRoadmapStep: number;   // highest completed or active step number (1-10)
+    skippedDays?: number;         // days skipped this ISO week (Mon-Sun)
   };
   basePath?: string;
 }
@@ -42,11 +43,16 @@ export function StudentCard({ student, basePath = "/coach/students" }: StudentCa
               </div>
               <p className="text-sm font-semibold text-ima-text">{student.name}</p>
             </div>
-            {student.isNew ? (
-              <Badge variant="info" size="sm">New</Badge>
-            ) : student.isAtRisk ? (
-              <Badge variant="error" size="sm">At Risk</Badge>
-            ) : null}
+            <div className="flex flex-col items-end gap-1">
+              {(student.skippedDays ?? 0) > 0 && (
+                <Badge variant="warning" size="sm">{student.skippedDays} skipped</Badge>
+              )}
+              {student.isNew ? (
+                <Badge variant="info" size="sm">New</Badge>
+              ) : student.isAtRisk ? (
+                <Badge variant="error" size="sm">At Risk</Badge>
+              ) : null}
+            </div>
           </div>
 
           {/* Info rows */}

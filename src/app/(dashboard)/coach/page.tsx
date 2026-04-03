@@ -1,7 +1,7 @@
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
-import { getGreeting, getToday } from "@/lib/utils";
+import { getGreeting, getToday, getTodayUTC } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StudentCard } from "@/components/coach/StudentCard";
@@ -19,6 +19,7 @@ type EnrichedStudent = {
   lastActiveLabel: string;
   todayReportSubmitted: boolean;
   currentRoadmapStep: number;
+  skippedDays?: number;
 };
 
 export default async function CoachDashboard() {
@@ -42,7 +43,7 @@ export default async function CoachDashboard() {
   const studentIds = studentList.map((s) => s.id);
 
   // Step 2 — If no students, skip enrichment. Otherwise parallel fetch.
-  const [sessionsResult, reportsResult, roadmapResult] =
+  const [sessionsResult, reportsResult, roadmapResult, skipResult] =
     studentIds.length > 0
       ? await Promise.all([
           admin
@@ -58,8 +59,15 @@ export default async function CoachDashboard() {
             .from("roadmap_progress")
             .select("student_id, step_number, status")
             .in("student_id", studentIds),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (admin as any).rpc("get_weekly_skip_counts", {
+            p_student_ids: studentIds,
+            p_today: getTodayUTC(),
+            p_current_hour: new Date().getUTCHours(),
+          }),
         ])
       : ([
+          { data: null, error: null },
           { data: null, error: null },
           { data: null, error: null },
           { data: null, error: null },
@@ -73,6 +81,9 @@ export default async function CoachDashboard() {
   }
   if (roadmapResult.error) {
     console.error("[coach dashboard] Failed to load roadmap:", roadmapResult.error);
+  }
+  if (skipResult.error) {
+    console.error("[coach dashboard] Failed to load skip counts:", skipResult.error);
   }
 
   // Step 3 — Build lookup maps
@@ -126,6 +137,14 @@ export default async function CoachDashboard() {
     }
   }
 
+  const skipCountMap = new Map<string, number>();
+  const skipData = (skipResult?.data ?? {}) as Record<string, number>;
+  for (const [id, count] of Object.entries(skipData)) {
+    if (typeof count === "number" && count > 0) {
+      skipCountMap.set(id, count);
+    }
+  }
+
   // Step 4 — Compute enriched student objects with at-risk detection
 
   const enrichedStudents: EnrichedStudent[] = studentList.map((student) => {
@@ -149,6 +168,7 @@ export default async function CoachDashboard() {
         lastActiveLabel: "New",
         todayReportSubmitted: todayReportMap.has(student.id),
         currentRoadmapStep: roadmapStepMap.get(student.id) ?? 1,
+        skippedDays: skipCountMap.get(student.id) ?? 0,
       };
     }
 
@@ -197,6 +217,7 @@ export default async function CoachDashboard() {
       lastActiveLabel,
       todayReportSubmitted: todayReportMap.has(student.id),
       currentRoadmapStep: roadmapStepMap.get(student.id) ?? 1,
+      skippedDays: skipCountMap.get(student.id) ?? 0,
     };
   });
 
