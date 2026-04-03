@@ -3,7 +3,7 @@ status: complete
 phase: 30-database-migration
 source: [30-01-SUMMARY.md]
 started: 2026-04-03T00:00:00Z
-updated: 2026-04-03T00:01:00Z
+updated: 2026-04-03T00:02:00Z
 ---
 
 ## Current Test
@@ -48,10 +48,16 @@ result: pass
 verified_by: claude
 evidence: All 4 table types found with FK relationships. 9 occurrences of student_diy in types.ts.
 
+### 7. Browser Regression Test — App Loads Without Errors
+expected: localhost:3000 loads and redirects to /login. Login page renders with "IMA Accelerator" heading and "Sign in with Google" button. Protected routes (/student/work, /student/report, /coach, /owner) all redirect to /login. No 500 errors, no white screens, no JS console errors.
+result: pass
+verified_by: claude (agent-browser)
+evidence: All 5 routes tested — each redirected to /login with 200 status. Login page rendered correctly (screenshot verified). All network requests returned 200. Zero console errors. Zero 500 responses.
+
 ## Summary
 
-total: 6
-passed: 6
+total: 7
+passed: 7
 issues: 0
 pending: 0
 skipped: 0
