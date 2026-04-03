@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     .select("id, role")
     .eq("auth_id", authUser.id)
     .single();
-  if (!profile || profile.role !== "student") {
+  if (!profile || (profile.role !== "student" && profile.role !== "student_diy")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -109,7 +109,7 @@ export async function GET() {
     .select("id, role")
     .eq("auth_id", authUser.id)
     .single();
-  if (!profile || profile.role !== "student") {
+  if (!profile || (profile.role !== "student" && profile.role !== "student_diy")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

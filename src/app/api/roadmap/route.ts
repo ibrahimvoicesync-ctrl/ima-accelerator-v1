@@ -35,7 +35,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "User profile not found" }, { status: 404 });
     }
 
-    if (profile.role !== "student") {
+    if (profile.role !== "student" && profile.role !== "student_diy") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
