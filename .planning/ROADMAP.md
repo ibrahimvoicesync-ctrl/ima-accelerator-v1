@@ -69,7 +69,8 @@
 - [x] **Phase 31: Student_DIY Role** - 4th role with reduced feature set (dashboard + work tracker + roadmap), 8-location atomic update across proxy/config/types/DB (completed 2026-04-03)
 - [x] **Phase 32: Skip Tracker** - "X days skipped this week" badge on coach/owner student cards via UTC-safe Postgres RPC (completed 2026-04-03)
 - [x] **Phase 33: Coach Assignments** - Coaches get full assignment power via /coach/assignments page mirroring owner experience (completed 2026-04-03)
-- [x] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API (completed 2026-04-03)
+- [x] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API
+ (completed 2026-04-03)
 - [ ] **Phase 35: Chat System** - Polling-based (5s) WhatsApp-style 1:1 + broadcast chat with sidebar unread badges
 - [ ] **Phase 36: Resources Tab** - URL links + Discord WidgetBot iframe + searchable glossary for owner/coach/student
 - [ ] **Phase 37: Invite Link max_uses** - Default max_uses of 10 on magic links, usage count display, cap enforcement
@@ -340,7 +341,12 @@ Plans:
   5. The sidebar shows an unread message badge count for coach and student roles; the badge clears when the conversation is opened; student_diy has no chat navigation item and cannot access /student/chat
   6. Scrolling to the top of a conversation loads older messages via cursor-based pagination without losing the current scroll position
   7. The chat composer enforces a 2000-character limit with a visible remaining-character counter; the send button is disabled when the composer is empty
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 35-01-PLAN.md — API routes (GET/POST/PATCH) + usePolling hook + chat utilities
+- [ ] 35-02-PLAN.md — Navigation config + badge migration (00017) + layout wiring
+- [ ] 35-03-PLAN.md — Chat UI components + coach chat page (split panel + mobile toggle)
+- [ ] 35-04-PLAN.md — Student chat page (single thread view with polling)
 **UI hint**: yes
 
 ### Phase 36: Resources Tab
