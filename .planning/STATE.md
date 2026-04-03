@@ -1,43 +1,44 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Roadmap Update, Session Planner & Coach Controls
-status: executing
-stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-03-31T13:22:18.991Z"
-last_activity: 2026-03-31
+milestone: v1.4
+milestone_name: Roles, Chat & Resources
+status: defining_requirements
+stopped_at: null
+last_updated: "2026-04-03T00:00:00.000Z"
+last_activity: 2026-04-03
 progress:
-  total_phases: 11
-  completed_phases: 10
-  total_plans: 29
-  completed_plans: 28
-  percent: 95
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-31)
+See: .planning/PROJECT.md (updated 2026-04-03)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 29 — daily-session-planner-client
+**Current focus:** Defining requirements for v1.4
 
 ## Current Position
 
-Phase: 29
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-04-01 - Completed quick task 260401-cwd: Coach 100h milestone alert
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-03 — Milestone v1.4 started
 
-Progress: [██████████] 95%
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **v1.0 completed:** 2026-03-18 | 12 phases | 38 plans | 218 commits | 12,742 LOC
 **v1.1 completed:** 2026-03-28 | 6 phases | 16 plans
 **v1.2 completed:** 2026-03-31 | 6 phases | 18 plans
-**v1.3 started:** 2026-03-31 | 5 phases planned
+**v1.3 completed:** 2026-04-03 | 5 phases | 11 plans
+**v1.4 started:** 2026-04-03 | 8 phases planned
 
 ## Accumulated Context
 

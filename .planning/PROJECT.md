@@ -43,16 +43,22 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ DB-backed rate limiting (30 req/min/user) on all mutation routes — v1.2
 - ✓ Security audit: auth/RLS verification, CSRF Origin headers, cross-student isolation — v1.2
 - ✓ Infrastructure validation: local Docker k6 load tests confirm P95<1s at 5k students — v1.2
+- ✓ Roadmap step description updates + stage headers in all views — v1.3
+- ✓ Coach/owner roadmap undo with cascade re-lock and audit logging — v1.3
+- ✓ Daily session planner (API + client) — 4h cap, auto breaks, planned execution — v1.3
+- ✓ Post-plan motivational card (Arabic + English) + ad-hoc session picker — v1.3
 
 ### Active
 
-<!-- Current scope. Building toward these for v1.3. -->
+<!-- Current scope. Building toward these for v1.4. -->
 
-- [x] Roadmap step description updates — append parenthetical text to steps 1-8, move unlock_url step 6 → step 5, rewrite step 6/7 descriptions, set step 8 target_days: 14 — Phase 25
-- [x] Stage headers in all roadmap views — student, coach, and owner views grouped by stage (Setup & Preparation, Influencer Outreach, Brand Outreach) — Phase 25
-- [x] Coach/owner roadmap undo — revert completed steps to active with full cascade (all subsequent steps re-locked), PATCH /api/roadmap/undo, undo action logging — Phase 27
-- [x] Daily session planner — daily_plans table, 4h work time cap (breaks excluded), automatic alternating breaks, planned session execution — API (Phase 28) + client UI (Phase 29)
-- [x] Post-plan completion motivational card (Arabic + English) + ad-hoc session picker — Phase 29
+- [ ] Student_DIY role — 4th role (dashboard + work tracker + roadmap only, no reports/AI/resources/chat)
+- [ ] Skip tracker — "X days skipped this week" (Mon-Sun ISO week) on coach/owner dashboards
+- [ ] Coach assignments — coaches get same assignment power as owner (any student → any coach)
+- [ ] Report comments — single coach comment per daily report, students see on history
+- [ ] Chat system — polling-based WhatsApp-style chat (5s poll), 1:1 coach↔student + broadcast
+- [ ] Resources tab — URL links + Discord WidgetBot embed + searchable glossary (owner/coach/student, NOT student_diy)
+- [ ] Invite link configurable max_uses — default 10, UI shows usage count
 
 ### Out of Scope
 
@@ -104,6 +110,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 **v1.3 Phase 29 complete** (2026-03-31): Daily session planner client — PlannerUI (session builder with auto-break assignment, 4h cap, config-driven presets), PlannedSessionList (completed/current/upcoming visual states, Start bypasses setup phase), MotivationalCard (Arabic dir=rtl text, localStorage once-per-day), WorkTrackerClient mode derivation (planning/executing/adhoc) with Zod safeParse on plan_json.
 
+**v1.3 milestone complete** (2026-04-03): 5 phases (25-29), 11 plans. Roadmap config & stage headers, coach/owner undo, daily session planner (API + client), motivational card + ad-hoc sessions all shipped.
+
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
 **Invite system (v1.0):** Email whitelist model — no registration URL generated. Coach/owner enters email, auth callback auto-registers whitelisted users on Google sign-in. Magic links available as alternative.
@@ -140,16 +148,33 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | Resume shifts started_at forward | Client timer needs no elapsed accumulator; Date.now() - started_at always equals active work time | ✓ Good — simple timer math |
 | alert_dismissals with time-windowed keys | Dismissed alerts re-trigger in new window (daily/weekly/monthly) | ✓ Good — prevents stale dismissals masking new issues |
 | Phase 24 | Compute sizing: STAY on Pro Small — local Docker k6 load tests with 5k students show P95=929.76ms read-mix (100 VUs), P95=6.74ms write-spike (500 VUs), P95=240.51ms combined (350 VUs). All under 1s threshold. Connection usage low. Write ops extremely fast; read aggregation RPCs are the bottleneck but pass. Cloud Pro Small has lower max_connections (60 vs local 100) — monitor if cloud P95 exceeds 1s. | 2026-03-30 |
+| v1.4 D-01 | "This week" = Monday-Sunday (ISO week) for skip tracker | Owner preference | — Pending |
+| v1.4 D-02 | Coaches get full assignment power (any student → any coach) | Same UX as owner | — Pending |
+| v1.4 D-03 | Report comments: single comment per report, coach-only | Keep simple | — Pending |
+| v1.4 D-04 | Student_DIY: NO coach assignment, fully independent | DIY = self-service | — Pending |
+| v1.4 D-05 | Student_DIY: NO Ask Abu Lahya, NO Daily Report, NO Resources tab | Reduced feature set | — Pending |
+| v1.4 D-06 | Student_DIY: YES dashboard, YES work tracker, YES roadmap | Core tools kept | — Pending |
+| v1.4 D-07 | Chat: polling-based (5s interval), not Supabase Realtime | Avoids 500 peak connection limit on Pro plan | — Pending |
+| v1.4 D-08 | Chat: coach↔individual student + coach→all broadcast | Two chat modes | — Pending |
+| v1.4 D-09 | Chat: students CAN reply to coaches | Two-way async | — Pending |
+| v1.4 D-10 | Discord: WidgetBot iframe embed | Full Discord experience, no npm package | — Pending |
+| v1.4 D-11 | Resources visible to owner, coach, student — NOT student_diy | Per requirement | — Pending |
+| v1.4 D-12 | Glossary managed by owner + coaches | Both roles can CRUD | — Pending |
+| v1.4 D-13 | Invite link default max_uses: 10 (was null/unlimited) | Per requirement | — Pending |
+| v1.4 D-14 | Role type expands to 4: owner, coach, student, student_diy | New 4th role | — Pending |
 
-## Current Milestone: v1.3 Roadmap Update, Session Planner & Coach Controls
+## Current Milestone: v1.4 Roles, Chat & Resources
 
-**Goal:** Update roadmap step text and unlock URLs, give coaches roadmap undo power, and add a daily session planner with structured 4h work blocks plus ad-hoc sessions.
+**Goal:** Add student_diy role, coach-student chat system, resources tab with Discord/glossary, plus skip tracker, coach assignments, report comments, and configurable invite limits.
 
 **Target features:**
-- Roadmap step description updates (append parenthetical text), unlock_url move (step 6 → step 5), step 6/7 description rewrites, step 8 target_days: 14, stage headers in student roadmap view
-- Coach/owner roadmap undo — revert completed steps to active, with confirmation dialog, API endpoint, and undo action logging
-- Daily session planner — new daily_plans table, 4h work time cap (breaks excluded), automatic alternating break types, planned session execution via existing WorkTracker
-- Post-plan completion motivational card (Arabic + English) + ad-hoc session picker after plan complete
+- Student_DIY role — 4th role with reduced feature set (dashboard + work tracker + roadmap only)
+- Skip tracker — coach/owner see "X days skipped this week" per student (Mon-Sun ISO week)
+- Coach assignments — coaches get same assignment power as owner
+- Report comments — single coach comment per daily report
+- Chat system — polling-based WhatsApp-style (5s poll), 1:1 + broadcast, sidebar unread badges
+- Resources tab — URL links + Discord WidgetBot embed + searchable glossary
+- Invite link configurable max_uses — default 10
 
 ## Evolution
 
@@ -169,4 +194,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — Phase 29 complete: daily session planner client UI — PlannerUI, PlannedSessionList, MotivationalCard, ad-hoc mode*
+*Last updated: 2026-04-03 after milestone v1.4 started*
