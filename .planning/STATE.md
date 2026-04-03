@@ -4,7 +4,7 @@ milestone: v1.4
 milestone_name: Roles, Chat & Resources
 status: executing
 stopped_at: Completed 33-02-PLAN.md
-last_updated: "2026-04-03T20:28:02.304Z"
+last_updated: "2026-04-03T20:41:01.363Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 19
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 
 ## Current Position
 
-Phase: 33 (coach-assignments) — EXECUTING
-Plan: 2 of 2
+Phase: 34
+Plan: Not started
 Status: Ready to execute
 Last activity: 2026-04-03
 
@@ -94,11 +94,9 @@ Progress: [░░░░░░░░░░] 0% (v1.4)
 - [Phase 29]: mode derived from server props (parsedPlan + completedCount) — never useState so it survives refresh without re-initialization race conditions
 - [Phase 29]: handleStartWithConfig stores break config into state before setPhase(working) so handleComplete reads planned break duration correctly
 
-
 - [Phase 30]: Single migration 00015 for all 4 tables and role CHECK ALTERs (D-03); student_diy blocked at app layer only, no RLS exclusion (D-04)
 - [Phase 30]: report_comments UNIQUE on report_id for upsert pattern; messages uses is_broadcast + NULL recipient_id for broadcasts (D-01); read_at on messages for unread tracking (D-02)
 - [Phase 33-coach-assignments]: D-04: Reuse existing /api/assignments route — expand role check to owner+coach, no separate endpoint
-
 
 ### Pending Todos
 
