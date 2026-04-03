@@ -38,8 +38,8 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 - [ ] **ASSIGN-02**: Coach can assign an unassigned student to any active coach
 - [ ] **ASSIGN-03**: Coach can reassign a student from one coach to another
 - [ ] **ASSIGN-04**: Coach can unassign a student (set coach_id to null)
-- [ ] **ASSIGN-05**: API returns 403 for student and student_diy roles attempting assignment changes
-- [ ] **ASSIGN-06**: Owner assignments page continues to work unchanged
+- [x] **ASSIGN-05**: API returns 403 for student and student_diy roles attempting assignment changes
+- [x] **ASSIGN-06**: Owner assignments page continues to work unchanged
 
 ### Report Comments
 
@@ -146,8 +146,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ASSIGN-02 | Phase 33 | Pending |
 | ASSIGN-03 | Phase 33 | Pending |
 | ASSIGN-04 | Phase 33 | Pending |
-| ASSIGN-05 | Phase 33 | Pending |
-| ASSIGN-06 | Phase 33 | Pending |
+| ASSIGN-05 | Phase 33 | Complete |
+| ASSIGN-06 | Phase 33 | Complete |
 | COMMENT-01 | Phase 34 | Pending |
 | COMMENT-02 | Phase 34 | Pending |
 | COMMENT-03 | Phase 34 | Pending |
