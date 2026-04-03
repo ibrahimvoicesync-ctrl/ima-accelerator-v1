@@ -52,7 +52,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 <!-- Current scope. Building toward these for v1.4. -->
 
-- [ ] Student_DIY role — 4th role (dashboard + work tracker + roadmap only, no reports/AI/resources/chat)
+- [x] Student_DIY role — 4th role (dashboard + work tracker + roadmap only, no reports/AI/resources/chat) — Validated in Phase 31
 - [ ] Skip tracker — "X days skipped this week" (Mon-Sun ISO week) on coach/owner dashboards
 - [ ] Coach assignments — coaches get same assignment power as owner (any student → any coach)
 - [ ] Report comments — single coach comment per daily report, students see on history
@@ -113,6 +113,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **v1.3 milestone complete** (2026-04-03): 5 phases (25-29), 11 plans. Roadmap config & stage headers, coach/owner undo, daily session planner (API + client), motivational card + ad-hoc sessions all shipped.
 
 **v1.4 Phase 30 complete** (2026-04-03): Database migration — migration 00015 adds 4 new tables (report_comments, messages, resources, glossary_terms), expands role CHECK constraints to include student_diy on users/invites/magic_links, enables RLS with 30 role-appropriate policies on all new tables, updates TypeScript types with 4 table triplets and expanded Role union in 9 locations.
+
+**v1.4 Phase 31 complete** (2026-04-03): Student DIY role — student_diy wired into config.ts (6 maps), proxy.ts (2 maps), auth callback (3 registration paths). 4 page files under /student_diy/ (dashboard, work, roadmap, not-found). Invite APIs and forms expanded for owner/coach to create student_diy invites.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
@@ -196,4 +198,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after Phase 30 (database-migration) complete*
+*Last updated: 2026-04-03 after Phase 31 (student-diy-role) complete*
