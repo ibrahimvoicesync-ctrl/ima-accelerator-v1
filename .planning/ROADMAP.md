@@ -396,7 +396,7 @@ Plans:
 | 29. Daily Session Planner Client | v1.3 | 3/3 | Complete | 2026-03-31 |
 | 30. Database Migration | v1.4 | 0/1 | Complete    | 2026-04-03 |
 | 31. Student_DIY Role | v1.4 | 3/3 | Complete    | 2026-04-03 |
-| 32. Skip Tracker | v1.4 | 2/2 | Complete   | 2026-04-03 |
+| 32. Skip Tracker | v1.4 | 2/2 | Complete    | 2026-04-03 |
 | 33. Coach Assignments | v1.4 | 0/? | Not started | - |
 | 34. Report Comments | v1.4 | 0/? | Not started | - |
 | 35. Chat System | v1.4 | 0/? | Not started | - |
