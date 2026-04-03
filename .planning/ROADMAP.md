@@ -273,7 +273,11 @@ Plans:
   4. Work Tracker and Roadmap pages function identically for student_diy as for student; no regressions in session start/complete/abandon or roadmap step progression
   5. Navigating directly to /student_diy/report, /student_diy/chat, or /student_diy/resources redirects to the dashboard with a 403 or equivalent guard response
   6. Owner and coach invite creation forms include student_diy as a selectable role option; created invites insert with role = 'student_diy'
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 31-01-PLAN.md — Config + proxy + auth callback atomic expansion (8 integration points)
+- [ ] 31-02-PLAN.md — Student_DIY route group (dashboard, work tracker, roadmap pages)
+- [ ] 31-03-PLAN.md — Invite surface (API Zod schemas, coach guards, frontend dropdowns)
 **UI hint**: yes
 
 ### Phase 32: Skip Tracker
@@ -388,7 +392,7 @@ Plans:
 | 28. Daily Session Planner API | v1.3 | 3/3 | Complete | 2026-03-31 |
 | 29. Daily Session Planner Client | v1.3 | 3/3 | Complete | 2026-03-31 |
 | 30. Database Migration | v1.4 | 0/1 | Complete    | 2026-04-03 |
-| 31. Student_DIY Role | v1.4 | 0/? | Not started | - |
+| 31. Student_DIY Role | v1.4 | 0/3 | Not started | - |
 | 32. Skip Tracker | v1.4 | 0/? | Not started | - |
 | 33. Coach Assignments | v1.4 | 0/? | Not started | - |
 | 34. Report Comments | v1.4 | 0/? | Not started | - |
