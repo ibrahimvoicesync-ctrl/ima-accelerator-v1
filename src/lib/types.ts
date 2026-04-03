@@ -11,7 +11,7 @@ export type Database = {
           auth_id: string | null;
           email: string;
           name: string;
-          role: "owner" | "coach" | "student";
+          role: "owner" | "coach" | "student" | "student_diy";
           coach_id: string | null;
           niche: string | null;
           status: "active" | "inactive" | "suspended";
@@ -24,7 +24,7 @@ export type Database = {
           auth_id?: string | null;
           email: string;
           name: string;
-          role: "owner" | "coach" | "student";
+          role: "owner" | "coach" | "student" | "student_diy";
           coach_id?: string | null;
           niche?: string | null;
           status?: "active" | "inactive" | "suspended";
@@ -37,7 +37,7 @@ export type Database = {
           auth_id?: string | null;
           email?: string;
           name?: string;
-          role?: "owner" | "coach" | "student";
+          role?: "owner" | "coach" | "student" | "student_diy";
           coach_id?: string | null;
           niche?: string | null;
           status?: "active" | "inactive" | "suspended";
@@ -59,7 +59,7 @@ export type Database = {
         Row: {
           id: string;
           email: string;
-          role: "coach" | "student";
+          role: "coach" | "student" | "student_diy";
           invited_by: string;
           coach_id: string | null;
           code: string;
@@ -70,7 +70,7 @@ export type Database = {
         Insert: {
           id?: string;
           email: string;
-          role: "coach" | "student";
+          role: "coach" | "student" | "student_diy";
           invited_by: string;
           coach_id?: string | null;
           code: string;
@@ -81,7 +81,7 @@ export type Database = {
         Update: {
           id?: string;
           email?: string;
-          role?: "coach" | "student";
+          role?: "coach" | "student" | "student_diy";
           invited_by?: string;
           coach_id?: string | null;
           code?: string;
@@ -110,7 +110,7 @@ export type Database = {
         Row: {
           id: string;
           code: string;
-          role: "coach" | "student";
+          role: "coach" | "student" | "student_diy";
           created_by: string;
           expires_at: string | null;
           max_uses: number | null;
@@ -121,7 +121,7 @@ export type Database = {
         Insert: {
           id?: string;
           code: string;
-          role: "coach" | "student";
+          role: "coach" | "student" | "student_diy";
           created_by: string;
           expires_at?: string | null;
           max_uses?: number | null;
@@ -132,7 +132,7 @@ export type Database = {
         Update: {
           id?: string;
           code?: string;
-          role?: "coach" | "student";
+          role?: "coach" | "student" | "student_diy";
           created_by?: string;
           expires_at?: string | null;
           max_uses?: number | null;

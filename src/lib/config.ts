@@ -27,6 +27,7 @@ export const ROLES = {
   OWNER: "owner",
   COACH: "coach",
   STUDENT: "student",
+  STUDENT_DIY: "student_diy",
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
@@ -35,6 +36,7 @@ export const ROLE_HIERARCHY: Record<Role, number> = {
   owner: 3,
   coach: 2,
   student: 1,
+  student_diy: 1,
 };
 
 // ---------------------------------------------------------------------------
@@ -73,6 +75,11 @@ export const ROUTES = {
     askAI: "/student/ask",
     report: "/student/report",
   },
+  student_diy: {
+    dashboard: "/student_diy",
+    workTracker: "/student_diy/work",
+    roadmap: "/student_diy/roadmap",
+  },
   api: {
     auth: "/api/auth",
     callback: "/api/auth/callback",
@@ -83,6 +90,7 @@ export const ROLE_REDIRECTS: Record<Role, string> = {
   owner: ROUTES.owner.dashboard,
   coach: ROUTES.coach.dashboard,
   student: ROUTES.student.dashboard,
+  student_diy: ROUTES.student_diy.dashboard,
 };
 
 // ---------------------------------------------------------------------------
@@ -201,9 +209,10 @@ export const OWNER_CONFIG = {
 export const INVITE_CONFIG = {
   codeExpiryHours: 72,
   inviteRules: {
-    owner: ["coach", "student"] as Role[],
-    coach: ["student"] as Role[],
+    owner: ["coach", "student", "student_diy"] as Role[],
+    coach: ["student", "student_diy"] as Role[],
     student: [] as Role[],
+    student_diy: [] as Role[],
   },
 } as const;
 
@@ -277,6 +286,11 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Roadmap",       href: "/student/roadmap", icon: "Map" },
     { label: "Ask Abu Lahya", href: "/student/ask",    icon: "MessageSquare" },
     { label: "Daily Report",  href: "/student/report", icon: "FileText" },
+  ],
+  student_diy: [
+    { label: "Dashboard",    href: "/student_diy",         icon: "LayoutDashboard" },
+    { label: "Work Tracker", href: "/student_diy/work",    icon: "Timer" },
+    { label: "Roadmap",      href: "/student_diy/roadmap", icon: "Map" },
   ],
 };
 
