@@ -66,7 +66,7 @@
 **v1.4 Roles, Chat & Resources**
 
 - [x] **Phase 30: Database Migration** - Migration 00015 adds 4 tables, expands role CHECK constraints, enables RLS, and updates TypeScript types (completed 2026-04-03)
-- [ ] **Phase 31: Student_DIY Role** - 4th role with reduced feature set (dashboard + work tracker + roadmap), 8-location atomic update across proxy/config/types/DB
+- [x] **Phase 31: Student_DIY Role** - 4th role with reduced feature set (dashboard + work tracker + roadmap), 8-location atomic update across proxy/config/types/DB (completed 2026-04-03)
 - [ ] **Phase 32: Skip Tracker** - "X days skipped this week" badge on coach/owner student cards via UTC-safe Postgres RPC
 - [ ] **Phase 33: Coach Assignments** - Coaches get full assignment power via /coach/assignments page mirroring owner experience
 - [ ] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API
@@ -276,7 +276,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 31-01-PLAN.md — Config + proxy + auth callback atomic expansion (8 integration points)
-- [ ] 31-02-PLAN.md — Student_DIY route group (dashboard, work tracker, roadmap pages)
+- [x] 31-02-PLAN.md — Student_DIY route group (dashboard, work tracker, roadmap pages)
 - [x] 31-03-PLAN.md — Invite surface (API Zod schemas, coach guards, frontend dropdowns)
 **UI hint**: yes
 
@@ -392,7 +392,7 @@ Plans:
 | 28. Daily Session Planner API | v1.3 | 3/3 | Complete | 2026-03-31 |
 | 29. Daily Session Planner Client | v1.3 | 3/3 | Complete | 2026-03-31 |
 | 30. Database Migration | v1.4 | 0/1 | Complete    | 2026-04-03 |
-| 31. Student_DIY Role | v1.4 | 2/3 | In Progress|  |
+| 31. Student_DIY Role | v1.4 | 3/3 | Complete   | 2026-04-03 |
 | 32. Skip Tracker | v1.4 | 0/? | Not started | - |
 | 33. Coach Assignments | v1.4 | 0/? | Not started | - |
 | 34. Report Comments | v1.4 | 0/? | Not started | - |

@@ -19,7 +19,7 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 - [x] **ROLE-01**: User can register with a student_diy invite and be assigned role 'student_diy' via Google OAuth callback
 - [x] **ROLE-02**: Student_DIY user is redirected to /student_diy dashboard after login
 - [x] **ROLE-03**: Student_DIY sidebar shows exactly 3 items: Dashboard, Work Tracker, Roadmap
-- [ ] **ROLE-04**: Student_DIY user can access work tracker and roadmap with full functionality (same as student)
+- [x] **ROLE-04**: Student_DIY user can access work tracker and roadmap with full functionality (same as student)
 - [x] **ROLE-05**: Student_DIY user cannot access Ask Abu Lahya, Daily Report, Resources, or Chat pages
 - [x] **ROLE-06**: Student_DIY user cannot be assigned to a coach (fully independent)
 - [x] **ROLE-07**: Owner and coach can create student_diy invites
@@ -133,7 +133,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROLE-01 | Phase 31 | Complete |
 | ROLE-02 | Phase 31 | Complete |
 | ROLE-03 | Phase 31 | Complete |
-| ROLE-04 | Phase 31 | Pending |
+| ROLE-04 | Phase 31 | Complete |
 | ROLE-05 | Phase 31 | Complete |
 | ROLE-06 | Phase 31 | Complete |
 | ROLE-07 | Phase 31 | Complete |
