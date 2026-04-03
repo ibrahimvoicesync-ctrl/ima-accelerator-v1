@@ -8,7 +8,7 @@ import { verifyOrigin } from "@/lib/csrf";
 
 const inviteSchema = z.object({
   email: z.string().email().max(VALIDATION.email.max),
-  role: z.enum(["coach", "student"]).optional().default("student"),
+  role: z.enum(["coach", "student", "student_diy"]).optional().default("student"),
 });
 
 export async function POST(request: NextRequest) {
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
 
   const normalizedEmail = parsed.data.email.toLowerCase();
 
-  // Coaches can only invite students
-  if (profile.role === "coach" && parsed.data.role !== "student") {
+  // Coaches can only invite students or student_diy
+  if (profile.role === "coach" && parsed.data.role !== "student" && parsed.data.role !== "student_diy") {
     return NextResponse.json({ error: "Coaches can only invite students" }, { status: 403 });
   }
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       email: normalizedEmail,
       role: parsed.data.role,
       invited_by: profile.id,
-      coach_id: profile.role === "coach" ? profile.id : null,
+      coach_id: profile.role === "coach" && parsed.data.role === "student" ? profile.id : null,
       code,
       expires_at: expiresAt,
     })

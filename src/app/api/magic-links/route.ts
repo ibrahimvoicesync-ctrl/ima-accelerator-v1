@@ -52,11 +52,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let magicRole: "coach" | "student" = "student";
+  let magicRole: "coach" | "student" | "student_diy" = "student";
   try {
     const body = await request.json();
     const roleSchema = z.object({
-      role: z.enum(["coach", "student"]).optional().default("student"),
+      role: z.enum(["coach", "student", "student_diy"]).optional().default("student"),
     });
     const parsed = roleSchema.safeParse(body);
     if (parsed.success) {
@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
     // Empty body is fine — default to "student"
   }
 
-  // Coaches can only create student magic links
-  if (profile.role === "coach" && magicRole !== "student") {
+  // Coaches can only create student or student_diy magic links
+  if (profile.role === "coach" && magicRole !== "student" && magicRole !== "student_diy") {
     return NextResponse.json({ error: "Coaches can only invite students" }, { status: 403 });
   }
 
