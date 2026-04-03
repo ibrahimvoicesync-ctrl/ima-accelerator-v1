@@ -43,14 +43,15 @@ export default async function OwnerStudentsPage({
 
   const studentIds = (students ?? []).map((s) => s.id);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: skipData, error: skipError } = studentIds.length > 0
+  const skipResult = studentIds.length > 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ? await (admin as any).rpc("get_weekly_skip_counts", {
         p_student_ids: studentIds,
         p_today: getTodayUTC(),
         p_current_hour: new Date().getUTCHours(),
       })
     : { data: null, error: null };
+  const { data: skipData, error: skipError } = skipResult;
 
   if (skipError) {
     console.error("[owner students] Failed to load skip counts:", skipError);
