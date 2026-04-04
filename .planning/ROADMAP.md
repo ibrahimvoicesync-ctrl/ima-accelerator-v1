@@ -362,8 +362,8 @@ Plans:
   6. The glossary_terms table enforces a case-insensitive unique constraint on term name (CREATE UNIQUE INDEX on lower(term)); attempting to add a duplicate term shows a user-facing error
 **Plans**: 3 plans
 Plans:
-- [ ] 36-01-PLAN.md — Foundation: migration, types, CSP header, nav config
-- [ ] 36-02-PLAN.md — API routes: /api/resources + /api/glossary
+- [x] 36-01-PLAN.md — Foundation: migration, types, CSP header, nav config
+- [x] 36-02-PLAN.md — API routes: /api/resources + /api/glossary
 - [ ] 36-03-PLAN.md — UI: ResourcesClient components + 3 page files
 **UI hint**: yes
 
@@ -416,5 +416,5 @@ Plans:
 | 33. Coach Assignments | v1.4 | 2/2 | Complete    | 2026-04-03 |
 | 34. Report Comments | v1.4 | 1/2 | Complete    | 2026-04-03 |
 | 35. Chat System | v1.4 | 4/4 | Complete   | 2026-04-04 |
-| 36. Resources Tab | v1.4 | 0/? | Not started | - |
+| 36. Resources Tab | v1.4 | 2/3 | In Progress|  |
 | 37. Invite Link max_uses | v1.4 | 0/? | Not started | - |
