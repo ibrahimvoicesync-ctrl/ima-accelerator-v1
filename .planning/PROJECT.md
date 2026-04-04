@@ -58,7 +58,7 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - [x] Report comments — single coach comment per daily report, students see on history — Validated in Phase 34
 - [ ] Chat system — polling-based WhatsApp-style chat (5s poll), 1:1 coach↔student + broadcast
 - [ ] Resources tab — URL links + Discord WidgetBot embed + searchable glossary (owner/coach/student, NOT student_diy)
-- [ ] Invite link configurable max_uses — default 10, UI shows usage count
+- [x] Invite link configurable max_uses — default 10, UI shows usage count — Validated in Phase 37
 
 ### Out of Scope
 
