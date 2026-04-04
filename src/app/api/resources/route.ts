@@ -48,8 +48,8 @@ export async function GET() {
       return NextResponse.json({ error: "User profile not found" }, { status: 404 });
     }
 
-    // 3. Role check — owner, coach, student allowed (student_diy excluded per D-11)
-    if (!["owner", "coach", "student"].includes(profile.role)) {
+    // 3. Role check — owner, coach, student, student_diy allowed
+    if (!["owner", "coach", "student", "student_diy"].includes(profile.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

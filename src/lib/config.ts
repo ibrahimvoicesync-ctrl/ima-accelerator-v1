@@ -85,6 +85,7 @@ export const ROUTES = {
     dashboard: "/student_diy",
     workTracker: "/student_diy/work",
     roadmap: "/student_diy/roadmap",
+    resources: "/student_diy/resources",
   },
   api: {
     auth: "/api/auth",
@@ -304,6 +305,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Dashboard",    href: "/student_diy",         icon: "LayoutDashboard" },
     { label: "Work Tracker", href: "/student_diy/work",    icon: "Timer" },
     { label: "Roadmap",      href: "/student_diy/roadmap", icon: "Map" },
+    { label: "Resources",    href: ROUTES.student_diy.resources, icon: "BookOpen" },
   ],
 };
 

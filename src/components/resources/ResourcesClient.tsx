@@ -28,7 +28,7 @@ interface Resource {
 type Tab = "links" | "community" | "glossary";
 
 interface ResourcesClientProps {
-  role: "owner" | "coach" | "student";
+  role: "owner" | "coach" | "student" | "student_diy";
 }
 
 export function ResourcesClient({ role }: ResourcesClientProps) {
