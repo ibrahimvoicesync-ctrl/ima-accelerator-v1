@@ -68,6 +68,7 @@ export const ROUTES = {
     analytics: "/coach/analytics",
     alerts: "/coach/alerts",
     assignments: "/coach/assignments",
+    chat: "/coach/chat",
   },
   student: {
     dashboard: "/student",
@@ -75,6 +76,7 @@ export const ROUTES = {
     roadmap: "/student/roadmap",
     askAI: "/student/ask",
     report: "/student/report",
+    chat: "/student/chat",
   },
   student_diy: {
     dashboard: "/student_diy",
@@ -281,13 +283,15 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Assignments",     href: "/coach/assignments",  icon: "ArrowLeftRight" },
     { label: "Analytics",       href: "/coach/analytics",    icon: "BarChart3" },
     { label: "Alerts",          href: "/coach/alerts",       icon: "Bell",          badge: "coach_milestone_alerts" },
+    { label: "Chat",            href: "/coach/chat",         icon: "MessageSquare", badge: "unread_messages",        separator: true },
   ],
   student: [
-    { label: "Dashboard",     href: "/student",        icon: "LayoutDashboard" },
-    { label: "Work Tracker",  href: "/student/work",   icon: "Timer" },
+    { label: "Dashboard",     href: "/student",         icon: "LayoutDashboard" },
+    { label: "Work Tracker",  href: "/student/work",    icon: "Timer" },
     { label: "Roadmap",       href: "/student/roadmap", icon: "Map" },
-    { label: "Ask Abu Lahya", href: "/student/ask",    icon: "MessageSquare" },
-    { label: "Daily Report",  href: "/student/report", icon: "FileText" },
+    { label: "Ask Abu Lahya", href: "/student/ask",     icon: "MessageSquare" },
+    { label: "Daily Report",  href: "/student/report",  icon: "FileText" },
+    { label: "Chat",          href: "/student/chat",    icon: "MessageSquare",  badge: "unread_messages" },
   ],
   student_diy: [
     { label: "Dashboard",    href: "/student_diy",         icon: "LayoutDashboard" },
