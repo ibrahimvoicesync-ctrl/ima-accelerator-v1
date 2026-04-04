@@ -343,7 +343,7 @@ Plans:
   7. The chat composer enforces a 2000-character limit with a visible remaining-character counter; the send button is disabled when the composer is empty
 **Plans**: 4 plans
 Plans:
-- [ ] 35-01-PLAN.md — API routes (GET/POST/PATCH) + usePolling hook + chat utilities
+- [x] 35-01-PLAN.md — API routes (GET/POST/PATCH) + usePolling hook + chat utilities
 - [x] 35-02-PLAN.md — Navigation config + badge migration (00017) + layout wiring
 - [ ] 35-03-PLAN.md — Chat UI components + coach chat page (split panel + mobile toggle)
 - [ ] 35-04-PLAN.md — Student chat page (single thread view with polling)
@@ -411,6 +411,6 @@ Plans:
 | 32. Skip Tracker | v1.4 | 2/2 | Complete    | 2026-04-03 |
 | 33. Coach Assignments | v1.4 | 2/2 | Complete    | 2026-04-03 |
 | 34. Report Comments | v1.4 | 1/2 | Complete    | 2026-04-03 |
-| 35. Chat System | v1.4 | 1/4 | In Progress|  |
+| 35. Chat System | v1.4 | 2/4 | In Progress|  |
 | 36. Resources Tab | v1.4 | 0/? | Not started | - |
 | 37. Invite Link max_uses | v1.4 | 0/? | Not started | - |
