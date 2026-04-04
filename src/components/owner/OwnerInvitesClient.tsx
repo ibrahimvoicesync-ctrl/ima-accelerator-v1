@@ -52,6 +52,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
   const [selectedRole, setSelectedRole] = useState<"coach" | "student" | "student_diy">("student");
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [maxUses, setMaxUses] = useState<number>(10);
   const [lastUrl, setLastUrl] = useState<string | null>(null);
   const [lastWhitelistedEmail, setLastWhitelistedEmail] = useState<string | null>(null);
   const [localInvites, setLocalInvites] = useState<InviteItem[]>(invites);
@@ -95,7 +96,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
       const res = await fetch("/api/magic-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: selectedRole }),
+        body: JSON.stringify({ role: selectedRole, max_uses: maxUses }),
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
@@ -106,13 +107,14 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
       setLastUrl(registerUrl);
       setLocalMagicLinks(prev => [data, ...prev]);
       toastRef.current({ type: "success", title: "Invite link created!" });
+      setMaxUses(10); // Reset to default for next creation
     } catch (err) {
       console.error("[OwnerInvitesClient] create magic link error:", err);
       toastRef.current({ type: "error", title: "Something went wrong" });
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, selectedRole]);
+  }, [isSubmitting, selectedRole, maxUses]);
 
   // --- Copy URL ---
   const handleCopy = useCallback(async () => {
@@ -273,16 +275,29 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
               Invite links can be shared with any coach or student. Anyone with the link can register
               with the selected role. No email restriction, no expiry.
             </p>
-            <Button
-              type="button"
-              onClick={handleCreateMagicLink}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              className="min-h-[44px]"
-            >
-              <Link2 className="h-4 w-4" aria-hidden="true" />
-              Generate Invite Link
-            </Button>
+            <div className="flex flex-col sm:flex-row items-end gap-3">
+              <div className="w-32">
+                <Input
+                  type="number"
+                  label="Max uses"
+                  aria-label="Maximum number of uses for invite link"
+                  value={maxUses}
+                  onChange={(e) => setMaxUses(Math.max(1, Math.min(10000, Number(e.target.value) || 10)))}
+                  min={1}
+                  max={10000}
+                />
+              </div>
+              <Button
+                type="button"
+                onClick={handleCreateMagicLink}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                className="min-h-[44px]"
+              >
+                <Link2 className="h-4 w-4" aria-hidden="true" />
+                Generate Invite Link
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
