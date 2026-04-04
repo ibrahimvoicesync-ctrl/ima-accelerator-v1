@@ -594,6 +594,7 @@ export type Database = {
           comment: string | null;
           created_by: string;
           created_at: string;
+          is_pinned: boolean;
         };
         Insert: {
           id?: string;
@@ -602,6 +603,7 @@ export type Database = {
           comment?: string | null;
           created_by: string;
           created_at?: string;
+          is_pinned?: boolean;
         };
         Update: {
           id?: string;
@@ -610,6 +612,7 @@ export type Database = {
           comment?: string | null;
           created_by?: string;
           created_at?: string;
+          is_pinned?: boolean;
         };
         Relationships: [
           {
