@@ -4,7 +4,7 @@ milestone: v1.4
 milestone_name: Roles, Chat & Resources
 status: executing
 stopped_at: Completed 35-02-PLAN.md
-last_updated: "2026-04-04T04:15:43.256Z"
+last_updated: "2026-04-04T04:17:02.249Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 19
@@ -93,6 +93,8 @@ Progress: [░░░░░░░░░░] 0% (v1.4)
 - [Phase 29-daily-session-planner-client]: PlannerUI is standalone with onPlanConfirmed callback — no server data, calls router.refresh() + onPlanConfirmed after successful POST
 - [Phase 29]: mode derived from server props (parsedPlan + completedCount) — never useState so it survives refresh without re-initialization race conditions
 - [Phase 29]: handleStartWithConfig stores break config into state before setPhase(working) so handleComplete reads planned break duration correctly
+- [Phase 35-01]: GET /api/messages has no rate limit — polling every 5s would exhaust 30 req/min cap in 2.5 min
+- [Phase 35-01]: messages table TypeScript types added to types.ts manually to unblock compilation while migration 00015 is owned by parallel plan
 
 - [Phase 30]: Single migration 00015 for all 4 tables and role CHECK ALTERs (D-03); student_diy blocked at app layer only, no RLS exclusion (D-04)
 - [Phase 30]: report_comments UNIQUE on report_id for upsert pattern; messages uses is_broadcast + NULL recipient_id for broadcasts (D-01); read_at on messages for unread tracking (D-02)
@@ -123,10 +125,11 @@ None currently blocking Phase 30.
 | Phase 33-coach-assignments P02 | 6min | 2 tasks | 2 files |
 | Phase 34-report-comments P01 | 2 | 2 tasks | 4 files |
 | Phase 34-report-comments P02 | 10 minutes | 2 tasks | 10 files |
+| Phase 35 P01 | 25 | 2 tasks | 5 files |
 | Phase 35 P02 | 160 | 2 tasks | 4 files |
 
 ## Session Continuity
 
-Last session: 2026-04-04T04:15:43.252Z
+Last session: 2026-04-04T04:17:02.246Z
 Stopped at: Completed 35-02-PLAN.md
 Resume file: None
