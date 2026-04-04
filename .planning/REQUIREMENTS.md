@@ -69,12 +69,12 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 
 - [x] **RES-01**: Owner, coach, and student see "Resources" in their sidebar navigation
 - [x] **RES-02**: Student_DIY does NOT see Resources in sidebar
-- [ ] **RES-03**: Resources page has three tabs: Links, Community (Discord), Glossary
+- [x] **RES-03**: Resources page has three tabs: Links, Community (Discord), Glossary
 - [x] **RES-04**: Owner and coach can add resource links (URL + title + optional comment) and delete them
 - [x] **RES-05**: Students can view resource links in read-only mode; links open in a new tab
-- [ ] **RES-06**: Community tab shows Discord WidgetBot iframe embed with the configured server/channel
+- [x] **RES-06**: Community tab shows Discord WidgetBot iframe embed with the configured server/channel
 - [x] **RES-07**: Owner and coach can add, edit, and delete glossary terms (term + definition)
-- [ ] **RES-08**: All eligible roles can search/filter glossary terms by name
+- [x] **RES-08**: All eligible roles can search/filter glossary terms by name
 - [x] **RES-09**: Glossary terms have case-insensitive unique constraint on term name
 
 ### Invite Enhancement
@@ -168,12 +168,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CHAT-13 | Phase 35 | Complete |
 | RES-01 | Phase 36 | Complete |
 | RES-02 | Phase 36 | Complete |
-| RES-03 | Phase 36 | Pending |
+| RES-03 | Phase 36 | Complete |
 | RES-04 | Phase 36 | Complete |
 | RES-05 | Phase 36 | Complete |
-| RES-06 | Phase 36 | Pending |
+| RES-06 | Phase 36 | Complete |
 | RES-07 | Phase 36 | Complete |
-| RES-08 | Phase 36 | Pending |
+| RES-08 | Phase 36 | Complete |
 | RES-09 | Phase 36 | Complete |
 | INVITE-01 | Phase 37 | Pending |
 | INVITE-02 | Phase 37 | Pending |

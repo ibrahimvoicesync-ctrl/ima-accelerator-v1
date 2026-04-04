@@ -72,7 +72,7 @@
 - [x] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API
  (completed 2026-04-03)
 - [x] **Phase 35: Chat System** - Polling-based (5s) WhatsApp-style 1:1 + broadcast chat with sidebar unread badges (completed 2026-04-04)
-- [ ] **Phase 36: Resources Tab** - URL links + Discord WidgetBot iframe + searchable glossary for owner/coach/student
+- [x] **Phase 36: Resources Tab** - URL links + Discord WidgetBot iframe + searchable glossary for owner/coach/student (completed 2026-04-04)
 - [ ] **Phase 37: Invite Link max_uses** - Default max_uses of 10 on magic links, usage count display, cap enforcement
 
 ## Phase Details
@@ -364,7 +364,7 @@ Plans:
 Plans:
 - [x] 36-01-PLAN.md — Foundation: migration, types, CSP header, nav config
 - [x] 36-02-PLAN.md — API routes: /api/resources + /api/glossary
-- [ ] 36-03-PLAN.md — UI: ResourcesClient components + 3 page files
+- [x] 36-03-PLAN.md — UI: ResourcesClient components + 3 page files
 **UI hint**: yes
 
 ### Phase 37: Invite Link max_uses
@@ -416,5 +416,5 @@ Plans:
 | 33. Coach Assignments | v1.4 | 2/2 | Complete    | 2026-04-03 |
 | 34. Report Comments | v1.4 | 1/2 | Complete    | 2026-04-03 |
 | 35. Chat System | v1.4 | 4/4 | Complete   | 2026-04-04 |
-| 36. Resources Tab | v1.4 | 2/3 | In Progress|  |
+| 36. Resources Tab | v1.4 | 3/3 | Complete   | 2026-04-04 |
 | 37. Invite Link max_uses | v1.4 | 0/? | Not started | - |
