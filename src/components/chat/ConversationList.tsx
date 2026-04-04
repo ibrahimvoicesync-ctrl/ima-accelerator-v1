@@ -79,7 +79,7 @@ export function ConversationList({
               {/* Avatar */}
               <div className="w-9 h-9 rounded-full bg-ima-primary flex items-center justify-center shrink-0">
                 <span className="text-xs font-semibold text-white">
-                  {conv.studentName
+                  {(conv.studentName || "?")
                     .split(" ")
                     .map((w) => w[0])
                     .join("")
@@ -95,7 +95,9 @@ export function ConversationList({
                     {conv.studentName}
                   </p>
                   <p className="text-xs text-ima-text-light shrink-0">
-                    {formatRelativeTime(new Date(conv.lastMessageAt))}
+                    {conv.lastMessageAt
+                      ? formatRelativeTime(new Date(conv.lastMessageAt))
+                      : ""}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-2 mt-0.5">

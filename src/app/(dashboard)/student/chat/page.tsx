@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageSquare } from "lucide-react";
+import { Megaphone, MessageSquare } from "lucide-react";
 import { MessageThread } from "@/components/chat/MessageThread";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
-import { createClient } from "@/lib/supabase/client";
 import { usePolling } from "@/lib/hooks/usePolling";
 import {
   MESSAGE_POLL_INTERVAL,
@@ -32,65 +31,75 @@ export default function StudentChatPage() {
   const [coachId, setCoachId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [coachName, setCoachName] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"chat" | "broadcasts">("chat");
 
   // ---------------------------------------------------------------------------
   // Refs
   // ---------------------------------------------------------------------------
   const bottomRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
 
   // ---------------------------------------------------------------------------
-  // Initialization: get user profile + coachId
+  // Initialization: get profile via /api/messages (admin client, no RLS issues)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     async function init() {
       try {
-        const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
+        // Fetch messages — the API route looks up profile with admin client
+        // and returns { profile: { id, coachId } } for students
+        const res = await fetch("/api/messages");
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          const errMsg = (json as { error?: string }).error ?? "Failed to load chat";
+          if (errMsg === "No coach assigned") {
+            // No coach assigned — show empty state, skip polling
+            setIsLoading(false);
+            return;
+          }
+          console.error("Failed to init chat", json);
+          toastRef.current({ type: "error", title: "Failed to load chat" });
           setIsLoading(false);
           return;
         }
 
-        // Students can read their own row via RLS (self-read allowed)
-        const { data: profile, error } = await supabase
-          .from("users")
-          .select("id, coach_id, name")
-          .eq("auth_id", user.id)
-          .single();
+        const data = (await res.json()) as {
+          messages: MessageWithSender[];
+          hasMore: boolean;
+          profile: { id: string; coachId: string };
+        };
 
-        if (error || !profile) {
-          console.error("Failed to load student profile", error);
-          toastRef.current({ type: "error", title: "Failed to load profile" });
-          setIsLoading(false);
-          return;
+        setCurrentUserId(data.profile.id);
+        setCoachId(data.profile.coachId);
+
+        // Set initial messages
+        setMessages(data.messages);
+        setHasMore(data.hasMore);
+        prevMessageCountRef.current = data.messages.length;
+
+        // Extract coach name from messages
+        const coachMsg = data.messages.find(
+          (m) => m.sender_id === data.profile.coachId
+        );
+        if (coachMsg) {
+          setCoachName(coachMsg.sender_name);
         }
-
-        setCurrentUserId(profile.id);
-
-        if (!profile.coach_id) {
-          // No coach assigned — show error state, skip polling
-          setIsLoading(false);
-          return;
-        }
-
-        setCoachId(profile.coach_id);
 
         // Mark messages as read on mount (CHAT-07)
         const readRes = await fetch("/api/messages/read", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ coach_id: profile.coach_id }),
+          body: JSON.stringify({ coach_id: data.profile.coachId }),
         });
         if (!readRes.ok) {
           console.error("Failed to mark messages as read");
         }
 
         setIsLoading(false);
+
+        // Scroll to bottom after initial load
+        requestAnimationFrame(() => {
+          bottomRef.current?.scrollIntoView({ behavior: "auto" });
+        });
       } catch (err) {
         console.error("Chat init error", err);
         toastRef.current({ type: "error", title: "Failed to initialize chat" });
@@ -130,22 +139,14 @@ export default function StudentChatPage() {
         }
       }
 
-      setHasMore(data.hasMore);
-
-      // Auto-scroll guard (Pitfall 4, CHAT-09): only scroll to bottom if user
-      // is near the bottom OR if new messages arrived while they were at bottom
-      const container = scrollContainerRef.current;
-      const isNearBottom = container
-        ? container.scrollTop + container.clientHeight >= container.scrollHeight - 100
-        : true;
-
       const prevCount = prevMessageCountRef.current;
       const newCount = data.messages.length;
       prevMessageCountRef.current = newCount;
 
       setMessages(data.messages);
+      setHasMore(data.hasMore);
 
-      if (isNearBottom && newCount > prevCount) {
+      if (newCount > prevCount) {
         requestAnimationFrame(() => {
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         });
@@ -220,8 +221,6 @@ export default function StudentChatPage() {
     setIsLoadingMore(true);
 
     const oldest = messages[0].created_at;
-    const container = scrollContainerRef.current;
-    const prevScrollHeight = container?.scrollHeight ?? 0;
 
     try {
       const res = await fetch(
@@ -239,13 +238,6 @@ export default function StudentChatPage() {
 
       setHasMore(data.hasMore);
       setMessages((prev) => [...data.messages, ...prev]);
-
-      // Restore scroll position after DOM update (Pitfall 3)
-      requestAnimationFrame(() => {
-        if (container) {
-          container.scrollTop += container.scrollHeight - prevScrollHeight;
-        }
-      });
     } catch (err) {
       console.error("Load older messages error", err);
       toastRef.current({ type: "error", title: "Failed to load older messages" });
@@ -278,6 +270,10 @@ export default function StudentChatPage() {
     );
   }
 
+  const filteredMessages = viewMode === "broadcasts"
+    ? messages.filter((m) => m.is_broadcast)
+    : messages.filter((m) => !m.is_broadcast);
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] -m-4 md:-m-8 bg-white">
       {/* Header bar */}
@@ -288,23 +284,51 @@ export default function StudentChatPage() {
         </h1>
       </div>
 
-      {/* Message thread */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
-        <MessageThread
-          messages={messages}
-          currentUserId={currentUserId ?? ""}
-          hasMore={hasMore}
-          onLoadMore={loadOlderMessages}
-          isLoadingMore={isLoadingMore}
-          bottomRef={bottomRef}
-        />
+      {/* Tab switcher */}
+      <div className="flex border-b border-ima-border flex-shrink-0">
+        <button
+          type="button"
+          onClick={() => setViewMode("chat")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium min-h-[44px] motion-safe:transition-colors ${
+            viewMode === "chat"
+              ? "text-ima-primary border-b-2 border-ima-primary"
+              : "text-ima-text-light hover:text-ima-text"
+          }`}
+        >
+          <MessageSquare size={16} aria-hidden="true" />
+          Chat
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("broadcasts")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium min-h-[44px] motion-safe:transition-colors ${
+            viewMode === "broadcasts"
+              ? "text-ima-primary border-b-2 border-ima-primary"
+              : "text-ima-text-light hover:text-ima-text"
+          }`}
+        >
+          <Megaphone size={16} aria-hidden="true" />
+          Announcements
+        </button>
       </div>
 
-      {/* Composer */}
-      <ChatComposer
-        onSend={handleSend}
-        placeholder="Message your coach..."
+      {/* Message thread */}
+      <MessageThread
+        messages={filteredMessages}
+        currentUserId={currentUserId ?? ""}
+        hasMore={hasMore}
+        onLoadMore={loadOlderMessages}
+        isLoadingMore={isLoadingMore}
+        bottomRef={bottomRef}
       />
+
+      {/* Composer — only in chat mode */}
+      {viewMode === "chat" && (
+        <ChatComposer
+          onSend={handleSend}
+          placeholder="Message your coach..."
+        />
+      )}
     </div>
   );
 }

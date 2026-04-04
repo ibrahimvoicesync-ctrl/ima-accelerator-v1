@@ -131,6 +131,10 @@ None beyond what was already documented — Discord env vars (NEXT_PUBLIC_DISCOR
 - After UAT approval, phase 36 is complete and phase 37 (invite max_uses) can proceed
 - No blockers
 
+## Self-Check: PASSED
+
+All 9 created files confirmed present on disk. Commit f52ae7c confirmed in git log.
+
 ---
 *Phase: 36-resources-tab*
 *Completed: 2026-04-04*

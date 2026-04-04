@@ -86,11 +86,11 @@ export async function GET(request: NextRequest) {
 
         // Build per-student conversation map
         type ConversationSummary = {
-          student_id: string;
-          student_name: string;
-          last_message: string | null;
-          last_message_at: string | null;
-          unread_count: number;
+          studentId: string;
+          studentName: string;
+          lastMessage: string;
+          lastMessageAt: string;
+          unreadCount: number;
         };
 
         const conversationMap = new Map<string, ConversationSummary>();
@@ -98,11 +98,11 @@ export async function GET(request: NextRequest) {
         // Initialize entries from students list (ensures all students appear)
         for (const student of students ?? []) {
           conversationMap.set(student.id, {
-            student_id: student.id,
-            student_name: student.name,
-            last_message: null,
-            last_message_at: null,
-            unread_count: 0,
+            studentId: student.id,
+            studentName: student.name ?? "",
+            lastMessage: "",
+            lastMessageAt: "",
+            unreadCount: 0,
           });
         }
 
@@ -130,24 +130,24 @@ export async function GET(request: NextRequest) {
           const entry = conversationMap.get(participantId);
           if (entry) {
             // First message we see for this student is the most recent (DESC order)
-            if (!entry.last_message_at) {
-              entry.last_message = msg.content;
-              entry.last_message_at = msg.created_at;
+            if (!entry.lastMessageAt) {
+              entry.lastMessage = msg.content;
+              entry.lastMessageAt = msg.created_at;
             }
             // Count messages sent TO the coach that are unread
             if (msg.recipient_id === coachId && !msg.read_at) {
-              entry.unread_count += 1;
+              entry.unreadCount += 1;
             }
           }
         }
 
         const conversations = Array.from(conversationMap.values()).sort((a, b) => {
-          if (!a.last_message_at) return 1;
-          if (!b.last_message_at) return -1;
-          return b.last_message_at.localeCompare(a.last_message_at);
+          if (!a.lastMessageAt) return 1;
+          if (!b.lastMessageAt) return -1;
+          return b.lastMessageAt.localeCompare(a.lastMessageAt);
         });
 
-        return NextResponse.json({ conversations });
+        return NextResponse.json({ conversations, profile: { id: profile.id } });
       }
 
       // Thread messages mode
@@ -156,8 +156,11 @@ export async function GET(request: NextRequest) {
         .select("*, sender:users!messages_sender_id_fkey(id, name)")
         .eq("coach_id", coachId);
 
-      // Filter to specific student conversation if requested
-      if (studentId) {
+      // Filter by broadcast or specific student conversation
+      const broadcast = searchParams.get("broadcast");
+      if (broadcast === "true") {
+        query = query.eq("is_broadcast", true);
+      } else if (studentId) {
         query = query.or(
           `recipient_id.eq.${studentId},sender_id.eq.${studentId}`
         );
@@ -178,8 +181,9 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json({
-        messages: messages ?? [],
+        messages: (messages ?? []).reverse(),
         hasMore: (messages?.length ?? 0) === MESSAGE_PAGE_SIZE,
+        profile: { id: profile.id },
       });
     }
 
@@ -213,8 +217,9 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      messages: studentMessages ?? [],
+      messages: (studentMessages ?? []).reverse(),
       hasMore: (studentMessages?.length ?? 0) === MESSAGE_PAGE_SIZE,
+      profile: { id: profile.id, coachId: profile.coach_id },
     });
   } catch (err) {
     console.error("[GET /api/messages] Unexpected error:", err);

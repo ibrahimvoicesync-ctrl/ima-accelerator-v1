@@ -28,9 +28,11 @@ export function ChatComposer({
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setValue(e.target.value);
-      // Auto-grow textarea up to 150px
+      // Auto-grow textarea up to 150px, then scroll
       e.target.style.height = "auto";
-      e.target.style.height = Math.min(e.target.scrollHeight, 150) + "px";
+      const clamped = Math.min(e.target.scrollHeight, 150);
+      e.target.style.height = clamped + "px";
+      e.target.style.overflowY = e.target.scrollHeight > 150 ? "auto" : "hidden";
     },
     []
   );

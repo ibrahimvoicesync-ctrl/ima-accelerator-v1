@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import { usePolling } from "@/lib/hooks/usePolling";
 import { useToast } from "@/components/ui/Toast";
 import { Spinner } from "@/components/ui/Spinner";
@@ -34,6 +33,7 @@ export default function CoachChatPage() {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingThread, setIsLoadingThread] = useState(false);
 
   // Mobile toggle: true = show thread, false = show conversation list
   const [showThread, setShowThread] = useState(false);
@@ -51,18 +51,13 @@ export default function CoachChatPage() {
   const selectedStudentIdRef = useRef(selectedStudentId);
   selectedStudentIdRef.current = selectedStudentId;
 
+  const isBroadcastModeRef = useRef(isBroadcastMode);
+  isBroadcastModeRef.current = isBroadcastMode;
+
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
-  // Get current user ID from Supabase auth on mount
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setCurrentUserId(user.id);
-    }).catch((err) => {
-      console.error("[CoachChatPage] Failed to get user:", err);
-    });
-  }, []);
+  // currentUserId is set from the API response in fetchConversations
 
   // Auto-scroll to bottom utility
   const scrollToBottom = useCallback(() => {
@@ -78,8 +73,9 @@ export default function CoachChatPage() {
         console.error("[CoachChatPage] Failed to fetch conversations:", (json as { error?: string }).error ?? res.status);
         return;
       }
-      const data = (await res.json()) as { conversations: ConversationSummary[] };
+      const data = (await res.json()) as { conversations: ConversationSummary[]; profile: { id: string } };
       setConversations(data.conversations ?? []);
+      if (data.profile?.id) setCurrentUserId(data.profile.id);
       setIsLoading(false);
     } catch (err) {
       console.error("[CoachChatPage] Network error fetching conversations:", err);
@@ -87,13 +83,18 @@ export default function CoachChatPage() {
     }
   }, []);
 
-  // Fetch messages for the selected student
+  // Fetch messages for the selected student or broadcast
   const fetchMessages = useCallback(async () => {
     const studentId = selectedStudentIdRef.current;
-    if (!studentId) return;
+    const isBroadcast = isBroadcastModeRef.current;
+    if (!studentId && !isBroadcast) return;
+
+    const url = isBroadcast
+      ? "/api/messages?broadcast=true"
+      : `/api/messages?student_id=${studentId}`;
 
     try {
-      const res = await fetch(`/api/messages?student_id=${studentId}`);
+      const res = await fetch(url);
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         console.error("[CoachChatPage] Failed to fetch messages:", (json as { error?: string }).error ?? res.status);
@@ -128,18 +129,20 @@ export default function CoachChatPage() {
         return prev;
       });
 
+      setIsLoadingThread(false);
       setHasMore(data.hasMore ?? false);
       prevMessageCountRef.current = incoming.length;
     } catch (err) {
       console.error("[CoachChatPage] Network error fetching messages:", err);
+      setIsLoadingThread(false);
     }
   }, [scrollToBottom]);
 
   // Poll conversation list continuously
   usePolling(fetchConversations, MESSAGE_POLL_INTERVAL);
 
-  // Poll message thread only when a student is selected
-  usePolling(fetchMessages, MESSAGE_POLL_INTERVAL, selectedStudentId !== null);
+  // Poll message thread when a student is selected or broadcast mode
+  usePolling(fetchMessages, MESSAGE_POLL_INTERVAL, selectedStudentId !== null || isBroadcastMode);
 
   // Mark messages as read when opening a conversation
   const markAsRead = useCallback(async () => {
@@ -168,6 +171,7 @@ export default function CoachChatPage() {
       setShowThread(true);
       setMessages([]);
       setHasMore(false);
+      setIsLoadingThread(true);
       prevMessageCountRef.current = 0;
       void markAsRead();
     },
@@ -181,13 +185,15 @@ export default function CoachChatPage() {
     setSelectedStudentName("");
     setShowThread(true);
     setMessages([]);
+    setIsLoadingThread(true);
   }, []);
 
   // Load older messages (cursor pagination, scroll preservation)
   const loadOlderMessages = useCallback(async () => {
     const studentId = selectedStudentIdRef.current;
+    const isBroadcast = isBroadcastModeRef.current;
     const currentMessages = messagesRef.current;
-    if (!studentId || currentMessages.length === 0) return;
+    if ((!studentId && !isBroadcast) || currentMessages.length === 0) return;
 
     setIsLoadingMore(true);
     const oldest = currentMessages[0];
@@ -196,9 +202,13 @@ export default function CoachChatPage() {
     const container = scrollContainerRef.current;
     const prevScrollHeight = container?.scrollHeight ?? 0;
 
+    const baseUrl = isBroadcast
+      ? `/api/messages?broadcast=true`
+      : `/api/messages?student_id=${studentId}`;
+
     try {
       const res = await fetch(
-        `/api/messages?student_id=${studentId}&before=${encodeURIComponent(oldest.created_at)}`
+        `${baseUrl}&before=${encodeURIComponent(oldest.created_at)}`
       );
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
@@ -285,10 +295,10 @@ export default function CoachChatPage() {
           toastRef.current({ type: "error", title: (json as { error?: string }).error ?? "Failed to send broadcast" });
           return;
         }
+        const data = (await res.json()) as { message: MessageWithSender };
+        setMessages((prev) => [...prev, data.message]);
+        requestAnimationFrame(() => scrollToBottom());
         toastRef.current({ type: "success", title: "Broadcast sent to all students" });
-        // Switch back to conversation list
-        setIsBroadcastMode(false);
-        setShowThread(false);
       } catch (err) {
         console.error("[CoachChatPage] Network error sending broadcast:", err);
         toastRef.current({ type: "error", title: "Network error sending broadcast" });
@@ -321,7 +331,7 @@ export default function CoachChatPage() {
   );
 
   const rightPanel = (
-    <div className="flex-1 flex flex-col h-full min-w-0">
+    <div className="flex-1 flex flex-col h-full min-w-0 min-h-0">
       {isBroadcastMode ? (
         <>
           <div className="px-4 py-3 border-b border-ima-border bg-white">
@@ -332,7 +342,20 @@ export default function CoachChatPage() {
               Your message will be sent to all your assigned students.
             </p>
           </div>
-          <div className="flex-1" />
+          {isLoadingThread ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Spinner size="lg" />
+            </div>
+          ) : (
+            <MessageThread
+              messages={messages}
+              currentUserId={currentUserId ?? ""}
+              hasMore={hasMore}
+              onLoadMore={loadOlderMessages}
+              isLoadingMore={isLoadingMore}
+              bottomRef={bottomRef}
+            />
+          )}
           <ChatComposer
             onSend={handleBroadcast}
             isBroadcast
@@ -346,14 +369,20 @@ export default function CoachChatPage() {
               {selectedStudentName}
             </h2>
           </div>
-          <MessageThread
-            messages={messages}
-            currentUserId={currentUserId}
-            hasMore={hasMore}
-            onLoadMore={loadOlderMessages}
-            isLoadingMore={isLoadingMore}
-            bottomRef={bottomRef}
-          />
+          {isLoadingThread ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Spinner size="lg" />
+            </div>
+          ) : (
+            <MessageThread
+              messages={messages}
+              currentUserId={currentUserId}
+              hasMore={hasMore}
+              onLoadMore={loadOlderMessages}
+              isLoadingMore={isLoadingMore}
+              bottomRef={bottomRef}
+            />
+          )}
           <ChatComposer onSend={handleSend} />
         </>
       ) : (
@@ -411,7 +440,20 @@ export default function CoachChatPage() {
                 <div className="px-4 py-3 text-xs text-ima-text-light border-b border-ima-border">
                   Your message will be sent to all your assigned students.
                 </div>
-                <div className="flex-1" />
+                {isLoadingThread ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <Spinner size="lg" />
+                  </div>
+                ) : (
+                  <MessageThread
+                    messages={messages}
+                    currentUserId={currentUserId ?? ""}
+                    hasMore={hasMore}
+                    onLoadMore={loadOlderMessages}
+                    isLoadingMore={isLoadingMore}
+                    bottomRef={bottomRef}
+                  />
+                )}
                 <ChatComposer
                   onSend={handleBroadcast}
                   isBroadcast
@@ -420,14 +462,20 @@ export default function CoachChatPage() {
               </>
             ) : selectedStudentId ? (
               <>
-                <MessageThread
-                  messages={messages}
-                  currentUserId={currentUserId}
-                  hasMore={hasMore}
-                  onLoadMore={loadOlderMessages}
-                  isLoadingMore={isLoadingMore}
-                  bottomRef={bottomRef}
-                />
+                {isLoadingThread ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <Spinner size="lg" />
+                  </div>
+                ) : (
+                  <MessageThread
+                    messages={messages}
+                    currentUserId={currentUserId}
+                    hasMore={hasMore}
+                    onLoadMore={loadOlderMessages}
+                    isLoadingMore={isLoadingMore}
+                    bottomRef={bottomRef}
+                  />
+                )}
                 <ChatComposer onSend={handleSend} />
               </>
             ) : null}
