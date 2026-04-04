@@ -52,18 +52,18 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 ### Chat System
 
 - [ ] **CHAT-01**: Coach sees a conversation list with all assigned students, showing last message preview, timestamp, and unread indicator
-- [ ] **CHAT-02**: Coach can open a 1:1 conversation with a student and see message history in WhatsApp-style bubbles
-- [ ] **CHAT-03**: Coach can send a message that appears as a right-aligned bubble; student sees it within 5 seconds as a left-aligned bubble
-- [ ] **CHAT-04**: Student can reply to their coach; coach sees reply within 5 seconds
+- [x] **CHAT-02**: Coach can open a 1:1 conversation with a student and see message history in WhatsApp-style bubbles
+- [x] **CHAT-03**: Coach can send a message that appears as a right-aligned bubble; student sees it within 5 seconds as a left-aligned bubble
+- [x] **CHAT-04**: Student can reply to their coach; coach sees reply within 5 seconds
 - [ ] **CHAT-05**: Coach can send a broadcast message to all assigned students; students see it as a distinct system-style card with megaphone icon
 - [x] **CHAT-06**: Unread message count appears as a sidebar badge for coach and student roles
-- [ ] **CHAT-07**: Opening a conversation marks its messages as read (unread indicator clears)
-- [ ] **CHAT-08**: Scrolling up in a conversation loads older messages via cursor-based pagination
-- [ ] **CHAT-09**: Chat auto-scrolls to newest message on send and on new incoming messages
-- [ ] **CHAT-10**: Mobile layout: conversation list is default view; tapping a conversation navigates to thread with back button
+- [x] **CHAT-07**: Opening a conversation marks its messages as read (unread indicator clears)
+- [x] **CHAT-08**: Scrolling up in a conversation loads older messages via cursor-based pagination
+- [x] **CHAT-09**: Chat auto-scrolls to newest message on send and on new incoming messages
+- [x] **CHAT-10**: Mobile layout: conversation list is default view; tapping a conversation navigates to thread with back button
 - [x] **CHAT-11**: Student_DIY does NOT have chat navigation or access to /student/chat
-- [ ] **CHAT-12**: Chat composer enforces 2000 character limit with visible counter
-- [ ] **CHAT-13**: Empty state displays when no conversations exist yet
+- [x] **CHAT-12**: Chat composer enforces 2000 character limit with visible counter
+- [x] **CHAT-13**: Empty state displays when no conversations exist yet
 
 ### Resources Tab
 
@@ -154,18 +154,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMMENT-04 | Phase 34 | Complete |
 | COMMENT-05 | Phase 34 | Complete |
 | CHAT-01 | Phase 35 | Pending |
-| CHAT-02 | Phase 35 | Pending |
-| CHAT-03 | Phase 35 | Pending |
-| CHAT-04 | Phase 35 | Pending |
+| CHAT-02 | Phase 35 | Complete |
+| CHAT-03 | Phase 35 | Complete |
+| CHAT-04 | Phase 35 | Complete |
 | CHAT-05 | Phase 35 | Pending |
 | CHAT-06 | Phase 35 | Complete |
-| CHAT-07 | Phase 35 | Pending |
-| CHAT-08 | Phase 35 | Pending |
-| CHAT-09 | Phase 35 | Pending |
-| CHAT-10 | Phase 35 | Pending |
+| CHAT-07 | Phase 35 | Complete |
+| CHAT-08 | Phase 35 | Complete |
+| CHAT-09 | Phase 35 | Complete |
+| CHAT-10 | Phase 35 | Complete |
 | CHAT-11 | Phase 35 | Complete |
-| CHAT-12 | Phase 35 | Pending |
-| CHAT-13 | Phase 35 | Pending |
+| CHAT-12 | Phase 35 | Complete |
+| CHAT-13 | Phase 35 | Complete |
 | RES-01 | Phase 36 | Pending |
 | RES-02 | Phase 36 | Pending |
 | RES-03 | Phase 36 | Pending |
