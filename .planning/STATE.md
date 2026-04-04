@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Roadmap Update, Session Planner & Coach Controls
 status: executing
-stopped_at: Completed 29-02-PLAN.md
-last_updated: "2026-03-31T13:22:18.991Z"
-last_activity: 2026-03-31
+stopped_at: Completed 35-01-PLAN.md
+last_updated: "2026-04-04T04:17:02.249Z"
+last_activity: "2026-04-01 - Completed quick task 260401-cwd: Coach 100h milestone alert"
 progress:
   total_phases: 11
   completed_phases: 10
@@ -76,6 +76,8 @@ Critical v1.3 decisions from research:
 - [Phase 29-daily-session-planner-client]: PlannerUI is standalone with onPlanConfirmed callback — no server data, calls router.refresh() + onPlanConfirmed after successful POST
 - [Phase 29]: mode derived from server props (parsedPlan + completedCount) — never useState so it survives refresh without re-initialization race conditions
 - [Phase 29]: handleStartWithConfig stores break config into state before setPhase(working) so handleComplete reads planned break duration correctly
+- [Phase 35-01]: GET /api/messages has no rate limit — polling every 5s would exhaust 30 req/min cap in 2.5 min
+- [Phase 35-01]: messages table TypeScript types added to types.ts manually to unblock compilation while migration 00015 is owned by parallel plan
 
 ### Pending Todos
 
@@ -92,9 +94,10 @@ None currently blocking Phase 25.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260401-cwd | Coach 100h milestone alert (computed, coach-only) | 2026-04-01 | 4477e3f | [260401-cwd-add-coach-notification-for-100-hours-in-](./quick/260401-cwd-add-coach-notification-for-100-hours-in-/) |
+| Phase 35-chat-system P01 | 25 | 2 tasks | 5 files |
 
 ## Session Continuity
 
-Last session: 2026-03-31T12:37:39.946Z
-Stopped at: Completed 29-02-PLAN.md
+Last session: 2026-04-04T04:17:02.246Z
+Stopped at: Completed 35-01-PLAN.md
 Resume file: None
