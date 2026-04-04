@@ -416,5 +416,5 @@ Plans:
 | 33. Coach Assignments | v1.4 | 2/2 | Complete    | 2026-04-03 |
 | 34. Report Comments | v1.4 | 1/2 | Complete    | 2026-04-03 |
 | 35. Chat System | v1.4 | 4/4 | Complete   | 2026-04-04 |
-| 36. Resources Tab | v1.4 | 3/3 | Complete   | 2026-04-04 |
+| 36. Resources Tab | v1.4 | 3/3 | Complete    | 2026-04-04 |
 | 37. Invite Link max_uses | v1.4 | 0/? | Not started | - |
