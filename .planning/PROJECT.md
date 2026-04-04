@@ -198,4 +198,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after Phase 33 (coach-assignments) complete*
+*Last updated: 2026-04-04 after Phase 36 (resources-tab) complete — Resources tab with Links/Community/Glossary tabs, CRUD API routes, role-based UI*
