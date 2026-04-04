@@ -34,11 +34,14 @@ export function Modal({ open, onClose, title, description, children, size = "md"
   const autoId = useId();
   const titleId = title ? `modal-title-${autoId}` : undefined;
 
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   const handleEscape = useCallback(
     (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     },
-    [onClose]
+    []
   );
 
   const handleFocusTrap = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -83,7 +86,7 @@ export function Modal({ open, onClose, title, description, children, size = "md"
         previousActiveElement.current.focus();
       }
     };
-  }, [open, handleEscape]);
+  }, [open]); // handleEscape is stable (uses ref) — no dep needed
 
   if (!open) return null;
 
