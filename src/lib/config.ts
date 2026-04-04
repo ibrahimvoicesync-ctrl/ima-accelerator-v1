@@ -58,6 +58,7 @@ export const ROUTES = {
     invites: "/owner/invites",
     assignments: "/owner/assignments",
     alerts: "/owner/alerts",
+    resources: "/owner/resources",
   },
   coach: {
     dashboard: "/coach",
@@ -69,6 +70,7 @@ export const ROUTES = {
     alerts: "/coach/alerts",
     assignments: "/coach/assignments",
     chat: "/coach/chat",
+    resources: "/coach/resources",
   },
   student: {
     dashboard: "/student",
@@ -77,6 +79,7 @@ export const ROUTES = {
     askAI: "/student/ask",
     report: "/student/report",
     chat: "/student/chat",
+    resources: "/student/resources",
   },
   student_diy: {
     dashboard: "/student_diy",
@@ -252,11 +255,12 @@ export const THEME = {
 // ---------------------------------------------------------------------------
 // 13. NAVIGATION — V1 with separators and badge support
 // Locked decision from CONTEXT.md:
-//   - Owner: Dashboard, Coaches, Students | Invites, Assignments, Alerts
-//   - Coach: Dashboard, My Students, Reports | Invite Students, Analytics
+//   - Owner: Dashboard, Coaches, Students | Invites, Assignments, Alerts | Resources
+//   - Coach: Dashboard, My Students, Reports | Invite Students, Analytics, Alerts, Chat | Resources
 //     (Reports has badge for unreviewed count)
-//   - Student: Dashboard, Work Tracker, Roadmap, Ask Abu Lahya, Daily Report
+//   - Student: Dashboard, Work Tracker, Roadmap, Ask Abu Lahya, Daily Report, Chat, Resources
 //     (Ask Abu Lahya is 4th position, before Daily Report)
+//   - Student_DIY: Dashboard, Work Tracker, Roadmap (NO Resources per D-11)
 // ---------------------------------------------------------------------------
 export type NavItem = {
   label: string;
@@ -274,6 +278,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Invites",     href: "/owner/invites",     icon: "UserPlus",      separator: true },
     { label: "Assignments", href: "/owner/assignments", icon: "ArrowLeftRight" },
     { label: "Alerts",      href: "/owner/alerts",      icon: "Bell",          badge: "active_alerts" },
+    { label: "Resources",   href: ROUTES.owner.resources, icon: "BookOpen",    separator: true },
   ],
   coach: [
     { label: "Dashboard",       href: "/coach",              icon: "LayoutDashboard" },
@@ -284,6 +289,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Analytics",       href: "/coach/analytics",    icon: "BarChart3" },
     { label: "Alerts",          href: "/coach/alerts",       icon: "Bell",          badge: "coach_milestone_alerts" },
     { label: "Chat",            href: "/coach/chat",         icon: "MessageSquare", badge: "unread_messages",        separator: true },
+    { label: "Resources",       href: ROUTES.coach.resources, icon: "BookOpen" },
   ],
   student: [
     { label: "Dashboard",     href: "/student",         icon: "LayoutDashboard" },
@@ -292,6 +298,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Ask Abu Lahya", href: "/student/ask",     icon: "MessageSquare" },
     { label: "Daily Report",  href: "/student/report",  icon: "FileText" },
     { label: "Chat",          href: "/student/chat",    icon: "MessageSquare",  badge: "unread_messages" },
+    { label: "Resources",     href: ROUTES.student.resources, icon: "BookOpen" },
   ],
   student_diy: [
     { label: "Dashboard",    href: "/student_diy",         icon: "LayoutDashboard" },
