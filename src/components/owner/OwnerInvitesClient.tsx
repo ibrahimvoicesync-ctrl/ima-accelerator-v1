@@ -179,6 +179,12 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
     return "active";
   };
 
+  const getUsageDisplay = (link: MagicLinkItem): { text: string; exhausted: boolean } => {
+    const limit = link.max_uses === null ? "\u221E" : String(link.max_uses);
+    const exhausted = link.max_uses !== null && link.use_count >= link.max_uses;
+    return { text: `${link.use_count} / ${limit} used`, exhausted };
+  };
+
   return (
     <div className="mt-6 space-y-6">
       {/* Role selector */}
@@ -416,15 +422,22 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
                     <p className="text-sm font-mono text-ima-text truncate" title={link.code}>
                       {link.code}
                     </p>
-                    <p className="text-xs text-ima-text-secondary flex items-center gap-2 flex-wrap">
-                      <Clock className="h-3 w-3" aria-hidden="true" />
-                      <span className="capitalize">{link.role}</span>
-                      <span>&middot;</span>
-                      Created {formatDate(link.created_at)}
-                      <span>&middot;</span>
-                      <span>{link.use_count} use{link.use_count !== 1 ? "s" : ""}</span>
-                      {link.max_uses !== null && <span>/ {link.max_uses}</span>}
-                    </p>
+                    {(() => {
+                      const { text: usageText, exhausted } = getUsageDisplay(link);
+                      return (
+                        <p className={`text-xs flex items-center gap-2 flex-wrap ${exhausted ? "text-ima-error" : "text-ima-text-secondary"}`}>
+                          <Clock className="h-3 w-3" aria-hidden="true" />
+                          <span className="capitalize">{link.role}</span>
+                          <span>&middot;</span>
+                          Created {formatDate(link.created_at)}
+                          <span>&middot;</span>
+                          <span>{usageText}</span>
+                          {exhausted && (
+                            <Badge variant="error" size="sm">Exhausted</Badge>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <div className="shrink-0 flex items-center gap-2">
                     <Badge variant={link.is_active ? "success" : "default"}>
