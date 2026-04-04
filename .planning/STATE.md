@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Roles, Chat & Resources
 status: executing
-stopped_at: Completed 35-04-PLAN.md
-last_updated: "2026-04-04T04:28:26.158Z"
+stopped_at: Phase 36 context gathered
+last_updated: "2026-04-04T05:19:36.191Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 19
@@ -131,6 +131,6 @@ None currently blocking Phase 30.
 
 ## Session Continuity
 
-Last session: 2026-04-04T04:28:26.155Z
-Stopped at: Completed 35-04-PLAN.md
-Resume file: None
+Last session: 2026-04-04T05:19:36.187Z
+Stopped at: Phase 36 context gathered
+Resume file: .planning/phases/36-resources-tab/36-CONTEXT.md
