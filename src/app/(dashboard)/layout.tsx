@@ -44,6 +44,9 @@ export default async function DashboardLayout({
   if (badges.coach_milestone_alerts !== undefined && badges.coach_milestone_alerts > 0) {
     badgeCounts.coach_milestone_alerts = badges.coach_milestone_alerts;
   }
+  if (badges.unread_messages !== undefined && badges.unread_messages > 0) {
+    badgeCounts.unread_messages = badges.unread_messages;
+  }
 
   return (
     <div className="min-h-screen bg-ima-bg">
