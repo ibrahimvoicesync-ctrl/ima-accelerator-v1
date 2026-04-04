@@ -73,7 +73,7 @@
  (completed 2026-04-03)
 - [x] **Phase 35: Chat System** - Polling-based (5s) WhatsApp-style 1:1 + broadcast chat with sidebar unread badges (completed 2026-04-04)
 - [x] **Phase 36: Resources Tab** - URL links + Discord WidgetBot iframe + searchable glossary for owner/coach/student (completed 2026-04-04)
-- [ ] **Phase 37: Invite Link max_uses** - Default max_uses of 10 on magic links, usage count display, cap enforcement
+- [x] **Phase 37: Invite Link max_uses** - Default max_uses of 10 on magic links, usage count display, cap enforcement (completed 2026-04-04)
 
 ## Phase Details
 
@@ -378,7 +378,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 37-01-PLAN.md — Migration 00019 (DEFAULT 10 on max_uses) + POST route Zod schema consolidation
-- [ ] 37-02-PLAN.md — Max uses number input + "X / Y used" display format on coach + owner invite pages
+- [x] 37-02-PLAN.md — Max uses number input + "X / Y used" display format on coach + owner invite pages
 
 ## Progress
 
@@ -420,4 +420,4 @@ Plans:
 | 34. Report Comments | v1.4 | 1/2 | Complete    | 2026-04-03 |
 | 35. Chat System | v1.4 | 4/4 | Complete   | 2026-04-04 |
 | 36. Resources Tab | v1.4 | 3/3 | Complete    | 2026-04-04 |
-| 37. Invite Link max_uses | v1.4 | 1/2 | In Progress|  |
+| 37. Invite Link max_uses | v1.4 | 2/2 | Complete   | 2026-04-04 |
