@@ -13,6 +13,11 @@ function generateMagicCode(): string {
   return Array.from(bytes).map(b => chars[b % chars.length]).join("");
 }
 
+const postSchema = z.object({
+  role: z.enum(["coach", "student", "student_diy"]).optional().default("student"),
+  max_uses: z.number().int().min(1).max(10000).optional().default(10),
+});
+
 const patchSchema = z.object({
   is_active: z.boolean(),
 });
@@ -52,19 +57,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let magicRole: "coach" | "student" | "student_diy" = "student";
+  let body: unknown;
   try {
-    const body = await request.json();
-    const roleSchema = z.object({
-      role: z.enum(["coach", "student", "student_diy"]).optional().default("student"),
-    });
-    const parsed = roleSchema.safeParse(body);
-    if (parsed.success) {
-      magicRole = parsed.data.role;
-    }
+    body = await request.json();
   } catch {
-    // Empty body is fine — default to "student"
+    body = {}; // Empty body = all defaults (role=student, max_uses=10)
   }
+
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Validation failed" },
+      { status: 400 }
+    );
+  }
+
+  const magicRole = parsed.data.role;
+  const maxUses = parsed.data.max_uses;
 
   // Coaches can only create student or student_diy magic links
   if (profile.role === "coach" && magicRole !== "student" && magicRole !== "student_diy") {
@@ -80,7 +89,7 @@ export async function POST(request: NextRequest) {
       role: magicRole,
       created_by: profile.id,
       expires_at: null,  // magic links don't expire by default
-      max_uses: null,    // unlimited uses by default
+      max_uses: maxUses,
     })
     .select()
     .single();
