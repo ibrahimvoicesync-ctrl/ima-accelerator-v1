@@ -489,6 +489,61 @@ export type Database = {
           }
         ];
       };
+      messages: {
+        Row: {
+          id: string;
+          coach_id: string;
+          sender_id: string;
+          recipient_id: string | null;
+          is_broadcast: boolean;
+          content: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          sender_id: string;
+          recipient_id?: string | null;
+          is_broadcast?: boolean;
+          content: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coach_id?: string;
+          sender_id?: string;
+          recipient_id?: string | null;
+          is_broadcast?: boolean;
+          content?: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "messages_coach_id_fkey";
+            columns: ["coach_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "messages_recipient_id_fkey";
+            columns: ["recipient_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
