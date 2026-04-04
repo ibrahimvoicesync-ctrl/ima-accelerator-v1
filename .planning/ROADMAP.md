@@ -377,7 +377,7 @@ Plans:
   3. A user attempting to register via a magic link where use_count >= max_uses receives a clear rejection response; the /api/auth/callback enforces this check before creating the user account
 **Plans**: 2 plans
 Plans:
-- [ ] 37-01-PLAN.md — Migration 00019 (DEFAULT 10 on max_uses) + POST route Zod schema consolidation
+- [x] 37-01-PLAN.md — Migration 00019 (DEFAULT 10 on max_uses) + POST route Zod schema consolidation
 - [ ] 37-02-PLAN.md — Max uses number input + "X / Y used" display format on coach + owner invite pages
 
 ## Progress
@@ -420,4 +420,4 @@ Plans:
 | 34. Report Comments | v1.4 | 1/2 | Complete    | 2026-04-03 |
 | 35. Chat System | v1.4 | 4/4 | Complete   | 2026-04-04 |
 | 36. Resources Tab | v1.4 | 3/3 | Complete    | 2026-04-04 |
-| 37. Invite Link max_uses | v1.4 | 0/2 | Not started | - |
+| 37. Invite Link max_uses | v1.4 | 1/2 | In Progress|  |

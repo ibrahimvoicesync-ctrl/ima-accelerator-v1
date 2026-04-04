@@ -79,9 +79,9 @@ Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap 
 
 ### Invite Enhancement
 
-- [ ] **INVITE-01**: Magic link creation accepts an optional max_uses field, defaulting to 10
+- [x] **INVITE-01**: Magic link creation accepts an optional max_uses field, defaulting to 10
 - [ ] **INVITE-02**: UI shows "X/Y used" on existing magic link cards
-- [ ] **INVITE-03**: Registration via magic link is rejected when use_count >= max_uses
+- [x] **INVITE-03**: Registration via magic link is rejected when use_count >= max_uses
 
 ## v2 Requirements
 
@@ -175,9 +175,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RES-07 | Phase 36 | Complete |
 | RES-08 | Phase 36 | Complete |
 | RES-09 | Phase 36 | Complete |
-| INVITE-01 | Phase 37 | Pending |
+| INVITE-01 | Phase 37 | Complete |
 | INVITE-02 | Phase 37 | Pending |
-| INVITE-03 | Phase 37 | Pending |
+| INVITE-03 | Phase 37 | Complete |
 
 **Coverage:**
 - v1.4 requirements: 48 total
