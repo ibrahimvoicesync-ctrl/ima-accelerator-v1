@@ -39,6 +39,13 @@ export const ROLE_HIERARCHY: Record<Role, number> = {
   student_diy: 1,
 };
 
+export const ROLE_LABELS: Record<Role, string> = {
+  owner: "Owner",
+  coach: "Coach",
+  student: "Student",
+  student_diy: "Student DIY",
+};
+
 // ---------------------------------------------------------------------------
 // 3. ROUTES (V1 only — no leaderboard, card, calls, settings)
 // ---------------------------------------------------------------------------

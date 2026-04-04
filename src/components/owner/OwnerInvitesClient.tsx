@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { UserPlus, Link2, Copy, Mail, Clock, CheckCircle } from "lucide-react";
+import { ROLE_LABELS } from "@/lib/config";
+import type { Role } from "@/lib/config";
 
 type InviteItem = {
   id: string;
@@ -375,7 +377,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-ima-text truncate">{invite.email}</p>
                       <p className="text-xs text-ima-text-secondary">
-                        <span className="capitalize">{invite.role}</span>
+                        {ROLE_LABELS[invite.role as Role] ?? invite.role}
                         {" · "}Sent {formatDate(invite.created_at)}
                         {status === "active" && (
                           <span className="ml-2">
@@ -427,7 +429,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
                       return (
                         <p className={`text-xs flex items-center gap-2 flex-wrap ${exhausted ? "text-ima-error" : "text-ima-text-secondary"}`}>
                           <Clock className="h-3 w-3" aria-hidden="true" />
-                          <span className="capitalize">{link.role}</span>
+                          {ROLE_LABELS[link.role as Role] ?? link.role}
                           <span>&middot;</span>
                           Created {formatDate(link.created_at)}
                           <span>&middot;</span>

@@ -26,7 +26,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Role, NavItem } from "@/lib/config";
-import { NAVIGATION, APP_CONFIG } from "@/lib/config";
+import { NAVIGATION, APP_CONFIG, ROLE_LABELS } from "@/lib/config";
 
 // V1 icon map — only icons used in V1 navigation
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -291,7 +291,7 @@ export function Sidebar({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ima-text truncate">{userName}</p>
-                <p className="text-xs text-ima-text-muted capitalize">{role}</p>
+                <p className="text-xs text-ima-text-muted">{ROLE_LABELS[role]}</p>
               </div>
             </div>
             <button
