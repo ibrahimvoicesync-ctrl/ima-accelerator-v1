@@ -83,7 +83,7 @@
 **Milestone Goal:** Students can track closed deals with revenue and profit; coaches and owners can view and manage deal history on student detail pages.
 
 - [x] **Phase 38: Database Foundation** - deals table, deal_number trigger, RLS, indexes (completed 2026-04-06)
-- [ ] **Phase 39: API Route Handlers** - full CRUD endpoints with rate limiting and role-scoped delete
+- [x] **Phase 39: API Route Handlers** - full CRUD endpoints with rate limiting and role-scoped delete (completed 2026-04-06)
 - [ ] **Phase 40: Config & Type Updates** - routes, nav, validation constants, types.ts
 - [ ] **Phase 41: Student Deals Pages** - DealsClient CRUD UI with useOptimistic for student and student_diy
 - [ ] **Phase 42: Dashboard Stat Cards** - Deals Closed, Total Revenue, Total Profit on both dashboards
@@ -117,7 +117,7 @@ Plans:
   5. All four endpoints enforce verifyOrigin CSRF check, checkRateLimit at 30 req/min, and Zod input validation — requests failing any check return 400, 403, or 429 with a JSON error body
 **Plans**: 1 plan
 Plans:
-- [ ] 39-01-PLAN.md — POST+GET and PATCH+DELETE deal CRUD route handlers
+- [x] 39-01-PLAN.md — POST+GET and PATCH+DELETE deal CRUD route handlers
 
 ### Phase 40: Config & Type Updates
 **Goal**: src/lib/config.ts and proxy.ts coverage are updated so TypeScript compiles cleanly before any page files are created
@@ -218,7 +218,7 @@ Plans:
 | 36. Resources Tab | v1.4 | 3/3 | Complete | 2026-04-04 |
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
 | 38. Database Foundation | v1.5 | 1/1 | Complete    | 2026-04-06 |
-| 39. API Route Handlers | v1.5 | 0/1 | Planned | - |
+| 39. API Route Handlers | v1.5 | 1/1 | Complete    | 2026-04-06 |
 | 40. Config & Type Updates | v1.5 | 0/TBD | Not started | - |
 | 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
 | 42. Dashboard Stat Cards | v1.5 | 0/TBD | Not started | - |
