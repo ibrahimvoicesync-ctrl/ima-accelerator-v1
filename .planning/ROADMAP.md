@@ -101,7 +101,9 @@
   3. RLS policies use the (SELECT auth.uid()) and (SELECT get_user_role()) initplan pattern — EXPLAIN ANALYZE shows initplan, not per-row function calls
   4. An index on (student_id, created_at DESC) exists and is confirmed by \d deals in Supabase Studio
   5. types.ts has a Deal type with revenue and profit declared as string | number to force explicit Number() coercion at every arithmetic site
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
 
 ### Phase 39: API Route Handlers
 **Goal**: All deal mutation and query endpoints exist, are secured, and are testable before any UI is built
@@ -113,7 +115,9 @@
   3. DELETE /api/deals/[id] allows a student to delete their own deal, a coach to delete a deal belonging to their assigned student (two-step coach_id check), and an owner to delete any deal; unauthorized deletes return 403
   4. GET /api/deals returns a paginated list (25/page) of deals for a given student_id; accepts page query param; accessible to coach and owner roles only
   5. All four endpoints enforce verifyOrigin CSRF check, checkRateLimit at 30 req/min, and Zod input validation — requests failing any check return 400, 403, or 429 with a JSON error body
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
 
 ### Phase 40: Config & Type Updates
 **Goal**: src/lib/config.ts and proxy.ts coverage are updated so TypeScript compiles cleanly before any page files are created
@@ -124,7 +128,9 @@
   2. Both student and student_diy nav arrays in config.ts include a "Deals" entry pointing to the correct route
   3. A DEALS validation object in config.ts defines REVENUE_MAX and NOTES_MAX_LENGTH constants used by Zod schemas in Phase 39
   4. npx tsc --noEmit passes with zero errors after config changes and before any page file is created
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
 
 ### Phase 41: Student Deals Pages
 **Goal**: Students and student_diy users can add, view, edit, and delete their deals from a dedicated Deals page
@@ -136,7 +142,9 @@
   3. Student edits a deal via an inline or modal form — the updated values appear in the list immediately on save
   4. Student deletes a deal — the row disappears instantly from the list (useOptimistic) and does not reappear after router.refresh() completes
   5. Student_diy user at /student_diy/deals sees the identical UI and all CRUD operations work via the same DealsClient component
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
 **UI hint**: yes
 
 ### Phase 42: Dashboard Stat Cards
@@ -148,7 +156,9 @@
   2. After a student adds or deletes a deal on the Deals page, navigating back to the dashboard shows updated counts and totals without a hard refresh
   3. The student_diy dashboard shows the same three stat cards with identical formatting and live-query behavior
   4. When a student has no deals, all three stat cards display 0 / $0.00 (not blank, not an error)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
 **UI hint**: yes
 
 ### Phase 43: Coach & Owner Deals Tab
@@ -161,7 +171,9 @@
   3. The Deals tab header row shows summary stats: total deals closed, total revenue, total profit, and profit margin percentage
   4. The deal list below the summary is paginated at 25 rows per page using the existing PaginationControls component, sorted most-recent first
   5. Coach clicks delete on a deal belonging to their assigned student — the row is removed; clicking delete on an unassigned student's deal is blocked (403 shown as error toast)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
 **UI hint**: yes
 
 ## Progress
@@ -205,7 +217,7 @@
 | 35. Chat System | v1.4 | 4/4 | Complete | 2026-04-04 |
 | 36. Resources Tab | v1.4 | 3/3 | Complete | 2026-04-04 |
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
-| 38. Database Foundation | v1.5 | 0/TBD | Not started | - |
+| 38. Database Foundation | v1.5 | 0/1 | Not started | - |
 | 39. API Route Handlers | v1.5 | 0/TBD | Not started | - |
 | 40. Config & Type Updates | v1.5 | 0/TBD | Not started | - |
 | 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
