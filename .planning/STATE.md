@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: "Roles, Chat & Resources"
-status: complete
-stopped_at: Milestone v1.4 complete
+milestone: v1.5
+milestone_name: "Student Deals"
+status: active
+stopped_at: null
 last_updated: "2026-04-06"
 last_activity: 2026-04-06
 progress:
@@ -11,7 +11,7 @@ progress:
   completed_phases: 37
   total_plans: 130
   completed_plans: 130
-  percent: 100
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-06)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v1.5 Student Deals
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone v1.4 complete — ready for next milestone
-Last activity: 2026-04-06 — Milestone v1.4 archived
+Status: Defining requirements
+Last activity: 2026-04-06 — Milestone v1.5 started
 
 ## Performance Metrics
 

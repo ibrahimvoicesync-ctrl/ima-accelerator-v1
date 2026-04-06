@@ -59,7 +59,18 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 <!-- Current scope. Building toward these. -->
 
-(No active milestone — define next with `/gsd-new-milestone`)
+## Current Milestone: v1.5 Student Deals
+
+**Goal:** Students can track closed deals with revenue and profit; coaches and owners can view and manage deal history on student detail pages.
+
+**Target features:**
+- Deals table with auto-incremented deal_number per student
+- Student Deals page — add (revenue + profit), edit, delete, view history
+- Dashboard stats for both student and student_diy: Deals Closed, Total Revenue, Total Profit
+- Both student and student_diy roles get the Deals page
+- Coach/Owner Deals tab on student detail pages — summary + paginated list (25/page)
+- Coach can delete assigned student deals; owner can delete any
+- Performance: index, RLS initplan, rate limiting, useOptimistic, paginated
 
 ### Out of Scope
 
@@ -182,4 +193,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-06 after v1.4 milestone*
+*Last updated: 2026-04-06 after v1.5 milestone started*
