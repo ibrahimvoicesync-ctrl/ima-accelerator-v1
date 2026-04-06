@@ -82,7 +82,7 @@
 
 **Milestone Goal:** Students can track closed deals with revenue and profit; coaches and owners can view and manage deal history on student detail pages.
 
-- [ ] **Phase 38: Database Foundation** - deals table, deal_number trigger, RLS, indexes
+- [x] **Phase 38: Database Foundation** - deals table, deal_number trigger, RLS, indexes (completed 2026-04-06)
 - [ ] **Phase 39: API Route Handlers** - full CRUD endpoints with rate limiting and role-scoped delete
 - [ ] **Phase 40: Config & Type Updates** - routes, nav, validation constants, types.ts
 - [ ] **Phase 41: Student Deals Pages** - DealsClient CRUD UI with useOptimistic for student and student_diy
@@ -103,7 +103,7 @@
   5. types.ts has a Deal type with revenue and profit declared as string | number to force explicit Number() coercion at every arithmetic site
 **Plans**: 1 plan
 Plans:
-- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
+- [x] 38-01-PLAN.md — Migration SQL, Deal types, schema push
 
 ### Phase 39: API Route Handlers
 **Goal**: All deal mutation and query endpoints exist, are secured, and are testable before any UI is built
@@ -117,7 +117,7 @@ Plans:
   5. All four endpoints enforce verifyOrigin CSRF check, checkRateLimit at 30 req/min, and Zod input validation — requests failing any check return 400, 403, or 429 with a JSON error body
 **Plans**: 1 plan
 Plans:
-- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
+- [x] 38-01-PLAN.md — Migration SQL, Deal types, schema push
 
 ### Phase 40: Config & Type Updates
 **Goal**: src/lib/config.ts and proxy.ts coverage are updated so TypeScript compiles cleanly before any page files are created
@@ -217,7 +217,7 @@ Plans:
 | 35. Chat System | v1.4 | 4/4 | Complete | 2026-04-04 |
 | 36. Resources Tab | v1.4 | 3/3 | Complete | 2026-04-04 |
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
-| 38. Database Foundation | v1.5 | 0/1 | Not started | - |
+| 38. Database Foundation | v1.5 | 1/1 | Complete    | 2026-04-06 |
 | 39. API Route Handlers | v1.5 | 0/TBD | Not started | - |
 | 40. Config & Type Updates | v1.5 | 0/TBD | Not started | - |
 | 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
