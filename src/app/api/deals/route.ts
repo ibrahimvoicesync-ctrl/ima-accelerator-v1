@@ -131,11 +131,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. CSRF protection
-    const csrfError = verifyOrigin(request);
-    if (csrfError) return csrfError;
-
-    // 2. Auth check
+    // 1. Auth check (no CSRF on GET — read-only, safe method)
     const supabase = await createClient();
     const {
       data: { user: authUser },
@@ -144,7 +140,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 3. Profile lookup
+    // 2. Profile lookup
     const admin = createAdminClient();
     const { data: profile } = await admin
       .from("users")
@@ -155,7 +151,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User profile not found" }, { status: 404 });
     }
 
-    // 4. Role check — coach and owner only (students read via their own UI, Phase 41)
+    // 3. Role check — coach and owner only (students read via their own UI, Phase 41)
     if (!["coach", "owner"].includes(profile.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
