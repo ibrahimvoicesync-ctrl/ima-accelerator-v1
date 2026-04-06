@@ -1,5 +1,40 @@
 # Milestones
 
+## v1.4 Roles, Chat & Resources (Shipped: 2026-04-06)
+
+**Phases completed:** 8 phases (30-37), 19 plans
+**Files modified:** 72 | **Lines of code:** 50,816 TypeScript (total codebase)
+**Timeline:** 2 days (2026-04-03 → 2026-04-04) | **Commits:** 143
+**Requirements:** 42/48 satisfied (6 bookkeeping gaps — see Known Gaps)
+
+**Key accomplishments:**
+
+1. Student_DIY 4th role with reduced feature set (dashboard + work tracker + roadmap only), 8-location atomic wiring across proxy/config/types/DB, dedicated route group with 4 pages
+2. Skip tracker via get_weekly_skip_counts RPC — warning badges on coach and owner dashboards showing "X skipped" per student per ISO week
+3. Coach assignments — coaches get full assignment power via /coach/assignments page with optimistic dropdown UI, search, and filter tabs
+4. Report comments — single coach comment per report (upsert behavior), student read-only feedback view, ownership-verified API
+5. Polling-based chat system (5s interval) — WhatsApp-style 1:1 conversations + broadcast, sidebar unread badges, cursor-based pagination, mobile-first layout
+6. Resources tab — Links + Discord WidgetBot iframe (CSS hidden pattern) + searchable glossary with role-based CRUD for owner/coach, read-only for students
+7. Invite link max_uses — default 10 on magic links, "X/Y used" display, exhausted badge, cap enforcement on registration
+
+### Known Gaps
+
+6 requirements marked Pending in traceability (phases completed, likely bookkeeping — checkboxes not updated during transitions):
+
+- **SKIP-01**: Coach sees "X skipped" badge (Phase 32 completed — feature implemented)
+- **SKIP-02**: Skip count only includes past days and today (Phase 32 completed)
+- **SKIP-03**: Skip count resets to 0 on Monday (Phase 32 completed)
+- **SKIP-05**: Skip count computed via Postgres RPC (Phase 32 completed)
+- **CHAT-01**: Coach conversation list with last message preview (Phase 35 completed)
+- **CHAT-05**: Coach broadcast message (Phase 35 completed)
+
+**Archives:**
+
+- [v1.4 Roadmap](milestones/v1.4-ROADMAP.md)
+- [v1.4 Requirements](milestones/v1.4-REQUIREMENTS.md)
+
+---
+
 ## v1.0 IMA Accelerator V1 (Shipped: 2026-03-18)
 
 **Phases completed:** 12 phases, 38 plans

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A student performance and coaching management platform for Abu Lahya's halal influencer marketing mentorship program. Three roles — owner (platform admin), coaches (mentors), and students (aspiring influencer marketing agents) — each with dedicated dashboards to track work sessions, roadmap progress, daily reports, and coaching relationships. Built as a clean rebuild from a more complex previous version, shipped as v1.0 with full accountability loop.
+A student performance and coaching management platform for Abu Lahya's halal influencer marketing mentorship program. Four roles — owner (platform admin), coaches (mentors), students (full-program learners), and student_diy (self-service learners) — each with dedicated dashboards to track work sessions, roadmap progress, daily reports, coach-student chat, and shared resources. Built as a clean rebuild from a more complex previous version, now at v1.4 with chat, resources, and expanded role system.
 
 ## Core Value
 
@@ -47,18 +47,19 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ Coach/owner roadmap undo with cascade re-lock and audit logging — v1.3
 - ✓ Daily session planner (API + client) — 4h cap, auto breaks, planned execution — v1.3
 - ✓ Post-plan motivational card (Arabic + English) + ad-hoc session picker — v1.3
+- ✓ Student_DIY role — 4th role (dashboard + work tracker + roadmap only) — v1.4
+- ✓ Skip tracker — "X days skipped this week" badges on coach/owner dashboards — v1.4
+- ✓ Coach assignments — coaches get same assignment power as owner — v1.4
+- ✓ Report comments — single coach comment per daily report, student read-only view — v1.4
+- ✓ Chat system — polling-based 1:1 + broadcast, sidebar unread badges — v1.4
+- ✓ Resources tab — URL links + Discord WidgetBot embed + searchable glossary — v1.4
+- ✓ Invite link configurable max_uses — default 10, usage count display — v1.4
 
 ### Active
 
-<!-- Current scope. Building toward these for v1.4. -->
+<!-- Current scope. Building toward these. -->
 
-- [x] Student_DIY role — 4th role (dashboard + work tracker + roadmap only, no reports/AI/resources/chat) — Validated in Phase 31
-- [x] Skip tracker — "X days skipped this week" (Mon-Sun ISO week) on coach/owner dashboards — Validated in Phase 32
-- [ ] Coach assignments — coaches get same assignment power as owner (any student → any coach)
-- [x] Report comments — single coach comment per daily report, students see on history — Validated in Phase 34
-- [ ] Chat system — polling-based WhatsApp-style chat (5s poll), 1:1 coach↔student + broadcast
-- [ ] Resources tab — URL links + Discord WidgetBot embed + searchable glossary (owner/coach/student, NOT student_diy)
-- [x] Invite link configurable max_uses — default 10, UI shows usage count — Validated in Phase 37
+(No active milestone — define next with `/gsd-new-milestone`)
 
 ### Out of Scope
 
@@ -108,13 +109,9 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 **v1.3 Phase 28 complete** (2026-03-31): Daily session planner API — planJsonSchema Zod module (version:1, 240-min cap, config-driven session options), POST/GET /api/daily-plans with idempotent 23505 conflict handling, plan-aware cap enforcement in POST /api/work-sessions (block without plan, enforce cap while unfulfilled, lift after completion).
 
-**v1.3 Phase 29 complete** (2026-03-31): Daily session planner client — PlannerUI (session builder with auto-break assignment, 4h cap, config-driven presets), PlannedSessionList (completed/current/upcoming visual states, Start bypasses setup phase), MotivationalCard (Arabic dir=rtl text, localStorage once-per-day), WorkTrackerClient mode derivation (planning/executing/adhoc) with Zod safeParse on plan_json.
-
 **v1.3 milestone complete** (2026-04-03): 5 phases (25-29), 11 plans. Roadmap config & stage headers, coach/owner undo, daily session planner (API + client), motivational card + ad-hoc sessions all shipped.
 
-**v1.4 Phase 30 complete** (2026-04-03): Database migration — migration 00015 adds 4 new tables (report_comments, messages, resources, glossary_terms), expands role CHECK constraints to include student_diy on users/invites/magic_links, enables RLS with 30 role-appropriate policies on all new tables, updates TypeScript types with 4 table triplets and expanded Role union in 9 locations.
-
-**v1.4 Phase 31 complete** (2026-04-03): Student DIY role — student_diy wired into config.ts (6 maps), proxy.ts (2 maps), auth callback (3 registration paths). 4 page files under /student_diy/ (dashboard, work, roadmap, not-found). Invite APIs and forms expanded for owner/coach to create student_diy invites.
+**v1.4 milestone complete** (2026-04-06): 8 phases (30-37), 19 plans, 143 commits over 2 days. Student_DIY role, skip tracker, coach assignments, report comments, chat system, resources tab, invite max_uses all shipped. Codebase at 50,816 LOC TypeScript.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
@@ -130,7 +127,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 - **Tech stack**: Next.js App Router + Supabase + Tailwind CSS + TypeScript strict
 - **Auth**: Google OAuth only, no password flows — Supabase Auth handles OAuth
 - **Architecture**: Server components for all reads (async pages, no useEffect), small "use client" components only for interactivity, createAdminClient() for server queries
-- **Database**: Supabase Postgres with RLS + server-side user ID filtering (defense in depth), 10 tables (users, invites, magic_links, work_sessions, roadmap_progress, daily_reports, report_comments, messages, resources, glossary_terms) + alert_dismissals + daily_plans + roadmap_undo_log
+- **Database**: Supabase Postgres with RLS + server-side user ID filtering (defense in depth), 14 tables (users, invites, magic_links, work_sessions, roadmap_progress, daily_reports, report_comments, messages, resources, glossary_terms, alert_dismissals, daily_plans, roadmap_undo_log, student_kpi_summaries) + rate_limit_log
 - **Styling**: Light theme, blue primary (#2563EB), Inter font, ima-* design tokens, CVA-based UI primitives
 - **Validation**: Zod on all API inputs, safeParse pattern
 - **Access**: Invite-only registration, role-based route guards via proxy (not middleware)
@@ -152,33 +149,20 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | Resume shifts started_at forward | Client timer needs no elapsed accumulator; Date.now() - started_at always equals active work time | ✓ Good — simple timer math |
 | alert_dismissals with time-windowed keys | Dismissed alerts re-trigger in new window (daily/weekly/monthly) | ✓ Good — prevents stale dismissals masking new issues |
 | Phase 24 | Compute sizing: STAY on Pro Small — local Docker k6 load tests with 5k students show P95=929.76ms read-mix (100 VUs), P95=6.74ms write-spike (500 VUs), P95=240.51ms combined (350 VUs). All under 1s threshold. Connection usage low. Write ops extremely fast; read aggregation RPCs are the bottleneck but pass. Cloud Pro Small has lower max_connections (60 vs local 100) — monitor if cloud P95 exceeds 1s. | 2026-03-30 |
-| v1.4 D-01 | "This week" = Monday-Sunday (ISO week) for skip tracker | Owner preference | — Pending |
-| v1.4 D-02 | Coaches get full assignment power (any student → any coach) | Same UX as owner | — Pending |
-| v1.4 D-03 | Report comments: single comment per report, coach-only | Keep simple | — Pending |
-| v1.4 D-04 | Student_DIY: NO coach assignment, fully independent | DIY = self-service | — Pending |
-| v1.4 D-05 | Student_DIY: NO Ask Abu Lahya, NO Daily Report, NO Resources tab | Reduced feature set | — Pending |
-| v1.4 D-06 | Student_DIY: YES dashboard, YES work tracker, YES roadmap | Core tools kept | — Pending |
-| v1.4 D-07 | Chat: polling-based (5s interval), not Supabase Realtime | Avoids 500 peak connection limit on Pro plan | — Pending |
-| v1.4 D-08 | Chat: coach↔individual student + coach→all broadcast | Two chat modes | — Pending |
-| v1.4 D-09 | Chat: students CAN reply to coaches | Two-way async | — Pending |
-| v1.4 D-10 | Discord: WidgetBot iframe embed | Full Discord experience, no npm package | — Pending |
-| v1.4 D-11 | Resources visible to owner, coach, student — NOT student_diy | Per requirement | — Pending |
-| v1.4 D-12 | Glossary managed by owner + coaches | Both roles can CRUD | — Pending |
-| v1.4 D-13 | Invite link default max_uses: 10 (was null/unlimited) | Per requirement | — Pending |
-| v1.4 D-14 | Role type expands to 4: owner, coach, student, student_diy | New 4th role | — Pending |
-
-## Current Milestone: v1.4 Roles, Chat & Resources
-
-**Goal:** Add student_diy role, coach-student chat system, resources tab with Discord/glossary, plus skip tracker, coach assignments, report comments, and configurable invite limits.
-
-**Target features:**
-- Student_DIY role — 4th role with reduced feature set (dashboard + work tracker + roadmap only)
-- Skip tracker — coach/owner see "X days skipped this week" per student (Mon-Sun ISO week)
-- Coach assignments — coaches get same assignment power as owner
-- Report comments — single coach comment per daily report
-- Chat system — polling-based WhatsApp-style (5s poll), 1:1 + broadcast, sidebar unread badges
-- Resources tab — URL links + Discord WidgetBot embed + searchable glossary
-- Invite link configurable max_uses — default 10
+| v1.4 D-01 | "This week" = Monday-Sunday (ISO week) for skip tracker | Owner preference | ✓ Good |
+| v1.4 D-02 | Coaches get full assignment power (any student → any coach) | Same UX as owner | ✓ Good |
+| v1.4 D-03 | Report comments: single comment per report, coach-only | Keep simple | ✓ Good |
+| v1.4 D-04 | Student_DIY: NO coach assignment, fully independent | DIY = self-service | ✓ Good |
+| v1.4 D-05 | Student_DIY: NO Ask Abu Lahya, NO Daily Report, NO Resources tab | Reduced feature set | ✓ Good |
+| v1.4 D-06 | Student_DIY: YES dashboard, YES work tracker, YES roadmap | Core tools kept | ✓ Good |
+| v1.4 D-07 | Chat: polling-based (5s interval), not Supabase Realtime | Avoids 500 peak connection limit on Pro plan | ✓ Good |
+| v1.4 D-08 | Chat: coach↔individual student + coach→all broadcast | Two chat modes | ✓ Good |
+| v1.4 D-09 | Chat: students CAN reply to coaches | Two-way async | ✓ Good |
+| v1.4 D-10 | Discord: WidgetBot iframe embed | Full Discord experience, no npm package | ✓ Good |
+| v1.4 D-11 | Resources visible to owner, coach, student — NOT student_diy | Per requirement | ✓ Good |
+| v1.4 D-12 | Glossary managed by owner + coaches | Both roles can CRUD | ✓ Good |
+| v1.4 D-13 | Invite link default max_uses: 10 (was null/unlimited) | Per requirement | ✓ Good |
+| v1.4 D-14 | Role type expands to 4: owner, coach, student, student_diy | New 4th role | ✓ Good |
 
 ## Evolution
 
@@ -198,4 +182,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 after Phase 36 (resources-tab) complete — Resources tab with Links/Community/Glossary tabs, CRUD API routes, role-based UI*
+*Last updated: 2026-04-06 after v1.4 milestone*
