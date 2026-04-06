@@ -527,17 +527,19 @@ const { data, error, count } = await admin
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does GET /api/deals need rate limiting?**
    - What we know: Success criteria SC-5 says "all four endpoints enforce... checkRateLimit at 30 req/min." CONTEXT.md D-10 lists `/api/deals` for POST/GET together.
    - What's unclear: The codebase precedent (messages/route.ts) explicitly OMITS rate limiting from polling GETs to avoid exhausting the cap. But deals GET is not a polling endpoint.
    - Recommendation: Apply checkRateLimit to GET /api/deals per SC-5 and D-10 — this is a locked success criterion, not discretionary.
+   - RESOLVED: Yes — plan applies checkRateLimit to all four endpoints including GET, per SC-5.
 
 2. **Should PATCH also accept student_diy role?**
    - What we know: DEAL-04 says "Student can edit their own deals" — ambiguous whether student_diy is included. DEAL-06 says both roles have access to the Deals page (Phase 40). The database `student_update_deals` RLS policy covers both `student` and `student_diy`.
    - What's unclear: PATCH role check should probably allow `["student", "student_diy"]` to match the RLS policy and the broader role parity pattern.
    - Recommendation: Allow both `student` and `student_diy` in PATCH and POST role checks, matching the DB RLS policy.
+   - RESOLVED: Yes — plan allows both student and student_diy in POST, PATCH, and DELETE role checks.
 
 ---
 
