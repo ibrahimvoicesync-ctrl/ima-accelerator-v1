@@ -124,6 +124,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 **v1.4 milestone complete** (2026-04-06): 8 phases (30-37), 19 plans, 143 commits over 2 days. Student_DIY role, skip tracker, coach assignments, report comments, chat system, resources tab, invite max_uses all shipped. Codebase at 50,816 LOC TypeScript.
 
+**v1.5 Phase 38 complete** (2026-04-06): Database foundation — deals table (00021_deals.sql) with numeric(12,2) revenue/profit, auto-increment deal_number trigger (FOR UPDATE race-safe), 8 RLS policies (initplan pattern), composite index. Deal type added to types.ts. Migration applied to live Supabase.
+
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
 **Invite system (v1.0):** Email whitelist model — no registration URL generated. Coach/owner enters email, auth callback auto-registers whitelisted users on Google sign-in. Magic links available as alternative.
@@ -193,4 +195,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-06 after v1.5 milestone started*
+*Last updated: 2026-04-06 after Phase 38 complete*
