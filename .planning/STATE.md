@@ -7,7 +7,7 @@ stopped_at: null
 last_updated: "2026-04-06"
 last_activity: 2026-04-06
 progress:
-  total_phases: 37
+  total_phases: 43
   completed_phases: 37
   total_plans: 130
   completed_plans: 130
@@ -21,14 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-06)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Defining requirements for v1.5 Student Deals
+**Current focus:** Phase 38 — Database Foundation (v1.5 Student Deals)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-04-06 — Milestone v1.5 started
+Phase: 38 of 43 (Database Foundation)
+Plan: — of — in current phase
+Status: Ready to plan
+Last activity: 2026-04-06 — Roadmap created for v1.5 Student Deals (6 phases, 22 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0% (v1.5 milestone)
 
 ## Performance Metrics
 
@@ -40,6 +42,16 @@ Last activity: 2026-04-06 — Milestone v1.5 started
 
 ## Accumulated Context
 
+### Decisions
+
+Recent decisions affecting v1.5 work:
+
+- v1.5 D-01 (research): deal_number uses BEFORE INSERT trigger with FOR UPDATE row lock — never app-level MAX+1
+- v1.5 D-02 (research): numeric(12,2) revenue/profit declared as string | number in types.ts — coerce with Number() at every arithmetic site
+- v1.5 D-03 (research): Dashboard deal stats are live aggregate queries — NOT from student_kpi_summaries (would be stale)
+- v1.5 D-04 (research): DealsClient shared between /student/deals and /student_diy/deals route groups
+- v1.5 D-05 (research): DealsTab shared between coach and owner student detail pages; extend StudentDetailTabs TabKey union
+
 ### Pending Todos
 
 - Abu Lahya must add WidgetBot bot to Discord server for production Discord embed
@@ -48,7 +60,8 @@ Last activity: 2026-04-06 — Milestone v1.5 started
 
 ### Blockers/Concerns
 
-None.
+- Phase 38 (migration) is the single hard blocker — Phases 39-43 cannot start until migration is applied and verified
+- revalidateTag tag name for deal stats must be decided in Phase 39 and used consistently in Phase 42 (mismatch = stale dashboard counts)
 
 ### Quick Tasks Completed
 
@@ -61,5 +74,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-04-06
-Stopped at: Milestone v1.4 complete
+Stopped at: v1.5 roadmap created — ready to plan Phase 38
 Resume file: None

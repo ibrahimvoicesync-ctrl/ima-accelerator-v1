@@ -7,6 +7,7 @@
 - ✅ **v1.2 Performance, Scale & Security** — Phases 19-24 (shipped 2026-03-31)
 - ✅ **v1.3 Roadmap Update, Session Planner & Coach Controls** — Phases 25-29 (shipped 2026-04-03)
 - ✅ **v1.4 Roles, Chat & Resources** — Phases 30-37 (shipped 2026-04-06)
+- 🚧 **v1.5 Student Deals** — Phases 38-43 (in progress)
 
 ## Phases
 
@@ -77,6 +78,92 @@
 
 </details>
 
+### 🚧 v1.5 Student Deals (In Progress)
+
+**Milestone Goal:** Students can track closed deals with revenue and profit; coaches and owners can view and manage deal history on student detail pages.
+
+- [ ] **Phase 38: Database Foundation** - deals table, deal_number trigger, RLS, indexes
+- [ ] **Phase 39: API Route Handlers** - full CRUD endpoints with rate limiting and role-scoped delete
+- [ ] **Phase 40: Config & Type Updates** - routes, nav, validation constants, types.ts
+- [ ] **Phase 41: Student Deals Pages** - DealsClient CRUD UI with useOptimistic for student and student_diy
+- [ ] **Phase 42: Dashboard Stat Cards** - Deals Closed, Total Revenue, Total Profit on both dashboards
+- [ ] **Phase 43: Coach & Owner Deals Tab** - DealsTab component wired into both detail pages
+
+## Phase Details
+
+### Phase 38: Database Foundation
+**Goal**: The deals table exists in Supabase with all constraints, policies, and indexes — no application code can proceed without it
+**Depends on**: Nothing (first phase of milestone)
+**Requirements**: INFR-01, INFR-02, INFR-03, INFR-04, DEAL-02
+**Success Criteria** (what must be TRUE):
+  1. The deals table exists with revenue and profit as numeric(12,2) columns, deal_number integer, and a UNIQUE (student_id, deal_number) constraint
+  2. A BEFORE INSERT trigger assigns deal_number by selecting MAX(deal_number) FOR UPDATE, preventing race-condition duplicates on concurrent inserts
+  3. RLS policies use the (SELECT auth.uid()) and (SELECT get_user_role()) initplan pattern — EXPLAIN ANALYZE shows initplan, not per-row function calls
+  4. An index on (student_id, created_at DESC) exists and is confirmed by \d deals in Supabase Studio
+  5. types.ts has a Deal type with revenue and profit declared as string | number to force explicit Number() coercion at every arithmetic site
+**Plans**: TBD
+
+### Phase 39: API Route Handlers
+**Goal**: All deal mutation and query endpoints exist, are secured, and are testable before any UI is built
+**Depends on**: Phase 38
+**Requirements**: DEAL-01, DEAL-04, DEAL-05, VIEW-05, VIEW-06, INFR-05
+**Success Criteria** (what must be TRUE):
+  1. POST /api/deals creates a deal for the authenticated student (or student_diy) and returns the new row including deal_number; a 23505 conflict triggers one retry
+  2. PATCH /api/deals/[id] updates revenue and profit for deals owned by the requesting student only; other students receive 403
+  3. DELETE /api/deals/[id] allows a student to delete their own deal, a coach to delete a deal belonging to their assigned student (two-step coach_id check), and an owner to delete any deal; unauthorized deletes return 403
+  4. GET /api/deals returns a paginated list (25/page) of deals for a given student_id; accepts page query param; accessible to coach and owner roles only
+  5. All four endpoints enforce verifyOrigin CSRF check, checkRateLimit at 30 req/min, and Zod input validation — requests failing any check return 400, 403, or 429 with a JSON error body
+**Plans**: TBD
+
+### Phase 40: Config & Type Updates
+**Goal**: src/lib/config.ts and proxy.ts coverage are updated so TypeScript compiles cleanly before any page files are created
+**Depends on**: Phase 38
+**Requirements**: DEAL-06
+**Success Criteria** (what must be TRUE):
+  1. ROUTES.student.deals and ROUTES.student_diy.deals exist in config.ts and the TypeScript compiler accepts imports of those values without error
+  2. Both student and student_diy nav arrays in config.ts include a "Deals" entry pointing to the correct route
+  3. A DEALS validation object in config.ts defines REVENUE_MAX and NOTES_MAX_LENGTH constants used by Zod schemas in Phase 39
+  4. npx tsc --noEmit passes with zero errors after config changes and before any page file is created
+**Plans**: TBD
+
+### Phase 41: Student Deals Pages
+**Goal**: Students and student_diy users can add, view, edit, and delete their deals from a dedicated Deals page
+**Depends on**: Phase 39, Phase 40
+**Requirements**: DEAL-03, DEAL-07
+**Success Criteria** (what must be TRUE):
+  1. Student navigates to /student/deals and sees their full deal history list sorted most-recent first, with deal number, revenue, profit, and date visible per row
+  2. Student adds a deal — the new row appears instantly in the list (useOptimistic) before the API response, labeled "Deal #N" with the correct sequential number
+  3. Student edits a deal via an inline or modal form — the updated values appear in the list immediately on save
+  4. Student deletes a deal — the row disappears instantly from the list (useOptimistic) and does not reappear after router.refresh() completes
+  5. Student_diy user at /student_diy/deals sees the identical UI and all CRUD operations work via the same DealsClient component
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 42: Dashboard Stat Cards
+**Goal**: Both student dashboards show deal performance at a glance — deals closed, total revenue, and total profit — using live data
+**Depends on**: Phase 39
+**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04
+**Success Criteria** (what must be TRUE):
+  1. The student dashboard displays three stat cards — Deals Closed (count), Total Revenue (currency-formatted), Total Profit (currency-formatted) — sourced from a live aggregate query on the deals table
+  2. After a student adds or deletes a deal on the Deals page, navigating back to the dashboard shows updated counts and totals without a hard refresh
+  3. The student_diy dashboard shows the same three stat cards with identical formatting and live-query behavior
+  4. When a student has no deals, all three stat cards display 0 / $0.00 (not blank, not an error)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 43: Coach & Owner Deals Tab
+**Goal**: Coaches and owners can view a student's complete deal history and delete deals from the student detail page
+**Depends on**: Phase 39
+**Requirements**: VIEW-01, VIEW-02, VIEW-03, VIEW-04
+**Success Criteria** (what must be TRUE):
+  1. Coach opens a student detail page and sees a "Deals" tab in the tab bar alongside existing tabs; clicking it renders the DealsTab component
+  2. Owner opens a student detail page and sees the same "Deals" tab; both roles share the identical DealsTab component
+  3. The Deals tab header row shows summary stats: total deals closed, total revenue, total profit, and profit margin percentage
+  4. The deal list below the summary is paginated at 25 rows per page using the existing PaginationControls component, sorted most-recent first
+  5. Coach clicks delete on a deal belonging to their assigned student — the row is removed; clicking delete on an unassigned student's deal is blocked (403 shown as error toast)
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -118,3 +205,9 @@
 | 35. Chat System | v1.4 | 4/4 | Complete | 2026-04-04 |
 | 36. Resources Tab | v1.4 | 3/3 | Complete | 2026-04-04 |
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
+| 38. Database Foundation | v1.5 | 0/TBD | Not started | - |
+| 39. API Route Handlers | v1.5 | 0/TBD | Not started | - |
+| 40. Config & Type Updates | v1.5 | 0/TBD | Not started | - |
+| 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
+| 42. Dashboard Stat Cards | v1.5 | 0/TBD | Not started | - |
+| 43. Coach & Owner Deals Tab | v1.5 | 0/TBD | Not started | - |

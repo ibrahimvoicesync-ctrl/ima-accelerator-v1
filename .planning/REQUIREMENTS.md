@@ -78,34 +78,34 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEAL-01 | — | Pending |
-| DEAL-02 | — | Pending |
-| DEAL-03 | — | Pending |
-| DEAL-04 | — | Pending |
-| DEAL-05 | — | Pending |
-| DEAL-06 | — | Pending |
-| DEAL-07 | — | Pending |
-| DASH-01 | — | Pending |
-| DASH-02 | — | Pending |
-| DASH-03 | — | Pending |
-| DASH-04 | — | Pending |
-| VIEW-01 | — | Pending |
-| VIEW-02 | — | Pending |
-| VIEW-03 | — | Pending |
-| VIEW-04 | — | Pending |
-| VIEW-05 | — | Pending |
-| VIEW-06 | — | Pending |
-| INFR-01 | — | Pending |
-| INFR-02 | — | Pending |
-| INFR-03 | — | Pending |
-| INFR-04 | — | Pending |
-| INFR-05 | — | Pending |
+| DEAL-01 | Phase 39 | Pending |
+| DEAL-02 | Phase 38 | Pending |
+| DEAL-03 | Phase 41 | Pending |
+| DEAL-04 | Phase 39 | Pending |
+| DEAL-05 | Phase 39 | Pending |
+| DEAL-06 | Phase 40 | Pending |
+| DEAL-07 | Phase 41 | Pending |
+| DASH-01 | Phase 42 | Pending |
+| DASH-02 | Phase 42 | Pending |
+| DASH-03 | Phase 42 | Pending |
+| DASH-04 | Phase 42 | Pending |
+| VIEW-01 | Phase 43 | Pending |
+| VIEW-02 | Phase 43 | Pending |
+| VIEW-03 | Phase 43 | Pending |
+| VIEW-04 | Phase 43 | Pending |
+| VIEW-05 | Phase 39 | Pending |
+| VIEW-06 | Phase 39 | Pending |
+| INFR-01 | Phase 38 | Pending |
+| INFR-02 | Phase 38 | Pending |
+| INFR-03 | Phase 38 | Pending |
+| INFR-04 | Phase 38 | Pending |
+| INFR-05 | Phase 39 | Pending |
 
 **Coverage:**
 - v1.5 requirements: 22 total
-- Mapped to phases: 0
-- Unmapped: 22
+- Mapped to phases: 22
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-06*
-*Last updated: 2026-04-06 after initial definition*
+*Last updated: 2026-04-06 after roadmap creation*
