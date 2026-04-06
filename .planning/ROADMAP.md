@@ -117,7 +117,7 @@ Plans:
   5. All four endpoints enforce verifyOrigin CSRF check, checkRateLimit at 30 req/min, and Zod input validation — requests failing any check return 400, 403, or 429 with a JSON error body
 **Plans**: 1 plan
 Plans:
-- [x] 38-01-PLAN.md — Migration SQL, Deal types, schema push
+- [ ] 39-01-PLAN.md — POST+GET and PATCH+DELETE deal CRUD route handlers
 
 ### Phase 40: Config & Type Updates
 **Goal**: src/lib/config.ts and proxy.ts coverage are updated so TypeScript compiles cleanly before any page files are created
@@ -218,7 +218,7 @@ Plans:
 | 36. Resources Tab | v1.4 | 3/3 | Complete | 2026-04-04 |
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
 | 38. Database Foundation | v1.5 | 1/1 | Complete    | 2026-04-06 |
-| 39. API Route Handlers | v1.5 | 0/TBD | Not started | - |
+| 39. API Route Handlers | v1.5 | 0/1 | Planned | - |
 | 40. Config & Type Updates | v1.5 | 0/TBD | Not started | - |
 | 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
 | 42. Dashboard Stat Cards | v1.5 | 0/TBD | Not started | - |
