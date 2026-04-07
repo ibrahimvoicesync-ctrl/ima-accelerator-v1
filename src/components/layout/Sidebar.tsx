@@ -21,6 +21,7 @@ import {
   X,
   GraduationCap,
   ChevronRight,
+  DollarSign,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -47,6 +48,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   X,
   GraduationCap,
   ChevronRight,
+  DollarSign,
 };
 
 export function Sidebar({
