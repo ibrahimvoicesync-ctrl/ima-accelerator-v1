@@ -84,7 +84,7 @@
 
 - [x] **Phase 38: Database Foundation** - deals table, deal_number trigger, RLS, indexes (completed 2026-04-06)
 - [x] **Phase 39: API Route Handlers** - full CRUD endpoints with rate limiting and role-scoped delete (completed 2026-04-06)
-- [ ] **Phase 40: Config & Type Updates** - routes, nav, validation constants, types.ts
+- [x] **Phase 40: Config & Type Updates** - routes, nav, validation constants, types.ts (completed 2026-04-07)
 - [ ] **Phase 41: Student Deals Pages** - DealsClient CRUD UI with useOptimistic for student and student_diy
 - [ ] **Phase 42: Dashboard Stat Cards** - Deals Closed, Total Revenue, Total Profit on both dashboards
 - [ ] **Phase 43: Coach & Owner Deals Tab** - DealsTab component wired into both detail pages
@@ -131,7 +131,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 40-01-PLAN.md — ROUTES, NAVIGATION, VALIDATION.deals config + route handler refactor
-- [ ] 40-02-PLAN.md — Gap closure: restore deals table type in Database interface (types.ts)
+- [x] 40-02-PLAN.md — Gap closure: restore deals table type in Database interface (types.ts)
 
 ### Phase 41: Student Deals Pages
 **Goal**: Students and student_diy users can add, view, edit, and delete their deals from a dedicated Deals page
@@ -220,7 +220,7 @@ Plans:
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
 | 38. Database Foundation | v1.5 | 1/1 | Complete    | 2026-04-06 |
 | 39. API Route Handlers | v1.5 | 1/1 | Complete    | 2026-04-06 |
-| 40. Config & Type Updates | v1.5 | 1/2 | Gap closure| - |
+| 40. Config & Type Updates | v1.5 | 2/2 | Complete    | 2026-04-07 |
 | 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
 | 42. Dashboard Stat Cards | v1.5 | 0/TBD | Not started | - |
 | 43. Coach & Owner Deals Tab | v1.5 | 0/TBD | Not started | - |
