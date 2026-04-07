@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER, ROADMAP_STEPS } from "@/lib/config";
 import { getGreeting, getToday, cn, formatHoursMinutes } from "@/lib/utils";
 import Link from "next/link";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Handshake, DollarSign, TrendingUp } from "lucide-react";
 import type { Database } from "@/lib/types";
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
@@ -30,6 +30,7 @@ export default async function StudentDiyDashboard() {
   const [
     { data: sessions, error: sessionsError },
     { data: roadmapRows, error: roadmapError },
+    { data: deals, error: dealsError },
   ] = await Promise.all([
     admin
       .from("work_sessions")
@@ -42,6 +43,7 @@ export default async function StudentDiyDashboard() {
       .select("step_number, status")
       .eq("student_id", user.id)
       .order("step_number", { ascending: true }),
+    admin.from("deals").select("revenue, profit").eq("student_id", user.id),
   ]);
 
   if (sessionsError) {
@@ -50,6 +52,14 @@ export default async function StudentDiyDashboard() {
   if (roadmapError) {
     console.error("[student_diy dashboard] Failed to load roadmap:", roadmapError);
   }
+  if (dealsError) {
+    console.error("[student_diy dashboard] Failed to load deals:", dealsError);
+  }
+
+  const dealsData = deals ?? [];
+  const dealsClosed = dealsData.length;
+  const totalRevenue = dealsData.reduce((sum, d) => sum + Number(d.revenue), 0);
+  const totalProfit = dealsData.reduce((sum, d) => sum + Number(d.profit), 0);
 
   const todaySessions = (sessions ?? []) as WorkSession[];
 
@@ -174,6 +184,43 @@ export default async function StudentDiyDashboard() {
               "View Roadmap"
             )}
           </Link>
+        </div>
+      </div>
+
+      {/* Deals Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+        {/* Deals Closed */}
+        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <Handshake className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
+            <h3 className="text-sm font-medium text-ima-text-secondary">Deals Closed</h3>
+          </div>
+          <p className="text-2xl font-bold mt-2 text-ima-primary">{dealsClosed}</p>
+          <p className="text-xs text-ima-text-muted mt-1">all time</p>
+        </div>
+
+        {/* Total Revenue */}
+        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
+            <h3 className="text-sm font-medium text-ima-text-secondary">Total Revenue</h3>
+          </div>
+          <p className="text-2xl font-bold mt-2 text-ima-primary">
+            {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs text-ima-text-muted mt-1">from {dealsClosed} deal{dealsClosed !== 1 ? "s" : ""}</p>
+        </div>
+
+        {/* Total Profit */}
+        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
+            <h3 className="text-sm font-medium text-ima-text-secondary">Total Profit</h3>
+          </div>
+          <p className="text-2xl font-bold mt-2 text-ima-primary">
+            {totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs text-ima-text-muted mt-1">all time</p>
         </div>
       </div>
     </div>
