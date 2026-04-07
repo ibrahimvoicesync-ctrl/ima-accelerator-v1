@@ -6,7 +6,8 @@
 - â **v1.1 V2 Feature Build** â Phases 13-18 (shipped 2026-03-28)
 - â **v1.2 Performance, Scale & Security** â Phases 19-24 (shipped 2026-03-31)
 - â **v1.3 Roadmap Update, Session Planner & Coach Controls** â Phases 25-29 (shipped 2026-04-03)
-- ð§ **v1.4 Roles, Chat & Resources** â Phases 30-37 (in progress)
+- â **v1.4 Roles, Chat & Resources** â Phases 30-37 (shipped 2026-04-04)
+- ð§ **v1.5 Student Deals** â Phases 38-43 (in progress)
 
 ## Phases
 
@@ -63,17 +64,28 @@
 
 </details>
 
-**v1.4 Roles, Chat & Resources**
+<details>
+<summary>v1.4 Roles, Chat & Resources (Phases 30-37) — SHIPPED 2026-04-04</summary>
 
 - [x] **Phase 30: Database Migration** - Migration 00015 adds 4 tables, expands role CHECK constraints, enables RLS, and updates TypeScript types (completed 2026-04-03)
 - [x] **Phase 31: Student_DIY Role** - 4th role with reduced feature set (dashboard + work tracker + roadmap), 8-location atomic update across proxy/config/types/DB (completed 2026-04-03)
 - [x] **Phase 32: Skip Tracker** - "X days skipped this week" badge on coach/owner student cards via UTC-safe Postgres RPC (completed 2026-04-03)
 - [x] **Phase 33: Coach Assignments** - Coaches get full assignment power via /coach/assignments page mirroring owner experience (completed 2026-04-03)
-- [x] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API
- (completed 2026-04-03)
-- [x] **Phase 35: Chat System** - Polling-based (5s) WhatsApp-style 1:1 + broadcast chat with sidebar unread badges (completed 2026-04-04)
-- [x] **Phase 36: Resources Tab** - URL links + Discord WidgetBot iframe + searchable glossary for owner/coach/student (completed 2026-04-04)
-- [x] **Phase 37: Invite Link max_uses** - Default max_uses of 10 on magic links, usage count display, cap enforcement (completed 2026-04-04)
+- [x] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API (completed 2026-04-03)
+- [x] **Phase 35: Chat System** - Polling-based (5s) WhatsApp-style 1:1 + broadcast chat with sidebar unread badges (completed 2026-04-04)
+- [x] **Phase 36: Resources Tab** - URL links + Discord WidgetBot iframe + searchable glossary for owner/coach/student (completed 2026-04-04)
+- [x] **Phase 37: Invite Link max_uses** - Default max_uses of 10 on magic links, usage count display, cap enforcement (completed 2026-04-04)
+
+</details>
+
+**v1.5 Student Deals**
+
+- [x] **Phase 38: Deals Database Foundation** - Migration 00021_deals.sql creates deals table with RLS, Deal types added to types.ts (completed 2026-04-06)
+- [x] **Phase 39: Deals API Route Handlers** - POST/GET /api/deals + PATCH/DELETE /api/deals/[id] with full auth/CSRF/rate-limit/Zod chain (completed 2026-04-06)
+- [x] **Phase 40: Config & Type Updates** - ROUTES, NAVIGATION, VALIDATION.deals in config.ts; route handler refactor to import from config (completed 2026-04-07)
+- [x] **Phase 41: Student Deals Pages** - DealsClient + DealFormModal with useOptimistic CRUD, /student/deals and /student_diy/deals route files (completed 2026-04-07)
+- [ ] **Phase 42: Dashboard Stat Cards** - 3 new StatCards on Student Dashboard: Deals Closed, Total Revenue, Total Profit
+- [ ] **Phase 43: Coach & Owner Deals Tab** - New "Deals" tab on Student Detail Pages (next to Calendar and Roadmap)
 
 ## Phase Details
 
@@ -380,6 +392,77 @@ Plans:
 - [x] 37-01-PLAN.md — Migration 00019 (DEFAULT 10 on max_uses) + POST route Zod schema consolidation
 - [x] 37-02-PLAN.md — Max uses number input + "X / Y used" display format on coach + owner invite pages
 
+### Phase 38: Deals Database Foundation
+**Goal**: The deals table exists in the database with correct schema, constraints, indexes, RLS policies, and TypeScript types, unblocking all deals API and UI work
+**Depends on**: Phase 37
+**Success Criteria** (what must be TRUE):
+  1. Migration 00021_deals.sql creates the deals table with columns: id, student_id, deal_number, revenue, profit, created_at, updated_at
+  2. RLS is enabled with policies restricting students to their own deals; admin client bypasses RLS for coach/owner queries
+  3. TypeScript types.ts includes Deal Row/Insert/Update types matching the migration schema
+**Plans**: 1/1 plans complete
+Plans:
+- [x] 38-01-PLAN.md — Migration 00021_deals.sql + Deal types in types.ts
+
+### Phase 39: Deals API Route Handlers
+**Goal**: Full CRUD API for deals is live with auth, CSRF, rate limiting, and Zod validation on all endpoints
+**Depends on**: Phase 38
+**Success Criteria** (what must be TRUE):
+  1. POST /api/deals creates a deal for the authenticated student with Zod-validated revenue/profit; returns the created deal
+  2. GET /api/deals returns deals for the authenticated student sorted by created_at DESC
+  3. PATCH /api/deals/[id] updates revenue/profit with ownership verification; DELETE /api/deals/[id] removes the deal with ownership verification
+  4. All endpoints enforce the full CSRF > auth > role > rate-limit > Zod > admin client chain
+**Plans**: 1/1 plans complete
+Plans:
+- [x] 39-01-PLAN.md — POST/GET /api/deals + PATCH/DELETE /api/deals/[id] route handlers
+
+### Phase 40: Config & Type Updates
+**Goal**: config.ts has ROUTES, NAVIGATION, and VALIDATION entries for deals; route handlers import limits from config instead of hardcoding
+**Depends on**: Phase 39
+**Success Criteria** (what must be TRUE):
+  1. ROUTES.student.deals and ROUTES.student_diy.deals exist in config.ts
+  2. NAVIGATION arrays include Deals entries with DollarSign icon for student and student_diy roles
+  3. VALIDATION.deals object has revenueMax and profitMax constants; Phase 39 route handlers import from VALIDATION.deals
+  4. TypeScript compiles cleanly with zero errors
+**Plans**: 2/2 plans complete
+Plans:
+- [x] 40-01-PLAN.md — Add deals ROUTES, NAVIGATION, VALIDATION.deals to config.ts; refactor route handlers
+- [x] 40-02-PLAN.md — Restore deals table type definition accidentally removed in Plan 01
+
+### Phase 41: Student Deals Pages
+**Goal**: Students and student_diy users can add, view, edit, and delete deals from /student/deals and /student_diy/deals with instant optimistic UI feedback
+**Depends on**: Phase 40
+**Success Criteria** (what must be TRUE):
+  1. DealsClient renders a table-style deal list sorted most-recent first with deal number, revenue, profit, and date columns
+  2. DealFormModal handles both create and edit modes in a single shared modal component
+  3. useOptimistic provides instant feedback on add/edit/delete with rollback on server error
+  4. Empty state shows EmptyState component with DollarSign icon and "Add your first deal" CTA
+  5. Both /student/deals and /student_diy/deals route files exist and render DealsClient
+**Plans**: 2/2 plans complete
+Plans:
+- [x] 41-01-PLAN.md — DealFormModal and DealsClient components with useOptimistic CRUD
+- [x] 41-02-PLAN.md — Student and student_diy deals route files
+**UI hint**: yes
+
+### Phase 42: Dashboard Stat Cards
+**Goal**: The student dashboard shows 3 new StatCards — Deals Closed, Total Revenue, Total Profit — giving students at-a-glance visibility into their deals performance
+**Depends on**: Phase 41
+**Success Criteria** (what must be TRUE):
+  1. The student dashboard displays 3 new stat cards: Deals Closed (count), Total Revenue (sum), Total Profit (sum)
+  2. Values are computed from the authenticated student's deals data
+  3. Cards use the existing StatCard component pattern and ima-* design tokens
+  4. Both student and student_diy dashboards show the deals stat cards
+**UI hint**: yes
+
+### Phase 43: Coach & Owner Deals Tab
+**Goal**: Coaches and owners can view a student's deals from a new "Deals" tab on student detail pages, alongside existing Calendar and Roadmap tabs
+**Depends on**: Phase 42
+**Success Criteria** (what must be TRUE):
+  1. Coach student detail page has a "Deals" tab next to Calendar and Roadmap
+  2. Owner student detail page has a "Deals" tab next to Calendar and Roadmap
+  3. The Deals tab displays the student's deals in a read-only table with deal number, revenue, profit, and date
+  4. Profit margin percentage is shown inline for each deal
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -421,3 +504,9 @@ Plans:
 | 35. Chat System | v1.4 | 4/4 | Complete   | 2026-04-04 |
 | 36. Resources Tab | v1.4 | 3/3 | Complete    | 2026-04-04 |
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete    | 2026-04-04 |
+| 38. Deals Database Foundation | v1.5 | 1/1 | Complete | 2026-04-06 |
+| 39. Deals API Route Handlers | v1.5 | 1/1 | Complete | 2026-04-06 |
+| 40. Config & Type Updates | v1.5 | 2/2 | Complete | 2026-04-07 |
+| 41. Student Deals Pages | v1.5 | 2/2 | Complete | 2026-04-07 |
+| 42. Dashboard Stat Cards | v1.5 | 0/0 | Pending | - |
+| 43. Coach & Owner Deals Tab | v1.5 | 0/0 | Pending | - |
