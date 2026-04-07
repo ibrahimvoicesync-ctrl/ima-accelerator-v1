@@ -1,241 +1,423 @@
 # Pitfalls Research
 
-**Domain:** Adding deal/revenue tracking (v1.5) to an existing Next.js 16 + Supabase coaching platform with 4 roles and 14 tables
-**Researched:** 2026-04-06
-**Confidence:** HIGH — grounded in direct codebase audit of existing migrations, API route patterns, RLS policies, and verified against Supabase/Postgres issue trackers
+**Domain:** Adding 4th role, polling chat, resources tab, skip tracker, coach assignments, report comments, and invite limits to an existing Next.js 16 + Supabase coaching platform (v1.4)
+**Researched:** 2026-04-03
+**Confidence:** HIGH — all pitfalls grounded in direct codebase audit (proxy.ts, config.ts, Sidebar.tsx, assignments route, RLS migrations) plus established patterns from prior v1.x pitfall analyses
 
-> **Scope:** These pitfalls are specific to adding a `deals` table with auto-incremented `deal_number` per student, revenue/profit numeric fields, asymmetric delete permissions (coach deletes own students' deals, owner deletes any), paginated coach/owner views, and dashboard stats integration to a system that already has RLS, rate limiting, `useOptimistic`, and a pre-aggregation pattern (`student_kpi_summaries`). The existing system patterns are known-good; these pitfalls are about what breaks when this particular feature set is added on top.
+> **Scope:** These pitfalls are specific to v1.4 features being ADDED to a production system with real students. The platform has shipped v1.0–v1.3. Every pitfall below is about what breaks when you introduce a 4th role, a polling chat system, a Discord iframe, a skip tracker, elevated coach permissions, report comments, and invite limits on top of an existing role-gated, RLS-protected, rate-limited system — not about building from scratch.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Per-Student `deal_number` Race Condition Under Concurrent Inserts
+### Pitfall 1: Partial Role Expansion — Adding student_diy Without Updating All Eight Role Gates
 
 **What goes wrong:**
-The `deal_number` must auto-increment per student (not globally). A naive implementation reads `MAX(deal_number) + 1` in the API route, then inserts with that value. Under concurrent requests — a student double-tapping the submit button or a flaky mobile retry — two requests race to read the same MAX and both attempt to insert with the same `deal_number`. One INSERT succeeds; the other fails with a unique constraint violation. The user sees an error on a valid submission.
+`proxy.ts` has `DEFAULT_ROUTES` and `ROLE_ROUTE_ACCESS` as plain `Record<string, string[]>` objects. Adding `student_diy` to the `users` table CHECK constraint but forgetting to add it to `DEFAULT_ROUTES` causes an infinite redirect loop: the proxy falls through to `DEFAULT_ROUTES[profile.role] || "/"`, returning `"/"`, which is not a protected route. The user lands at a blank page or 404 instead of `/student-diy`.
+
+The problem is not one location — it is eight interdependent locations that must all be updated atomically:
+
+1. `users` table `CHECK (role IN ('owner','coach','student'))` — DB constraint
+2. `proxy.ts` `DEFAULT_ROUTES` — the post-login redirect target
+3. `proxy.ts` `ROLE_ROUTE_ACCESS` — which URL prefixes the role may access
+4. `config.ts` `ROLES` const — the canonical string values
+5. `config.ts` `Role` type — TypeScript union (triggers compile errors at call sites if updated)
+6. `config.ts` `ROLE_HIERARCHY` — numeric ordering used in invite permission checks
+7. `config.ts` `NAVIGATION` — nav items rendered by Sidebar (crashes at runtime if missing)
+8. `config.ts` `INVITE_CONFIG.inviteRules` — who may invite student_diy users
+
+Also: the `invites` table has `CHECK (role IN ('coach', 'student'))` and the `magic_links` table has the same constraint. These must be widened in the schema migration if student_diy users can be invited through either pathway.
 
 **Why it happens:**
-The admin client in API routes does not hold a transaction lock between the SELECT MAX and the INSERT. Two inflight requests to `/api/deals` execute SELECT MAX concurrently before either INSERT completes. This is not theoretical — the existing rate limiter pattern (30 req/min) still allows 2 requests within the same second.
+Developers add the DB migration and the new dashboard page, test by logging in as a student_diy — and hit the redirect loop. The config file and proxy are treated as separate concerns and each is updated in a different commit.
 
 **How to avoid:**
-Use a Postgres function with `SELECT ... FOR UPDATE` or advisory lock scoped to the student UUID:
-
-```sql
--- In a SECURITY DEFINER function called from the INSERT trigger or RPC:
-SELECT pg_advisory_xact_lock(hashtext(p_student_id::text));
-SELECT COALESCE(MAX(deal_number), 0) + 1 INTO v_next FROM deals WHERE student_id = p_student_id;
-INSERT INTO deals (..., deal_number) VALUES (..., v_next);
-```
-
-Alternatively, store `deal_number` as a computed column via `ROW_NUMBER() OVER (PARTITION BY student_id ORDER BY created_at)` and never write it explicitly — let it be a view-time calculation. This trades write simplicity for read correctness and eliminates the race entirely.
-
-The simplest production-safe approach: define a UNIQUE constraint on `(student_id, deal_number)` and use a trigger function to set `deal_number` from a per-student advisory lock before insert.
+Update all eight locations in a single atomic commit before writing any page code. Use the TypeScript compiler as a guide: once `student_diy` is added to the `Role` union type in `config.ts`, the compiler will produce errors at every site that pattern-matches on `Role` exhaustively — each error points to a location that needs updating. Fix them all before the first test run.
 
 **Warning signs:**
-- Unique constraint violation errors appearing in server logs on `/api/deals` POST
-- Duplicate `deal_number` values in the table for the same `student_id`
-- Error rate spikes on the deals endpoint during peak usage
+- `DEFAULT_ROUTES["student_diy"]` returns `undefined`; proxy redirects to `"/"` in a loop.
+- `NAVIGATION["student_diy"]` returns `undefined`; `links.map(...)` throws `TypeError: Cannot read properties of undefined`.
+- TypeScript still compiles because the `Role` type was not updated (the type mismatch is hidden).
 
 **Phase to address:**
-Database migration phase — the UNIQUE constraint `(student_id, deal_number)` MUST exist in the migration SQL before any application code is written. The sequence generation function or trigger should be part of the same migration.
+student_diy database + config foundation phase — all eight locations updated in the same commit, before any page code.
 
 ---
 
-### Pitfall 2: NUMERIC Columns Returned as Strings by Supabase JS Client
+### Pitfall 2: RLS Policies Missing student_diy — Silent Empty Dashboards
 
 **What goes wrong:**
-PostgreSQL `NUMERIC` / `numeric(12,2)` columns are serialized as strings by PostgREST (the underlying REST layer Supabase uses). The Supabase JS client returns `revenue: "12500.00"` as a string, not the TypeScript `number` that hand-written `types.ts` declares. Arithmetic like `total += row.revenue` produces `"012500.00"` (string concatenation) instead of addition. Dashboard stats display `"NaN"` or concatenated strings instead of summed totals.
+Every existing RLS policy uses `get_user_role() = 'student'` for student-side access. After the migration adds `student_diy` to the CHECK constraint, student_diy users authenticate successfully and reach the database — but no RLS policy matches them. For tables they should NOT access (daily_reports, chat_messages), the default-deny is correct. For tables they SHOULD access (work_sessions, roadmap_progress, daily_plans), all SELECT policies return zero rows and all INSERT/UPDATE policies reject writes with `new row violates row-level security`, appearing as mysterious 500 errors.
+
+The critical failure mode: API routes use `createAdminClient()` which bypasses RLS entirely. Everything works in development (admin client in use), but the production defense-in-depth is broken. If anyone queries these tables through the anon client (e.g., a future realtime subscription or a misconfigured route), student_diy data is inaccessible.
 
 **Why it happens:**
-PostgREST serializes NUMERIC as JSON strings to prevent precision loss for values exceeding JavaScript's `Number.MAX_SAFE_INTEGER`. The existing `types.ts` is hand-crafted (noted in PROJECT.md: "regenerate when Docker + local Supabase running"). If the type is declared as `number` but the runtime value is a string, TypeScript won't catch it — the types file says `number`, the real value is `"12500.00"`.
-
-This is confirmed by `supabase/postgrest-js` issue #419 and `supabase/cli` issue #582 (both open/unresolved as of 2025).
+The developer tests the student_diy flow exclusively through the admin client (which bypasses RLS), sees data correctly, and marks the feature complete. The RLS policies are never validated with the anon client.
 
 **How to avoid:**
-Two-layer defense:
+Write the student_diy RLS policies in the same migration that adds the role. Map access before writing the SQL:
 
-1. In `types.ts`, declare revenue/profit fields as `string | number` (or just `string`) to force explicit conversion at every call site.
-2. At every read site, wrap with `Number(row.revenue)` or `parseFloat(String(row.revenue))` before arithmetic.
+| Table | student_diy access |
+|-------|-------------------|
+| users | SELECT own row |
+| work_sessions | SELECT + INSERT + UPDATE own rows |
+| roadmap_progress | SELECT + UPDATE own rows |
+| daily_plans | SELECT + INSERT own rows |
+| daily_reports | No access |
+| invites | No access |
+| chat_messages (new) | No access — DIY has no chat |
+| glossary (new) | SELECT only |
 
-For Zod validation on API inputs (POST body), use `z.number()` — the client sends a JS number, the server receives it as number in JSON. The round-trip issue is on the READ path (Supabase → JS), not the write path (JS → Supabase).
+All existing policies using `get_user_role() = 'student'` need an OR clause: `get_user_role() IN ('student', 'student_diy')` where DIY should have identical data access. Policies for coach/owner visibility of student data may also need expanding (e.g., coaches querying their assigned students' work sessions must now handle `role IN ('student')` — DIY students have no coach, so the coach visibility policy doesn't need changing for DIY).
 
-Example safe pattern:
+**Warning signs:**
+- student_diy user logs in but sees empty Work Tracker and Roadmap with no error messages.
+- Server logs show `new row violates row-level security policy` for work_sessions INSERT by student_diy users.
+- No TypeScript error because admin client bypasses RLS.
+
+**Phase to address:**
+student_diy database + config foundation phase — must be in the same migration as the role expansion. Validate by testing with the anon client directly in Supabase Studio.
+
+---
+
+### Pitfall 3: Chat Polling setInterval Memory Leak and Stale Closure
+
+**What goes wrong:**
+A `useEffect` sets up a 5-second polling interval to fetch new chat messages. If the component unmounts (user navigates away) before the cleanup runs, the interval keeps firing, calling `setState` on an unmounted component. In React 19 this produces silent state corruption. The stale closure variant: the interval captures `conversationId` from its closure at creation time. If the parent switches the active conversation, the interval still polls the old conversation ID — showing stale messages in the new thread.
+
+The common implementation that has both bugs:
 ```typescript
-const revenue = Number(row.revenue ?? 0);
-const profit = Number(row.profit ?? 0);
+useEffect(() => {
+  const id = setInterval(fetchMessages, 5000);
+  // missing: return () => clearInterval(id)
+}, [conversationId]); // if conversationId changes, old interval is not cleared
 ```
-
-Add a utility function `toMoney(val: unknown): number` that handles both string and number inputs.
-
-**Warning signs:**
-- Dashboard total revenue shows `"0125002500"` (string concatenation artifact)
-- `typeof row.revenue === 'string'` is true at runtime despite `types.ts` saying `number`
-- `isNaN(totalRevenue)` returns `true` after summing
-
-**Phase to address:**
-Database migration phase — declare column types accurately in `types.ts` as part of the migration. API route phase — validate with Zod that incoming values are `z.number()` and write test assertions that revenue from a `.select()` call is coerced before arithmetic.
-
----
-
-### Pitfall 3: RLS `initplan` Missing on the `deals` Table
-
-**What goes wrong:**
-The existing codebase uses `(SELECT get_user_role())` initplan wrapping in RLS policies (established in migration `00001_create_tables.sql`) to prevent per-row re-evaluation of the role function. If the `deals` table RLS policy is written as:
-
-```sql
--- WRONG — function called once per row:
-USING (student_id = get_user_id() OR get_user_role() IN ('owner', 'coach'))
-```
-
-instead of:
-
-```sql
--- CORRECT — function called once per query plan:
-USING (student_id = (SELECT get_user_id()) OR (SELECT get_user_role()) IN ('owner', 'coach'))
-```
-
-Then for a coach viewing a student with 500 deals paginated over 20 pages, `get_user_role()` executes 500 times per page load instead of once. At 5,000 students this becomes a performance cliff.
 
 **Why it happens:**
-New migrations written in isolation can miss the initplan pattern even though it is established in `00001`. RLS policy SQL is not linted by TypeScript or ESLint — the mistake is invisible until the table is large.
+React StrictMode double-invokes effects in development, which masks the missing cleanup because the effect fires twice and React cleans up automatically between the two invocations. The leak only manifests in production. Developers test in dev mode, see no interval leak, and ship.
 
 **How to avoid:**
-Copy the exact RLS policy structure from an existing table (e.g., `daily_reports` in `00001_create_tables.sql`) verbatim, replacing only the table and column names. Add a `-- initplan wrapped` comment on every `(SELECT get_user_id())` call to make the pattern explicit. Include a `EXPLAIN (ANALYZE, FORMAT JSON)` test in the migration validation checklist that confirms "InitPlan" appears in the query plan for a deals SELECT.
-
-**Warning signs:**
-- `EXPLAIN ANALYZE` on `SELECT * FROM deals WHERE student_id = $1` shows `get_user_role` in the function call list without "InitPlan"
-- P95 latency on coach student detail pages increases after the migration
-- Supabase slow query log shows `deals` SELECT queries taking >100ms
-
-**Phase to address:**
-Database migration phase — RLS policy SQL must be reviewed before migration is applied. The initplan pattern check should be a named checklist item in the migration plan.
-
----
-
-### Pitfall 4: Asymmetric Delete Authorization — Coach Cross-Student Delete Bypass
-
-**What goes wrong:**
-The delete permission is: coach can delete deals for their **assigned** students; owner can delete any. A common mistake is writing the RLS DELETE policy as:
-
-```sql
--- WRONG — any coach can delete any deal:
-USING ((SELECT get_user_role()) IN ('owner', 'coach'))
-```
-
-This allows a coach to call `DELETE /api/deals/[dealId]` for a student assigned to a **different** coach and succeed. The API route's server-side check also commonly fails here — developers check `profile.role === 'coach'` without verifying `student.coach_id === profile.id`.
-
-**Why it happens:**
-The role check and the assignment check are two separate conditions that are both required. Under time pressure, the assignment check is omitted from either the API route or the RLS policy, and the role check alone looks correct at a glance.
-
-**How to avoid:**
-The API route must perform a two-step check before delete:
-
+Always return the cleanup:
 ```typescript
-// 1. Fetch the deal with its student_id
-const { data: deal } = await admin.from("deals").select("student_id").eq("id", dealId).single();
+useEffect(() => {
+  const id = setInterval(fetchMessages, 5000);
+  return () => clearInterval(id);
+}, [conversationId]);
+```
 
-// 2. If coach, verify they are assigned to that student
+Use a `useRef` to hold the latest `fetchMessages` callback without adding it to the dependency array, preventing unnecessary interval recreation while still avoiding stale closures:
+```typescript
+const fetchRef = useRef(fetchMessages);
+useEffect(() => { fetchRef.current = fetchMessages; });
+useEffect(() => {
+  const id = setInterval(() => fetchRef.current(), 5000);
+  return () => clearInterval(id);
+}, [conversationId]);
+```
+
+Also add a `visibilitychange` listener to pause polling when `document.hidden === true`. At 5k students all polling at 5-second intervals, this reduces load by ~60% (most tabs are backgrounded at any given moment). The existing rate limiter allows 30 req/min per user per endpoint — chat polling at 12 req/min fits within the limit, but do NOT apply `checkRateLimit()` to the GET polling endpoint (see Pitfall 7).
+
+**Warning signs:**
+- Browser Network tab shows requests to `/api/chat` continuing after navigating away from the chat page.
+- Memory usage climbs steadily in long-running sessions.
+- Chat shows messages from a previous conversation after switching to a new one.
+
+**Phase to address:**
+Chat implementation phase. Add the `visibilitychange` optimization in the same phase, not as a follow-up.
+
+---
+
+### Pitfall 4: Discord WidgetBot iframe Blocked in Production by Missing CSP Headers
+
+**What goes wrong:**
+`next.config.ts` currently has no `headers()` configuration and no Content-Security-Policy. When the Resources tab embeds a WidgetBot iframe pointing to `https://e.widgetbot.io`, browsers in production block it with:
+
+```
+Refused to frame 'https://e.widgetbot.io/' because it violates the following Content Security Policy directive: "frame-src 'self'"
+```
+
+Vercel's Edge Network injects a default `X-Frame-Options: SAMEORIGIN` header for Next.js deployments. An iframe that renders fine on localhost (no Vercel headers) fails silently in production — showing a blank area with no JavaScript error visible to the user.
+
+Additionally, WidgetBot requires the embedding page's origin to be allowlisted in the WidgetBot dashboard. This is a configuration step outside the codebase entirely.
+
+**Why it happens:**
+Local development has no Vercel-injected headers, so the iframe loads successfully. The developer ships without testing on the actual Vercel deployment URL. The error is only visible in the production browser console.
+
+**How to avoid:**
+Add `frame-src` to `next.config.ts` `headers()` before building the Resources page component:
+```typescript
+// next.config.ts
+async headers() {
+  return [{
+    source: '/(.*)',
+    headers: [{
+      key: 'Content-Security-Policy',
+      value: "frame-src 'self' https://e.widgetbot.io; img-src 'self' data: https://cdn.discordapp.com;"
+    }]
+  }]
+}
+```
+
+Also add `https://e.widgetbot.io` to `img-src` (WidgetBot loads user avatars from Discord's CDN). The existing AI chat iframe at `/student/ask` embeds `AI_CONFIG.iframeUrl` — when Abu Lahya provides that URL, the CSP must be updated to include it. Writing the CSP in the resources phase is the right time to address all iframe sources comprehensively.
+
+Test on a Vercel preview deployment, not localhost, before calling the phase complete.
+
+**Warning signs:**
+- Blank area where the iframe should appear on the production URL.
+- Browser console shows `Refused to frame` error only on Vercel, not localhost.
+- WidgetBot shows "This website is not authorized" inside the frame (different from the CSP block — this is the WidgetBot allowlist missing).
+
+**Phase to address:**
+Resources tab implementation phase — add CSP headers as the very first step before building any iframe component.
+
+---
+
+### Pitfall 5: ISO Week Skip Tracker — Monday Boundary and UTC Mismatch
+
+**What goes wrong:**
+The skip tracker counts days with no completed session in "this week" (Monday–Sunday ISO week, Decision v1.4 D-01). Two failure modes:
+
+**Mode A — wrong week boundary:** JavaScript `new Date().getDay()` returns 0 for Sunday, 1 for Monday. Computing "this week's Monday" as `date - date.getDay()` produces Sunday, not Monday. The correct ISO formula is `date - ((date.getDay() + 6) % 7)`.
+
+**Mode B — UTC vs. local timezone:** The `work_sessions` table stores `date` as a Postgres `date` column set by `getTodayUTC()`. "Today" for a student in UTC+3 at 11pm is already tomorrow in UTC. If the RPC function uses `CURRENT_DATE` (Postgres UTC), it misidentifies the student's "today" and counts a non-skip for the student's current local day — or counts Sunday as already skipped before the student has a chance to work.
+
+This is not theoretical. The calendar view had this exact UTC/local off-by-one and required a gap-closure fix (documented in PROJECT.md v1.1 Phase 17).
+
+**Why it happens:**
+Skip counting feels simple: "count dates in the current ISO week with no session row." The Monday boundary math is subtly wrong in JavaScript, and the UTC/local split is invisible when testing with a developer in the same timezone as the server.
+
+**How to avoid:**
+Write the skip count as a PostgreSQL RPC function. Use `date_trunc('week', p_today)` for the Monday boundary — PostgreSQL's `date_trunc('week')` correctly returns the ISO Monday (not Sunday). Pass the student's "today" as a parameter from the application layer using `getTodayUTC()`, rather than relying on `CURRENT_DATE` inside the function:
+
+```sql
+CREATE OR REPLACE FUNCTION get_weekly_skip_count(p_student_id uuid, p_today date)
+RETURNS integer
+LANGUAGE sql STABLE AS $$
+  SELECT (p_today - date_trunc('week', p_today)::date + 1)
+       - COUNT(DISTINCT ws.date)
+  FROM work_sessions ws
+  WHERE ws.student_id = p_student_id
+    AND ws.date >= date_trunc('week', p_today)::date
+    AND ws.date <= p_today
+    AND ws.status = 'completed'
+$$;
+```
+
+Test at Monday 00:01 UTC, Sunday 23:59 UTC, and with a student in UTC+3 at 23:00 their local time.
+
+**Warning signs:**
+- Skip count shows 7 on Monday (entire previous week counted as current week).
+- Skip count shows 0 on Sunday for a student who hasn't worked all week.
+- Skip count is 1 higher than expected for students in UTC+ timezones on Sunday evening.
+
+**Phase to address:**
+Skip tracker database + API phase — the RPC function must use the passed `p_today` parameter, not `CURRENT_DATE`.
+
+---
+
+### Pitfall 6: Coach Assignment Escalation — Unbounded Student List and student_diy Bypass
+
+**What goes wrong:**
+The current `PATCH /api/assignments` route checks `profile.role !== "owner"` and returns 403. When coaches gain assignment power (Decision v1.4 D-02), this becomes `owner OR coach`. Two escalation vectors emerge:
+
+**Vector A — unbounded student enumeration:** The coach assignment UI needs a list of all unassigned students and all active coaches. Previously this data was only visible to the owner. If the developer copies the owner's assignments page to the coach dashboard without adding a filter, every coach can enumerate every student on the platform — including students assigned to other coaches.
+
+**Vector B — student_diy assignment:** Decision v1.4 D-04 states "student_diy has NO coach assignment." The existing route checks `.eq("role", "student")` when verifying the target student. When the role expansion migration runs, `student_diy` becomes a valid role value but is distinct from `student`. The existing filter already blocks it — but only if the filter string is exactly `"student"`. If the developer changes the filter to accommodate the new role check (e.g., `.in("role", ["student", "student_diy"])`), the guard is removed.
+
+**Why it happens:**
+The developer copies the owner's assignment page component to the coach dashboard and removes the `role !== 'owner'` check. The new coach assignment page works, but the data-fetching server component returns platform-wide students and coaches without a scope filter.
+
+**How to avoid:**
+For the coach assignment UI data fetch, restrict the unassigned student list to `WHERE role = 'student' AND coach_id IS NULL` — not all students. The coach does not need to see students already assigned to other coaches.
+
+In `PATCH /api/assignments`, the check must remain: target student must have `role = 'student'` (not student_diy). Keep the existing `.eq("role", "student")` filter untouched. Add an explicit comment: `// student_diy cannot be assigned — D-04`.
+
+**Warning signs:**
+- A coach can access a list of all 5k platform students at the assignment page.
+- Attempt to assign a student_diy via the API returns 200 instead of 404.
+- The coach can see students assigned to other coaches in the assignment dropdown.
+
+**Phase to address:**
+Coach assignments phase. Include a security test in the success criteria: attempt to assign student_diy as a coach actor; expect 404.
+
+---
+
+### Pitfall 7: Chat GET Polling Endpoint Hit by Rate Limiter — 429 After 2.5 Minutes
+
+**What goes wrong:**
+The rate limiter at `src/lib/rate-limit.ts` defaults to 30 req/min per user per endpoint. Chat polling at 5-second intervals generates 12 req/min. The limit is not hit individually — but the `checkRateLimit()` function also INSERTs a row into `rate_limit_log` for every ALLOWED request. Applied to a GET polling endpoint, this means:
+
+- 12 INSERT + 12 SELECT per user per minute into `rate_limit_log`
+- 5k students active simultaneously = 60,000 INSERT + 60,000 SELECT per minute
+- 120,000 DB operations per minute against a single table, with a pg_cron cleanup every 2 hours
+
+At 2,000 rows/sec the table accumulates ~14.4 million rows before the next cleanup — far beyond the indexed scan range, causing the cleanup query to run for minutes and lock the table. Additionally, if the endpoint is labeled with a different key (e.g., `/api/chat/messages`) and the per-endpoint limit is 30 req/min, the 12 req/min from polling fits fine — but there is no guarantee a developer doesn't copy-paste the rate limiter call from a mutation route into the polling GET handler.
+
+**Why it happens:**
+The rate limiter boilerplate is copy-pasted from an existing mutation route. It compiles, it runs, and in testing (single user) no issue appears. The table bloat only manifests at real scale.
+
+**How to avoid:**
+Do not call `checkRateLimit()` in read-only GET endpoints. Rate limiting is for mutation routes (POST, PATCH, DELETE). If abuse protection is needed for the chat poll endpoint, implement a lightweight IP-based or session-based counter with a high ceiling (e.g., 120 req/min) using a separate mechanism — not the rate_limit_log table.
+
+The existing `src/lib/rate-limit.ts` documentation and the v1.2 Phase 22 pattern apply only to mutation routes. Add a comment at the top of the rate-limit helper: "Use only in mutation routes (POST/PATCH/DELETE). Do not apply to polling GET endpoints."
+
+**Warning signs:**
+- `rate_limit_log` row count exceeds 1 million within 30 minutes of chat going live.
+- pg_cron cleanup job takes more than 10 seconds (table lock).
+- Students get 429 errors after 2.5 minutes on the chat page.
+
+**Phase to address:**
+Chat API design phase — confirm `checkRateLimit()` is NOT called in the chat polling GET handler.
+
+---
+
+### Pitfall 8: Report Comment Endpoint Missing Ownership Verification
+
+**What goes wrong:**
+Report comments are "single coach comment per daily report, coach-only" (Decision v1.4 D-03). The simplest implementation adds a `coach_comment text` column and `commented_by uuid` to the `daily_reports` table, then exposes a `PATCH /api/reports/[id]/comment` route.
+
+The gap: the route must verify that the requesting coach is assigned to the student who submitted the report. Without this check, any authenticated coach can POST a comment to any student's report — including students assigned to other coaches.
+
+This exact ownership gap existed on `POST /api/reports/[id]/review` and was fixed in v1.2 Phase 23 (documented in PROJECT.md). The fix was to fetch the report first, get the `student_id`, then verify the student's `coach_id` matches the requesting coach's `id`. The comment endpoint will have the same shape and must follow the same fix.
+
+**Why it happens:**
+The developer writes `UPDATE daily_reports SET coach_comment = $1 WHERE id = $2` and only verifies the report exists — not that the coach has jurisdiction over the student who submitted it. The "only coaches see the UI" reasoning is used to skip the server-side check.
+
+**How to avoid:**
+Two-step ownership check in the comment route, mirroring the review route fix:
+```typescript
+// 1. Fetch the report to get student_id
+const { data: report } = await admin
+  .from("daily_reports")
+  .select("student_id")
+  .eq("id", reportId)
+  .single();
+
+if (!report) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+// 2. Verify the requesting coach is assigned to this student
+//    (owners bypass this check)
 if (profile.role === "coach") {
   const { data: student } = await admin
     .from("users")
-    .select("coach_id")
-    .eq("id", deal.student_id)
+    .select("id")
+    .eq("id", report.student_id)
+    .eq("coach_id", profile.id)
     .single();
-  if (student?.coach_id !== profile.id) return 403;
+
+  if (!student) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }
-
-// 3. Owner skips the assignment check (can delete any)
 ```
 
-The RLS DELETE policy should be defense-in-depth (not the primary check), using a subquery join to `users` to verify `coach_id` assignment:
-
-```sql
-USING (
-  (SELECT get_user_role()) = 'owner'
-  OR (
-    (SELECT get_user_role()) = 'coach'
-    AND student_id IN (
-      SELECT id FROM users WHERE coach_id = (SELECT get_user_id())
-    )
-  )
-)
-```
+Include this verification in the phase success criteria. Test by attempting to comment on a report from a student assigned to a different coach.
 
 **Warning signs:**
-- Unit test: coach A can delete a deal belonging to a student assigned to coach B
-- `DELETE /api/deals/[foreignDealId]` returns 200 instead of 403 for a coach
+- Any coach can PATCH a comment to any report ID.
+- The route checks `report.id` exists but not `student.coach_id = profile.id`.
+- Test: POST a comment on a report from another coach's student — expect 403, not 200.
 
 **Phase to address:**
-API route phase — the delete route must include the assignment verification as a named checklist step. The RLS DELETE policy must be reviewed for this exact scenario.
+Report comments phase. Ownership check must be in the success criteria.
 
 ---
 
-### Pitfall 5: Dashboard Stats Not Updating After Deal Add/Delete
+### Pitfall 9: Glossary Term — Missing Case-Insensitive Uniqueness Constraint
 
 **What goes wrong:**
-The student dashboard shows "Deals Closed", "Total Revenue", and "Total Profit" stats. After a student adds or deletes a deal, the server component re-renders with stale data because:
+The glossary requires unique terms (e.g., "CPM" and "cpm" should not both exist). A standard `UNIQUE` constraint on a `text` column is case-sensitive in PostgreSQL. A standard `UNIQUE` constraint allows both "CPM" and "cpm" to coexist.
 
-1. The API route calls `revalidateTag("deals")` but the student dashboard page is not tagged with `"deals"` — it uses a different cache strategy or no tag at all.
-2. The `student_kpi_summaries` pre-aggregation table (refreshed nightly by pg_cron) does NOT contain deal stats. If deal counts are added to this table later, they will always be 24h stale for live students.
+The API-level uniqueness check using `WHERE term = $1` is also case-sensitive. Using `ilike` or `lower(term) = lower($1)` in the application check without a corresponding functional index causes a full sequential scan for every glossary lookup as the term count grows.
 
 **Why it happens:**
-The existing dashboard (student, coach detail, owner detail) fetches KPIs in three different query paths: live server component fetches, the `get_student_detail` RPC, and `student_kpi_summaries`. Deal stats don't belong in any of these by default — they require a new data path. If a developer adds deal stats to the dashboard by reading from `student_kpi_summaries`, the numbers will lag by up to 24 hours after every deal submission.
+The developer thinks "it's a glossary, it will have at most 100 terms." Correct about scale — but still wrong about correctness. Two coaches adding "CPM" and "cpm" is a real scenario that a uniqueness constraint exists to prevent.
 
 **How to avoid:**
-Deal stats on the dashboard MUST be fetched live (not from `student_kpi_summaries`). Use a dedicated fast aggregate query:
-
 ```sql
-SELECT COUNT(*) AS deals_closed,
-       COALESCE(SUM(revenue), 0) AS total_revenue,
-       COALESCE(SUM(profit), 0) AS total_profit
-FROM deals
-WHERE student_id = $1;
+CREATE UNIQUE INDEX idx_glossary_term_lower ON glossary (lower(term));
 ```
 
-Add this as a parallel `Promise.all` fetch in the student dashboard server component alongside the existing session/roadmap/report fetches. After every deal mutation (POST/DELETE), call `revalidateTag("deals-[studentId]")` or `revalidatePath("/student/deals")` to bust the correct cache segment.
-
-Do NOT add deals to `refresh_student_kpi_summaries()` — that function runs nightly and would make deal counts stale by definition.
-
-**Warning signs:**
-- Student adds a deal, navigates to dashboard, sees "0 Deals Closed"
-- Student deletes a deal, refreshes, deal count still shows old number
-- `revalidateTag` is called with a tag not used in the corresponding `fetch()` or `unstable_cache()` call
-
-**Phase to address:**
-Dashboard stats phase — the cache tag used by the API route mutation MUST match the tag used by the server component data fetch. This is a named verification item.
-
----
-
-### Pitfall 6: `useOptimistic` Delete Flash When Coach/Owner Removes a Deal
-
-**What goes wrong:**
-After a coach deletes a deal, `useOptimistic` immediately removes the row from the UI, then the server component re-validates and re-renders. If the `revalidateTag` call in the API route is missing or uses the wrong tag, the server component renders the stale list (with the deleted deal still present). React reconciles the optimistic state (deal gone) with the fresh server state (deal present), causing a visible flash where the deleted row re-appears briefly.
-
-A second failure mode: the optimistic update removes the row at index N, but the paginated list is based on `OFFSET = (page - 1) * 25`. After deletion, the total count changes but the page variable stays at the same value, causing the last page to show fewer than 25 items without indicating "you're at the end" — this looks like a broken list to the user.
-
-**Why it happens:**
-`useOptimistic` is designed for the add path (add → optimistic render → server confirms). The delete path requires matching the optimistic remove with a guaranteed-consistent server re-fetch. The existing codebase uses `useOptimistic` on report submission (add only) — the delete pattern has not been established yet.
-
-**How to avoid:**
-For the delete action:
-1. Call the API route DELETE.
-2. On success (response.ok), call `router.refresh()` (not `revalidatePath` from client) to force the server component to re-render with fresh data.
-3. Use `useOptimistic` only for the immediate remove animation — treat the refresh as the source of truth.
-4. After deletion, reset the page to 1 if the deleted deal was the only item on the current page.
-
-For optimistic state shape, filter by ID:
+In the Zod schema for the API, normalize with `.trim().toLowerCase()` before the uniqueness check query:
 ```typescript
-const optimisticDeals = deals.filter(d => d.id !== pendingDeleteId);
+const normalizedTerm = parsed.data.term.trim();
+const { data: existing } = await admin
+  .from("glossary")
+  .select("id")
+  .ilike("term", normalizedTerm) // uses the functional index
+  .maybeSingle();
 ```
 
+Store terms in their original case (do not force lowercase storage) — display "CPM" as entered. Only enforce uniqueness case-insensitively at the DB level.
+
 **Warning signs:**
-- Deleted deal row reappears for 200-500ms after deletion
-- After deleting the last deal on a page, the page shows an empty list without pagination updating
-- `router.refresh()` is missing from the delete success handler
+- "CPM" and "cpm" both appear in the glossary list.
+- Searching for "cpm" returns no results when "CPM" is stored.
+- The uniqueness check passes at the API layer (exact match) but a second insert with different casing succeeds.
 
 **Phase to address:**
-Client components phase — the delete handler must call `router.refresh()` after the API DELETE succeeds. This is a named checklist item in the plan.
+Resources — Glossary implementation phase, in the migration that creates the glossary table.
+
+---
+
+### Pitfall 10: Invite max_uses Default — Existing Rows Remain Unlimited
+
+**What goes wrong:**
+Decision v1.4 D-13 changes the default `max_uses` from null (unlimited) to 10. The `magic_links` table already has `max_uses int` (nullable, currently null = unlimited for all existing links). Adding `DEFAULT 10` to the column changes new inserts but does NOT retroactively update existing rows — standard SQL behavior.
+
+The UI that displays usage count must handle the null case: `${link.use_count} / ${link.max_uses ?? '∞'}` — rendering null as the string "null" is a visible bug. Additionally, if the application logic that checks whether a link is "at capacity" reads `link.use_count >= link.max_uses`, and `max_uses` is null, the comparison `3 >= null` evaluates to `false` in JavaScript — existing links never hit capacity even if the intent is to cap them.
+
+**Why it happens:**
+Column defaults feel like global settings. Developers expect `DEFAULT 10` to apply to existing rows. The null-handling bug in the capacity check is easy to miss because null comparisons in JavaScript silently evaluate to false.
+
+**How to avoid:**
+In the migration, explicitly decide and document: either run `UPDATE magic_links SET max_uses = 10 WHERE max_uses IS NULL` to retroactively cap existing links, or leave them as-is (grandfathered unlimited). Add a comment in the migration explaining the choice.
+
+In the capacity-check logic, always handle null explicitly:
+```typescript
+const atCapacity = link.max_uses !== null && link.use_count >= link.max_uses;
+```
+
+In the `POST /api/magic-links` route, pass `max_uses: 10` explicitly in the insert body rather than relying on the DB default — this is more explicit and testable.
+
+**Warning signs:**
+- Existing invite links show "3 / " or "3 / null" in the UI.
+- An existing link allows more than 10 registrations after the feature ships.
+- New links created via the API have `max_uses: null` because the route did not pass the default.
+
+**Phase to address:**
+Invite limits phase. Migration must document whether existing null rows are grandfathered or retroactively capped.
+
+---
+
+### Pitfall 11: Chat Unread Badges — Separate Polling Loop Doubles Request Rate
+
+**What goes wrong:**
+The sidebar needs unread chat badge counts (Decision v1.4 D-08 implies students and coaches need to see unread indicators). A common implementation mistake: add a second `setInterval` to poll `/api/chat/unread-count` at 5-second intervals, independent from the message-fetching interval. This means:
+
+- On the chat page: 2 intervals firing = 24 req/min
+- On any non-chat page: the unread badge still polls at 12 req/min (background)
+
+Globally, the Sidebar component runs on every dashboard page. If the unread count is fetched inside the Sidebar via its own polling interval, every page in the app polls the chat endpoint — not just the chat page.
+
+**Why it happens:**
+The Sidebar needs badge counts for other features (unreviewed reports, active alerts). Adding another badge count for chat follows the same pattern. The developer adds a `useEffect` with `setInterval` inside the Sidebar for chat unread counts, mirroring existing badge count logic.
+
+**How to avoid:**
+Return the unread count as part of the same message-fetch response on the chat page:
+```json
+{ "messages": [...], "unread_count": 3 }
+```
+
+On non-chat pages, pass the unread count as a server-rendered prop from the layout's server component (fetched once on page load), not via a client-side polling interval. Badge counts that are slightly stale (up to the next page load) are acceptable for non-chat pages.
+
+Never add polling intervals inside the `Sidebar` component — it renders on every dashboard page.
+
+**Warning signs:**
+- Two `setInterval` calls visible in React DevTools for the chat page.
+- Network tab shows requests to `/api/chat/unread-count` on the Roadmap page and Work Tracker page.
+- `Sidebar.tsx` contains a `useEffect` with `setInterval`.
+
+**Phase to address:**
+Chat implementation phase, when designing the message API response shape.
 
 ---
 
@@ -243,12 +425,14 @@ Client components phase — the delete handler must call `router.refresh()` afte
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Store `deal_number` as a regular integer column, generate via `MAX + 1` in app code | Simple to implement | Race condition on concurrent inserts; duplicate deal numbers possible | Never — use a trigger or UNIQUE constraint from day one |
-| Declare revenue/profit as `number` in `types.ts` without runtime coercion | Cleaner TypeScript | Silent arithmetic corruption when PostgREST returns string | Never — always coerce at read site |
-| Skip RLS on `deals` table, rely only on API route checks | Faster implementation | Defense-in-depth gap; direct DB access bypasses authorization | Never on a Supabase project — RLS is a named architectural constraint |
-| Add deal stats to `student_kpi_summaries` nightly cron | Single data source | Stats are up to 24h stale; students see wrong deal counts | Never for live user-facing stats |
-| Use `revalidatePath("/student/deals")` only, skip dashboard revalidation | One call | Dashboard stats go stale after deal mutations | Acceptable if dashboard fetches deals live; unacceptable if it reads from cache |
-| Offset pagination on deals list (`OFFSET 25 * page`) | Simple to implement | Slow on deep pages; rows shift when deal added/deleted mid-session | Acceptable for MVP at current scale (<1000 deals/student); switch to cursor if P95 degrades |
+| Hardcoding `"student_diy"` role string in page files instead of importing from `config.ts` | Faster | Diverges from config-is-truth; breaks when role is renamed | Never |
+| Inline `role === 'student' \|\| role === 'student_diy'` checks in components | Fast | Each component that needs this check diverges; no central update point | Never — create `isStudentRole(role)` utility in config.ts |
+| Polling without `visibilitychange` pause | Simpler code | Unnecessary DB load from backgrounded tabs; 60k+ req/min at scale | Never in production |
+| `checkRateLimit()` applied to the chat polling GET endpoint | Copy-paste from mutation routes | rate_limit_log bloats to millions of rows; 429s for students after 2.5 min | Never |
+| Skipping ownership check on report comments ("only coaches see this UI") | Saves one DB call | Any user who discovers the endpoint can comment on any report | Never |
+| Testing Discord iframe on localhost only (not Vercel preview) | Faster dev loop | CSP block is invisible locally; ships as silent blank in production | Never — Vercel preview test is required |
+| Adding `student_diy` to proxy without updating RLS policies | Route guards work | Defense-in-depth broken; admin client bypass masks the gap | Never |
+| Storing chat messages without a `conversation_id` index | Simpler schema | Full table scan for message history as row count grows | Only if chat is guaranteed to stay under 5k total messages |
 
 ---
 
@@ -256,13 +440,14 @@ Client components phase — the delete handler must call `router.refresh()` afte
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Supabase JS client + NUMERIC columns | Treating `row.revenue` as JS `number` directly | Always coerce: `Number(row.revenue ?? 0)` at every arithmetic site |
-| `revalidateTag` in Route Handler | Calling with a tag that no `fetch()` / `unstable_cache()` uses | Tag names must be agreed between the mutation route and the server component fetch |
-| `student_kpi_summaries` pg_cron function | Adding deal aggregates to the nightly refresh function | Deal stats must be live queries, not cron-refreshed; the function only handles `daily_reports` aggregates |
-| RLS `(SELECT get_user_role())` initplan | Writing bare `get_user_role()` in a new policy | Every role/user function call in RLS MUST use the `(SELECT fn())` wrapper — copy from existing policies verbatim |
-| Admin client in API routes | Using `createClient()` (RLS-gated) instead of `createAdminClient()` for deal queries | All server-side DB operations in Route Handlers use `createAdminClient()` — this is a hard rule in CLAUDE.md |
-| `useOptimistic` on delete | Missing `router.refresh()` after delete API success | Delete = optimistic remove + `router.refresh()` for source-of-truth sync; not just optimistic state |
-| Zod validation on money inputs | Using `z.string()` for revenue/profit in the POST schema | Use `z.number().min(0)` — the client sends a JS number, server validates as number; coerce only on DB read |
+| Discord WidgetBot | Testing iframe on localhost (no Vercel headers) | Test on a Vercel preview URL before marking the phase complete |
+| Discord WidgetBot | Embedding without adding the app domain to WidgetBot allowlist | Register production URL in WidgetBot dashboard — deployment prerequisite, not code |
+| Discord WidgetBot | Not handling "bot offline" / "server unavailable" state | Wrap iframe in an error boundary; show a fallback message |
+| Supabase RPC for skip count | Using `CURRENT_DATE` (Postgres UTC) instead of a passed parameter | Pass the student's `getTodayUTC()` value as the `p_today` parameter |
+| Chat API and rate limiter | Copying `checkRateLimit()` into the GET polling handler | GET polling endpoints must not call `checkRateLimit()` |
+| CSP headers in Next.js | Attempting to set headers in `proxy.ts` instead of `next.config.ts` | Security headers go in `next.config.ts` `headers()` function, not in the proxy |
+| New mutation routes (comment, chat POST, glossary CRUD) | Forgetting `verifyOrigin()` and `checkRateLimit()` | Every new mutation route must start with `verifyOrigin(request)` then auth, role, rate limit, Zod — the established pipeline from v1.2 |
+| Invite `max_uses` null check | `use_count >= max_uses` evaluates to false when `max_uses` is null | Always guard: `max_uses !== null && use_count >= max_uses` |
 
 ---
 
@@ -270,12 +455,12 @@ Client components phase — the delete handler must call `router.refresh()` afte
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| No index on `deals(student_id)` | Coach detail page slow; owner pagination slow | Add `CREATE INDEX idx_deals_student_id ON deals(student_id)` in migration | ~100+ deals per student |
-| No index on `deals(student_id, created_at DESC)` | Paginated list requires full table scan per page | Composite index for pagination query | ~500 deals in table |
-| Counting total deals with `SELECT COUNT(*)` on every page render | Pagination "total pages" number is expensive | Use a separate `COUNT(*)` query cached with short TTL, or accept approximate total | ~10k total rows |
-| Missing `COALESCE` on SUM aggregates | `total_revenue` returns `null` when student has 0 deals; frontend `Number(null)` = 0 but displayed as blank | Always `COALESCE(SUM(revenue), 0)` in aggregate queries | First load for new students |
-| Loading all deals into client component for totals | Large payload; totals computed in JS | Compute `SUM(revenue)`, `SUM(profit)`, `COUNT(*)` in DB aggregate query; return summary + paginated page separately | ~50+ deals per student |
-| `N+1` on coach dashboard — fetching deal summaries per student in a loop | Coach dashboard slow when coach has 20+ students | Single query: `SELECT student_id, COUNT(*), SUM(revenue) FROM deals GROUP BY student_id WHERE student_id = ANY($ids)` | 5+ students per coach |
+| N+1 skip tracker — one query per student in coach dashboard | Coach dashboard slow with 50+ students | Single RPC returning skip counts for all assigned students at once | >10 students visible |
+| rate_limit_log bloat from chat GET polling | Table grows to millions of rows; pg_cron cleanup takes >10s | Never call `checkRateLimit()` in GET endpoints | Immediate at 5k students |
+| Unread badge polling in Sidebar (every page) | 12 req/min per user even when not on chat page | Server-render unread count on page load; do not poll in Sidebar | Immediately noticeable at >100 concurrent users |
+| Chat message table without `(conversation_id, created_at DESC)` index | Slow message list queries as history grows | Add this index at table creation | ~10k total messages |
+| Glossary search on every keystroke | High-frequency API calls on glossary search | Debounce 300ms, or filter client-side on already-fetched terms (glossary is small) | Immediately noticeable in UI jank |
+| skip_count re-computed on every coach page load | Slow coach dashboard with many students | Cache the result in `student_kpi_summaries` (already pre-aggregated by pg_cron) or compute once per request using a single RPC | >50 students per coach |
 
 ---
 
@@ -283,12 +468,13 @@ Client components phase — the delete handler must call `router.refresh()` afte
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| RLS DELETE policy allows any coach to delete any deal (missing assignment check) | Coach A deletes deals of students assigned to Coach B | RLS DELETE policy must join `users` table to verify `coach_id = get_user_id()`; API route must also verify before delete |
-| API route checks role but not student ownership before delete | A student can delete another student's deal by crafting a request with a foreign `dealId` | Always fetch deal first, verify `deal.student_id === profile.id` before allowing student delete; admin client bypasses RLS so the explicit check is mandatory |
-| Students can edit revenue/profit values of past deals arbitrarily | Revenue inflation / data manipulation | This is allowed per requirements — but validate max values in Zod schema (e.g., `z.number().max(10_000_000)`) to prevent absurdly large values that corrupt totals |
-| Exposing deal data to `student_diy` role incorrectly | `student_diy` should have same access as `student` for their own deals per requirements | Ensure API routes check `profile.role === 'student' || profile.role === 'student_diy'` for student-facing operations; do not accidentally exclude one role |
-| Missing `verifyOrigin` CSRF check on deals mutation routes | CSRF attack can trigger deal add/delete from malicious site | All mutation routes (POST `/api/deals`, DELETE `/api/deals/[id]`) must call `verifyOrigin(request)` as first line — this is an existing project hard rule |
-| Rate limiting missing on `/api/deals` | Bot or broken client can flood deal submissions | Apply `checkRateLimit(profile.id, "/api/deals")` on POST and DELETE routes — same pattern as all existing mutation routes |
+| Coach assignment page returns all platform students (not filtered by `coach_id IS NULL`) | Coach enumerates all 5k students including those assigned to other coaches | Server-side filter: return only `role = 'student' AND coach_id IS NULL` for the assignment picker |
+| `PATCH /api/assignments` expanded to coaches without blocking `student_diy` targets | Coach assigns a DIY student, breaking the "no coach for DIY" contract and proxy guard assumptions | Explicit `.eq("role", "student")` filter on the target user lookup remains unchanged |
+| Report comment endpoint without ownership verification | Any authenticated coach comments on any report | Two-step: fetch report → verify `student.coach_id = requesting_coach.id` — same pattern as existing review fix |
+| `student_diy` users accessing `/student/*` routes in proxy | DIY user navigates to `/student/report` or `/student/ask` which they should not access | `ROLE_ROUTE_ACCESS["student_diy"]` must list only `/student-diy`, never `/student` |
+| Chat messages without sender/receiver filtering | Student A can poll for messages between Coach B and Student B | API filter: `(coach_id = X AND student_id = authenticated_user_id)` for students; coaches see only their own conversations |
+| Broadcast messages without coach assignment filter | Students receive broadcasts from coaches they are not assigned to | Broadcast: `coach_id = student.coach_id` — filter by the student's own assigned coach |
+| New routes missing `verifyOrigin()` | CSRF attack on comment, chat, glossary, assignment routes | Every new POST/PATCH/DELETE route must call `verifyOrigin(request)` as the first line |
 
 ---
 
@@ -296,27 +482,34 @@ Client components phase — the delete handler must call `router.refresh()` afte
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| No confirmation before deal delete | Student accidentally deletes a deal and has no way to recover | Show confirmation dialog or destructive button pattern (e.g., require double-click or confirm prompt) before DELETE API call |
-| Revenue/profit input allows decimal typing but sends rounded integer to API | Student enters `1250.50`, server receives `1250` silently | Accept and store `NUMERIC(12,2)` — validate at Zod layer that value has at most 2 decimal places; display with 2 decimal places in UI |
-| Deal history list has no empty state | New students see blank page with no guidance | Show "No deals yet — add your first closed deal" empty state matching existing empty state pattern in codebase |
-| Deal number displayed as database UUID | Confusing for students expecting "Deal #1, Deal #2" | Always display `deal_number` in the UI, not the UUID `id` |
-| Pagination controls hidden on mobile | Coach/owner cannot navigate deals pages on small screens | Pagination controls need `min-h-[44px]` and `min-w-[44px]` on all buttons per CLAUDE.md hard rules |
-| Total revenue displayed without currency symbol or locale formatting | "12500" instead of "$12,500.00" | Use `Intl.NumberFormat` for display: `new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)` |
+| Chat auto-scrolls to bottom even when user is scrolled up reading old messages | Interrupts reading; user loses their position | Only auto-scroll if the user is already at the bottom (within 100px); show "New messages ↓" button otherwise |
+| Chat clears input text on network error | User's message is lost; no way to retry | On error, restore input value and show a toast; do not clear input until server confirms 201 |
+| Skip tracker shows data for student_diy users (who don't have the "skip" concept) | Misleading — DIY has no daily report requirement | Filter the skip tracker query to `role = 'student'` only; show "N/A" or hide the metric for DIY |
+| Discord WidgetBot with fixed pixel height on mobile | Iframe truncated at 375px; unusable on phone | Use responsive height: `min-h-[400px] h-[60vh]` |
+| Glossary search returns no results for "CPM " (trailing space) | User thinks term doesn't exist | `.trim()` all search input before querying |
+| Invite usage counter showing "3 / " when max_uses is null | Looks like a rendering bug | Always render `max_uses !== null ? max_uses : '∞'` |
+| Chat page shows no messages on first load (loading state same as empty state) | User thinks they have no conversations | Distinguish "loading" (spinner) from "empty" (empty state message) |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **deal_number uniqueness:** Migration has `UNIQUE (student_id, deal_number)` constraint and a trigger or function to assign it atomically — verify with concurrent INSERT test
-- [ ] **NUMERIC coercion:** Every read site that does arithmetic on `revenue` or `profit` uses `Number(val)` — verify by logging `typeof row.revenue` from actual Supabase query response
-- [ ] **RLS initplan:** Every `get_user_role()` and `get_user_id()` call in the `deals` RLS policy uses `(SELECT fn())` wrapper — verify with `EXPLAIN (ANALYZE, BUFFERS)` that "InitPlan" appears
-- [ ] **Coach delete scope:** API DELETE route verifies `student.coach_id === profile.id` before allowing coach delete — verify with a test that coach A cannot delete coach B's student's deal
-- [ ] **Dashboard cache invalidation:** After deal POST/DELETE, `revalidateTag` tag matches the tag used in the server component fetch — verify by adding a deal and confirming dashboard stat updates without manual refresh
-- [ ] **Both student roles covered:** All student-facing routes check `role === 'student' || role === 'student_diy'` — verify that a `student_diy` account can add, edit, and delete their own deals
-- [ ] **Rate limiting on all deal routes:** `/api/deals` POST and DELETE both call `checkRateLimit` — verify 30th request within 60s returns 429
-- [ ] **CSRF on all deal routes:** Both routes call `verifyOrigin(request)` as first operation — verify a request without Origin header returns 400
-- [ ] **Empty state:** Student with zero deals sees an empty state UI, not a blank page — verify with a freshly-invited test account
-- [ ] **Pagination boundary:** Page 2 of deals list renders correctly when total is exactly 25 (no page 2 needed) and when total is 26 (page 2 with 1 item) — verify both edge cases
+- [ ] **student_diy role:** Added to DB CHECK constraint, proxy DEFAULT_ROUTES, proxy ROLE_ROUTE_ACCESS, config ROLES, config NAVIGATION, config INVITE_CONFIG, and TypeScript Role type — verify ALL EIGHT locations, not just the new page files.
+- [ ] **student_diy role:** RLS policies cover work_sessions, roadmap_progress, daily_plans with `IN ('student', 'student_diy')` — verify with anon client directly in Supabase Studio, not through admin client.
+- [ ] **Chat polling:** `clearInterval` cleanup exists in `useEffect` return — verify by navigating away from the chat page; no fetch calls should appear in the Network tab after navigation.
+- [ ] **Chat polling:** `visibilitychange` listener pauses polling when the tab is backgrounded — verify by switching tabs and confirming network requests stop.
+- [ ] **Chat rate limiter:** `checkRateLimit()` is NOT called in the chat GET polling handler — grep the file to confirm.
+- [ ] **Discord iframe:** Loads on Vercel preview deployment (not localhost) — verify CSP header is set in `next.config.ts` and WidgetBot domain is allowlisted.
+- [ ] **Skip tracker:** Monday boundary returns ISO Monday, not Sunday — test by computing the week start on a Monday.
+- [ ] **Skip tracker:** Test with UTC+3 student at 23:00 local time — skip count uses passed `p_today` param, not `CURRENT_DATE`.
+- [ ] **Coach assignments:** student_diy cannot be assigned to a coach — test the API with a student_diy user ID; expect 404.
+- [ ] **Coach assignments:** Coach assignment page shows only unassigned students — not all 5k platform students.
+- [ ] **Report comments:** Ownership check blocks cross-student commenting — test by sending a comment to a report from a student assigned to a different coach; expect 403.
+- [ ] **Glossary:** Functional index `lower(term)` exists on the glossary table — verify in Supabase Studio `\d glossary`.
+- [ ] **Glossary:** Case-insensitive uniqueness enforced at DB level — insert "CPM" then attempt to insert "cpm"; expect a unique violation.
+- [ ] **Invite max_uses:** UI renders `∞` for null rows — check an existing invite link in the UI before the feature is "done."
+- [ ] **All new mutation routes:** `verifyOrigin(request)` is the first call — grep every new POST/PATCH/DELETE handler.
+- [ ] **All new mutation routes:** `checkRateLimit()` is present in mutation handlers and absent from GET handlers — grep every new route file.
 
 ---
 
@@ -324,12 +517,16 @@ Client components phase — the delete handler must call `router.refresh()` afte
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Race condition produced duplicate `deal_number` values | MEDIUM | Write a one-time migration to re-number deals per student by `created_at` order; add the UNIQUE constraint after renumbering |
-| Revenue/profit displaying wrong totals due to string concatenation | LOW | Fix coercion at read sites; no data loss — DB values are correct, only display was wrong |
-| Wrong coach deleting deals (authorization gap) | HIGH | Audit `deals` table for deletions by non-owning coaches (via audit log if present, or by comparing `deleted_by` with `coach_id`); restore from backup if needed; patch authorization immediately |
-| Dashboard stats stale after deal mutations | LOW | Fix `revalidateTag` tag alignment in API route and server component; no data integrity issue |
-| RLS without initplan causing performance regression | MEDIUM | Re-write RLS policy with initplan wrapping in a new migration; deploy during low-traffic window |
-| Deals stats added to `student_kpi_summaries` (24h stale) | LOW | Remove from cron function; add live aggregate query to dashboard server component |
+| Partial role expansion (redirect loop for student_diy) | LOW | Fix the missed locations in config/proxy; deploy; no data migration needed |
+| RLS missing student_diy (empty dashboards) | LOW | Write a new migration adding the missing policies; no data corruption |
+| Chat polling memory leak in production | MEDIUM | Ship a patch with `clearInterval` cleanup and `visibilitychange` listener; no data impact but requires deploy |
+| Discord iframe blocked by CSP in production | LOW | Add `frame-src` to `next.config.ts` headers; redeploy; no schema changes |
+| Skip tracker wrong Monday boundary | LOW | Fix the RPC function; redeploy; no data corruption, just wrong counts |
+| Coach assignment exposes all students | HIGH | Revert or hotfix the data-fetching query immediately; audit whether any coach accessed another coach's student data; log a security incident |
+| Report comment without ownership check | HIGH | Revert or hotfix the endpoint; audit which cross-student comments were created; manually remove illegitimate comment rows |
+| rate_limit_log bloat from chat polling | MEDIUM | Remove rate limit from GET chat endpoint; run `DELETE FROM rate_limit_log WHERE endpoint = '/api/chat/messages'`; table recovers at next pg_cron cycle |
+| Glossary case duplicates in production | MEDIUM | Deduplicate rows via manual SQL; add the functional index via migration; no data loss |
+| Invite max_uses null handling broken | LOW | Fix the null guard in the UI and capacity-check logic; deploy; no schema change needed unless retroactive capping is desired |
 
 ---
 
@@ -337,31 +534,44 @@ Client components phase — the delete handler must call `router.refresh()` afte
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Per-student `deal_number` race condition | Database migration phase | Run concurrent INSERT test; verify UNIQUE constraint rejects duplicate deal_number for same student |
-| NUMERIC returned as string | Database migration + API route phase | Log `typeof row.revenue` from test query; verify dashboard totals show correct numbers not concatenated strings |
-| RLS missing initplan | Database migration phase | `EXPLAIN ANALYZE` on `SELECT * FROM deals WHERE student_id = $1` confirms InitPlan in output |
-| Coach cross-student delete bypass | API route phase | Test: coach A DELETE request on coach B's student's deal returns 403 |
-| Dashboard stats not updating | Dashboard stats phase | Add deal → verify dashboard stat increments without manual page reload |
-| `useOptimistic` delete flash | Client components phase | Delete deal → confirm no row reappearance flash; confirm pagination total updates |
-| N+1 on coach dashboard | Coach detail phase | Load coach dashboard with 10+ students; verify single aggregate query in DB logs, not one per student |
-| Missing rate limiting/CSRF | API route phase | 31st POST within 60s returns 429; POST without Origin header returns 400 |
+| Partial role expansion (all 8 locations) | student_diy database + config foundation | TypeScript compiles with strict `Record<Role, NavItem[]>` type; login as student_diy succeeds |
+| RLS missing student_diy | student_diy database + config foundation (same migration) | Test INSERT to work_sessions with anon client as student_diy; expect success |
+| Sidebar crash for student_diy | student_diy database + config foundation | `NAVIGATION["student_diy"]` defined; TypeScript strict check passes |
+| Chat polling memory leak | Chat implementation phase | Network tab shows no chat requests after navigating away |
+| Chat rate limiter misconfiguration | Chat API design phase | `checkRateLimit()` absent from GET polling handler (grep check) |
+| Chat unread badge double-polling | Chat implementation phase | Single request per 5-second interval; no polling in Sidebar |
+| Discord iframe CSP block | Resources tab phase (first step before iframe component) | Loads on Vercel preview URL; verify in production browser console |
+| WidgetBot domain allowlist | Resources deployment step | WidgetBot admin panel shows production domain as allowed |
+| Skip tracker ISO Monday boundary | Skip tracker API phase | Monday boundary test returns correct date |
+| Skip tracker UTC mismatch | Skip tracker API phase | `p_today` parameter used; not `CURRENT_DATE` |
+| Coach assignment student enumeration | Coach assignments phase | Coach assignment page filtered to unassigned students only |
+| student_diy assignment bypass | Coach assignments phase | student_diy target returns 404 when coach attempts to assign |
+| Report comment ownership gap | Report comments phase | Cross-coach attempt returns 403; in success criteria |
+| Glossary case-insensitive uniqueness | Resources — Glossary migration | Functional index on `lower(term)` exists; duplicate case test fails at DB |
+| Invite max_uses null handling | Invite limits phase | UI renders `∞`; capacity check guards null correctly |
+| Missing `verifyOrigin()` on new routes | Every new API route phase | Grep each new POST/PATCH/DELETE file for `verifyOrigin` before marking done |
+| Missing `checkRateLimit()` on new mutation routes | Every new API route phase | Grep each new mutation route file for `checkRateLimit` before marking done |
 
 ---
 
 ## Sources
 
-- Supabase/CLI issue #582: NUMERIC type generated as `number` causing precision loss — https://github.com/supabase/cli/issues/582
-- Supabase/postgrest-js issue #419: JavaScript library returns incorrect values for numeric columns — https://github.com/supabase/postgrest-js/issues/419
-- PostgreSQL docs on sequences and gapless numbering — https://www.postgresql.org/docs/current/sql-createsequence.html
-- PostgreSQL docs on explicit locking and advisory locks — https://www.postgresql.org/docs/current/explicit-locking.html
-- Cybertec: Gaps in sequences in PostgreSQL — https://www.cybertec-postgresql.com/en/gaps-in-sequences-postgresql/
-- Supabase RLS performance and best practices — https://supabase.com/docs/guides/troubleshooting/rls-performance-and-best-practices-Z5Jjwv
-- Next.js revalidateTag docs — https://nextjs.org/docs/app/api-reference/functions/revalidateTag
-- React 19 useOptimistic rolls back state for no reason (issue #31967) — https://github.com/facebook/react/issues/31967
-- vercel/next.js issue #49619: useOptimistic revert happens after serverAction but before revalidatePath render — https://github.com/vercel/next.js/issues/49619
-- Direct codebase audit: `00001_create_tables.sql`, `00011_write_path.sql`, `src/app/api/reports/route.ts`, `src/lib/rate-limit.ts`, `src/lib/rpc/types.ts`
+- Codebase audit: `src/proxy.ts` — `DEFAULT_ROUTES`, `ROLE_ROUTE_ACCESS` as plain Record objects; no student_diy key
+- Codebase audit: `src/lib/config.ts` — `ROLES`, `Role` type, `NAVIGATION: Record<Role, NavItem[]>`, `ROLE_HIERARCHY`, `INVITE_CONFIG.inviteRules`
+- Codebase audit: `src/components/layout/Sidebar.tsx` — `NAVIGATION[role]` direct lookup; crash if key missing
+- Codebase audit: `supabase/migrations/00001_create_tables.sql` — `users CHECK (role IN ('owner','coach','student'))`, `invites CHECK (role IN ('coach', 'student'))`, `get_user_role()` RLS helper pattern
+- Codebase audit: `supabase/migrations/00013_daily_plans_undo_log.sql` — `get_user_role() = 'coach'` RLS pattern; template for student_diy policies
+- Codebase audit: `src/lib/rate-limit.ts` — INSERT on every allowed request; unsafe for high-frequency GET endpoints
+- Codebase audit: `src/app/api/assignments/route.ts` — `profile.role !== "owner"` check to expand; `.eq("role", "student")` filter that must be preserved
+- Codebase audit: `src/lib/supabase/admin.ts` — singleton pattern confirmed; all routes use admin client (RLS bypass)
+- Codebase audit: `next.config.ts` — no `headers()` defined; CSP is not set; iframe will be blocked by Vercel default headers
+- `.planning/PROJECT.md` — Key Decisions D-01 through D-14; v1.1 Phase 17 UTC off-by-one calendar gap closure
+- `.planning/PROJECT.md` — v1.2 Phase 23: `reports/[id]/review` ownership leak fix (template for report comments)
+- React documentation: `useEffect` cleanup requirement; stale closure in `setInterval`; React StrictMode double-invoke masking cleanup bugs
+- PostgreSQL documentation: `date_trunc('week')` returns ISO Monday; functional index for case-insensitive uniqueness
+- MDN Web Docs: `document.visibilityState` API for pausing background polling
+- Vercel documentation: default security headers injected for Next.js deployments
 
 ---
-
-*Pitfalls research for: Adding deal/revenue tracking to existing IMA Accelerator v1.4 platform*
-*Researched: 2026-04-06*
+*Pitfalls research for: IMA Accelerator v1.4 — Roles, Chat & Resources milestone*
+*Researched: 2026-04-03*

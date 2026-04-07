@@ -49,50 +49,6 @@
 
 ---
 
-## Milestone: v1.4 — Roles, Chat & Resources
-
-**Shipped:** 2026-04-06
-**Phases:** 8 (30-37) | **Plans:** 19 | **Commits:** 143
-
-### What Was Built
-- Student_DIY 4th role with reduced feature set, 8-location atomic wiring, dedicated route group
-- Skip tracker via get_weekly_skip_counts RPC with warning badges on coach/owner dashboards
-- Coach assignments page with full assignment power (same as owner)
-- Report comments with upsert pattern, student read-only feedback view
-- Polling-based chat system (5s interval) — 1:1 + broadcast, sidebar unread badges, cursor pagination
-- Resources tab — Links + Discord WidgetBot iframe + searchable glossary with role-based CRUD
-- Invite link max_uses with default 10, usage count display, exhausted badge
-
-### What Worked
-- **Wave-based parallel execution** — Phases 32+33+34+37 ran in parallel (Wave 2), and 35+36 in parallel (Wave 3), cutting wall-clock time significantly
-- **Foundation-first phase ordering** — Phase 30 (DB migration) and Phase 31 (role wiring) as sequential Wave 1 meant all subsequent phases had the schema and role infrastructure ready
-- **Reuse of existing patterns** — Coach assignments reused the owner /api/assignments route (expanded role check), report comments used the v1.2 Phase 23 two-step ownership pattern, chat polling avoided rate limiting on GET endpoints
-- **CSS hidden pattern for Discord iframe** — prevented iframe remount on tab switch, preserving Discord session state
-
-### What Was Inefficient
-- **Traceability checkbox drift** — 6 of 48 requirements left as "Pending" despite phases completing. Transitions didn't consistently update REQUIREMENTS.md traceability
-- **v1.1-v1.3 milestones never formally archived** — MILESTONES.md only had v1.0 entry; v1.1/v1.2/v1.3 stats exist only in PROJECT.md context
-- **Phase Details section bloat** — ROADMAP.md grew to 400+ lines with full Phase Details for all milestones; should have been collapsed earlier
-
-### Patterns Established
-- **Polling over Realtime for chat** — 5s polling interval avoids Supabase 500 connection limit; adequate for this user count
-- **Role expansion checklist** — 8 locations (proxy x2, config x6, DB CHECK) must be updated atomically when adding a role
-- **WidgetBot iframe embed** — CSS hidden pattern + CSP frame-src header for Discord integration
-- **Upsert for single-row constraints** — report_comments uses ON CONFLICT (report_id) DO UPDATE for single-comment-per-report
-
-### Key Lessons
-1. **Traceability needs automation** — manual checkbox updates drift. Phase transitions should auto-update REQUIREMENTS.md traceability status.
-2. **Archive milestones promptly** — skipping /gsd-complete-milestone for v1.1-v1.3 created gaps in the historical record. The 2-minute cost of archival is worth the paper trail.
-3. **Parallel waves work well for independent features** — 4 parallel phases in Wave 2 had zero conflicts because they touched different API routes and UI components.
-4. **Foundation phases unblock everything** — investing in a clean migration (Phase 30) and role wiring (Phase 31) upfront meant zero schema conflicts in 6 downstream phases.
-
-### Cost Observations
-- Model mix: ~70% sonnet (execution), ~20% opus (planning/verification), ~10% haiku (research)
-- Sessions: ~8 across 2 days
-- Notable: Wave-based parallelization was the biggest time saver; chat system (Phase 35) was the most complex at 4 plans
-
----
-
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -100,22 +56,14 @@
 | Milestone | Commits | Phases | Key Change |
 |-----------|---------|--------|------------|
 | v1.0 | 218 | 12 | Full GSD workflow: research → plan → execute → verify → audit |
-| v1.1 | — | 6 | Feature milestones with schema-first approach |
-| v1.2 | — | 6 | Performance/security-focused milestone |
-| v1.3 | — | 5 | Smaller focused milestone with config + planner features |
-| v1.4 | 143 | 8 | Wave-based parallel execution, foundation-first ordering |
 
 ### Cumulative Quality
 
 | Milestone | Requirements | Coverage | Tech Debt Items |
 |-----------|-------------|----------|-----------------|
 | v1.0 | 37/37 | 100% | 6 (non-blocking) |
-| v1.4 | 42/48 | 88% | 6 bookkeeping gaps (features implemented, traceability not updated) |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Audit before completion catches real gaps that code review misses
 2. Dependency-driven phase ordering prevents data availability surprises
-3. Wave-based parallelization cuts wall-clock time when phases are independent
-4. Foundation phases (migration + wiring) unblock all downstream work — invest upfront
-5. Archive milestones promptly — gaps in paper trail compound over time

@@ -2,7 +2,7 @@
 // IMA ACCELERATOR — V1 Platform Configuration
 // Version: 1.0.0
 // Stack: Next.js 16 + Supabase + Tailwind CSS + Google OAuth
-// V1 ONLY — no leaderboard, tiers, player cards, streaks, focus mode, deals,
+// V1 ONLY — no leaderboard, tiers, player cards, streaks, focus mode,
 // analytics config, notification types, feature flags, rate limits, or DB schema
 // ============================================================================
 
@@ -85,6 +85,7 @@ export const ROUTES = {
     roadmap: "/student/roadmap",
     askAI: "/student/ask",
     report: "/student/report",
+    deals: "/student/deals",
     chat: "/student/chat",
     resources: "/student/resources",
   },
@@ -92,6 +93,7 @@ export const ROUTES = {
     dashboard: "/student_diy",
     workTracker: "/student_diy/work",
     roadmap: "/student_diy/roadmap",
+    deals: "/student_diy/deals",
     resources: "/student_diy/resources",
   },
   api: {
@@ -305,6 +307,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Roadmap",       href: "/student/roadmap", icon: "Map" },
     { label: "Ask Abu Lahya", href: "/student/ask",     icon: "MessageSquare" },
     { label: "Daily Report",  href: "/student/report",  icon: "FileText" },
+    { label: "Deals",         href: ROUTES.student.deals, icon: "DollarSign" },
     { label: "Chat",          href: "/student/chat",    icon: "MessageSquare",  badge: "unread_messages" },
     { label: "Resources",     href: ROUTES.student.resources, icon: "BookOpen" },
   ],
@@ -312,6 +315,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Dashboard",    href: "/student_diy",         icon: "LayoutDashboard" },
     { label: "Work Tracker", href: "/student_diy/work",    icon: "Timer" },
     { label: "Roadmap",      href: "/student_diy/roadmap", icon: "Map" },
+    { label: "Deals",        href: ROUTES.student_diy.deals, icon: "DollarSign" },
     { label: "Resources",    href: ROUTES.student_diy.resources, icon: "BookOpen" },
   ],
 };
@@ -330,6 +334,12 @@ export const VALIDATION = {
   influencersContacted: { min: 0, max: 500 },
   callsJoined: { min: 0, max: 100 },
   starRating: { min: 1, max: 5 },
+  deals: {
+    revenueMin: 0,
+    revenueMax: 9999999999.99,
+    profitMin: 0,
+    profitMax: 9999999999.99,
+  },
 } as const;
 
 // ---------------------------------------------------------------------------

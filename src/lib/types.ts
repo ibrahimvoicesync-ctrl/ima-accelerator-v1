@@ -659,44 +659,6 @@ export type Database = {
           }
         ];
       };
-      deals: {
-        Row: {
-          id: string;
-          student_id: string;
-          deal_number: number;
-          revenue: string | number;
-          profit: string | number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          student_id: string;
-          deal_number?: number;
-          revenue: string | number;
-          profit: string | number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          student_id?: string;
-          deal_number?: number;
-          revenue?: string | number;
-          profit?: string | number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "deals_student_id_fkey";
-            columns: ["student_id"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
     };
     Views: Record<string, never>;
     Functions: {

@@ -1,8 +1,8 @@
 # Architecture Research
 
-**Domain:** Deal tracking integration into existing Next.js 16 + Supabase coaching platform
-**Researched:** 2026-04-06
-**Confidence:** HIGH (based on direct codebase analysis of v1.4 codebase; no speculation)
+**Domain:** Student performance & coaching platform — v1.4 integration architecture
+**Researched:** 2026-04-03
+**Confidence:** HIGH (derived from direct codebase inspection + first-principles analysis)
 
 ---
 
@@ -11,383 +11,486 @@
 ### System Overview
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        Browser Layer                                  │
-│  /student/deals         /student_diy/deals    Coach/Owner Detail      │
-│  DealsClient (CRUD)     DealsClient (CRUD)    DealsTab (read-only)    │
-│  useOptimistic add/del  same component        paginated, 25/page      │
-└───────────────────────────┬──────────────────────────────────────────┘
-                            │
-┌───────────────────────────▼──────────────────────────────────────────┐
-│                     Next.js 16 App Router                             │
-│  src/proxy.ts — no change needed                                      │
-│  /student/* and /student_diy/* already protected                      │
-│  /api/* excluded from proxy                                           │
-│                                                                       │
-│  Server Components (reads)       Route Handlers (mutations + GETs)   │
-│  ─────────────────────────       ─────────────────────────────────   │
-│  /student/deals/page.tsx         POST   /api/deals                    │
-│  /student_diy/deals/page.tsx     PATCH  /api/deals/[id]               │
-│  /student/page.tsx (stats)       DELETE /api/deals/[id]               │
-│  /student_diy/page.tsx (stats)   GET    /api/deals?student_id=X&page=N│
-│  /coach/students/[id]/page.tsx                                        │
-│  /owner/students/[id]/page.tsx                                        │
-└───────────────────────────┬──────────────────────────────────────────┘
-                            │
-┌───────────────────────────▼──────────────────────────────────────────┐
-│                      Supabase Postgres                                │
-│                                                                       │
-│  NEW: deals                                                           │
-│    id, student_id, deal_number (per-student auto-inc), revenue,       │
-│    profit, date, notes, created_at, updated_at                        │
-│                                                                       │
-│  MODIFIED: student_kpi_summaries                                      │
-│    + total_deals integer, total_revenue numeric, total_profit numeric │
-│    (refreshed nightly by existing pg_cron job)                        │
-│                                                                       │
-│  UNCHANGED: rate_limit_log (reused for /api/deals)                    │
+┌─────────────────────────────────────────────────────────────────────┐
+│                     BROWSER (React 19)                               │
+│  ┌───────────────┐  ┌────────────────────┐  ┌──────────────────┐    │
+│  │ Server Pages  │  │  "use client"       │  │  Polling client  │    │
+│  │ (reads only)  │  │  WorkTrackerClient  │  │  ChatClient      │    │
+│  │ async/await   │  │  (state machine)    │  │  (5s interval)   │    │
+│  └──────┬────────┘  └────────┬───────────┘  └────────┬─────────┘    │
+├─────────┼───────────────────┼────────────────────────┼──────────────┤
+│                      Next.js 16 App Router                           │
+│  ┌────────────────────────────────────────────────────────────┐      │
+│  │  proxy.ts route guard (CSRF, auth, role, redirect)          │      │
+│  └────────────────────────────────────────────────────────────┘      │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐      │
+│  │ (auth)/      │  │ (dashboard)/ │  │ api/                   │      │
+│  │ login        │  │ owner/       │  │ reports/ work-sessions/ │      │
+│  │ register     │  │ coach/       │  │ roadmap/ assignments/   │      │
+│  │ no-access    │  │ student/     │  │ messages/ resources/    │      │
+│  └──────────────┘  │ student_diy/ │  │ glossary/              │      │
+│                    └──────────────┘  └────────────────────────┘      │
+├──────────────────────────────────────────────────────────────────────┤
+│                      Supabase (Postgres + RLS)                        │
+│  users  invites  magic_links  work_sessions  roadmap_progress         │
+│  daily_reports  alert_dismissals  student_kpi_summaries               │
+│  rate_limit_log  daily_plans  roadmap_undo_log                        │
+│  [NEW] report_comments  messages  resources  glossary_terms           │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | Type |
-|-----------|----------------|------|
-| `deals` table | Source of truth for all student deal records | DB |
-| `student_kpi_summaries` (cols added) | Pre-aggregated totals for dashboard stats | DB |
-| `POST /api/deals` | Create a deal (student, student_diy only) | Route Handler |
-| `PATCH /api/deals/[id]` | Edit revenue/profit/notes on own deal | Route Handler |
-| `DELETE /api/deals/[id]` | Delete deal — scoped by role | Route Handler |
-| `GET /api/deals` | Paginated deal list for coach/owner viewing a student | Route Handler |
-| `DealsClient` | Student-facing CRUD UI — add/edit/delete + useOptimistic | Client Component |
-| `DealsTab` | Read-only tab for coach and owner student detail — paginated table | Client Component (pagination) |
-| Dashboard stat cards | "Deals Closed", "Total Revenue", "Total Profit" — rendered in server component | Server Component |
+| Component | Responsibility | Typical Implementation |
+|-----------|----------------|------------------------|
+| proxy.ts | Route guard — auth check + role-based redirect | Server-side, runs before every non-API page request |
+| (dashboard)/layout.tsx | Sidebar + badge fetch + ToastProvider | Server component, unstable_cache for badges |
+| Sidebar.tsx | Navigation + unread badges + sign-out | "use client" — needs pathname + auth.signOut() |
+| API routes | Mutations only — CSRF → Auth → Role → RateLimit → Zod → Ownership → Logic | Server-side, admin client for all DB queries |
+| Server pages | All reads — parallel data fetching, pass to client components | async Server Components with createAdminClient() |
+| Client components | Interactive UI — form state, optimistic updates, polling | Minimal "use client" islands |
+| src/lib/config.ts | Single source of truth — roles, nav, routes, constants | Imported everywhere, never duplicated |
 
 ---
 
-## Recommended Project Structure
+## Recommended Project Structure (v1.4 additions)
 
 ```
 src/
 ├── app/
-│   ├── api/
-│   │   └── deals/
-│   │       ├── route.ts               # GET (paginated coach/owner list) + POST (student create)
-│   │       └── [id]/
-│   │           └── route.ts           # PATCH (student edit own) + DELETE (scoped by role)
-│   └── (dashboard)/
-│       ├── student/
-│       │   └── deals/
-│       │       └── page.tsx           # Server shell: fetch initial deals + totals → DealsClient
-│       └── student_diy/
-│           └── deals/
-│               └── page.tsx           # Identical structure to student/deals/page.tsx
+│   ├── (auth)/                         # Unchanged
+│   ├── (dashboard)/
+│   │   ├── layout.tsx                  # MODIFIED: add unread_messages badge
+│   │   ├── owner/
+│   │   │   ├── students/               # MODIFIED: add skip_days_this_week column
+│   │   │   ├── assignments/            # UNCHANGED (owner already has this)
+│   │   │   └── invites/                # MODIFIED: show max_uses/use_count on magic links
+│   │   ├── coach/
+│   │   │   ├── students/               # MODIFIED: add skip_days_this_week column
+│   │   │   ├── reports/                # MODIFIED: add comment inline in ReportRow
+│   │   │   ├── assignments/            # NEW: duplicate of owner/assignments (coach-scoped)
+│   │   │   └── chat/                   # NEW: polling chat UI
+│   │   ├── student/
+│   │   │   ├── chat/                   # NEW: 1:1 + broadcast chat UI
+│   │   │   └── resources/              # NEW: URL links + Discord + glossary tabs
+│   │   └── student_diy/                # NEW: 4th role dashboard (clone of student, reduced)
+│   │       ├── layout.tsx              # NEW: same dashboard layout, student_diy nav
+│   │       ├── page.tsx                # NEW: dashboard (work sessions + roadmap summary)
+│   │       ├── work/                   # NEW: work tracker (identical to student/work)
+│   │       └── roadmap/                # NEW: roadmap view (identical to student/roadmap)
+│   └── api/
+│       ├── reports/[id]/comment/       # NEW: POST/DELETE coach comment on report
+│       ├── messages/                   # NEW: GET (poll) + POST (send)
+│       ├── resources/                  # NEW: GET (list) + POST (create)
+│       ├── resources/[id]/             # NEW: PATCH + DELETE
+│       ├── glossary/                   # NEW: GET (list) + POST (create)
+│       ├── glossary/[id]/              # NEW: PATCH + DELETE
+│       └── assignments/                # NEW: PATCH (coach can now reassign students)
 ├── components/
+│   ├── coach/
+│   │   ├── CoachAssignmentsClient.tsx  # NEW: clone of OwnerAssignmentsClient, coach-scoped
+│   │   └── ReportRow.tsx               # MODIFIED: add inline comment field
 │   ├── student/
-│   │   └── DealsClient.tsx            # "use client" — CRUD UI, useOptimistic, add/edit/delete
-│   └── coach/
-│       └── DealsTab.tsx               # "use client" — paginated read-only table, fetch on tab activate
+│   │   └── ChatClient.tsx              # NEW: polling chat — student view
+│   ├── shared/
+│   │   ├── ChatClient.tsx              # NEW: or role-prop variant — shared chat component
+│   │   ├── ResourcesTab.tsx            # NEW: URL links list + add form
+│   │   ├── DiscordEmbed.tsx            # NEW: WidgetBot iframe wrapper
+│   │   └── GlossaryTab.tsx             # NEW: searchable glossary list + CRUD
+│   └── layout/
+│       └── Sidebar.tsx                 # MODIFIED: add unread_messages badge support
 └── lib/
-    └── config.ts                      # ADD: /student/deals + /student_diy/deals routes
-                                       # ADD: "Deals" nav items for student + student_diy
-                                       # ADD: DEALS validation constants (revenue max, notes max)
-supabase/
-└── migrations/
-    └── 00021_deals.sql                # deals table + RLS + indexes + student_kpi_summaries ALTERs
-                                       # + refresh_student_kpi_summaries() function update
+    └── config.ts                       # MODIFIED: add student_diy role, routes, nav, invite rules
 ```
-
-### Structure Rationale
-
-- **`/api/deals/route.ts` for GET + POST:** GET serves coach/owner viewing a student's paginated deals; POST serves student/student_diy creating deals. Single URL, split by HTTP verb + role check inside handler. This matches how `/api/reports` handles different roles on the same endpoint.
-- **`/api/deals/[id]/route.ts` for PATCH + DELETE:** Dynamic segment per the existing pattern (e.g., `work-sessions/[id]`, `roadmap/[id]`). Record-specific mutations always use a `[id]` route.
-- **`DealsClient.tsx` in `components/student/`:** Matches where `WorkTrackerClient.tsx`, `ReportForm.tsx`, `RoadmapClient.tsx` live. Student-facing interactive components belong here. Both `/student/deals` and `/student_diy/deals` import the same component.
-- **`DealsTab.tsx` in `components/coach/`:** Matches where `CalendarTab.tsx`, `RoadmapTab.tsx` live. Shared tab components used by coach + owner detail pages go here. The coach and owner detail pages already share `StudentDetailTabs.tsx` and `CalendarTab.tsx` from this folder.
-- **Single migration file `00021_deals.sql`:** Follows the `00021_` sequence (next after `00020_add_eyoub_owner.sql`). Puts deals table, RLS, indexes, and `student_kpi_summaries` column additions all in one migration — same approach as `00015_v1_4_schema.sql` which covered 4 tables in a single file.
 
 ---
 
 ## Architectural Patterns
 
-### Pattern 1: Server Component Shell + Client Island
+### Pattern 1: Server Component for Reads, Client Island for Interactivity
 
-**What:** Every page is an `async` Server Component that fetches initial data with `createAdminClient()`, then passes serialized data as props to a small `"use client"` child only for interactive state.
-**When to use:** Both `/student/deals` and `/student_diy/deals` pages. The server component fetches the first 25 deals and current totals; `DealsClient` handles add/edit/delete/pagination transitions.
-**Trade-offs:** Initial render requires no client-side fetch. Mutations go through `/api/deals` route handlers. Data serialization at the RSC boundary means no functions, no Dates (use strings).
+**What:** Every page is an async Server Component that fetches data and passes it to a thin "use client" child component only when interaction is needed.
 
-**Example (matching existing student page pattern):**
+**When to use:** All page-level data loading. Applies to new resources, glossary, skip tracker, and report comments pages.
+
+**Trade-offs:** Requires a clean data/interaction boundary. Avoids client-side data fetching waterfalls. Next.js cache() deduplicates repeated calls within the same render tree.
+
+**Example (new resources page):**
 ```typescript
-// src/app/(dashboard)/student/deals/page.tsx
-export default async function StudentDealsPage() {
-  const user = await requireRole("student");
+// src/app/(dashboard)/student/resources/page.tsx — server component
+export default async function ResourcesPage() {
+  await requireRole(["owner", "coach", "student"]);
   const admin = createAdminClient();
-
-  const [{ data: deals, count }, kpiResult] = await Promise.all([
-    admin.from("deals").select("*", { count: "exact" })
-      .eq("student_id", user.id)
-      .order("deal_number", { ascending: false })
-      .range(0, 24),
-    admin.from("student_kpi_summaries")
-      .select("total_deals, total_revenue, total_profit")
-      .eq("student_id", user.id)
-      .maybeSingle(),
+  const [resources, glossary] = await Promise.all([
+    admin.from("resources").select("*").order("created_at", { ascending: false }),
+    admin.from("glossary_terms").select("*").order("term"),
   ]);
-
-  return (
-    <DealsClient
-      initialDeals={deals ?? []}
-      totalCount={count ?? 0}
-      studentId={user.id}
-      kpi={kpiResult.data ?? { total_deals: 0, total_revenue: 0, total_profit: 0 }}
-    />
-  );
+  return <ResourcesClient resources={resources.data ?? []} glossary={glossary.data ?? []} />;
 }
 ```
 
-### Pattern 2: useOptimistic for Add and Delete
+### Pattern 2: API Route Pipeline (CSRF → Auth → Role → RateLimit → Zod → Ownership → Logic)
 
-**What:** React 19 `useOptimistic` applies the expected UI change immediately, then reconciles with server state after the mutation settles. Already used in `ReportFormWrapper.tsx`.
-**When to use:** Adding a deal (optimistic insert with placeholder `deal_number`), deleting a deal (optimistic remove from list). Not needed for edit since the form is inline.
-**Trade-offs:** Slightly more code complexity. Rollback on error requires a toast + state reset. The pattern is already established in the codebase.
+**What:** Every mutation API route follows the exact same middleware chain in the same order.
+
+**When to use:** All 7 new API routes must follow this pattern. No exceptions.
+
+**Trade-offs:** Verbose but maximally safe. The order matters: CSRF is cheapest (no DB), auth is next, role gates before expensive DB work.
+
+**Example (new comment endpoint skeleton):**
+```typescript
+// src/app/api/reports/[id]/comment/route.ts
+export async function POST(request: NextRequest, { params }) {
+  const csrfError = verifyOrigin(request);    // 1. CSRF
+  if (csrfError) return csrfError;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); // 2. Auth
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("users").select("id, role").eq("auth_id", user.id).single();
+  if (!profile || profile.role !== "coach") return NextResponse.json({ error: "Forbidden" }, { status: 403 }); // 3. Role
+
+  const { allowed } = await checkRateLimit(profile.id, "/api/reports/comment"); // 4. Rate limit
+  // ... 5. Zod, 6. Ownership, 7. Logic
+}
+```
+
+### Pattern 3: Cursor-Based Polling for Chat
+
+**What:** Chat messages use a `cursor` (last received message ID or timestamp) to fetch only new messages since the last poll. Client polls every 5 seconds via setInterval.
+
+**When to use:** The messages table with polling architecture. This is the only place in the codebase that uses client-side polling.
+
+**Trade-offs:** Simple, no WebSockets, no Supabase Realtime subscription (avoids 500 connection limit). Adds 5s latency maximum. Acceptable for async coaching chat. setInterval must be cleared in useEffect cleanup to prevent memory leaks.
 
 **Example:**
 ```typescript
-const [optimisticDeals, addOptimistic] = useOptimistic(
-  deals,
-  (state, action: { type: "add"; deal: Deal } | { type: "delete"; id: string }) => {
-    if (action.type === "add") return [action.deal, ...state];
-    if (action.type === "delete") return state.filter(d => d.id !== action.id);
-    return state;
-  }
-);
+// Polling hook — inside ChatClient.tsx
+useEffect(() => {
+  const poll = async () => {
+    const res = await fetch(`/api/messages?channel_id=${channelId}&after=${cursor}`);
+    if (!res.ok) return;
+    const { data } = await res.json();
+    if (data.length > 0) {
+      setMessages(prev => [...prev, ...data]);
+      setCursor(data[data.length - 1].id);  // advance cursor
+    }
+  };
+  const interval = setInterval(poll, 5000);
+  return () => clearInterval(interval);  // cleanup on unmount
+}, [channelId, cursor]);
 ```
 
-### Pattern 3: Role-Split API Handler
+### Pattern 4: Config-Driven Role Expansion
 
-**What:** A single route file handles multiple roles; an auth + role check at the top branches on `profile.role`.
-**When to use:** `GET /api/deals` (coach/owner reading) and `POST /api/deals` (student/student_diy writing) share the same URL. `DELETE /api/deals/[id]` must branch on role to determine ownership scope.
-**Trade-offs:** Keeps URL surface minimal. Handler must return explicit 403 for unauthorized role/operation combos. Follows the pattern in `/api/reports` and `/api/resources`.
+**What:** The `student_diy` role is added to config.ts exactly like existing roles — ROLES constant, ROLE_HIERARCHY, ROUTES, NAVIGATION, ROLE_REDIRECTS, INVITE_CONFIG.
 
-**Example (DELETE with role-based ownership):**
+**When to use:** Any role-related feature. proxy.ts and session.ts derive behavior from config constants, not hardcoded strings.
+
+**Trade-offs:** One edit to config.ts propagates everywhere. The `Role` type must be updated in config, types.ts, and the DB migration simultaneously to avoid TypeScript errors.
+
+**Required config.ts changes:**
 ```typescript
-export async function DELETE(request, { params }) {
-  // ... auth, rate limit, parse id ...
+export const ROLES = {
+  OWNER: "owner",
+  COACH: "coach",
+  STUDENT: "student",
+  STUDENT_DIY: "student_diy",        // NEW
+} as const;
 
-  if (profile.role === "student" || profile.role === "student_diy") {
-    // Own deal only
-    const { error } = await admin.from("deals")
-      .delete().eq("id", id).eq("student_id", profile.id);
-  } else if (profile.role === "coach") {
-    // Verify deal belongs to an assigned student
-    const { data: deal } = await admin.from("deals")
-      .select("student_id").eq("id", id).single();
-    const { data: student } = await admin.from("users")
-      .select("id").eq("id", deal.student_id).eq("coach_id", profile.id).single();
-    if (!student) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    await admin.from("deals").delete().eq("id", id);
-  } else if (profile.role === "owner") {
-    // Can delete any deal
-    await admin.from("deals").delete().eq("id", id);
-  }
-}
+export const ROLE_HIERARCHY: Record<Role, number> = {
+  owner: 3,
+  coach: 2,
+  student: 1,
+  student_diy: 1,                    // NEW — same level as student
+};
+
+// ROUTES.student_diy — only dashboard, work, roadmap
+// NAVIGATION.student_diy — 3 items (no Ask AI, no Daily Report, no Resources, no Chat)
+// ROLE_REDIRECTS.student_diy — "/student_diy"
+// INVITE_CONFIG.inviteRules — owner can invite student_diy, coach can invite student_diy
 ```
 
-### Pattern 4: Tab Extension on Student Detail Pages
+### Pattern 5: Shared Components via Role Prop
 
-**What:** Both coach and owner student detail pages already use `StudentDetailTabs` (a "use client" component with a `TabKey` union type). Adding a Deals tab means extending this union and rendering `DealsTab` when active.
-**When to use:** Exactly here — adding the third tab alongside Calendar and Roadmap.
-**Trade-offs:** The tab key union (`"calendar" | "roadmap"`) becomes `"calendar" | "roadmap" | "deals"`. The `initialTab` prop in `StudentDetailClient` and `OwnerStudentDetailClient` needs to accept `"deals"`. Initial deals data is fetched server-side in the page component and passed as props to avoid client-side loading state when the Deals tab is clicked first.
+**What:** For features that are nearly identical across roles (assignments, chat), use a shared component with a `role` or `scope` prop rather than duplicating code into role-specific component folders.
 
-**Required changes to `StudentDetailTabs.tsx`:**
-```typescript
-export type TabKey = "calendar" | "roadmap" | "deals";  // add "deals"
+**When to use:** CoachAssignmentsClient can be a role-scoped view of the same OwnerAssignmentsClient pattern. Chat UI is identical for coach and student views (just filtering differs server-side).
 
-const tabs: { key: TabKey; label: string }[] = [
-  { key: "calendar", label: "Calendar" },
-  { key: "roadmap", label: "Roadmap" },
-  { key: "deals", label: "Deals" },  // new
-];
-```
-
-### Pattern 5: Paginated GET Endpoint
-
-**What:** Server-side pagination via `?student_id=X&page=N`. Supabase `.range(offset, offset + PAGE_SIZE - 1)` with `{ count: "exact" }`. PAGE_SIZE = 25 per requirements.
-**When to use:** `GET /api/deals` for coach/owner viewing a student's history. The `DealsTab` component fetches page 1 on mount (or when tab becomes active) and handles "Load more" / page navigation client-side.
-**Trade-offs:** Simpler than cursor-based for fixed-order lists. Already used in coach reports list. `count: "exact"` is one extra DB operation but needed for showing "Showing X of Y deals."
+**Trade-offs:** Reduces duplication but requires careful prop typing. Prefer this over copy-paste when >80% of the component logic is shared.
 
 ---
 
 ## Data Flow
 
-### Deal Creation (Student)
+### Chat Polling Flow
 
 ```
-Student fills "Add Deal" form in DealsClient
+[ChatClient mounts]
     ↓
-useOptimistic adds placeholder deal immediately (deal_number = "...")
+[GET /api/messages?channel_id=X&after=null] ← initial load (last 50 messages)
     ↓
-fetch POST /api/deals { revenue, profit, date, notes? }
+[setInterval 5s] → [GET /api/messages?channel_id=X&after=<last_id>]
     ↓
-API: verifyOrigin → auth → role check (student/student_diy only)
-  → checkRateLimit(profile.id, "/api/deals")
-  → Zod validate (revenue >= 0, profit <= revenue, date valid)
-  → INSERT into deals (trigger sets deal_number)
-  → return { data: { id, deal_number, ... } }
+[append new messages to local state]
     ↓
-Client reconciles optimistic state with real deal_number
-revalidateTag("deals") busts Next.js cache for server re-renders
+[POST /api/messages] ← user sends message
+    ↓
+[optimistic append to local state, cursor advances]
 ```
 
-### Deal Deletion (Coach)
+### Sidebar Badge Flow (modified for unread messages)
 
 ```
-Coach opens Deals tab on /coach/students/[studentId]
+[Dashboard layout.tsx renders]
     ↓
-DealsTab renders table (initial data from SSR props or client fetch)
+[unstable_cache(getSidebarBadges, ['sidebar-badges'], { revalidate: 60 })]
     ↓
-Coach clicks Delete on a deal row
+[get_sidebar_badges RPC] ← MODIFIED: add unread_messages_count to result
     ↓
-fetch DELETE /api/deals/[id]
+[badgeCounts passed to <Sidebar>]
     ↓
-API: auth → role="coach" → verify deal.student_id has coach_id = coach.id
-  → DELETE FROM deals WHERE id = $id
-  → return { success: true }
-    ↓
-Client removes deal from local list (optimistic or post-response)
+[NAVIGATION config badge key 'unread_messages' matched to count]
 ```
 
-### Dashboard Deal Stats (Student Dashboard)
+**Note:** The 60-second revalidation means badge counts can lag by up to 1 minute. This is acceptable for unread message counts (not time-critical). If chat badge needs to be real-time, the ChatClient can manually call `revalidateTag("badges")` after reading messages — but this requires a server action, not a fetch call, to trigger cache invalidation from the client.
+
+### Report Comment Flow
 
 ```
-/student/page.tsx renders (server component)
+[Coach views report in ReportRow]
     ↓
-admin.from("student_kpi_summaries")
-  .select("total_deals, total_revenue, total_profit")
-  .eq("student_id", user.id)
+[comment_text textarea inline in ReportRow]
     ↓
-Render 3 new stat cards alongside existing KPI cards
+[POST /api/reports/[id]/comment] → { text: string }
     ↓
-pg_cron refreshes totals nightly — 1-day staleness is acceptable
+[INSERT into report_comments (report_id, coach_id, text)]
     ↓
-On /student/deals page: use live COUNT(*) for exact accuracy
+[optimistic update: show comment inline in ReportRow]
+    ↓
+[student views /student/report history]
+    ↓
+[server component fetches daily_reports JOIN report_comments]
+    ↓
+[comment shown read-only below report fields]
 ```
 
-### Coach/Owner Viewing Deals (Lazy Tab Load)
+### skip_days_this_week Computation Flow
 
 ```
-Coach opens /coach/students/[studentId] — server component loads
+[Coach/Owner student list page loads]
     ↓
-Page fetches deals.range(0, 24) + count in Promise.all alongside RPC
+[server component fetches work_sessions WHERE date >= ISO week Monday]
     ↓
-Passes initialDeals + initialCount to StudentDetailClient
-    ↓
-Coach clicks "Deals" tab (activeTab becomes "deals")
-    ↓
-DealsTab renders with SSR-provided initial data (no flash)
-    ↓
-Coach clicks "Next Page" → DealsTab fetches GET /api/deals?student_id=X&page=2
+[compute: days in Mon-Sun week with no completed sessions = skipped days]
+    ↓  (or better: add to get_student_detail RPC or new RPC)
+[pass skip_count to student list row component]
 ```
 
 ---
 
 ## Integration Points: New vs Modified
 
-### New Routes
-
-| Route | Method | Actor | Notes |
-|-------|--------|-------|-------|
-| `/student/deals` | Page | student | Server shell → DealsClient |
-| `/student_diy/deals` | Page | student_diy | Same structure as student/deals |
-| `/api/deals` | GET | coach, owner | Paginated list; requires `student_id` query param |
-| `/api/deals` | POST | student, student_diy | Create deal |
-| `/api/deals/[id]` | PATCH | student, student_diy | Edit own deal only |
-| `/api/deals/[id]` | DELETE | student/student_diy (own), coach (assigned), owner (any) | Role-split ownership check |
-
-### New Components
+### Components: NEW
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| `DealsClient.tsx` | `src/components/student/` | CRUD UI with useOptimistic — shared by student and student_diy pages |
-| `DealsTab.tsx` | `src/components/coach/` | Read-only paginated deals table — shared by coach and owner detail pages |
+| `ChatClient.tsx` | `src/components/shared/` | Polling chat UI, works for coach and student views |
+| `ResourcesTab.tsx` | `src/components/shared/` | URL link list with add/delete (owner/coach) |
+| `DiscordEmbed.tsx` | `src/components/shared/` | WidgetBot iframe wrapper with CSP note |
+| `GlossaryTab.tsx` | `src/components/shared/` | Searchable glossary, CRUD for owner/coach |
+| `CoachAssignmentsClient.tsx` | `src/components/coach/` | Assignment UI for coach role (mirrors owner pattern) |
+| `StudentDIYDashboard.tsx` | `src/components/student_diy/` | DIY-specific dashboard widgets |
 
-### Modified Files
+### Components: MODIFIED
 
-| File | Change | Why |
-|------|--------|-----|
-| `src/lib/config.ts` | Add `ROUTES.student.deals` + `ROUTES.student_diy.deals`, add "Deals" nav items for both roles, add `DEALS` validation constants (revenue min/max, profit min, notes max) | Config is truth (CLAUDE.md rule 1) |
-| `src/proxy.ts` | No change — `/student/deals` protected by `/student` prefix; `/api/*` excluded | Existing matchers cover it |
-| `src/components/coach/StudentDetailTabs.tsx` | Add `"deals"` to `TabKey` union; add `{ key: "deals", label: "Deals" }` to tabs array | Third tab |
-| `src/components/coach/StudentDetailClient.tsx` | Accept `initialDeals`, `dealsCount` props; render `<DealsTab>` when `activeTab === "deals"`; update tab URL push | Coach view |
-| `src/components/owner/OwnerStudentDetailClient.tsx` | Same as coach — add Deals tab, accept deal props | Owner view |
-| `src/app/(dashboard)/coach/students/[studentId]/page.tsx` | Add deals fetch to `Promise.all()` — range(0, 24) + count; pass to `StudentDetailClient` | SSR initial data |
-| `src/app/(dashboard)/owner/students/[studentId]/page.tsx` | Same as coach detail page | SSR initial data |
-| `src/app/(dashboard)/student/page.tsx` | Add 3 deal stat cards (Deals Closed, Total Revenue, Total Profit) reading from `student_kpi_summaries` | Dashboard |
-| `src/app/(dashboard)/student_diy/page.tsx` | Same 3 deal stat cards | Dashboard |
-| `src/lib/rpc/types.ts` | No change — deals fetched via direct table query, not via `get_student_detail` RPC | Keep RPC stable |
+| Component | File | Change |
+|-----------|------|--------|
+| `Sidebar.tsx` | `src/components/layout/Sidebar.tsx` | Add `unread_messages` badge key + new icon (MessageSquare already imported) |
+| `ReportRow.tsx` | `src/components/coach/ReportRow.tsx` | Add inline comment textarea + submit button |
+| `NAVIGATION` | `src/lib/config.ts` | Add `student_diy` nav array, add Chat + Resources to student/coach/owner navs |
+| `ROLES` / `Role` type | `src/lib/config.ts` | Add `student_diy` to enum + hierarchy |
+| `INVITE_CONFIG` | `src/lib/config.ts` | Add `student_diy` to inviteRules for owner and coach |
+| `ROUTES` | `src/lib/config.ts` | Add `student_diy` routes, chat routes, resources routes |
 
-### New Database Objects
+### API Routes: NEW
 
-| Object | Type | Notes |
-|--------|------|-------|
-| `deals` table | Table | Primary entity — `id, student_id, deal_number, revenue, profit, date, notes, created_at, updated_at` |
-| Deal number trigger | Trigger | `SELECT COALESCE(MAX(deal_number), 0) + 1 FROM deals WHERE student_id = NEW.student_id FOR UPDATE` — row lock prevents race conditions |
-| `idx_deals_student_id` | Index | Primary query path: all queries filter by student_id |
-| `idx_deals_student_id_deal_number` | Index | Supports ORDER BY deal_number DESC pagination |
-| `student_kpi_summaries.total_deals` | Column (ALTER TABLE) | Pre-aggregated deal count |
-| `student_kpi_summaries.total_revenue` | Column (ALTER TABLE) | Pre-aggregated revenue sum |
-| `student_kpi_summaries.total_profit` | Column (ALTER TABLE) | Pre-aggregated profit sum |
-| RLS on `deals` (5 policies) | Policies | student/student_diy: own rows only; coach: assigned student rows; owner: all |
+| Route | Method | Actor | Purpose |
+|-------|--------|-------|---------|
+| `/api/reports/[id]/comment` | POST | coach | Add/replace single comment on a report |
+| `/api/reports/[id]/comment` | DELETE | coach | Remove comment |
+| `/api/messages` | GET | coach, student | Poll messages (cursor-based, filter by channel) |
+| `/api/messages` | POST | coach, student | Send message |
+| `/api/resources` | GET | owner, coach, student | List resources |
+| `/api/resources` | POST | owner, coach | Create resource (URL link) |
+| `/api/resources/[id]` | PATCH | owner, coach | Update resource |
+| `/api/resources/[id]` | DELETE | owner, coach | Delete resource |
+| `/api/glossary` | GET | owner, coach, student | List glossary terms |
+| `/api/glossary` | POST | owner, coach | Create term |
+| `/api/glossary/[id]` | PATCH | owner, coach | Update term |
+| `/api/glossary/[id]` | DELETE | owner, coach | Delete term |
+| `/api/assignments` | PATCH | owner, coach | Reassign student to coach |
 
-### Internal Boundaries
+### API Routes: MODIFIED
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| `DealsClient` → `/api/deals` | fetch() POST | JSON body, check response.ok, Zod validates server-side |
-| `DealsClient` → `/api/deals/[id]` | fetch() PATCH/DELETE | Ownership verified server-side |
-| `DealsTab` → `/api/deals` | fetch() GET with page param | Pagination state in component; initial data from SSR |
-| `student/deals/page.tsx` → DB | admin client SELECT deals + kpi_summaries | Server component, no API hop for initial load |
-| `student dashboard` → DB | admin client SELECT kpi_summaries | Pre-aggregated; 1-day staleness is fine |
-| pg_cron → `student_kpi_summaries` | Nightly refresh function | `refresh_student_kpi_summaries()` must aggregate new columns |
+| Route | Change |
+|-------|--------|
+| `/api/invites` | Accept `student_diy` as valid role for invite creation |
+| `/api/auth/callback` | Accept `student_diy` role during registration |
+
+### Database: NEW TABLES
+
+| Table | Key Columns | Notes |
+|-------|-------------|-------|
+| `report_comments` | `id, report_id, coach_id, text, created_at, updated_at` | UNIQUE on `report_id` — one comment per report, coach-only write |
+| `messages` | `id, channel_id, sender_id, text, created_at` | `channel_id` = concat of sorted user IDs for 1:1; broadcast uses special channel ID |
+| `resources` | `id, title, url, description, created_by, created_at` | Visible to owner/coach/student, NOT student_diy |
+| `glossary_terms` | `id, term, definition, created_by, updated_at` | UNIQUE on `term`, managed by owner/coach |
+
+### Database: MODIFIED TABLES/TYPES
+
+| Table/Type | Change |
+|-----------|--------|
+| `users.role` | Add `student_diy` to CHECK constraint or enum |
+| `magic_links.role` | Add `student_diy` to CHECK constraint |
+| `invites.role` | Add `student_diy` to CHECK constraint |
+| `roadmap_undo_log.actor_role` | Unchanged (only coach/owner undo roadmap steps) |
+| `get_sidebar_badges` RPC | Add `unread_messages` return field |
+
+### Proxy: MODIFIED
+
+```typescript
+// proxy.ts — add student_diy to both maps
+const DEFAULT_ROUTES: Record<string, string> = {
+  owner: "/owner",
+  coach: "/coach",
+  student: "/student",
+  student_diy: "/student_diy",        // NEW
+};
+
+const ROLE_ROUTE_ACCESS: Record<string, string[]> = {
+  owner: ["/owner"],
+  coach: ["/coach"],
+  student: ["/student"],
+  student_diy: ["/student_diy"],      // NEW
+};
+```
+
+### Session: MODIFIED
+
+```typescript
+// session.ts — role check for student_diy route group works via requireRole()
+// No code change needed IF Role type from config.ts is updated
+// requireRole(["student"]) will correctly EXCLUDE student_diy
+// requireRole(["student", "student_diy"]) for shared features
+```
+
+---
+
+## Build Order (Phase Dependency Graph)
+
+```
+Phase A: DB Migration + Config Foundation
+  ├── Add student_diy to role CHECK constraints (users, invites, magic_links)
+  ├── Create report_comments, messages, resources, glossary_terms tables
+  ├── Update config.ts (ROLES, ROUTES, NAVIGATION, INVITE_CONFIG)
+  └── Update types.ts + proxy.ts
+        ↓
+Phase B: student_diy Route Group (unblocked after proxy + config)
+  ├── src/app/(dashboard)/student_diy/ layout + page + work + roadmap
+  └── Reuse student components (WorkTrackerClient, RoadmapClient) — no duplication
+        ↓
+Phase C: Skip Tracker (unblocked after schema — reads work_sessions, no new tables)
+  ├── Computation logic in coach/owner student list server component
+  └── SkipBadge component in student row
+        ↓
+Phase D: Coach Assignments (unblocked after config — adds /coach/assignments route)
+  ├── GET /api/assignments endpoint (or reuse /api/assignments PATCH for reassign)
+  ├── CoachAssignmentsClient (mirrors OwnerAssignmentsClient pattern)
+  └── /coach/assignments page
+
+Phase E: Report Comments (unblocked after report_comments table from Phase A)
+  ├── POST/DELETE /api/reports/[id]/comment
+  ├── Modify ReportRow to show inline comment
+  └── Modify student report history to show coach comment read-only
+
+Phase F: Chat System (unblocked after messages table from Phase A)
+  ├── GET/POST /api/messages
+  ├── ChatClient polling component
+  ├── /coach/chat + /student/chat pages
+  └── Sidebar unread badge (get_sidebar_badges RPC update)
+
+Phase G: Resources Tab (unblocked after resources + glossary tables from Phase A)
+  ├── GET/POST/PATCH/DELETE /api/resources
+  ├── GET/POST/PATCH/DELETE /api/glossary
+  ├── ResourcesTab, DiscordEmbed, GlossaryTab components
+  └── /student/resources + /coach/resources + /owner/resources pages
+
+Phase H: Invite max_uses UI (unblocked after schema already has max_uses)
+  └── Modify CoachInvitesClient + OwnerInvitesClient to show use_count/max_uses
+      and default max_uses to 10 in invite creation forms
+```
+
+**Critical constraint:** Phase A (DB + config) must ship first. Phases B–H can proceed in any order after Phase A, but F and G are the most complex (new tables + polling + multi-component) so should not be parallelized.
 
 ---
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Fetching Deals via the `get_student_detail` RPC
+### Anti-Pattern 1: New Route Group Without Config Update
 
-**What people do:** Add deal data to the existing `get_student_detail` Postgres RPC by adding a `p_include_deals` parameter.
-**Why it's wrong:** The RPC is used for calendar/roadmap rendering and already returns sessions, roadmap, and reports for the current month. Adding 100s of deal records bloats a multi-purpose response. The Deals tab loads lazily (only when clicked); bundling it in the always-present RPC call wastes bandwidth on every page load. The existing `StudentDetailResult` type in `src/lib/rpc/types.ts` is hand-crafted and fragile.
-**Do this instead:** Fetch deals directly in the server component alongside the RPC call using `Promise.all()`. Keep the RPC interface unchanged.
+**What people do:** Create `src/app/(dashboard)/student_diy/` but forget to update `ROLES`, `NAVIGATION`, `ROLE_REDIRECTS`, and `INVITE_CONFIG` in config.ts.
 
-### Anti-Pattern 2: Live COUNT on Dashboard Stats
+**Why it's wrong:** proxy.ts and Sidebar.tsx derive all behavior from config. An unmapped role will hit the fallback redirect `"/"` in proxy.ts and have no nav items.
 
-**What people do:** Add a `COUNT(*) FROM deals WHERE student_id = X` query to the student dashboard server component to show real-time deal totals.
-**Why it's wrong:** The dashboard already reads outreach KPIs from `student_kpi_summaries` specifically to avoid per-load aggregation queries. Adding a live COUNT here creates inconsistency (some stats from summary, some live) and adds an unnecessary DB round trip on every dashboard visit.
-**Do this instead:** Read `total_deals`, `total_revenue`, `total_profit` from `student_kpi_summaries` on the dashboard. Use a live COUNT only on the dedicated `/student/deals` page where accuracy is expected.
+**Do this instead:** Update config.ts first. Import the updated `Role` type everywhere before creating the route group. Let TypeScript errors guide what else needs updating.
 
-### Anti-Pattern 3: Application-Level deal_number Increment
+### Anti-Pattern 2: useEffect for Initial Chat Load
 
-**What people do:** `SELECT MAX(deal_number) + 1 FROM deals WHERE student_id = X` in application code before each insert.
-**Why it's wrong:** Race condition — two concurrent inserts can produce the same `deal_number` since there is no lock between the SELECT and INSERT in application code.
-**Do this instead:** Use a Postgres trigger on `BEFORE INSERT` that executes `SELECT COALESCE(MAX(deal_number), 0) + 1 FROM deals WHERE student_id = NEW.student_id FOR UPDATE`. The `FOR UPDATE` row-level lock serializes concurrent inserts per student safely within the transaction.
+**What people do:** Put the initial message fetch inside a useEffect, creating an empty state flash.
 
-### Anti-Pattern 4: Skipping Rate Limiting on `/api/deals`
+**Why it's wrong:** The page is a Server Component. Fetch the last 50 messages server-side on page load; pass as `initialMessages` prop to the client ChatClient. Only the polling loop goes in useEffect.
 
-**What people do:** Omit `checkRateLimit()` on new deal endpoints because it seems low-priority.
-**Why it's wrong:** Every one of the 10 existing mutation routes uses `checkRateLimit()`. Missing it on new routes breaks the established security baseline and allows spam inserts. The hard rule in `CLAUDE.md` requires rate limiting on all mutation routes.
-**Do this instead:** `checkRateLimit(profile.id, "/api/deals")` in `route.ts` POST; `checkRateLimit(profile.id, "/api/deals/" + id)` in `[id]/route.ts` PATCH and DELETE.
+**Do this instead:**
+```typescript
+// Server component passes initial data
+<ChatClient initialMessages={initialMessages} channelId={channel.id} />
+// Client component starts polling from last message ID
+```
 
-### Anti-Pattern 5: Separate Page Components for Student and Student_DIY
+### Anti-Pattern 3: Skipping CSRF on New Mutation Routes
 
-**What people do:** Create two entirely separate `DealsClient` components — one for student, one for student_diy — to handle the minor differences in API calls.
-**Why it's wrong:** The deals CRUD UI is identical for both roles. Both call the same `/api/deals` endpoint. The only difference is the role checked server-side in the API handler.
-**Do this instead:** Single `DealsClient.tsx` in `src/components/student/`. Both `student/deals/page.tsx` and `student_diy/deals/page.tsx` are thin server shells that import the same component. This matches how student_diy reuses `WorkTrackerClient` and `RoadmapClient` from the student components folder.
+**What people do:** Add `/api/messages` POST or `/api/glossary` POST without the `verifyOrigin()` call at the top.
 
-### Anti-Pattern 6: Adding DealsTab Logic Inline in StudentDetailClient
+**Why it's wrong:** All mutation routes require CSRF protection. The security audit in v1.2 explicitly established this as a hard rule. Missing it on new routes is a regression.
 
-**What people do:** Put the paginated deals table JSX directly inside `StudentDetailClient.tsx` and `OwnerStudentDetailClient.tsx` rather than extracting a shared component.
-**Why it's wrong:** The two detail clients already share `CalendarTab`, `RoadmapTab`, and `StudentDetailTabs` as extracted components. Inlining deals logic in both places means duplicating pagination state, fetch logic, and render markup.
-**Do this instead:** Extract `DealsTab.tsx` in `src/components/coach/` — same pattern as `CalendarTab.tsx` which is imported by both coach and owner detail clients.
+**Do this instead:** Copy the exact pipeline from an existing route (e.g., `reports/route.ts`). The first line of every POST/PATCH/DELETE handler is `verifyOrigin()`.
+
+### Anti-Pattern 4: Duplicating Student Work Tracker for student_diy
+
+**What people do:** Copy `src/app/(dashboard)/student/work/` files into `student_diy/work/` and rename things.
+
+**Why it's wrong:** Any future changes to the work tracker must be made twice. WorkTrackerClient and RoadmapClient don't know about routes — they work from props.
+
+**Do this instead:** Create `student_diy/work/page.tsx` as a thin wrapper that imports the same server-side data fetching pattern and passes to the same `WorkTrackerClient` component. The only difference is the `requireRole("student_diy")` guard.
+
+### Anti-Pattern 5: Polling Without Cursor (Fetching All Messages Every 5s)
+
+**What people do:** `GET /api/messages?channel_id=X` returns all messages every poll.
+
+**Why it's wrong:** With 1:1 chats and broadcast, a busy channel could have thousands of messages. Fetching all every 5s is O(n) DB work per poll per user.
+
+**Do this instead:** Accept an `after` query param (message ID or timestamp). Return only messages `WHERE id > $after` (if using sequential IDs) or `WHERE created_at > $after`. The client tracks the cursor client-side.
+
+### Anti-Pattern 6: student_diy in report_comments / chat / resources
+
+**What people do:** Forget that student_diy has a reduced feature set and allow them to access chat, report, or resources routes.
+
+**Why it's wrong:** Decision D-05 explicitly excludes these features for student_diy. Allowing access is a product requirement violation, not just a code smell.
+
+**Do this instead:** Every API route and page for chat/reports/resources does `requireRole(["owner", "coach", "student"])` — student_diy is intentionally excluded from this array.
 
 ---
 
@@ -395,48 +498,41 @@ Coach clicks "Next Page" → DealsTab fetches GET /api/deals?student_id=X&page=2
 
 | Scale | Architecture Adjustments |
 |-------|--------------------------|
-| Current (50-500 students) | Direct table queries + `student_kpi_summaries` for dashboard stats. Indexed by `student_id`. No changes from existing infrastructure. |
-| 1k-5k students | Already validated at P95 < 1s in Phase 24 load tests. Deals adds one simple indexed query path — `SELECT ... WHERE student_id = X ORDER BY deal_number DESC LIMIT 25`. This is not a bottleneck. |
-| Aggregate staleness | pg_cron refresh runs nightly. Totals on dashboard can be up to 24h stale. This is explicitly acceptable for KPI summary cards. |
+| Current (100-500 students) | Polling at 5s is fine. DB-backed rate limiting covers abuse. |
+| 1k-5k students | Chat polling creates N requests every 5s (N = active users). If 1k students all have chat open, that's 200 req/s hitting /api/messages. Rate limit the GET endpoint at 30 req/min (matches existing pattern). |
+| Supabase Pro limit | 500 concurrent Realtime connections avoided by using polling. 60 max_connections on Pro Small — watch if chat + glossary + resources add significant read load alongside existing RPC calls. |
+
+### Scaling Priorities
+
+1. **First bottleneck:** Chat polling volume. If >500 active chat users, consider increasing poll interval to 10s or batching channel polls.
+2. **Second bottleneck:** `get_sidebar_badges` RPC called on every page layout render (60s cache). Adding `unread_messages` to this RPC is a safe extension since it's already cached.
 
 ---
 
-## Suggested Build Order
+## Integration Points Summary Table
 
-Dependencies are explicit — each step unblocks the next.
-
-**Step 1 — Database migration** (`00021_deals.sql`)
-Creates the `deals` table, trigger for `deal_number`, RLS policies, indexes, and `ALTER TABLE student_kpi_summaries` to add the three new aggregate columns. Updates `refresh_student_kpi_summaries()` function to include deal aggregation. Nothing else can proceed without this.
-
-**Step 2 — Config update** (`src/lib/config.ts`)
-Add `ROUTES.student.deals`, `ROUTES.student_diy.deals`, "Deals" nav items for student and student_diy, `DEALS` validation constants. This is a prerequisite for TypeScript to not complain during page/component creation.
-
-**Step 3 — API route handlers** (`/api/deals` + `/api/deals/[id]`)
-POST/PATCH/DELETE for student mutations; GET for coach/owner paginated list. Self-contained — no component depends on them except via fetch(). Must verify rate limiting, CSRF, Zod validation, ownership checks are all in place before other work proceeds.
-
-**Step 4 — Student Deals pages** (`/student/deals` + `/student_diy/deals` + `DealsClient`)
-The student-facing CRUD flow. Both pages use the same `DealsClient` component. Self-contained; does not depend on coach/owner tab changes.
-
-**Step 5 — Dashboard stat cards** (`/student/page.tsx` + `/student_diy/page.tsx`)
-Add the 3 deal KPI stat cards. Reads from `student_kpi_summaries` (available after Step 1). Can be done in parallel with Step 4.
-
-**Step 6 — Coach/Owner Deals tab** (`DealsTab`, `StudentDetailTabs` + both detail clients + both detail pages)
-Extend `TabKey`, add `DealsTab` component, update both detail clients to render the tab, update both detail pages to fetch initial deals data in `Promise.all`. This is the most touch-heavy step — affects 6 files — but each change is surgical.
-
-**Parallelization:** Steps 4 and 5 can be done in parallel after Steps 1–3 are complete. Step 6 must come after Step 3 (needs the GET API).
+| Feature | New Files | Modified Files | New DB | Modified DB |
+|---------|-----------|----------------|--------|-------------|
+| student_diy role | `(dashboard)/student_diy/**` | `config.ts`, `proxy.ts`, `types.ts` | — | `users.role`, `invites.role`, `magic_links.role` |
+| Skip tracker | `SkipBadge.tsx` | coach/owner student list pages | — | — (reads work_sessions) |
+| Coach assignments | `(dashboard)/coach/assignments/page.tsx`, `CoachAssignmentsClient.tsx` | — | — | — (PATCH users.coach_id already exists) |
+| Report comments | `api/reports/[id]/comment/route.ts` | `ReportRow.tsx`, student report history | `report_comments` | — |
+| Chat | `api/messages/**`, `ChatClient.tsx`, chat pages | `Sidebar.tsx`, `get_sidebar_badges` RPC | `messages` | — |
+| Resources | `api/resources/**`, `ResourcesTab.tsx`, `DiscordEmbed.tsx` | — | `resources` | — |
+| Glossary | `api/glossary/**`, `GlossaryTab.tsx` | — | `glossary_terms` | — |
+| Invite max_uses | — | `CoachInvitesClient.tsx`, invite creation UI | — | `magic_links.max_uses` default |
 
 ---
 
 ## Sources
 
-- Direct codebase analysis: `src/app/(dashboard)/`, `src/components/coach/`, `src/components/student/`, `src/lib/config.ts`, `src/proxy.ts`, `src/lib/rate-limit.ts`, `src/lib/csrf.ts`
-- Migration history: `supabase/migrations/00001_create_tables.sql` through `00020_add_eyoub_owner.sql`
-- Existing tab pattern: `StudentDetailTabs.tsx`, `StudentDetailClient.tsx`, `OwnerStudentDetailClient.tsx`, `CalendarTab.tsx`
-- Pre-aggregation pattern: `supabase/migrations/00011_write_path.sql`, `student_kpi_summaries` table design
-- API route pattern: `src/app/api/reports/route.ts` (role-split handler, full pipeline)
+- Direct codebase inspection: `src/proxy.ts`, `src/lib/config.ts`, `src/lib/session.ts`, `src/lib/csrf.ts`, `src/lib/rate-limit.ts`, `src/lib/supabase/admin.ts`
+- Existing route patterns: `src/app/api/reports/route.ts`, `src/app/api/reports/[id]/review/route.ts`
+- Dashboard layout: `src/app/(dashboard)/layout.tsx`, `src/components/layout/Sidebar.tsx`
+- Schema: `src/lib/types.ts`, `supabase/migrations/00013_daily_plans_undo_log.sql`
+- Project decisions: `.planning/PROJECT.md` (D-01 through D-14)
 - RPC types: `src/lib/rpc/types.ts`
-- Project requirements: `.planning/PROJECT.md` (v1.5 milestone target features)
 
 ---
-*Architecture research for: IMA Accelerator v1.5 — Student Deal Tracking Integration*
-*Researched: 2026-04-06*
+*Architecture research for: IMA Accelerator v1.4 — Roles, Chat & Resources*
+*Researched: 2026-04-03*
