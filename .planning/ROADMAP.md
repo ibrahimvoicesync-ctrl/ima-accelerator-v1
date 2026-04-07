@@ -84,7 +84,7 @@
 - [x] **Phase 39: Deals API Route Handlers** - POST/GET /api/deals + PATCH/DELETE /api/deals/[id] with full auth/CSRF/rate-limit/Zod chain (completed 2026-04-06)
 - [x] **Phase 40: Config & Type Updates** - ROUTES, NAVIGATION, VALIDATION.deals in config.ts; route handler refactor to import from config (completed 2026-04-07)
 - [x] **Phase 41: Student Deals Pages** - DealsClient + DealFormModal with useOptimistic CRUD, /student/deals and /student_diy/deals route files (completed 2026-04-07)
-- [ ] **Phase 42: Dashboard Stat Cards** - 3 new StatCards on Student Dashboard: Deals Closed, Total Revenue, Total Profit
+- [x] **Phase 42: Dashboard Stat Cards** - 3 new StatCards on Student Dashboard: Deals Closed, Total Revenue, Total Profit (completed 2026-04-07)
 - [ ] **Phase 43: Coach & Owner Deals Tab** - New "Deals" tab on Student Detail Pages (next to Calendar and Roadmap)
 
 ## Phase Details
@@ -453,7 +453,7 @@ Plans:
   4. Both student and student_diy dashboards show the deals stat cards
 **Plans**: 1 plan
 Plans:
-- [ ] 42-01-PLAN.md — Deals stat cards on student and student_diy dashboards
+- [x] 42-01-PLAN.md — Deals stat cards on student and student_diy dashboards
 **UI hint**: yes
 
 ### Phase 43: Coach & Owner Deals Tab
@@ -511,5 +511,5 @@ Plans:
 | 39. Deals API Route Handlers | v1.5 | 1/1 | Complete | 2026-04-06 |
 | 40. Config & Type Updates | v1.5 | 2/2 | Complete | 2026-04-07 |
 | 41. Student Deals Pages | v1.5 | 2/2 | Complete | 2026-04-07 |
-| 42. Dashboard Stat Cards | v1.5 | 0/0 | Pending | - |
+| 42. Dashboard Stat Cards | v1.5 | 1/1 | Complete    | 2026-04-07 |
 | 43. Coach & Owner Deals Tab | v1.5 | 0/0 | Pending | - |
