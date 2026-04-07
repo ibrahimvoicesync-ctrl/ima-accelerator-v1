@@ -198,4 +198,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 after Phase 36 (resources-tab) complete — Resources tab with Links/Community/Glossary tabs, CRUD API routes, role-based UI*
+*Last updated: 2026-04-07 after Phase 41 (student-deals-pages) complete — Student deals pages with DealsClient/DealFormModal components, useOptimistic CRUD, server pages for /student/deals and /student_diy/deals*
