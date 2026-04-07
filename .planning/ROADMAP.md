@@ -2,83 +2,83 @@
 
 ## Milestones
 
-- ✅ **v1.0 IMA Accelerator V1** — Phases 1-12 (shipped 2026-03-18)
-- ✅ **v1.1 V2 Feature Build** — Phases 13-18 (shipped 2026-03-28)
-- ✅ **v1.2 Performance, Scale & Security** — Phases 19-24 (shipped 2026-03-31)
-- ✅ **v1.3 Roadmap Update, Session Planner & Coach Controls** — Phases 25-29 (shipped 2026-04-03)
-- ✅ **v1.4 Roles, Chat & Resources** — Phases 30-37 (shipped 2026-04-06)
-- 🚧 **v1.5 Student Deals** — Phases 38-43 (in progress)
+- â **v1.0 IMA Accelerator V1** â Phases 1-12 (shipped 2026-03-18)
+- â **v1.1 V2 Feature Build** â Phases 13-18 (shipped 2026-03-28)
+- â **v1.2 Performance, Scale & Security** â Phases 19-24 (shipped 2026-03-31)
+- â **v1.3 Roadmap Update, Session Planner & Coach Controls** â Phases 25-29 (shipped 2026-04-03)
+- â **v1.4 Roles, Chat & Resources** â Phases 30-37 (shipped 2026-04-06)
+- ð§ **v1.5 Student Deals** â Phases 38-43 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 IMA Accelerator V1 (Phases 1-12) — SHIPPED 2026-03-18</summary>
+<summary>â v1.0 IMA Accelerator V1 (Phases 1-12) â SHIPPED 2026-03-18</summary>
 
-- [x] Phase 1: Foundation (3/3 plans) — completed 2026-03-16
-- [x] Phase 2: Authentication & Access (3/3 plans) — completed 2026-03-16
-- [x] Phase 3: Student Work Tracker (3/3 plans) — completed 2026-03-16
-- [x] Phase 4: Student Roadmap (2/2 plans) — completed 2026-03-16
-- [x] Phase 5: Student Daily Reports & AI Chat (3/3 plans) — completed 2026-03-16
-- [x] Phase 6: Coach Dashboard & Student Views (2/2 plans) — completed 2026-03-16
-- [x] Phase 7: Coach Report Review, Invites & Analytics (4/4 plans) — completed 2026-03-17
-- [x] Phase 8: Owner Stats & People Management (4/4 plans) — completed 2026-03-17
-- [x] Phase 9: Owner Invites, Assignments & Alerts (5/5 plans) — completed 2026-03-17
-- [x] Phase 10: UI Polish & Production Hardening (4/4 plans) — completed 2026-03-17
-- [x] Phase 11: Fix Invite Registration URL (3/3 plans) — completed 2026-03-18
-- [x] Phase 12: CLAUDE.md Hard Rule Compliance (2/2 plans) — completed 2026-03-18
-
-</details>
-
-<details>
-<summary>✅ v1.1 V2 Feature Build (Phases 13-18) — SHIPPED 2026-03-28</summary>
-
-- [x] **Phase 13: Schema & Config Foundation** — completed 2026-03-27
-- [x] **Phase 14: Flexible Work Sessions** — completed 2026-03-27
-- [x] **Phase 15: Outreach KPI Banner** — completed 2026-03-28
-- [x] **Phase 16: Coach/Owner KPI Visibility** — completed 2026-03-28
-- [x] **Phase 17: Calendar View** — completed 2026-03-28
-- [x] **Phase 18: Roadmap Date KPIs & Completion Logging** — completed 2026-03-28
+- [x] Phase 1: Foundation (3/3 plans) â completed 2026-03-16
+- [x] Phase 2: Authentication & Access (3/3 plans) â completed 2026-03-16
+- [x] Phase 3: Student Work Tracker (3/3 plans) â completed 2026-03-16
+- [x] Phase 4: Student Roadmap (2/2 plans) â completed 2026-03-16
+- [x] Phase 5: Student Daily Reports & AI Chat (3/3 plans) â completed 2026-03-16
+- [x] Phase 6: Coach Dashboard & Student Views (2/2 plans) â completed 2026-03-16
+- [x] Phase 7: Coach Report Review, Invites & Analytics (4/4 plans) â completed 2026-03-17
+- [x] Phase 8: Owner Stats & People Management (4/4 plans) â completed 2026-03-17
+- [x] Phase 9: Owner Invites, Assignments & Alerts (5/5 plans) â completed 2026-03-17
+- [x] Phase 10: UI Polish & Production Hardening (4/4 plans) â completed 2026-03-17
+- [x] Phase 11: Fix Invite Registration URL (3/3 plans) â completed 2026-03-18
+- [x] Phase 12: CLAUDE.md Hard Rule Compliance (2/2 plans) â completed 2026-03-18
 
 </details>
 
 <details>
-<summary>✅ v1.2 Performance, Scale & Security (Phases 19-24) — SHIPPED 2026-03-31</summary>
+<summary>â v1.1 V2 Feature Build (Phases 13-18) â SHIPPED 2026-03-28</summary>
 
-- [x] **Phase 19: Database Foundation** — completed 2026-03-29
-- [x] **Phase 20: Query Consolidation & Caching** — completed 2026-03-30
-- [x] **Phase 21: Write Path & Pre-Aggregation** — completed 2026-03-30
-- [x] **Phase 22: Spike Protection & Rate Limiting** — completed 2026-03-30
-- [x] **Phase 23: Security Audit** — completed 2026-03-30
-- [x] **Phase 24: Infrastructure & Validation** — completed 2026-03-31
-
-</details>
-
-<details>
-<summary>✅ v1.3 Roadmap Update, Session Planner & Coach Controls (Phases 25-29) — SHIPPED 2026-04-03</summary>
-
-- [x] **Phase 25: Roadmap Config & Stage Headers** — completed 2026-03-31
-- [x] **Phase 26: Database Schema Foundation** — completed 2026-03-31
-- [x] **Phase 27: Coach/Owner Roadmap Undo** — completed 2026-03-31
-- [x] **Phase 28: Daily Session Planner API** — completed 2026-03-31
-- [x] **Phase 29: Daily Session Planner Client** — completed 2026-03-31
+- [x] **Phase 13: Schema & Config Foundation** â completed 2026-03-27
+- [x] **Phase 14: Flexible Work Sessions** â completed 2026-03-27
+- [x] **Phase 15: Outreach KPI Banner** â completed 2026-03-28
+- [x] **Phase 16: Coach/Owner KPI Visibility** â completed 2026-03-28
+- [x] **Phase 17: Calendar View** â completed 2026-03-28
+- [x] **Phase 18: Roadmap Date KPIs & Completion Logging** â completed 2026-03-28
 
 </details>
 
 <details>
-<summary>✅ v1.4 Roles, Chat & Resources (Phases 30-37) — SHIPPED 2026-04-06</summary>
+<summary>â v1.2 Performance, Scale & Security (Phases 19-24) â SHIPPED 2026-03-31</summary>
 
-- [x] **Phase 30: Database Migration** (1/1 plans) — completed 2026-04-03
-- [x] **Phase 31: Student_DIY Role** (3/3 plans) — completed 2026-04-03
-- [x] **Phase 32: Skip Tracker** (2/2 plans) — completed 2026-04-03
-- [x] **Phase 33: Coach Assignments** (2/2 plans) — completed 2026-04-03
-- [x] **Phase 34: Report Comments** (2/2 plans) — completed 2026-04-03
-- [x] **Phase 35: Chat System** (4/4 plans) — completed 2026-04-04
-- [x] **Phase 36: Resources Tab** (3/3 plans) — completed 2026-04-04
-- [x] **Phase 37: Invite Link max_uses** (2/2 plans) — completed 2026-04-04
+- [x] **Phase 19: Database Foundation** â completed 2026-03-29
+- [x] **Phase 20: Query Consolidation & Caching** â completed 2026-03-30
+- [x] **Phase 21: Write Path & Pre-Aggregation** â completed 2026-03-30
+- [x] **Phase 22: Spike Protection & Rate Limiting** â completed 2026-03-30
+- [x] **Phase 23: Security Audit** â completed 2026-03-30
+- [x] **Phase 24: Infrastructure & Validation** â completed 2026-03-31
 
 </details>
 
-### 🚧 v1.5 Student Deals (In Progress)
+<details>
+<summary>â v1.3 Roadmap Update, Session Planner & Coach Controls (Phases 25-29) â SHIPPED 2026-04-03</summary>
+
+- [x] **Phase 25: Roadmap Config & Stage Headers** â completed 2026-03-31
+- [x] **Phase 26: Database Schema Foundation** â completed 2026-03-31
+- [x] **Phase 27: Coach/Owner Roadmap Undo** â completed 2026-03-31
+- [x] **Phase 28: Daily Session Planner API** â completed 2026-03-31
+- [x] **Phase 29: Daily Session Planner Client** â completed 2026-03-31
+
+</details>
+
+<details>
+<summary>â v1.4 Roles, Chat & Resources (Phases 30-37) â SHIPPED 2026-04-06</summary>
+
+- [x] **Phase 30: Database Migration** (1/1 plans) â completed 2026-04-03
+- [x] **Phase 31: Student_DIY Role** (3/3 plans) â completed 2026-04-03
+- [x] **Phase 32: Skip Tracker** (2/2 plans) â completed 2026-04-03
+- [x] **Phase 33: Coach Assignments** (2/2 plans) â completed 2026-04-03
+- [x] **Phase 34: Report Comments** (2/2 plans) â completed 2026-04-03
+- [x] **Phase 35: Chat System** (4/4 plans) â completed 2026-04-04
+- [x] **Phase 36: Resources Tab** (3/3 plans) â completed 2026-04-04
+- [x] **Phase 37: Invite Link max_uses** (2/2 plans) â completed 2026-04-04
+
+</details>
+
+### ð§ v1.5 Student Deals (In Progress)
 
 **Milestone Goal:** Students can track closed deals with revenue and profit; coaches and owners can view and manage deal history on student detail pages.
 
@@ -92,18 +92,18 @@
 ## Phase Details
 
 ### Phase 38: Database Foundation
-**Goal**: The deals table exists in Supabase with all constraints, policies, and indexes — no application code can proceed without it
+**Goal**: The deals table exists in Supabase with all constraints, policies, and indexes â no application code can proceed without it
 **Depends on**: Nothing (first phase of milestone)
 **Requirements**: INFR-01, INFR-02, INFR-03, INFR-04, DEAL-02
 **Success Criteria** (what must be TRUE):
   1. The deals table exists with revenue and profit as numeric(12,2) columns, deal_number integer, and a UNIQUE (student_id, deal_number) constraint
   2. A BEFORE INSERT trigger assigns deal_number by selecting MAX(deal_number) FOR UPDATE, preventing race-condition duplicates on concurrent inserts
-  3. RLS policies use the (SELECT auth.uid()) and (SELECT get_user_role()) initplan pattern — EXPLAIN ANALYZE shows initplan, not per-row function calls
+  3. RLS policies use the (SELECT auth.uid()) and (SELECT get_user_role()) initplan pattern â EXPLAIN ANALYZE shows initplan, not per-row function calls
   4. An index on (student_id, created_at DESC) exists and is confirmed by \d deals in Supabase Studio
   5. types.ts has a Deal type with revenue and profit declared as string | number to force explicit Number() coercion at every arithmetic site
 **Plans**: 1 plan
 Plans:
-- [x] 38-01-PLAN.md — Migration SQL, Deal types, schema push
+- [x] 38-01-PLAN.md â Migration SQL, Deal types, schema push
 
 ### Phase 39: API Route Handlers
 **Goal**: All deal mutation and query endpoints exist, are secured, and are testable before any UI is built
@@ -114,10 +114,10 @@ Plans:
   2. PATCH /api/deals/[id] updates revenue and profit for deals owned by the requesting student only; other students receive 403
   3. DELETE /api/deals/[id] allows a student to delete their own deal, a coach to delete a deal belonging to their assigned student (two-step coach_id check), and an owner to delete any deal; unauthorized deletes return 403
   4. GET /api/deals returns a paginated list (25/page) of deals for a given student_id; accepts page query param; accessible to coach and owner roles only
-  5. All four endpoints enforce verifyOrigin CSRF check, checkRateLimit at 30 req/min, and Zod input validation — requests failing any check return 400, 403, or 429 with a JSON error body
+  5. All four endpoints enforce verifyOrigin CSRF check, checkRateLimit at 30 req/min, and Zod input validation â requests failing any check return 400, 403, or 429 with a JSON error body
 **Plans**: 1 plan
 Plans:
-- [x] 39-01-PLAN.md — POST+GET and PATCH+DELETE deal CRUD route handlers
+- [x] 39-01-PLAN.md â POST+GET and PATCH+DELETE deal CRUD route handlers
 
 ### Phase 40: Config & Type Updates
 **Goal**: src/lib/config.ts and proxy.ts coverage are updated so TypeScript compiles cleanly before any page files are created
@@ -130,7 +130,7 @@ Plans:
   4. npx tsc --noEmit passes with zero errors after config changes and before any page file is created
 **Plans**: 1 plan
 Plans:
-- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
+- [ ] 40-01-PLAN.md — ROUTES, NAVIGATION, VALIDATION.deals config + route handler refactor
 
 ### Phase 41: Student Deals Pages
 **Goal**: Students and student_diy users can add, view, edit, and delete their deals from a dedicated Deals page
@@ -138,27 +138,27 @@ Plans:
 **Requirements**: DEAL-03, DEAL-07
 **Success Criteria** (what must be TRUE):
   1. Student navigates to /student/deals and sees their full deal history list sorted most-recent first, with deal number, revenue, profit, and date visible per row
-  2. Student adds a deal — the new row appears instantly in the list (useOptimistic) before the API response, labeled "Deal #N" with the correct sequential number
-  3. Student edits a deal via an inline or modal form — the updated values appear in the list immediately on save
-  4. Student deletes a deal — the row disappears instantly from the list (useOptimistic) and does not reappear after router.refresh() completes
+  2. Student adds a deal â the new row appears instantly in the list (useOptimistic) before the API response, labeled "Deal #N" with the correct sequential number
+  3. Student edits a deal via an inline or modal form â the updated values appear in the list immediately on save
+  4. Student deletes a deal â the row disappears instantly from the list (useOptimistic) and does not reappear after router.refresh() completes
   5. Student_diy user at /student_diy/deals sees the identical UI and all CRUD operations work via the same DealsClient component
 **Plans**: 1 plan
 Plans:
-- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
+- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
 **UI hint**: yes
 
 ### Phase 42: Dashboard Stat Cards
-**Goal**: Both student dashboards show deal performance at a glance — deals closed, total revenue, and total profit — using live data
+**Goal**: Both student dashboards show deal performance at a glance â deals closed, total revenue, and total profit â using live data
 **Depends on**: Phase 39
 **Requirements**: DASH-01, DASH-02, DASH-03, DASH-04
 **Success Criteria** (what must be TRUE):
-  1. The student dashboard displays three stat cards — Deals Closed (count), Total Revenue (currency-formatted), Total Profit (currency-formatted) — sourced from a live aggregate query on the deals table
+  1. The student dashboard displays three stat cards â Deals Closed (count), Total Revenue (currency-formatted), Total Profit (currency-formatted) â sourced from a live aggregate query on the deals table
   2. After a student adds or deletes a deal on the Deals page, navigating back to the dashboard shows updated counts and totals without a hard refresh
   3. The student_diy dashboard shows the same three stat cards with identical formatting and live-query behavior
   4. When a student has no deals, all three stat cards display 0 / $0.00 (not blank, not an error)
 **Plans**: 1 plan
 Plans:
-- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
+- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
 **UI hint**: yes
 
 ### Phase 43: Coach & Owner Deals Tab
@@ -170,10 +170,10 @@ Plans:
   2. Owner opens a student detail page and sees the same "Deals" tab; both roles share the identical DealsTab component
   3. The Deals tab header row shows summary stats: total deals closed, total revenue, total profit, and profit margin percentage
   4. The deal list below the summary is paginated at 25 rows per page using the existing PaginationControls component, sorted most-recent first
-  5. Coach clicks delete on a deal belonging to their assigned student — the row is removed; clicking delete on an unassigned student's deal is blocked (403 shown as error toast)
+  5. Coach clicks delete on a deal belonging to their assigned student â the row is removed; clicking delete on an unassigned student's deal is blocked (403 shown as error toast)
 **Plans**: 1 plan
 Plans:
-- [ ] 38-01-PLAN.md — Migration SQL, Deal types, schema push
+- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
 **UI hint**: yes
 
 ## Progress
@@ -219,7 +219,7 @@ Plans:
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
 | 38. Database Foundation | v1.5 | 1/1 | Complete    | 2026-04-06 |
 | 39. API Route Handlers | v1.5 | 1/1 | Complete    | 2026-04-06 |
-| 40. Config & Type Updates | v1.5 | 0/TBD | Not started | - |
+| 40. Config & Type Updates | v1.5 | 0/1 | Not started | - |
 | 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
 | 42. Dashboard Stat Cards | v1.5 | 0/TBD | Not started | - |
 | 43. Coach & Owner Deals Tab | v1.5 | 0/TBD | Not started | - |
