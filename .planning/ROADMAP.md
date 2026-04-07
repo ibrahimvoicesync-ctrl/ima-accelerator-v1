@@ -6,7 +6,8 @@
 - â **v1.1 V2 Feature Build** â Phases 13-18 (shipped 2026-03-28)
 - â **v1.2 Performance, Scale & Security** â Phases 19-24 (shipped 2026-03-31)
 - â **v1.3 Roadmap Update, Session Planner & Coach Controls** â Phases 25-29 (shipped 2026-04-03)
-- ð§ **v1.4 Roles, Chat & Resources** â Phases 30-37 (in progress)
+- â **v1.4 Roles, Chat & Resources** â Phases 30-37 (shipped 2026-04-06)
+- ð§ **v1.5 Student Deals** â Phases 38-43 (in progress)
 
 ## Phases
 
@@ -63,322 +64,117 @@
 
 </details>
 
-**v1.4 Roles, Chat & Resources**
+<details>
+<summary>â v1.4 Roles, Chat & Resources (Phases 30-37) â SHIPPED 2026-04-06</summary>
 
-- [x] **Phase 30: Database Migration** - Migration 00015 adds 4 tables, expands role CHECK constraints, enables RLS, and updates TypeScript types (completed 2026-04-03)
-- [x] **Phase 31: Student_DIY Role** - 4th role with reduced feature set (dashboard + work tracker + roadmap), 8-location atomic update across proxy/config/types/DB (completed 2026-04-03)
-- [x] **Phase 32: Skip Tracker** - "X days skipped this week" badge on coach/owner student cards via UTC-safe Postgres RPC (completed 2026-04-03)
-- [x] **Phase 33: Coach Assignments** - Coaches get full assignment power via /coach/assignments page mirroring owner experience (completed 2026-04-03)
-- [x] **Phase 34: Report Comments** - Single coach comment per daily report; coaches write, students read; ownership-verified API
- (completed 2026-04-03)
-- [x] **Phase 35: Chat System** - Polling-based (5s) WhatsApp-style 1:1 + broadcast chat with sidebar unread badges (completed 2026-04-04)
-- [x] **Phase 36: Resources Tab** - URL links + Discord WidgetBot iframe + searchable glossary for owner/coach/student (completed 2026-04-04)
-- [x] **Phase 37: Invite Link max_uses** - Default max_uses of 10 on magic links, usage count display, cap enforcement (completed 2026-04-04)
+- [x] **Phase 30: Database Migration** (1/1 plans) â completed 2026-04-03
+- [x] **Phase 31: Student_DIY Role** (3/3 plans) â completed 2026-04-03
+- [x] **Phase 32: Skip Tracker** (2/2 plans) â completed 2026-04-03
+- [x] **Phase 33: Coach Assignments** (2/2 plans) â completed 2026-04-03
+- [x] **Phase 34: Report Comments** (2/2 plans) â completed 2026-04-03
+- [x] **Phase 35: Chat System** (4/4 plans) â completed 2026-04-04
+- [x] **Phase 36: Resources Tab** (3/3 plans) â completed 2026-04-04
+- [x] **Phase 37: Invite Link max_uses** (2/2 plans) â completed 2026-04-04
+
+</details>
+
+### ð§ v1.5 Student Deals (In Progress)
+
+**Milestone Goal:** Students can track closed deals with revenue and profit; coaches and owners can view and manage deal history on student detail pages.
+
+- [x] **Phase 38: Database Foundation** - deals table, deal_number trigger, RLS, indexes (completed 2026-04-06)
+- [x] **Phase 39: API Route Handlers** - full CRUD endpoints with rate limiting and role-scoped delete (completed 2026-04-06)
+- [ ] **Phase 40: Config & Type Updates** - routes, nav, validation constants, types.ts
+- [ ] **Phase 41: Student Deals Pages** - DealsClient CRUD UI with useOptimistic for student and student_diy
+- [ ] **Phase 42: Dashboard Stat Cards** - Deals Closed, Total Revenue, Total Profit on both dashboards
+- [ ] **Phase 43: Coach & Owner Deals Tab** - DealsTab component wired into both detail pages
 
 ## Phase Details
 
-### Phase 19: Database Foundation
-**Goal**: The database is structurally ready for 5,000 students â indexes on hot paths, RLS policies use initplan optimization, connection pooling is singleton-based, and a query performance baseline is captured
-**Depends on**: Nothing (first phase of v1.2)
-**Requirements**: DB-01, DB-02, DB-03, DB-04
+### Phase 38: Database Foundation
+**Goal**: The deals table exists in Supabase with all constraints, policies, and indexes â no application code can proceed without it
+**Depends on**: Nothing (first phase of milestone)
+**Requirements**: INFR-01, INFR-02, INFR-03, INFR-04, DEAL-02
 **Success Criteria** (what must be TRUE):
-  1. EXPLAIN ANALYZE confirms composite indexes on daily_reports(student_id, date), work_sessions(student_id, date, status), and roadmap_progress(student_id) are used by hot query paths (index scans, not seq scans)
-  2. All 36 createAdminClient() call sites have been replaced with a module-level getAdminClient() singleton; the admin client is instantiated once per process, not once per request
-  3. All RLS policies in current migrations use (SELECT auth.uid()) instead of bare auth.uid(); EXPLAIN on a policy-covered query shows initplan not per-row evaluation
-  4. pg_stat_statements is enabled and a baseline of the top 10 slowest queries is captured and recorded before and after the index migration
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 19-01-PLAN.md â Migration SQL (composite index + pg_stat_statements) and admin client singleton conversion
-- [x] 19-02-PLAN.md â RLS audit, BASELINE.md scaffold, human applies migration and captures query stats
-
-### Phase 20: Query Consolidation & Caching
-**Goal**: The owner dashboard path drops from 8 round trips to â¤2, badge counts are served from a 60-second cache, and all owner list pages are server-side paginated
-**Depends on**: Phase 19
-**Requirements**: QUERY-01, QUERY-02, QUERY-03, QUERY-04, QUERY-05, QUERY-06
-
-> **HALT GATE**: Do not auto-advance past Phase 20. After plans complete, a human must confirm load test results have been reviewed before Phase 21 begins.
-
-**Success Criteria** (what must be TRUE):
-  1. Owner dashboard layout fires â¤2 Postgres round trips (verified by query log); the RPC functions get_sidebar_badges() and get_owner_dashboard_stats() exist and return correct data
-  2. Student detail pages (coach and owner views) use an RPC consolidation function that replaces 9-11 parallel queries with a single call
-  3. getSessionUser() and data-fetching server functions are wrapped with React cache() so duplicate calls within a single RSC render tree fire only once
-  4. Owner sidebar badge counts are served by unstable_cache with a 60-second TTL; the cache is invalidated correctly on mutations
-  5. Owner student list page shows 25 students per page with server-side .range() pagination; total count uses count: 'estimated'; URL search params drive page state
-  6. Owner coach list page has the same server-side pagination as the student list page
-**Plans:** 4/4 plans complete
-Plans:
-- [x] 20-01-PLAN.md â Migration 00010 (3 RPC functions), RPC types, React cache() on getSessionUser
-- [x] 20-02-PLAN.md â Owner dashboard RPC swap, layout.tsx cached badges, badge invalidation in 5 API routes
-- [x] 20-03-PLAN.md â Student detail RPC swap (coach + owner pages)
-- [x] 20-04-PLAN.md â Server-side pagination on student list and coach list pages
-
-### Phase 21: Write Path & Pre-Aggregation
-**Goal**: Nightly KPI aggregations are pre-computed so the owner dashboard reads from a summary table instead of scanning all reports, and report submission shows instant feedback to the student
-**Depends on**: Phase 20
-**Requirements**: WRITE-01, WRITE-02, WRITE-03
-**Success Criteria** (what must be TRUE):
-  1. A student_kpi_summaries table exists; a pg_cron job runs at 2 AM UTC (6 AM UAE) and calls refresh_student_kpi_summaries() which upserts per-student KPI aggregates; the function uses pg_try_advisory_lock() to prevent overlapping runs
-  2. Student daily report submission updates the UI optimistically via useOptimistic before the API call returns; on API failure, the UI rolls back to server ground truth and the submit button re-enables
-  3. A write path audit document records the exact DB call count for report submission and work session complete paths, and confirms no unnecessary round trips exist
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 21-01-PLAN.md â Migration 00011 (student_kpi_summaries table, refresh function, pg_cron job, get_student_detail RPC update)
-- [x] 21-02-PLAN.md â Optimistic UI on ReportForm (useOptimistic + startTransition) and write path audit document
-
-### Phase 22: Spike Protection & Rate Limiting
-**Goal**: All mutation API routes enforce a 30 requests/minute per-user limit backed by the database, so the limit is consistent across all serverless container instances
-**Depends on**: Phase 19
-**Requirements**: SEC-01
-**Success Criteria** (what must be TRUE):
-  1. A rate_limit_log Supabase table exists with a cleanup pg_cron job; a checkRateLimit() async helper reads and writes to this table using an atomic INSERT + COUNT pattern
-  2. All POST/PATCH/DELETE route handlers for work sessions, daily reports, and roadmap progress call checkRateLimit() after auth verification and before Zod validation
-  3. A user who exceeds 30 requests/minute receives a 429 response with a Retry-After header; the limit is enforced consistently regardless of which serverless container handles the request
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 22-01-PLAN.md â Migration 00012 (rate_limit_log table, covering index, pg_cron cleanup) and checkRateLimit() helper module
-- [x] 22-02-PLAN.md â Integrate checkRateLimit() into all 10 mutation API routes (9 files, 10 endpoints)
-
-### Phase 23: Security Audit
-**Goal**: Every API route's auth and ownership checks are verified correct, all mutation handlers have CSRF protection, and cross-student data isolation is confirmed
-
-> **FLAG: requires-human-review** â Do not auto-merge. Surface the full audit report for human approval before applying any changes. This phase produces a report first; changes are applied only after explicit human sign-off.
-
-**Depends on**: Phase 22
-**Requirements**: SEC-02, SEC-03, SEC-04
-**Success Criteria** (what must be TRUE):
-  1. Every API route has been audited for the pattern: auth check â role verification â resource ownership check â query; any gaps are documented and fixed
-  2. Every POST/PATCH/DELETE route handler verifies the Origin header matches the expected host and returns 403 on mismatch; CSRF protection is not assumed from Next.js (only Server Actions get it automatically)
-  3. Cross-student isolation is verified: no student can retrieve another student's data by manipulating route params; every admin-client query that touches student data filters by the authenticated user's ID
-**Plans:** 3/3 plans complete
-Plans:
-- [x] 23-01-PLAN.md â Security audit report: all 12 routes, proxy guard, RLS policies documented with severity-classified findings
-- [x] 23-02-PLAN.md â CSRF helper + integration into all mutation routes, reports/[id]/review ownership leak fix (requires human approval of audit report first)
-- [x] 23-03-PLAN.md â UAT gap closure: optimistic timer start + hide CycleCard countdown from student view
-
-### Phase 24: Infrastructure & Validation
-**Goal**: The platform is validated under realistic 5,000-student load, connection and query capacity headroom is documented, and compute sizing is confirmed or adjusted
-**Depends on**: Phase 21, Phase 22, Phase 23
-**Requirements**: INFRA-01, INFRA-02, INFRA-03
-**Success Criteria** (what must be TRUE):
-  1. A k6 load test runs against a staging environment seeded with 5,000 students and 90 days of reports (~500k rows); the test covers the owner dashboard read mix and the 11 PM write spike scenario; P95 latency and connection counts are recorded
-  2. A capacity document records connection usage (must stay below 70% of max_connections during spike), P50/P95/P99 query latencies, and rate limiter trigger counts during the simulated spike
-  3. Supabase compute add-on tier is confirmed adequate or upgraded based on load test data; the decision (stay/upgrade + rationale) is written into PROJECT.md Key Decisions
-**Plans:** 5/5 plans complete
-Plans:
-- [x] 24-01-PLAN.md â Seed SQL (5k students, 500k reports), JWT pre-gen script, CAPACITY.md template, .gitignore
-- [x] 24-02-PLAN.md â k6 scenario scripts (read-mix, write-spike, combined)
-- [x] 24-03-PLAN.md â Load test execution, capacity doc completion, compute sizing decision
-- [x] 24-04-PLAN.md â Gap closure: fix owner token format bug + revert premature INFRA requirement markings
-- [x] 24-05-PLAN.md â Gap closure: provision staging, execute k6 tests, update capacity docs with measured data
-
-### Phase 25: Roadmap Config & Stage Headers
-**Goal**: Students and coaches see accurate, stage-grouped roadmap steps with correct descriptions, unlock URLs, and completion targets
-**Depends on**: Phase 24
-**Requirements**: ROAD-01, ROAD-02, ROAD-03, ROAD-04, ROAD-05, ROAD-06
-**Success Criteria** (what must be TRUE):
-  1. All 8 active roadmap steps (1-8) display parenthetical time guidance appended to their descriptions in the student view
-  2. Step 5 shows the skool CRM link as its unlock URL; step 6 has no unlock URL
-  3. Step 6 description reads "Build 100 Influencer Lead List, and Watch 3 Influencer Roast My Email"; step 7 description reflects drafting emails only
-  4. Step 8 displays a 14-day target and the deadline chip responds correctly to that target
-  5. Student roadmap page groups steps under three visible stage headers: Setup & Preparation, Influencer Outreach, Brand Outreach
-  6. Coach and owner roadmap tab shows the same three stage headers grouping the same step ranges
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 25-01-PLAN.md â Config updates (descriptions, URLs, target_days) and student RoadmapClient stage headers
-- [x] 25-02-PLAN.md â Coach/owner RoadmapTab stage headers
-**UI hint**: yes
-
-### Phase 26: Database Schema Foundation
-**Goal**: The daily_plans and roadmap_undo_log tables exist in the database with correct constraints, indexes, and RLS policies, unblocking all v1.3 API work
-**Depends on**: Phase 25
-**Requirements**: PLAN-07, UNDO-05
-**Success Criteria** (what must be TRUE):
-  1. The daily_plans table exists with columns: id, student_id, date (DEFAULT CURRENT_DATE), plan_json (JSONB), created_at; a UNIQUE(student_id, date) constraint prevents duplicate plans per day
-  2. The roadmap_undo_log table exists with columns: id, actor_id, actor_role, student_id, step_number, undone_at; it is append-only with no UPDATE/DELETE RLS policy
-  3. Both tables have RLS enabled; daily_plans uses (SELECT auth.uid()) initplan pattern on student_id; roadmap_undo_log allows INSERT for coach/owner roles and SELECT for actors on their own rows
-  4. The daily_plans table has an index on (student_id, date) to support the 5k inserts/day hot query path
-**Plans:** 1/1 plans complete
-Plans:
-- [x] 26-01-PLAN.md â Migration 00013 (daily_plans + roadmap_undo_log tables, indexes, RLS policies) and deployment verification
-
-### Phase 27: Coach/Owner Roadmap Undo
-**Goal**: Coaches and owners can revert any completed roadmap step to active, with a confirmation dialog, sequential-progression enforcement, and a permanent audit trail
-**Depends on**: Phase 26
-**Requirements**: UNDO-01, UNDO-02, UNDO-03, UNDO-04
-**Success Criteria** (what must be TRUE):
-  1. A completed roadmap step in the coach or owner roadmap tab shows an undo button; clicking it opens a confirmation dialog reading "Are you sure you want to reset Step X back to active?"
-  2. After confirming, the step reverts from completed to active and the roadmap tab re-renders showing the step as in-progress; no page reload required
-  3. If step N+1 was active (not yet completed) at the time step N was undone, step N+1 is locked back to its pre-active state in the same server request
-  4. A coach can only undo steps for students assigned to them; an owner can undo steps for any student; attempting to undo an unassigned student's step returns 403
-  5. Every undo action is visible in the roadmap_undo_log table with the actor's ID, role, target student, step number, and timestamp
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 27-01-PLAN.md â PATCH /api/roadmap/undo route with auth, cascade re-lock, and audit logging
-- [x] 27-02-PLAN.md â RoadmapTab undo button + confirmation modal, studentId prop thread from parent components
-**UI hint**: yes
-
-### Phase 28: Daily Session Planner API
-**Goal**: The daily plans API is live with server-enforced 4-hour cap, idempotent plan creation, and the existing work-sessions endpoint enforces the cap when a plan exists
-**Depends on**: Phase 26
-**Requirements**: PLAN-08, PLAN-09
-**Success Criteria** (what must be TRUE):
-  1. POST /api/daily-plans accepts a plan_json payload, validates total_work_minutes <= 240 server-side via Zod, stores the plan, and returns the created plan; submitting a second plan for the same day returns the existing plan (idempotent, no duplicate insert)
-  2. GET /api/daily-plans returns today's plan for the authenticated student, or null if no plan exists; the date comparison uses UTC to match the daily_plans.date column default
-  3. POST /api/work-sessions checks the student's total planned minutes and actual minutes worked today when a daily plan exists; a request that would exceed 4 hours of work time returns 400 with a clear cap-exceeded message
-  4. Both endpoints enforce the full CSRF â auth â role â rate-limit â Zod â admin client chain; plan_json is always read back through Zod safeParse, never TypeScript cast
-**Plans:** 3/3 plans complete
-Plans:
-- [x] 28-01-PLAN.md â Zod plan_json schema module + POST/GET /api/daily-plans route (idempotent create, today's plan retrieval)
-- [x] 28-02-PLAN.md â Plan-aware cap enforcement in POST /api/work-sessions (no-plan block, minute cap, fulfilled bypass)
-- [x] 28-03-PLAN.md â Gap closure: fix WorkTrackerClient error handling to show server errors via toast
-
-### Phase 29: Daily Session Planner Client
-**Goal**: Students see a pre-session planner on their first visit each day, execute planned sessions sequentially via WorkTracker, and receive a motivational completion card with access to ad-hoc sessions afterward
-**Depends on**: Phase 28
-**Requirements**: PLAN-01, PLAN-02, PLAN-03, PLAN-04, PLAN-05, PLAN-06, PLAN-10, COMP-01, COMP-02, COMP-03, COMP-04
-**Success Criteria** (what must be TRUE):
-  1. On first visit to Work Tracker with no plan for today, a planner UI appears where the student can add sessions (30/45/60 min), see running work-time total (breaks excluded), and confirm when total is at or below 4 hours
-  2. Break types auto-assign without student input: odd-numbered sessions (1st, 3rd, 5th) get a short break (5 or 10 min choice), even sessions (2nd, 4th, 6th) get a long break (15/20/25/30 min choice), and the last session has no break
-  3. The confirm button is disabled until the planned total reaches exactly 4h or the nearest valid total at or below 4h; the student cannot add sessions that would push the total above 4 hours
-  4. After confirming, the planner disappears and WorkTracker executes the planned sessions in sequence; the phase-reset useEffect guard preserves plan-mode state across page refreshes
-  5. After all planned sessions complete, a motivational card appears showing Arabic "Ø§ÙÙÙÙ Ø¨Ø§Ø±Ù" (large, centered, dir="rtl") and English "You have done the bare minimum! Continue with your next work session"; the card shows once per day
-  6. The card offers "Start Next Session" (opens ad-hoc duration picker) and "Dismiss" (returns to work tracker idle); ad-hoc sessions allow free duration and break type selection with no daily cap
-**Plans:** 3/3 plans complete
-Plans:
-- [x] 29-01-PLAN.md â Server-side plan fetch in page.tsx + PlannerUI session builder component
-- [x] 29-02-PLAN.md â WorkTrackerClient plan-mode integration with PlannedSessionList and handleStartWithConfig
-- [x] 29-03-PLAN.md â MotivationalCard post-completion + ad-hoc mode wiring
-**UI hint**: yes
-
-### Phase 30: Database Migration
-**Goal**: The database is ready for all v1.4 features â 4 new tables created, role constraints expanded to include student_diy, RLS policies written, and TypeScript types updated
-**Depends on**: Phase 29
-**Requirements**: SCHEMA-01, SCHEMA-02, SCHEMA-03, SCHEMA-04
-**Success Criteria** (what must be TRUE):
-  1. Migration 00015 executes cleanly and creates report_comments, messages, resources, and glossary_terms tables with correct columns, foreign keys, and indexes
-  2. The users, invites, and magic_links role CHECK constraints all accept 'student_diy' as a valid value without rejecting existing 'owner', 'coach', or 'student' values
-  3. RLS is enabled on all 4 new tables with policies that restrict reads and writes to appropriate roles; student_diy-specific policies are included in the same migration
-  4. TypeScript types file includes Row/Insert/Update types for all 4 new tables and the Role union type reads `'owner' | 'coach' | 'student' | 'student_diy'`
+  1. The deals table exists with revenue and profit as numeric(12,2) columns, deal_number integer, and a UNIQUE (student_id, deal_number) constraint
+  2. A BEFORE INSERT trigger assigns deal_number by selecting MAX(deal_number) FOR UPDATE, preventing race-condition duplicates on concurrent inserts
+  3. RLS policies use the (SELECT auth.uid()) and (SELECT get_user_role()) initplan pattern â EXPLAIN ANALYZE shows initplan, not per-row function calls
+  4. An index on (student_id, created_at DESC) exists and is confirmed by \d deals in Supabase Studio
+  5. types.ts has a Deal type with revenue and profit declared as string | number to force explicit Number() coercion at every arithmetic site
 **Plans**: 1 plan
 Plans:
-- [ ] 30-01-PLAN.md â Migration 00015 (4 new tables, role CHECK ALTERs, RLS policies, indexes, triggers) and TypeScript types update
+- [x] 38-01-PLAN.md â Migration SQL, Deal types, schema push
 
-### Phase 31: Student_DIY Role
-**Goal**: The student_diy role is fully wired across all 8 integration points â users can register, be routed correctly, and access only the three permitted features
-**Depends on**: Phase 30
-**Requirements**: ROLE-01, ROLE-02, ROLE-03, ROLE-04, ROLE-05, ROLE-06, ROLE-07
+### Phase 39: API Route Handlers
+**Goal**: All deal mutation and query endpoints exist, are secured, and are testable before any UI is built
+**Depends on**: Phase 38
+**Requirements**: DEAL-01, DEAL-04, DEAL-05, VIEW-05, VIEW-06, INFR-05
 **Success Criteria** (what must be TRUE):
-  1. A user invited with a student_diy invite link completes Google OAuth registration and is assigned role 'student_diy' in the users table; no other role is assigned
-  2. After login, a student_diy user is immediately redirected to /student_diy/dashboard with no redirect loop or blank screen; all other roles continue routing correctly
-  3. The student_diy sidebar renders exactly 3 navigation items â Dashboard, Work Tracker, and Roadmap â with no other items visible regardless of URL manipulation
-  4. Work Tracker and Roadmap pages function identically for student_diy as for student; no regressions in session start/complete/abandon or roadmap step progression
-  5. Navigating directly to /student_diy/report, /student_diy/chat, or /student_diy/resources redirects to the dashboard with a 403 or equivalent guard response
-  6. Owner and coach invite creation forms include student_diy as a selectable role option; created invites insert with role = 'student_diy'
-**Plans**: 3 plans
+  1. POST /api/deals creates a deal for the authenticated student (or student_diy) and returns the new row including deal_number; a 23505 conflict triggers one retry
+  2. PATCH /api/deals/[id] updates revenue and profit for deals owned by the requesting student only; other students receive 403
+  3. DELETE /api/deals/[id] allows a student to delete their own deal, a coach to delete a deal belonging to their assigned student (two-step coach_id check), and an owner to delete any deal; unauthorized deletes return 403
+  4. GET /api/deals returns a paginated list (25/page) of deals for a given student_id; accepts page query param; accessible to coach and owner roles only
+  5. All four endpoints enforce verifyOrigin CSRF check, checkRateLimit at 30 req/min, and Zod input validation â requests failing any check return 400, 403, or 429 with a JSON error body
+**Plans**: 1 plan
 Plans:
-- [x] 31-01-PLAN.md â Config + proxy + auth callback atomic expansion (8 integration points)
-- [x] 31-02-PLAN.md â Student_DIY route group (dashboard, work tracker, roadmap pages)
-- [x] 31-03-PLAN.md â Invite surface (API Zod schemas, coach guards, frontend dropdowns)
+- [x] 39-01-PLAN.md â POST+GET and PATCH+DELETE deal CRUD route handlers
+
+### Phase 40: Config & Type Updates
+**Goal**: src/lib/config.ts and proxy.ts coverage are updated so TypeScript compiles cleanly before any page files are created
+**Depends on**: Phase 38
+**Requirements**: DEAL-06
+**Success Criteria** (what must be TRUE):
+  1. ROUTES.student.deals and ROUTES.student_diy.deals exist in config.ts and the TypeScript compiler accepts imports of those values without error
+  2. Both student and student_diy nav arrays in config.ts include a "Deals" entry pointing to the correct route
+  3. A DEALS validation object in config.ts defines REVENUE_MAX and NOTES_MAX_LENGTH constants used by Zod schemas in Phase 39
+  4. npx tsc --noEmit passes with zero errors after config changes and before any page file is created
+**Plans**: 1 plan
+Plans:
+- [ ] 40-01-PLAN.md — ROUTES, NAVIGATION, VALIDATION.deals config + route handler refactor
+
+### Phase 41: Student Deals Pages
+**Goal**: Students and student_diy users can add, view, edit, and delete their deals from a dedicated Deals page
+**Depends on**: Phase 39, Phase 40
+**Requirements**: DEAL-03, DEAL-07
+**Success Criteria** (what must be TRUE):
+  1. Student navigates to /student/deals and sees their full deal history list sorted most-recent first, with deal number, revenue, profit, and date visible per row
+  2. Student adds a deal â the new row appears instantly in the list (useOptimistic) before the API response, labeled "Deal #N" with the correct sequential number
+  3. Student edits a deal via an inline or modal form â the updated values appear in the list immediately on save
+  4. Student deletes a deal â the row disappears instantly from the list (useOptimistic) and does not reappear after router.refresh() completes
+  5. Student_diy user at /student_diy/deals sees the identical UI and all CRUD operations work via the same DealsClient component
+**Plans**: 1 plan
+Plans:
+- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
 **UI hint**: yes
 
-### Phase 32: Skip Tracker
-**Goal**: Coaches and owners can see at a glance how many days each student has skipped this week, enabling proactive intervention
-**Depends on**: Phase 30
-**Requirements**: SKIP-01, SKIP-02, SKIP-03, SKIP-04, SKIP-05
+### Phase 42: Dashboard Stat Cards
+**Goal**: Both student dashboards show deal performance at a glance â deals closed, total revenue, and total profit â using live data
+**Depends on**: Phase 39
+**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04
 **Success Criteria** (what must be TRUE):
-  1. Every student card on the coach dashboard shows a "X skipped" badge where X is the count of days (Mon-Sun of the current ISO week, all 7 days per D-01) with zero completed work sessions AND zero submitted reports, counting only past days and today
-  2. The skip count resets to 0 on Monday morning â a student with 3 skips on Friday shows 0 skips the following Monday
-  3. The skip badge correctly reflects today as a skip day only after the day has passed without activity; it does not count future weekdays in the current week
-  4. Owner student list and student detail views display the same skip count badge using the same computation as the coach view
-  5. The skip count is computed by a Postgres RPC function (get_student_skip_count or equivalent) that accepts a p_today DATE parameter; the application passes getTodayUTC() as that parameter, never relying on CURRENT_DATE inside the function
-**Plans**: 2 plans
+  1. The student dashboard displays three stat cards â Deals Closed (count), Total Revenue (currency-formatted), Total Profit (currency-formatted) â sourced from a live aggregate query on the deals table
+  2. After a student adds or deletes a deal on the Deals page, navigating back to the dashboard shows updated counts and totals without a hard refresh
+  3. The student_diy dashboard shows the same three stat cards with identical formatting and live-query behavior
+  4. When a student has no deals, all three stat cards display 0 / $0.00 (not blank, not an error)
+**Plans**: 1 plan
 Plans:
-- [x] 32-01-PLAN.md â Migration 00016 (get_weekly_skip_counts RPC) + coach dashboard integration with skip badge on StudentCard
-- [x] 32-02-PLAN.md â Owner students list skip badge + owner student detail skip count display
+- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
 **UI hint**: yes
 
-### Phase 33: Coach Assignments
-**Goal**: Coaches can assign, reassign, and unassign students independently â same power as owner â without exposing cross-platform student data
-**Depends on**: Phase 30
-**Requirements**: ASSIGN-01, ASSIGN-02, ASSIGN-03, ASSIGN-04, ASSIGN-05, ASSIGN-06
+### Phase 43: Coach & Owner Deals Tab
+**Goal**: Coaches and owners can view a student's complete deal history and delete deals from the student detail page
+**Depends on**: Phase 39
+**Requirements**: VIEW-01, VIEW-02, VIEW-03, VIEW-04
 **Success Criteria** (what must be TRUE):
-  1. A coach can navigate to /coach/assignments and see all unassigned students plus their own currently-assigned students in a searchable list
-  2. A coach can assign an unassigned student to any active coach (including themselves) and the student's coach_id updates immediately in the UI without page reload
-  3. A coach can reassign one of their own students to a different coach; the student disappears from the coach's list and appears under the target coach
-  4. A coach can unassign a student (set coach_id to null); the student moves to the unassigned pool
-  5. A student or student_diy user attempting to call the assignment API receives a 403 response; the assignment API does not modify the coach view for owner (ASSIGN-06)
-**Plans**: 2 plans
+  1. Coach opens a student detail page and sees a "Deals" tab in the tab bar alongside existing tabs; clicking it renders the DealsTab component
+  2. Owner opens a student detail page and sees the same "Deals" tab; both roles share the identical DealsTab component
+  3. The Deals tab header row shows summary stats: total deals closed, total revenue, total profit, and profit margin percentage
+  4. The deal list below the summary is paginated at 25 rows per page using the existing PaginationControls component, sorted most-recent first
+  5. Coach clicks delete on a deal belonging to their assigned student â the row is removed; clicking delete on an unassigned student's deal is blocked (403 shown as error toast)
+**Plans**: 1 plan
 Plans:
-- [x] 33-01-PLAN.md â Config registration (ROUTES + NAVIGATION) and API role guard expansion (owner+coach)
-- [x] 33-02-PLAN.md â Coach assignments server page and CoachAssignmentsClient component
+- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
 **UI hint**: yes
-
-### Phase 34: Report Comments
-**Goal**: Coaches can leave a single comment on any of their students' daily reports; students see the feedback inline on their report history
-**Depends on**: Phase 30
-**Requirements**: COMMENT-01, COMMENT-02, COMMENT-03, COMMENT-04, COMMENT-05
-**Success Criteria** (what must be TRUE):
-  1. A coach viewing a student's daily report sees a comment textarea (max 1000 chars) and a Save button; submitting creates or updates the single comment for that report (upsert â no duplicates)
-  2. Resubmitting a comment on the same report replaces the existing comment rather than creating a second one; the report_comments table never has more than one row per report_id
-  3. A student viewing their report history sees a read-only "Coach feedback" card below each report that has a comment; reports without comments show nothing
-  4. An owner can comment on any student's report using the same textarea and Save button visible on the coach view
-  5. A student or student_diy calling POST /api/reports/[id]/comment receives a 403; the API performs a two-step ownership check (fetch report â verify student.coach_id matches requesting coach) before writing, matching the v1.2 Phase 23 pattern
-**Plans**: 2 plans
-Plans:
-- [x] 34-01-PLAN.md â Comment API endpoint + CommentForm + CoachFeedbackCard components
-- [ ] 34-02-PLAN.md â Wire CommentForm into coach/owner views + student history feedback display
-**UI hint**: yes
-
-### Phase 35: Chat System
-**Goal**: Coaches and students can exchange messages in 1:1 conversations and coaches can broadcast to all assigned students, with messages appearing within 5 seconds via polling
-**Depends on**: Phase 31
-**Requirements**: CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05, CHAT-06, CHAT-07, CHAT-08, CHAT-09, CHAT-10, CHAT-11, CHAT-12, CHAT-13
-**Success Criteria** (what must be TRUE):
-  1. A coach sees a conversation list at /coach/chat showing all assigned students with the last message preview, relative timestamp, and an unread indicator dot for conversations with unread messages
-  2. Opening a conversation loads message history in WhatsApp-style bubbles (coach messages right-aligned, student messages left-aligned); the view auto-scrolls to the newest message on open and on each new incoming message
-  3. A message sent by a coach appears in the student's conversation within 5 seconds and vice versa; the polling interval does not call checkRateLimit() (GET endpoints are excluded from rate limiting)
-  4. A coach can send a broadcast message that delivers to all assigned students as a distinct card with a megaphone icon; the broadcast is not displayed as a regular bubble
-  5. The sidebar shows an unread message badge count for coach and student roles; the badge clears when the conversation is opened; student_diy has no chat navigation item and cannot access /student/chat
-  6. Scrolling to the top of a conversation loads older messages via cursor-based pagination without losing the current scroll position
-  7. The chat composer enforces a 2000-character limit with a visible remaining-character counter; the send button is disabled when the composer is empty
-**Plans**: 4 plans
-Plans:
-- [x] 35-01-PLAN.md â API routes (GET/POST/PATCH) + usePolling hook + chat utilities
-- [x] 35-02-PLAN.md â Navigation config + badge migration (00017) + layout wiring
-- [x] 35-03-PLAN.md â Chat UI components + coach chat page (split panel + mobile toggle)
-- [x] 35-04-PLAN.md â Student chat page (single thread view with polling)
-**UI hint**: yes
-
-### Phase 36: Resources Tab
-**Goal**: Owners, coaches, and students have a unified Resources tab with curated links, an embedded Discord community, and a searchable glossary; student_diy cannot access it
-**Depends on**: Phase 31
-**Requirements**: RES-01, RES-02, RES-03, RES-04, RES-05, RES-06, RES-07, RES-08, RES-09
-**Success Criteria** (what must be TRUE):
-  1. Owner, coach, and student sidebars show a "Resources" navigation item; student_diy sidebar does not show it; navigating directly to /student_diy/resources is blocked by the proxy guard
-  2. The Resources page has three tabs â Links, Community, Glossary â controlled by React state (not URL segments); switching tabs does not navigate away or break the Discord iframe back button
-  3. Owner and coach can add resource links (URL + title + optional comment) and delete them; students see the same list in read-only mode with all links opening in a new tab
-  4. The Community tab renders a Discord WidgetBot iframe with the configured guild and channel; the next.config.ts CSP header includes `frame-src 'self' https://e.widgetbot.io`; when NEXT_PUBLIC_DISCORD_GUILD_ID is absent the tab shows a "Discord not configured" placeholder matching the existing Coming Soon card pattern
-  5. Owner and coach can add, edit, and delete glossary terms (term + definition); all eligible roles can filter terms by typing in a search box; the search is case-insensitive client-side filter
-  6. The glossary_terms table enforces a case-insensitive unique constraint on term name (CREATE UNIQUE INDEX on lower(term)); attempting to add a duplicate term shows a user-facing error
-**Plans**: 3 plans
-Plans:
-- [x] 36-01-PLAN.md — Foundation: migration, types, CSP header, nav config
-- [x] 36-02-PLAN.md — API routes: /api/resources + /api/glossary
-- [x] 36-03-PLAN.md — UI: ResourcesClient components + 3 page files
-**UI hint**: yes
-
-### Phase 37: Invite Link max_uses
-**Goal**: Magic link invites default to 10 uses and display a live usage count; registration via an exhausted link is rejected
-**Depends on**: Phase 30
-**Requirements**: INVITE-01, INVITE-02, INVITE-03
-**Success Criteria** (what must be TRUE):
-  1. Creating a new magic link without specifying max_uses produces a link with max_uses = 10; the creation form accepts an optional override; existing null-max_uses rows are grandfathered (unlimited) per migration design
-  2. Each magic link card on the invite management page displays "X / Y used" where X is the current use_count and Y is max_uses (null renders as "â")
-  3. A user attempting to register via a magic link where use_count >= max_uses receives a clear rejection response; the /api/auth/callback enforces this check before creating the user account
-**Plans**: 2 plans
-Plans:
-- [x] 37-01-PLAN.md — Migration 00019 (DEFAULT 10 on max_uses) + POST route Zod schema consolidation
-- [x] 37-02-PLAN.md — Max uses number input + "X / Y used" display format on coach + owner invite pages
 
 ## Progress
 
@@ -413,11 +209,17 @@ Plans:
 | 27. Coach/Owner Roadmap Undo | v1.3 | 2/2 | Complete | 2026-03-31 |
 | 28. Daily Session Planner API | v1.3 | 3/3 | Complete | 2026-03-31 |
 | 29. Daily Session Planner Client | v1.3 | 3/3 | Complete | 2026-03-31 |
-| 30. Database Migration | v1.4 | 0/1 | Complete    | 2026-04-03 |
-| 31. Student_DIY Role | v1.4 | 3/3 | Complete    | 2026-04-03 |
-| 32. Skip Tracker | v1.4 | 2/2 | Complete    | 2026-04-03 |
-| 33. Coach Assignments | v1.4 | 2/2 | Complete    | 2026-04-03 |
-| 34. Report Comments | v1.4 | 1/2 | Complete    | 2026-04-03 |
-| 35. Chat System | v1.4 | 4/4 | Complete   | 2026-04-04 |
-| 36. Resources Tab | v1.4 | 3/3 | Complete    | 2026-04-04 |
-| 37. Invite Link max_uses | v1.4 | 2/2 | Complete    | 2026-04-04 |
+| 30. Database Migration | v1.4 | 1/1 | Complete | 2026-04-03 |
+| 31. Student_DIY Role | v1.4 | 3/3 | Complete | 2026-04-03 |
+| 32. Skip Tracker | v1.4 | 2/2 | Complete | 2026-04-03 |
+| 33. Coach Assignments | v1.4 | 2/2 | Complete | 2026-04-03 |
+| 34. Report Comments | v1.4 | 2/2 | Complete | 2026-04-03 |
+| 35. Chat System | v1.4 | 4/4 | Complete | 2026-04-04 |
+| 36. Resources Tab | v1.4 | 3/3 | Complete | 2026-04-04 |
+| 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
+| 38. Database Foundation | v1.5 | 1/1 | Complete    | 2026-04-06 |
+| 39. API Route Handlers | v1.5 | 1/1 | Complete    | 2026-04-06 |
+| 40. Config & Type Updates | v1.5 | 0/1 | Not started | - |
+| 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
+| 42. Dashboard Stat Cards | v1.5 | 0/TBD | Not started | - |
+| 43. Coach & Owner Deals Tab | v1.5 | 0/TBD | Not started | - |
