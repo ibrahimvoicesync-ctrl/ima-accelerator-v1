@@ -201,4 +201,4 @@ Last updated: 2026-04-07
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-07 after Phase 41 (student-deals-pages) complete — Student deals pages with DealsClient/DealFormModal components, useOptimistic CRUD, server pages for /student/deals and /student_diy/deals*
+*Last updated: 2026-04-07 after Phase 43 (coach-owner-deals-tab) complete — Deals tab on coach and owner student detail pages with read-only table, margin %, summary totals, and empty state*
