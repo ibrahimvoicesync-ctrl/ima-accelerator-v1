@@ -465,6 +465,9 @@ Plans:
   3. The Deals tab displays the student's deals in a read-only table with deal number, revenue, profit, and date
   4. Profit margin percentage is shown inline for each deal
 **UI hint**: yes
+**Plans**: 1 plan
+Plans:
+- [ ] 43-01-PLAN.md — DealsTab component, tab system expansion, server-side deals fetching for coach and owner
 
 ## Progress
 
