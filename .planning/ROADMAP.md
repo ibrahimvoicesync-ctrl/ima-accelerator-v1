@@ -451,6 +451,9 @@ Plans:
   2. Values are computed from the authenticated student's deals data
   3. Cards use the existing StatCard component pattern and ima-* design tokens
   4. Both student and student_diy dashboards show the deals stat cards
+**Plans**: 1 plan
+Plans:
+- [ ] 42-01-PLAN.md — Deals stat cards on student and student_diy dashboards
 **UI hint**: yes
 
 ### Phase 43: Coach & Owner Deals Tab
