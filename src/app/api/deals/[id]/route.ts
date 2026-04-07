@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
+import { VALIDATION } from "@/lib/config";
 
 // ---------------------------------------------------------------------------
 // Route context type (Next.js 16 uses Promise<Params>)
@@ -24,8 +25,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const patchDealSchema = z
   .object({
-    revenue: z.number().min(0).max(9999999999.99).optional(),
-    profit: z.number().min(0).max(9999999999.99).optional(),
+    revenue: z.number().min(VALIDATION.deals.revenueMin).max(VALIDATION.deals.revenueMax).optional(),
+    profit: z.number().min(VALIDATION.deals.profitMin).max(VALIDATION.deals.profitMax).optional(),
   })
   .refine((data) => data.revenue !== undefined || data.profit !== undefined, {
     message: "At least one field (revenue or profit) must be provided",

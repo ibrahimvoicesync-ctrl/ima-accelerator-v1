@@ -5,14 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
+import { VALIDATION } from "@/lib/config";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
 // ---------------------------------------------------------------------------
 
 const postDealSchema = z.object({
-  revenue: z.number().min(0).max(9999999999.99),
-  profit: z.number().min(0).max(9999999999.99),
+  revenue: z.number().min(VALIDATION.deals.revenueMin).max(VALIDATION.deals.revenueMax),
+  profit: z.number().min(VALIDATION.deals.profitMin).max(VALIDATION.deals.profitMax),
 });
 
 // ---------------------------------------------------------------------------
