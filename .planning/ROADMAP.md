@@ -128,9 +128,10 @@ Plans:
   2. Both student and student_diy nav arrays in config.ts include a "Deals" entry pointing to the correct route
   3. A DEALS validation object in config.ts defines REVENUE_MAX and NOTES_MAX_LENGTH constants used by Zod schemas in Phase 39
   4. npx tsc --noEmit passes with zero errors after config changes and before any page file is created
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 40-01-PLAN.md — ROUTES, NAVIGATION, VALIDATION.deals config + route handler refactor
+- [x] 40-01-PLAN.md — ROUTES, NAVIGATION, VALIDATION.deals config + route handler refactor
+- [ ] 40-02-PLAN.md — Gap closure: restore deals table type in Database interface (types.ts)
 
 ### Phase 41: Student Deals Pages
 **Goal**: Students and student_diy users can add, view, edit, and delete their deals from a dedicated Deals page
@@ -219,7 +220,7 @@ Plans:
 | 37. Invite Link max_uses | v1.4 | 2/2 | Complete | 2026-04-04 |
 | 38. Database Foundation | v1.5 | 1/1 | Complete    | 2026-04-06 |
 | 39. API Route Handlers | v1.5 | 1/1 | Complete    | 2026-04-06 |
-| 40. Config & Type Updates | v1.5 | 0/1 | Not started | - |
+| 40. Config & Type Updates | v1.5 | 1/2 | Gap closure| - |
 | 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
 | 42. Dashboard Stat Cards | v1.5 | 0/TBD | Not started | - |
 | 43. Coach & Owner Deals Tab | v1.5 | 0/TBD | Not started | - |
