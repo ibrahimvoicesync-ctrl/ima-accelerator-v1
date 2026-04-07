@@ -116,6 +116,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 **v1.4 Phase 31 complete** (2026-04-03): Student DIY role — student_diy wired into config.ts (6 maps), proxy.ts (2 maps), auth callback (3 registration paths). 4 page files under /student_diy/ (dashboard, work, roadmap, not-found). Invite APIs and forms expanded for owner/coach to create student_diy invites.
 
+**v1.4 Phase 42 complete** (2026-04-07): Dashboard stat cards — 3 deals stat cards (Deals Closed, Total Revenue, Total Profit) added to both student and student_diy dashboards. Server-side deals query with Number() coercion for Postgres numeric fields, toLocaleString formatting with 2 decimal places, ima-* design tokens, accessible icons.
+
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
 **Invite system (v1.0):** Email whitelist model — no registration URL generated. Coach/owner enters email, auth callback auto-registers whitelisted users on Google sign-in. Magic links available as alternative.
@@ -183,6 +185,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
+Last updated: 2026-04-07
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
