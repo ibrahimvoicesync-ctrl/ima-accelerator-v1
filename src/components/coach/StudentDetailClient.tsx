@@ -6,7 +6,11 @@ import { StudentHeader } from "./StudentHeader";
 import { StudentDetailTabs, type TabKey } from "./StudentDetailTabs";
 import { CalendarTab } from "./CalendarTab";
 import { RoadmapTab } from "./RoadmapTab";
+import { DealsTab } from "./DealsTab";
+import type { Database } from "@/lib/types";
 import { StudentKpiSummary } from "@/components/student/StudentKpiSummary";
+
+type Deal = Database["public"]["Tables"]["deals"]["Row"];
 
 interface StudentDetailClientProps {
   student: {
@@ -54,6 +58,7 @@ interface StudentDetailClientProps {
     currentStepNumber: number | null;
   };
   milestone: { totalHours: number; days: number } | null;
+  deals: Deal[];
 }
 
 export function StudentDetailClient({
@@ -69,9 +74,11 @@ export function StudentDetailClient({
   studentId,
   kpiData,
   milestone,
+  deals,
 }: StudentDetailClientProps) {
+  const validTabs: TabKey[] = ["calendar", "roadmap", "deals"];
   const [activeTab, setActiveTab] = useState<TabKey>(
-    (initialTab === "roadmap" ? "roadmap" : "calendar") as TabKey
+    validTabs.includes(initialTab as TabKey) ? (initialTab as TabKey) : "calendar"
   );
 
   function handleTabChange(tab: TabKey) {
@@ -125,6 +132,7 @@ export function StudentDetailClient({
         />
       )}
       {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} studentId={studentId} />}
+      {activeTab === "deals" && <DealsTab deals={deals} />}
     </div>
   );
 }

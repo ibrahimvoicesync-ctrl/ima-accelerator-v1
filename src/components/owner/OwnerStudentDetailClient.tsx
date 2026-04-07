@@ -10,7 +10,11 @@ import { useToast } from "@/components/ui/Toast";
 import { StudentDetailTabs, type TabKey } from "@/components/coach/StudentDetailTabs";
 import { CalendarTab } from "@/components/coach/CalendarTab";
 import { RoadmapTab } from "@/components/coach/RoadmapTab";
+import { DealsTab } from "@/components/coach/DealsTab";
+import type { Database } from "@/lib/types";
 import { StudentKpiSummary } from "@/components/student/StudentKpiSummary";
+
+type Deal = Database["public"]["Tables"]["deals"]["Row"];
 
 interface OwnerStudentDetailClientProps {
   student: {
@@ -61,6 +65,7 @@ interface OwnerStudentDetailClientProps {
   };
   milestone: { totalHours: number; days: number } | null;
   skippedDays: number;
+  deals: Deal[];
 }
 
 export function OwnerStudentDetailClient({
@@ -79,6 +84,7 @@ export function OwnerStudentDetailClient({
   kpiData,
   milestone,
   skippedDays,
+  deals,
 }: OwnerStudentDetailClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -89,8 +95,9 @@ export function OwnerStudentDetailClient({
   routerRef.current = router;
   toastRef.current = toast;
 
+  const validTabs: TabKey[] = ["calendar", "roadmap", "deals"];
   const [activeTab, setActiveTab] = useState<TabKey>(
-    (initialTab === "roadmap" ? "roadmap" : "calendar") as TabKey
+    validTabs.includes(initialTab as TabKey) ? (initialTab as TabKey) : "calendar"
   );
   const [assignedCoachId, setAssignedCoachId] = useState<string | null>(currentCoachId);
   const [isSaving, setIsSaving] = useState(false);
@@ -250,6 +257,7 @@ export function OwnerStudentDetailClient({
         />
       )}
       {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} studentId={studentId} />}
+      {activeTab === "deals" && <DealsTab deals={deals} />}
     </div>
   );
 }

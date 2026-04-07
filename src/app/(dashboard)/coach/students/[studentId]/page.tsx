@@ -126,6 +126,19 @@ export default async function StudentDetailPage({
     .eq("student_id", student.id)
     .eq("status", "completed");
 
+  // Fetch student deals for DealsTab
+  const { data: dealsData, error: dealsError } = await admin
+    .from("deals")
+    .select("id, student_id, deal_number, revenue, profit, created_at, updated_at")
+    .eq("student_id", student.id)
+    .order("created_at", { ascending: false });
+
+  if (dealsError) {
+    console.error("[student detail] Failed to load deals:", dealsError);
+  }
+
+  const deals = dealsData ?? [];
+
   const totalMinutes = (milestoneData ?? []).reduce(
     (sum, r) => sum + (r.session_minutes ?? 0),
     0
@@ -163,6 +176,7 @@ export default async function StudentDetailPage({
         currentStepNumber,
       }}
       milestone={hasMilestone ? { totalHours: Math.floor(totalMinutes / 60), days: daysSinceJoin } : null}
+      deals={deals}
     />
   );
 }
