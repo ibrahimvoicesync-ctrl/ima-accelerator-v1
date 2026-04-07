@@ -82,7 +82,8 @@
 
 **Milestone Goal:** Students can track closed deals with revenue and profit; coaches and owners can view and manage deal history on student detail pages.
 
-- [x] **Phase 38: Database Foundation** - deals table, deal_number trigger, RLS, indexes (completed 2026-04-06)
+- [x] **Phase 38: Database Foundation** - deals table, deal_number trigger, RLS, indexes
+ (completed 2026-04-06)
 - [x] **Phase 39: API Route Handlers** - full CRUD endpoints with rate limiting and role-scoped delete (completed 2026-04-06)
 - [x] **Phase 40: Config & Type Updates** - routes, nav, validation constants, types.ts (completed 2026-04-07)
 - [ ] **Phase 41: Student Deals Pages** - DealsClient CRUD UI with useOptimistic for student and student_diy
@@ -143,9 +144,10 @@ Plans:
   3. Student edits a deal via an inline or modal form â the updated values appear in the list immediately on save
   4. Student deletes a deal â the row disappears instantly from the list (useOptimistic) and does not reappear after router.refresh() completes
   5. Student_diy user at /student_diy/deals sees the identical UI and all CRUD operations work via the same DealsClient component
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
+- [ ] 41-01-PLAN.md â DealsClient + DealFormModal components with useOptimistic CRUD
+- [ ] 41-02-PLAN.md â Server pages + loading skeletons for /student/deals and /student_diy/deals
 **UI hint**: yes
 
 ### Phase 42: Dashboard Stat Cards
@@ -157,9 +159,10 @@ Plans:
   2. After a student adds or deletes a deal on the Deals page, navigating back to the dashboard shows updated counts and totals without a hard refresh
   3. The student_diy dashboard shows the same three stat cards with identical formatting and live-query behavior
   4. When a student has no deals, all three stat cards display 0 / $0.00 (not blank, not an error)
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
+- [ ] 41-01-PLAN.md â DealsClient + DealFormModal components with useOptimistic CRUD
+- [ ] 41-02-PLAN.md â Server pages + loading skeletons for /student/deals and /student_diy/deals
 **UI hint**: yes
 
 ### Phase 43: Coach & Owner Deals Tab
@@ -172,9 +175,10 @@ Plans:
   3. The Deals tab header row shows summary stats: total deals closed, total revenue, total profit, and profit margin percentage
   4. The deal list below the summary is paginated at 25 rows per page using the existing PaginationControls component, sorted most-recent first
   5. Coach clicks delete on a deal belonging to their assigned student â the row is removed; clicking delete on an unassigned student's deal is blocked (403 shown as error toast)
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 38-01-PLAN.md â Migration SQL, Deal types, schema push
+- [ ] 41-01-PLAN.md â DealsClient + DealFormModal components with useOptimistic CRUD
+- [ ] 41-02-PLAN.md â Server pages + loading skeletons for /student/deals and /student_diy/deals
 **UI hint**: yes
 
 ## Progress
@@ -221,6 +225,6 @@ Plans:
 | 38. Database Foundation | v1.5 | 1/1 | Complete    | 2026-04-06 |
 | 39. API Route Handlers | v1.5 | 1/1 | Complete    | 2026-04-06 |
 | 40. Config & Type Updates | v1.5 | 2/2 | Complete    | 2026-04-07 |
-| 41. Student Deals Pages | v1.5 | 0/TBD | Not started | - |
+| 41. Student Deals Pages | v1.5 | 0/2 | Not started | - |
 | 42. Dashboard Stat Cards | v1.5 | 0/TBD | Not started | - |
 | 43. Coach & Owner Deals Tab | v1.5 | 0/TBD | Not started | - |
