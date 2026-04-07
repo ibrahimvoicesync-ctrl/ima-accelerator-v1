@@ -85,7 +85,7 @@
 - [x] **Phase 40: Config & Type Updates** - ROUTES, NAVIGATION, VALIDATION.deals in config.ts; route handler refactor to import from config (completed 2026-04-07)
 - [x] **Phase 41: Student Deals Pages** - DealsClient + DealFormModal with useOptimistic CRUD, /student/deals and /student_diy/deals route files (completed 2026-04-07)
 - [x] **Phase 42: Dashboard Stat Cards** - 3 new StatCards on Student Dashboard: Deals Closed, Total Revenue, Total Profit (completed 2026-04-07)
-- [ ] **Phase 43: Coach & Owner Deals Tab** - New "Deals" tab on Student Detail Pages (next to Calendar and Roadmap)
+- [x] **Phase 43: Coach & Owner Deals Tab** - New "Deals" tab on Student Detail Pages (next to Calendar and Roadmap) (completed 2026-04-07)
 
 ## Phase Details
 
@@ -467,7 +467,7 @@ Plans:
 **UI hint**: yes
 **Plans**: 1 plan
 Plans:
-- [ ] 43-01-PLAN.md — DealsTab component, tab system expansion, server-side deals fetching for coach and owner
+- [x] 43-01-PLAN.md — DealsTab component, tab system expansion, server-side deals fetching for coach and owner
 
 ## Progress
 
@@ -515,4 +515,4 @@ Plans:
 | 40. Config & Type Updates | v1.5 | 2/2 | Complete | 2026-04-07 |
 | 41. Student Deals Pages | v1.5 | 2/2 | Complete | 2026-04-07 |
 | 42. Dashboard Stat Cards | v1.5 | 1/1 | Complete    | 2026-04-07 |
-| 43. Coach & Owner Deals Tab | v1.5 | 0/0 | Pending | - |
+| 43. Coach & Owner Deals Tab | v1.5 | 1/1 | Complete    | 2026-04-07 |
