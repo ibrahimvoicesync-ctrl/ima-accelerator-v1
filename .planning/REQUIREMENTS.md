@@ -127,8 +127,65 @@ Requirements for v1.5 milestone. Each maps to roadmap phases. Build order is seq
 
 ## Traceability
 
-<!-- Filled by gsd-roadmapper during phase creation -->
+<!-- Populated by gsd-roadmapper on 2026-04-13 -->
+
+**Note on PERF-* (cross-cutting):** PERF-01/03/04 are *owned* by Phase 44 (foundation — where the indexes, initplan convention, and SECURITY DEFINER pattern are first established). PERF-02, PERF-05, PERF-06, PERF-07, PERF-08 are *enforced in every subsequent phase's acceptance criteria* rather than owned by a single phase — they are auth/rate-limit/cache/pagination/accessibility constraints applied to every new endpoint, RPC, and UI surface shipped across Phases 44-52.
 
 | REQ-ID | Phase # | Phase Name |
 |--------|---------|------------|
-| (pending — roadmapper will populate) | | |
+| ANALYTICS-01 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-02 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-03 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-04 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-05 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-06 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-07 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-08 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-09 | 46 | Student Analytics Page + Recharts |
+| ANALYTICS-10 | 46 | Student Analytics Page + Recharts |
+| COACH-DASH-01 | 47 | Coach Dashboard Homepage Stats |
+| COACH-DASH-02 | 47 | Coach Dashboard Homepage Stats |
+| COACH-DASH-03 | 47 | Coach Dashboard Homepage Stats |
+| COACH-DASH-04 | 47 | Coach Dashboard Homepage Stats |
+| COACH-DASH-05 | 47 | Coach Dashboard Homepage Stats |
+| COACH-DASH-06 | 47 | Coach Dashboard Homepage Stats |
+| COACH-DASH-07 | 47 | Coach Dashboard Homepage Stats |
+| COACH-ANALYTICS-01 | 48 | Full Coach Analytics Page |
+| COACH-ANALYTICS-02 | 48 | Full Coach Analytics Page |
+| COACH-ANALYTICS-03 | 48 | Full Coach Analytics Page |
+| COACH-ANALYTICS-04 | 48 | Full Coach Analytics Page |
+| COACH-ANALYTICS-05 | 48 | Full Coach Analytics Page |
+| COACH-ANALYTICS-06 | 48 | Full Coach Analytics Page |
+| COACH-ANALYTICS-07 | 48 | Full Coach Analytics Page |
+| DEALS-01 | 45 | `deals.logged_by` Migration + API + RLS |
+| DEALS-02 | 45 | `deals.logged_by` Migration + API + RLS |
+| DEALS-03 | 45 | `deals.logged_by` Migration + API + RLS |
+| DEALS-04 | 45 | `deals.logged_by` Migration + API + RLS |
+| DEALS-05 | 45 | `deals.logged_by` Migration + API + RLS |
+| DEALS-06 | 45 | `deals.logged_by` Migration + API + RLS |
+| DEALS-07 | 49 | Coach & Owner Deals Logging UI |
+| DEALS-08 | 49 | Coach & Owner Deals Logging UI |
+| DEALS-09 | 49 | Coach & Owner Deals Logging UI |
+| DEALS-10 | 49 | Coach & Owner Deals Logging UI |
+| DEALS-11 | 45 | `deals.logged_by` Migration + API + RLS |
+| NOTIF-01 | 50 | Milestone Config (config only; activation in Phase 51 pending D-06) |
+| NOTIF-02 | 51 | Milestone Notifications RPC + Backfill |
+| NOTIF-03 | 51 | Milestone Notifications RPC + Backfill |
+| NOTIF-04 | 51 | Milestone Notifications RPC + Backfill |
+| NOTIF-05 | 51 | Milestone Notifications RPC + Backfill |
+| NOTIF-06 | 51 | Milestone Notifications RPC + Backfill |
+| NOTIF-07 | 51 | Milestone Notifications RPC + Backfill |
+| NOTIF-08 | 51 | Milestone Notifications RPC + Backfill |
+| NOTIF-09 | 52 | Coach Alerts Page |
+| NOTIF-10 | 51 | Milestone Notifications RPC + Backfill |
+| NOTIF-11 | 51 | Milestone Notifications RPC + Backfill |
+| PERF-01 | 44 | Analytics RPC Foundation & Shared Helpers (indexes owned here) |
+| PERF-02 | cross-cutting | Enforced in every phase's acceptance criteria (44-52) |
+| PERF-03 | 44 | Analytics RPC Foundation & Shared Helpers (initplan convention owned here) |
+| PERF-04 | 44 | Analytics RPC Foundation & Shared Helpers (SECURITY DEFINER pattern owned here) |
+| PERF-05 | cross-cutting | Enforced in every phase's acceptance criteria (46-52) |
+| PERF-06 | cross-cutting | Enforced in every phase's acceptance criteria (46, 48) |
+| PERF-07 | cross-cutting | Post-phase build gate enforced in every phase (44-52) |
+| PERF-08 | cross-cutting | Enforced in every phase's acceptance criteria (46-52, UI phases) |
+
+**Coverage:** 47/47 primary REQ-IDs mapped (ANALYTICS 10 + COACH-DASH 7 + COACH-ANALYTICS 7 + DEALS 11 + NOTIF 11 + PERF 8 owned/cross-cutting = 54 line items). Zero orphans.

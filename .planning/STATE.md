@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Analytics Pages, Coach Dashboard & Deal Logging
-status: defining_requirements
-stopped_at: Milestone v1.5 initialized
+status: roadmap_defined
+stopped_at: Roadmap approved — 9 phases defined (44-52)
 last_updated: "2026-04-13T00:00:00.000Z"
 last_activity: 2026-04-13
 progress:
-  total_phases: 0
+  total_phases: 9
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-13)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Milestone v1.5 — defining requirements
+**Current focus:** Milestone v1.5 — roadmap defined, ready to plan Phase 44
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 44 — Analytics RPC Foundation & Shared Helpers (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-13 — Milestone v1.5 started
+Status: Roadmap approved; awaiting `/gsd-plan-phase 44`
+Last activity: 2026-04-13 — v1.5 roadmap created (Phases 44-52)
 
-Progress: [░░░░░░░░░░] 0% (v1.5)
+Progress: [░░░░░░░░░░] 0% (v1.5 — 0/9 phases complete)
 
 ## Performance Metrics
 
@@ -39,7 +39,7 @@ Progress: [░░░░░░░░░░] 0% (v1.5)
 **v1.2 completed:** 2026-03-31 | 6 phases | 18 plans
 **v1.3 completed:** 2026-04-03 | 5 phases | 11 plans
 **v1.4 completed:** 2026-04-07 | 14 phases (30-37, 40-43) | 30+ plans
-**v1.5 started:** 2026-04-13 | Analytics Pages, Coach Dashboard & Deal Logging
+**v1.5 started:** 2026-04-13 | Analytics Pages, Coach Dashboard & Deal Logging | 9 phases (44-52)
 
 ## Accumulated Context
 
@@ -50,108 +50,81 @@ Progress: [░░░░░░░░░░] 0% (v1.5)
 - D-03: (SELECT auth.uid()) initplan RLS pattern on all new policies
 - D-04: Paginate any list > 25 items
 - D-05: Perf target 5,000 concurrent students
-- D-06: "Tech/Email Setup Finished" roadmap step TBC (Monday stakeholder meeting, placeholder Step 5 or 6)
+- D-06: "Tech/Email Setup Finished" roadmap step TBC (Monday stakeholder meeting, placeholder Step 5 or 6) — blocks Phase 51 NOTIF-01 only
 - D-07: "Closed Deal" milestone notification fires on EVERY deal (not first-only)
 - D-08: Milestone notifications reuse 260401-cwd pattern (100+ hrs/45 days)
 - D-09: `deals.logged_by` nullable UUID — null = student self, set = coach/owner
 - D-10: Build order sequential (Feat 1 → 2 → 3 → 4 → 5)
+- D-11: Charts library recharts@^3.8.1 (sole new runtime dep)
+- D-12: Post-phase build gate `npm run lint && npx tsc --noEmit && npm run build`
 - D-13: Top-3 hours leaderboard weekly reset (Mon-Sun, ISO week — reuses v1.4 D-01)
+- D-14: "Inactive student" = no completed work session AND no submitted report in last 7 days
+- D-15: `/student_diy/analytics` in scope (same RPC, new route wrapper)
+- D-16: "Closed Deal" milestone fires on ALL deals (student/coach/owner logged)
+- D-17: Coach/owner deal edits record `updated_at` + `updated_by` only; no per-edit change-log
 
-### Decisions (v1.4 shipped — archived for reference)
+### v1.5 Phase Structure (9 phases)
 
-- v1.4 D-07: Chat polling 5s interval — NOT Supabase Realtime (avoid 500 connection limit on Pro)
-- v1.4 D-14: Role type expands to 4: owner, coach, student, student_diy
-- v1.4 D-01: "This week" = Monday-Sunday ISO week for skip tracker
-- v1.4 D-10: Discord WidgetBot iframe embed — no npm package
-- v1.4 D-04: student_diy has NO coach assignment (fully independent, self-service)
-- v1.4 D-05: student_diy has NO Ask Abu Lahya, NO Daily Report, NO Resources, NO Chat
-- v1.4 D-13: Invite link default max_uses = 10 (was null/unlimited)
+| Phase | Name | Requirements |
+|-------|------|--------------|
+| 44 | Analytics RPC Foundation & Shared Helpers | PERF-01, PERF-03, PERF-04 (+ cross-cutting) |
+| 45 | `deals.logged_by` Migration + API + RLS | DEALS-01..06, DEALS-11 |
+| 46 | Student Analytics Page + Recharts | ANALYTICS-01..10 |
+| 47 | Coach Dashboard Homepage Stats | COACH-DASH-01..07 |
+| 48 | Full Coach Analytics Page | COACH-ANALYTICS-01..07 |
+| 49 | Coach & Owner Deals Logging UI | DEALS-07..10 |
+| 50 | Milestone Config | (NOTIF-01 placeholder — D-06 blocked) |
+| 51 | Milestone Notifications RPC + Backfill | NOTIF-02..08, NOTIF-10, NOTIF-11 (NOTIF-01 pending D-06) |
+| 52 | Coach Alerts Page | NOTIF-09 |
+
+Cross-cutting PERF-02, PERF-05, PERF-06, PERF-07, PERF-08 are enforced in every phase's acceptance criteria (not owned by a single phase).
+
+### Wave Execution Order (v1.5)
+
+- Wave 1: Phase 44 (foundation — helpers + indexes)
+- Wave 2: Phase 45 (deals.logged_by — unblocks Phase 49)
+- Wave 3: Phase 46 + Phase 47 (can parallelize — both depend only on Phase 44, Phase 47 does not need deals column)
+- Wave 4: Phase 48 (depends on Phase 47 RPC pattern) + Phase 49 (depends on Phase 45)
+- Wave 5: Phase 50 (config only)
+- Wave 6: Phase 51 (blocked on D-06 for NOTIF-01; NOTIF-02/03/04 can proceed)
+- Wave 7: Phase 52 (alerts UI, after Phase 51)
+
+Build order per D-10 is sequential across the 5 features; foundation (44) precedes all; authorization (45) precedes deals UI (49); config (50) precedes compute (51); backfill migration (51) lands last among deal/milestone work.
 
 ### Critical Pitfalls (from research — address during execution)
 
-- Phase 30/31: Update all 8 role gate locations atomically (proxy, config x6, DB) — partial update causes redirect loops
-- Phase 32: Pass getTodayUTC() as p_today to skip RPC — never use CURRENT_DATE inside Postgres function
-- Phase 34: Two-step ownership check on comment API (fetch report → verify student.coach_id) — same pattern as v1.2 Phase 23 fix
-- Phase 35: Never call checkRateLimit() in GET /api/messages polling endpoint
-- Phase 35: useInterval hook with useRef prevents stale closures and memory leaks
-- Phase 36: CSP header (frame-src https://e.widgetbot.io) must be added to next.config.ts BEFORE writing DiscordEmbed component
-
-### Wave Execution Order
-
-- Wave 1: Phase 30 → Phase 31 (sequential, foundation)
-- Wave 2: Phase 32 + Phase 33 + Phase 34 + Phase 37 (parallel, after Phase 30)
-- Wave 3: Phase 35 + Phase 36 (parallel, after Phase 31)
-
-- [v1.3 research]: Zero new npm dependencies — motion, lru-cache, zod, lucide-react all cover v1.3 needs at installed versions
-- [v1.3 research]: plan_json needs a version: 1 field for schema evolution safety; always Zod safeParse at read, never TypeScript cast; treat parse failure as "no plan today"
-- [v1.3 research]: Ad-hoc sessions after plan completion bypass the 4h cap server-side — cap enforcement in POST /api/work-sessions applies only when a daily plan exists for the day
-- [v1.3 research]: Arabic text requires dir="rtl" lang="ar" attribute wrapper, not just text-right Tailwind class
-- [v1.3 research]: WorkTracker phase-reset useEffect guard must be updated atomically with plan-mode changes — any new derived condition not exempted causes planner UI to silently reset on refresh
-- [v1.3 research]: Coach undo must cascade re-lock step N+1 in the same request — single-row UPDATE leaves two concurrent active steps, breaking sequential progression
-- [Phase 25-roadmap-config-stage-headers]: isLast prop is per-stage (stageSteps.length - 1) not global, so connecting lines stop at each stage boundary
-- [Phase 25-roadmap-config-stage-headers]: stages array derived from ROADMAP_STEPS config at render time (not hardcoded) per Config-is-truth rule
-- [Phase 26-database-schema-foundation]: D-01: Single migration 00013 for both tables — cohesive schema migration pattern
-- [Phase 26-database-schema-foundation]: D-02: DEFAULT CURRENT_DATE on daily_plans.date; UTC enforcement is application-level via getTodayUTC()
-- [Phase 26-database-schema-foundation]: D-03: Append-only roadmap_undo_log via RLS-only (no UPDATE/DELETE policies)
-- [Phase 26-database-schema-foundation]: D-04: No DB-level JSONB constraints on plan_json; Zod safeParse enforcement at application layer (Phase 28)
-- [Phase 27-coach-owner-roadmap-undo]: Cascade re-lock guards against completed N+1 steps using .eq('status','active') — only active steps are re-locked
-- [Phase 27-coach-owner-roadmap-undo]: Audit log INSERT placed after successful revert — ensures log only records actual state transitions, never phantom undo events
-- [Phase 28-01]: plan_json uses version:1 literal for schema evolution safety (D-07)
-- [Phase 28-01]: GET /api/daily-plans omits CSRF and rate limit, consistent with /api/calendar read pattern
-- [Phase 28-01]: 23505 conflict returns existing plan with status 200 (idempotent D-06) rather than erroring
-- [Phase 28-02]: Plan-cap block inserted AFTER active-session conflict check and BEFORE insert — preserves all existing logic untouched
-- [Phase 28-02]: getTodayUTC() used for plan lookup, never client-supplied date field — prevents cap bypass via date manipulation (Pitfall 1)
-- [Phase 28-02]: Single query for completed sessions (select session_minutes) provides both count (fulfillment) and sum (cap check) — collapses 2 queries into 1 (Pitfall 4)
-- [Phase 28-03]: useRef(useToast()) for stable ref pattern — keeps toast out of useCallback deps, consistent with existing routerRef convention
-- [Phase 29-daily-session-planner-client]: initialPlan prop added to WorkTrackerClient with eslint-disable — consumed by plan 29-02 for conditional PlannerUI rendering
-- [Phase 29-daily-session-planner-client]: rebuildBreaks() helper ensures last-session=none invariant on every add/remove mutation
-- [Phase 29-daily-session-planner-client]: PlannerUI is standalone with onPlanConfirmed callback — no server data, calls router.refresh() + onPlanConfirmed after successful POST
-- [Phase 29]: mode derived from server props (parsedPlan + completedCount) — never useState so it survives refresh without re-initialization race conditions
-- [Phase 29]: handleStartWithConfig stores break config into state before setPhase(working) so handleComplete reads planned break duration correctly
-- [Phase 35-01]: GET /api/messages has no rate limit — polling every 5s would exhaust 30 req/min cap in 2.5 min
-- [Phase 35-01]: messages table TypeScript types added to types.ts manually to unblock compilation while migration 00015 is owned by parallel plan
-
-- [Phase 30]: Single migration 00015 for all 4 tables and role CHECK ALTERs (D-03); student_diy blocked at app layer only, no RLS exclusion (D-04)
-- [Phase 30]: report_comments UNIQUE on report_id for upsert pattern; messages uses is_broadcast + NULL recipient_id for broadcasts (D-01); read_at on messages for unread tracking (D-02)
-- [Phase 33-coach-assignments]: D-04: Reuse existing /api/assignments route — expand role check to owner+coach, no separate endpoint
+- **Phase 44**: Pass `p_today date` to every RPC; never use `CURRENT_DATE` / `now()` in function body — timezone drift risk for week bucketing
+- **Phase 45**: Dual-layer authz (route handler asserts `users.coach_id` match AND RLS `WITH CHECK`); negative E2E test mandatory for coach-logs-unassigned-student path
+- **Phase 45**: Composite unique `(student_id, deal_number)` + retry on 23505 — coach+student concurrent insert race
+- **Phase 46**: React 19 + recharts hydration — `"use client"` + `next/dynamic({ ssr: false })`; may need `"overrides": { "react-is": "19.2.3" }` in package.json
+- **Phase 46**: Chart accessibility — every chart wrapped `<div role="img" aria-label="...">` + prose summary + `<details><summary>View data table</summary>` fallback; shape+label+color not color-alone; `tabIndex={0}`; `motion-safe:` on animations
+- **Phase 46/47/48**: Zero `.from(` calls in analytics/dashboard server pages — all aggregation in SECURITY DEFINER STABLE RPCs (D-01 Pitfall 1)
+- **Phase 47**: One batch RPC per page (`get_coach_dashboard`) — avoid stat-card fan-out (N RPCs for N cards)
+- **Phase 47/48**: Cache invalidation — every mutation route calls `revalidateTag` for affected keys; missing revalidate fails UAT
+- **Phase 51**: Per-deal alert_key includes `deal_id` (`milestone_closed_deal:{student_id}:{deal_id}`); one-shot keys for NOTIF-01/02/03 scoped to `(student, milestone)` not `(student, milestone, coach)` — avoid double-fire on reassignment
+- **Phase 51**: Migration 00025 must pre-dismiss historical qualifying events — otherwise every coach gets flooded on rollout
+- **Phase 52**: 9+ badge cap; bulk-dismiss by student group — prevents UI clutter when a high performer closes 10+ deals
 
 ### Pending Todos
 
-- Abu Lahya must add WidgetBot bot to Discord server before Phase 36 Discord embed can be tested in production
-- Abu Lahya must confirm NEXT_PUBLIC_DISCORD_GUILD_ID and NEXT_PUBLIC_DISCORD_CHANNEL_ID in Vercel env before Phase 36 goes live
-- Verify /api/auth/callback max_uses enforcement before writing Phase 37 migration (may already have cap check)
+- **D-06 resolution**: Monday stakeholder meeting — confirm "Tech/Email Setup Finished" roadmap step. Blocks Phase 51 NOTIF-01 activation only. Phase 50 can ship with placeholder + feature flag.
 - Abu Lahya must supply AI chat iframe URL (carried from v1.0; non-blocking)
+- Verify `recharts@^3.8.1` peer-dep at install time in Phase 46; add `"overrides": { "react-is": "19.2.3" }` conditionally
 
 ### Blockers/Concerns
 
-- v1.5 D-06: "Tech/Email Setup Finished" roadmap step needs stakeholder confirmation at Monday meeting (placeholder Step 5 or 6). Non-blocking for requirements/roadmap phase — will resolve before Feature 5 execution.
+- **D-06 (HARD BLOCKER — Phase 51 NOTIF-01 only)**: "Tech/Email Setup Finished" roadmap step needs stakeholder confirmation at Monday meeting. Phase 50 ships milestone config with `tech_setup` feature flag disabled until resolved. Phases 44-50 and Phase 51 (NOTIF-02/03/04) are unblocked.
 
-### Quick Tasks Completed
+### Quick Tasks Completed (v1.3 + v1.4 archive — retained for reference)
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260401-cwd | Coach 100h milestone alert (computed, coach-only) | 2026-04-01 | 4477e3f | [260401-cwd-add-coach-notification-for-100-hours-in-](./quick/260401-cwd-add-coach-notification-for-100-hours-in-/) |
-| 260401-tuq | Fix work sessions production bugs: CSRF logging + daily_plans error handling | 2026-04-01 | e534448 | [260401-tuq-bug-work-sessions-fail-in-production-dia](./quick/260401-tuq-bug-work-sessions-fail-in-production-dia/) |
-| Phase 31 P01 | 15 | 3 tasks | 4 files |
-| Phase 31 P03 | 3 | 2 tasks | 4 files |
-| Phase 31-student-diy-role P02 | 3min | 2 tasks | 4 files |
-| Phase 32-skip-tracker P02 | 10 | 2 tasks | 3 files |
-| Phase 33-coach-assignments P01 | 2 | 2 tasks | 2 files |
-| Phase 33-coach-assignments P02 | 6min | 2 tasks | 2 files |
-| Phase 34-report-comments P01 | 2 | 2 tasks | 4 files |
-| Phase 34-report-comments P02 | 10 minutes | 2 tasks | 10 files |
-| Phase 35 P01 | 25 | 2 tasks | 5 files |
-| Phase 35 P02 | 160 | 2 tasks | 4 files |
-| Phase 35-chat-system P04 | 312 | 1 tasks | 3 files |
-| Phase 36-resources-tab P02 | 4m 24s | 2 tasks | 3 files |
-| Phase 36-resources-tab P01 | 5 minutes | 2 tasks | 4 files |
-| Phase 36-resources-tab P03 | 25min | 1 tasks | 9 files |
-| Phase 37-invite-link-max-uses P01 | 8min | 1 tasks | 2 files |
-| Phase 37 P02 | 5min | 2 tasks | 2 files |
-| 260404-hgo | Fix student_diy role label display | 2026-04-04 | a5da893 | [260404-hgo-fix-student-diy-role-label-display](./quick/260404-hgo-fix-student-diy-role-label-display/) |
+| # | Description | Date | Commit |
+|---|-------------|------|--------|
+| 260401-cwd | Coach 100h milestone alert (computed, coach-only) | 2026-04-01 | 4477e3f |
+| 260401-tuq | Fix work sessions production bugs | 2026-04-01 | e534448 |
+| 260404-hgo | Fix student_diy role label display | 2026-04-04 | a5da893 |
 
 ## Session Continuity
 
 Last session: 2026-04-13
-Stopped at: Milestone v1.5 initialized — defining requirements
-Resume: run `/gsd-plan-phase [N]` after roadmap approved
+Stopped at: v1.5 roadmap defined — 9 phases (44-52)
+Resume: run `/gsd-plan-phase 44` to begin execution
