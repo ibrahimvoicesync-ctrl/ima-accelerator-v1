@@ -10,6 +10,7 @@ import { getTodayUTC } from "@/lib/utils";
 import { planJsonSchema } from "@/lib/schemas/daily-plan";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
+import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
 
 const postSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -198,6 +199,7 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (studentRow?.coach_id) {
       revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+      revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
     }
   } catch (err) {
     console.error("[work-sessions] failed to invalidate coach-dashboard tag:", err);

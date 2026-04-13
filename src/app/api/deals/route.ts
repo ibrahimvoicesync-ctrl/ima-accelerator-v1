@@ -8,6 +8,7 @@ import { verifyOrigin } from "@/lib/csrf";
 import { VALIDATION } from "@/lib/config";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
+import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -193,6 +194,7 @@ export async function POST(request: NextRequest) {
             .maybeSingle();
           if (studentRow?.coach_id) {
             revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+            revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
           }
         } catch (err) {
           console.error("[deals] failed to invalidate coach-dashboard tag:", err);
@@ -220,6 +222,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
       if (studentRow?.coach_id) {
         revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+        revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
       }
     } catch (err) {
       console.error("[deals] failed to invalidate coach-dashboard tag:", err);
