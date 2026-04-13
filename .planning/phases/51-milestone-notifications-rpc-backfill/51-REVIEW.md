@@ -19,7 +19,9 @@ findings:
   low: 3
   info: 3
   total: 8
-status: findings
+status: partially_resolved
+fix_pass: 2026-04-13T22:30:00Z
+fix_pass_commit: c395f27
 ---
 
 # Phase 51: Code Review Report
@@ -78,6 +80,8 @@ one an idempotency edge case in ASSERTs). No critical or high findings.
 
 ### MD-01: `fetchCoachMilestones` casts admin client to `any`, bypassing the generated RPC signature
 
+**Status:** RESOLVED in commit c395f27 (Phase 51 fix pass) — cast and eslint-disable removed; `tsc --noEmit` and `npm run build` both green.
+
 **File:** `src/lib/rpc/coach-milestones.ts:49-54`
 **Issue:**
 ```typescript
@@ -106,6 +110,8 @@ check (already done at line 67). Same cleanup applies retroactively to
 `coach-analytics.ts` / `coach-dashboard.ts` but that is out of scope for 51.
 
 ### MD-02: ASSERT 4 and ASSERT 7 mutate real production tables without a SAVEPOINT, relying on transaction rollback-on-failure
+
+**Status:** DEFERRED — migration 00027 is already applied to the remote DB. Rewriting it now would create migration drift between local and remote. Logged for a follow-up housekeeping migration that adds `FOUND`-based clarity (and optionally SAVEPOINT wrappers) without altering the applied behavior.
 
 **File:** `supabase/migrations/00027_get_coach_milestones_and_backfill.sql:558-611` (ASSERT 4), `:659-725` (ASSERT 7)
 **Issue:** Both assertions pick a real `(coach_id, student_id)` pair from
@@ -149,6 +155,8 @@ rolls back on failure, this is belt-and-suspenders.
 
 ### LO-01: `tech_setup` CTE uses placeholder `step_number = 0` which violates the CHECK constraint if executed
 
+**Status:** DEFERRED — touches applied migration 00027. Will be addressed when D-06 resolves (the same migration that replaces the placeholder will use a defensive sentinel like `-1` or add a `RAISE EXCEPTION` guard).
+
 **File:** `supabase/migrations/00027_get_coach_milestones_and_backfill.sql:130`
 **Issue:**
 ```sql
@@ -176,6 +184,8 @@ already documents this; the check makes it enforceable.
 
 ### LO-02: Backfill does not scope by student_id to prevent cross-coach contamination on reassignment
 
+**Status:** DEFERRED (documentation-only, applied migration). Will be added as a SYNC comment to a future housekeeping migration touching this area.
+
 **File:** `supabase/migrations/00027_get_coach_milestones_and_backfill.sql:408-446`
 **Issue:** Backfill uses `u.coach_id` at migration time — so when student X is
 currently assigned to coach A but was historically assigned to coach B when
@@ -193,6 +203,8 @@ milestones to that new coach — intentional per D-08 one-shot-per-coach
 semantics." No code change required; documentation only.
 
 ### LO-03: `coach-milestones.ts` re-exports via two paths, creating import-style ambiguity
+
+**Status:** SKIPPED (advisory). Current pattern mirrors `coach-analytics.ts` / `coach-dashboard.ts` precedent; revisiting in isolation would create inconsistency with sibling modules. Best addressed as part of a broader RPC-wrapper sweep across all four modules.
 
 **File:** `src/lib/rpc/coach-milestones.ts:19-30`
 **Issue:** The server module imports `coachMilestonesTag` and
