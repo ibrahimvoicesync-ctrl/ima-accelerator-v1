@@ -1,538 +1,614 @@
-# Architecture Research
+# Architecture: v1.5 Analytics Pages, Coach Dashboard & Deal Logging
 
-**Domain:** Student performance & coaching platform — v1.4 integration architecture
-**Researched:** 2026-04-03
-**Confidence:** HIGH (derived from direct codebase inspection + first-principles analysis)
+**Domain:** Performance platform at 5k concurrent students — Next.js 16 App Router + Supabase
+**Researched:** 2026-04-13
+**Mode:** Subsequent-milestone integration architecture
+**Overall confidence:** HIGH (all recommendations grounded in existing migrations 00001–00020 + v1.2 Phase 19–24 baselines)
 
----
-
-## Standard Architecture
-
-### System Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     BROWSER (React 19)                               │
-│  ┌───────────────┐  ┌────────────────────┐  ┌──────────────────┐    │
-│  │ Server Pages  │  │  "use client"       │  │  Polling client  │    │
-│  │ (reads only)  │  │  WorkTrackerClient  │  │  ChatClient      │    │
-│  │ async/await   │  │  (state machine)    │  │  (5s interval)   │    │
-│  └──────┬────────┘  └────────┬───────────┘  └────────┬─────────┘    │
-├─────────┼───────────────────┼────────────────────────┼──────────────┤
-│                      Next.js 16 App Router                           │
-│  ┌────────────────────────────────────────────────────────────┐      │
-│  │  proxy.ts route guard (CSRF, auth, role, redirect)          │      │
-│  └────────────────────────────────────────────────────────────┘      │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐      │
-│  │ (auth)/      │  │ (dashboard)/ │  │ api/                   │      │
-│  │ login        │  │ owner/       │  │ reports/ work-sessions/ │      │
-│  │ register     │  │ coach/       │  │ roadmap/ assignments/   │      │
-│  │ no-access    │  │ student/     │  │ messages/ resources/    │      │
-│  └──────────────┘  │ student_diy/ │  │ glossary/              │      │
-│                    └──────────────┘  └────────────────────────┘      │
-├──────────────────────────────────────────────────────────────────────┤
-│                      Supabase (Postgres + RLS)                        │
-│  users  invites  magic_links  work_sessions  roadmap_progress         │
-│  daily_reports  alert_dismissals  student_kpi_summaries               │
-│  rate_limit_log  daily_plans  roadmap_undo_log                        │
-│  [NEW] report_comments  messages  resources  glossary_terms           │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-### Component Responsibilities
-
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| proxy.ts | Route guard — auth check + role-based redirect | Server-side, runs before every non-API page request |
-| (dashboard)/layout.tsx | Sidebar + badge fetch + ToastProvider | Server component, unstable_cache for badges |
-| Sidebar.tsx | Navigation + unread badges + sign-out | "use client" — needs pathname + auth.signOut() |
-| API routes | Mutations only — CSRF → Auth → Role → RateLimit → Zod → Ownership → Logic | Server-side, admin client for all DB queries |
-| Server pages | All reads — parallel data fetching, pass to client components | async Server Components with createAdminClient() |
-| Client components | Interactive UI — form state, optimistic updates, polling | Minimal "use client" islands |
-| src/lib/config.ts | Single source of truth — roles, nav, routes, constants | Imported everywhere, never duplicated |
+Migration numbers assume deals landed as `00021_deals.sql` per ROADMAP Phase 38. First v1.5 migration is therefore **00022**.
 
 ---
 
-## Recommended Project Structure (v1.4 additions)
+## 1. Analytics Query Architecture
 
+### 1.1 Reuse `student_kpi_summaries` vs compute-on-read
+
+**Recommendation:** Read **lifetime totals** from `student_kpi_summaries` (v1.2 Phase 21). Compute **time-series windows** (trailing 30/90 days) live from `daily_reports` / `work_sessions` / `deals` with supporting indexes. Do **not** extend `student_kpi_summaries` with window fields — it is schema-intentionally lifetime-only (see `00011_write_path.sql` Section 0 scope note).
+
+**Why this split:**
+
+| Metric family | Freshness need | Source | Rationale |
+|---------------|----------------|--------|-----------|
+| Lifetime totals (outreach, hours, deals count/revenue/profit) | 24h stale OK | `student_kpi_summaries` + deals rollup | Nightly `refresh_student_kpi_summaries` already does the work; P95 < 1s proven at 5k |
+| Trailing windows (last 7/30/90 days) | Must be live | `daily_reports` + `work_sessions` indexes | Windows slide daily; stale snapshot would miss yesterday's data |
+| Chart series (weekly buckets over N weeks) | Live | `daily_reports` + `deals` with `date_trunc('week', ...)` | Aggregation is cheap at single-student scope (<200 rows/student lifetime) |
+
+**At 5k students scale:** Per-student analytics page is a single user's view — aggregating 90 days of one student's reports (~90 rows) + work_sessions (~400 rows) + deals (<50 rows) is cheap (<50ms) if indexes exist. No pre-aggregation needed for per-student pages.
+
+**Anti-recommendation — do NOT add `analytics_daily_snapshots`:**
+- Write amplification: every report submit would need a trigger to write the snapshot
+- Storage: 5k students × 180 days × 5 metrics = 4.5M rows for marginal read gain
+- v1.2 Phase 21 already proved the single-summary-row approach handles the only expensive case (lifetime aggregates across all students' reports)
+
+### 1.2 One RPC per chart vs batch RPC
+
+**Recommendation:** **One batch RPC per page** (`get_student_analytics`, `get_coach_analytics`). Return a `jsonb` envelope with named keys per chart. Precedent: `get_student_detail` (00011_write_path Section 4) returns `sessions / roadmap / reports / lifetime_outreach / today_outreach / ...` in one round trip.
+
+**Why batch:**
+- 1 network round trip vs 4–6
+- Single RLS check, single auth check, single `SET search_path`
+- Matches v1.2 Phase 20 "RPC consolidation" pattern (owner 8→2 round trips)
+- Easier to wrap in `unstable_cache` with one cache key
+
+**Signatures:**
+
+```sql
+-- v1.5 Phase: student analytics
+CREATE FUNCTION public.get_student_analytics(
+  p_student_id uuid,
+  p_window_days integer DEFAULT 90,   -- trailing window for trends
+  p_today date DEFAULT CURRENT_DATE
+) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public;
+-- Returns:
+-- {
+--   lifetime: { outreach_total, hours_total, deals_count, revenue_total, profit_total },
+--   outreach_weekly: [{ week_start, brands, influencers, total }, ...],
+--   deals_history: [{ deal_number, revenue, profit, margin_pct, closed_at }, ...],
+--   hours_weekly: [{ week_start, hours }, ...],
+--   roadmap: [{ step_number, status, completed_at, target_days, deadline_status }, ...]
+-- }
+
+-- v1.5 Phase: coach homepage stats + leaderboard (single call)
+CREATE FUNCTION public.get_coach_dashboard(
+  p_coach_id uuid,
+  p_week_start date,     -- Monday of current ISO week (computed in TS)
+  p_today date DEFAULT CURRENT_DATE
+) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public;
+-- Returns:
+-- {
+--   stats: { deals_closed, revenue_total, profit_total, avg_roadmap_step, total_emails },
+--   recent_reports: [{ report_id, student_id, student_name, date, star_rating, ... }], -- 3 rows
+--   top_hours_week: [{ student_id, student_name, hours_this_week }, ...] -- top 3
+-- }
+
+-- v1.5 Phase: full coach analytics page
+CREATE FUNCTION public.get_coach_analytics(
+  p_coach_id uuid,
+  p_window_days integer DEFAULT 30,
+  p_today date DEFAULT CURRENT_DATE,
+  p_leaderboard_limit integer DEFAULT 10
+) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public;
+-- Returns:
+-- {
+--   totals: { active_students, inactive_students, deals_closed_window, revenue_window },
+--   leaderboard_deals: [{ student_id, student_name, deals_count, revenue, profit }, ...],
+--   leaderboard_emails: [{ student_id, student_name, outreach_total }, ...],
+--   deals_trend_weekly: [{ week_start, deals_count, revenue }, ...],
+--   active_inactive_split: { active_7d, inactive_3_to_7d, inactive_7_plus }
+-- }
 ```
-src/
-├── app/
-│   ├── (auth)/                         # Unchanged
-│   ├── (dashboard)/
-│   │   ├── layout.tsx                  # MODIFIED: add unread_messages badge
-│   │   ├── owner/
-│   │   │   ├── students/               # MODIFIED: add skip_days_this_week column
-│   │   │   ├── assignments/            # UNCHANGED (owner already has this)
-│   │   │   └── invites/                # MODIFIED: show max_uses/use_count on magic links
-│   │   ├── coach/
-│   │   │   ├── students/               # MODIFIED: add skip_days_this_week column
-│   │   │   ├── reports/                # MODIFIED: add comment inline in ReportRow
-│   │   │   ├── assignments/            # NEW: duplicate of owner/assignments (coach-scoped)
-│   │   │   └── chat/                   # NEW: polling chat UI
-│   │   ├── student/
-│   │   │   ├── chat/                   # NEW: 1:1 + broadcast chat UI
-│   │   │   └── resources/              # NEW: URL links + Discord + glossary tabs
-│   │   └── student_diy/                # NEW: 4th role dashboard (clone of student, reduced)
-│   │       ├── layout.tsx              # NEW: same dashboard layout, student_diy nav
-│   │       ├── page.tsx                # NEW: dashboard (work sessions + roadmap summary)
-│   │       ├── work/                   # NEW: work tracker (identical to student/work)
-│   │       └── roadmap/                # NEW: roadmap view (identical to student/roadmap)
-│   └── api/
-│       ├── reports/[id]/comment/       # NEW: POST/DELETE coach comment on report
-│       ├── messages/                   # NEW: GET (poll) + POST (send)
-│       ├── resources/                  # NEW: GET (list) + POST (create)
-│       ├── resources/[id]/             # NEW: PATCH + DELETE
-│       ├── glossary/                   # NEW: GET (list) + POST (create)
-│       ├── glossary/[id]/              # NEW: PATCH + DELETE
-│       └── assignments/                # NEW: PATCH (coach can now reassign students)
-├── components/
-│   ├── coach/
-│   │   ├── CoachAssignmentsClient.tsx  # NEW: clone of OwnerAssignmentsClient, coach-scoped
-│   │   └── ReportRow.tsx               # MODIFIED: add inline comment field
-│   ├── student/
-│   │   └── ChatClient.tsx              # NEW: polling chat — student view
-│   ├── shared/
-│   │   ├── ChatClient.tsx              # NEW: or role-prop variant — shared chat component
-│   │   ├── ResourcesTab.tsx            # NEW: URL links list + add form
-│   │   ├── DiscordEmbed.tsx            # NEW: WidgetBot iframe wrapper
-│   │   └── GlossaryTab.tsx             # NEW: searchable glossary list + CRUD
-│   └── layout/
-│       └── Sidebar.tsx                 # MODIFIED: add unread_messages badge support
-└── lib/
-    └── config.ts                       # MODIFIED: add student_diy role, routes, nav, invite rules
+
+All three are `SECURITY DEFINER STABLE` — same pattern as `get_student_detail`, `get_weekly_skip_counts`, `get_sidebar_badges`. All called via admin client from server components.
+
+### 1.3 Caching strategy
+
+**Recommendation:** `unstable_cache` with 60s TTL (v1.5 D-02) and user-scoped tags. Invalidate via `revalidateTag` from relevant mutation routes.
+
+```ts
+// src/lib/analytics.ts (new)
+import { unstable_cache, revalidateTag } from "next/cache";
+
+export const getStudentAnalytics = unstable_cache(
+  async (studentId: string) => {
+    const admin = createAdminClient();
+    const { data } = await admin.rpc("get_student_analytics", {
+      p_student_id: studentId,
+      p_window_days: 90,
+      p_today: getTodayUTC(),
+    });
+    return data;
+  },
+  ["student-analytics"],                         // base key
+  { tags: (studentId) => [`analytics-student-${studentId}`], revalidate: 60 }
+);
+```
+
+**Invalidation triggers (add to existing routes):**
+
+| Mutation | Routes to modify | Tags to revalidate |
+|----------|------------------|--------------------|
+| Submit/update daily report | `src/app/api/reports/route.ts` | `analytics-student-${studentId}` |
+| Complete work session | `src/app/api/work-sessions/[id]/route.ts` | `analytics-student-${studentId}` |
+| Create/edit/delete deal | `src/app/api/deals/route.ts`, `src/app/api/deals/[id]/route.ts` | `analytics-student-${studentId}`, `analytics-coach-${coachIdOfStudent}` |
+| Complete/undo roadmap step | `src/app/api/roadmap/...` (existing) | `analytics-student-${studentId}` |
+
+The deals POST route already calls `revalidateTag("deals-${profile.id}")` — extend with the new analytics tags.
+
+**Do NOT use React `cache()` for analytics** — it deduplicates within a single render but not across requests. `unstable_cache` is required for 60s TTL.
+
+### 1.4 Indexes needed
+
+**Already present (from 00009_database_foundation.sql):** `daily_reports(student_id, date)`, `work_sessions(student_id, date)`. These cover 95% of analytics reads. Confirm before assuming; migration 00022 should audit.
+
+**New indexes required for v1.5 queries:**
+
+```sql
+-- Coach fan-out: "my students' deals in last N days" (leaderboard + trend)
+-- deals(student_id) PK already on id; v1.2 pattern suggests:
+CREATE INDEX IF NOT EXISTS idx_deals_student_created
+  ON public.deals(student_id, created_at DESC);
+
+-- Coach weekly top-3 hours: "SUM(work_sessions.session_minutes) WHERE student_id IN (...) AND date BETWEEN ..."
+-- Covered by existing (student_id, date) but only for status='completed' rows; add partial if hot:
+CREATE INDEX IF NOT EXISTS idx_work_sessions_completed_student_date
+  ON public.work_sessions(student_id, date)
+  WHERE status = 'completed';
+```
+
+**Milestone-notification support index:**
+```sql
+-- Supports fan-out in get_coach_milestones over coach's students' roadmap states
+CREATE INDEX IF NOT EXISTS idx_roadmap_progress_student_status
+  ON public.roadmap_progress(student_id, step_number, status);
 ```
 
 ---
 
-## Architectural Patterns
+## 2. Coach Homepage Stats
 
-### Pattern 1: Server Component for Reads, Client Island for Interactivity
+### 2.1 Single batch RPC — `get_coach_dashboard`
 
-**What:** Every page is an async Server Component that fetches data and passes it to a thin "use client" child component only when interaction is needed.
+Already proposed in §1.2. Returns 4 stat card values + 3 recent reports + top-3 hours in one JSON envelope. This replaces the current 4-query Promise.all in `src/app/(dashboard)/coach/page.tsx` (lines 46–68: sessions + reports + roadmap + skip_counts) with a single RPC — same consolidation pattern as v1.2 Phase 20.
 
-**When to use:** All page-level data loading. Applies to new resources, glossary, skip tracker, and report comments pages.
+**Migrated coach page flow:**
 
-**Trade-offs:** Requires a clean data/interaction boundary. Avoids client-side data fetching waterfalls. Next.js cache() deduplicates repeated calls within the same render tree.
+```ts
+// src/app/(dashboard)/coach/page.tsx (rewritten, post-Phase X)
+const user = await requireRole("coach");
+const admin = createAdminClient();
+const weekStart = getISOWeekStartUTC(new Date()); // Monday, same as skip tracker D-01
+const { data: dashboard } = await admin.rpc("get_coach_dashboard", {
+  p_coach_id: user.id,
+  p_week_start: weekStart,
+  p_today: getTodayUTC(),
+});
+// dashboard.stats, dashboard.recent_reports, dashboard.top_hours_week
+```
 
-**Example (new resources page):**
-```typescript
-// src/app/(dashboard)/student/resources/page.tsx — server component
-export default async function ResourcesPage() {
-  await requireRole(["owner", "coach", "student"]);
-  const admin = createAdminClient();
-  const [resources, glossary] = await Promise.all([
-    admin.from("resources").select("*").order("created_at", { ascending: false }),
-    admin.from("glossary_terms").select("*").order("term"),
-  ]);
-  return <ResourcesClient resources={resources.data ?? []} glossary={glossary.data ?? []} />;
+Keep the existing enriched student card grid (at-risk detection) — that logic is orthogonal to the new stats and can continue using its 4 queries, OR be folded into `get_coach_dashboard` in a follow-up. Recommendation: **fold into `get_coach_dashboard` now** to consolidate all coach-home reads into one RPC (extend the return envelope with `students` array containing the at-risk enrichment data).
+
+### 2.2 Scoping to coach's assigned students
+
+**Recommendation:** Single JOIN at the top of the RPC, not a prep array.
+
+```sql
+-- Inside get_coach_dashboard — recent_reports example
+SELECT jsonb_agg(jsonb_build_object(
+  'report_id', dr.id, 'student_id', dr.student_id, 'student_name', s.name,
+  'date', dr.date, 'star_rating', dr.star_rating, 'hours_worked', dr.hours_worked
+) ORDER BY dr.submitted_at DESC)
+FROM daily_reports dr
+JOIN users s ON s.id = dr.student_id
+WHERE s.coach_id = p_coach_id
+  AND s.status = 'active'
+  AND dr.submitted_at IS NOT NULL
+LIMIT 3;
+```
+
+**Why JOIN over `IN (SELECT …)`:** Postgres planner handles both fine with `idx_users_coach_id` (exists from 00001 — verify), but JOIN is idiomatic and composes with the other aggregations in the same CTE chain. The `get_sidebar_badges` coach block (00014 line 81–89) uses JOIN — match that pattern.
+
+**Do NOT prep a TS array of student_ids and pass to RPC** — it adds a round trip and reduces planner visibility. The skip tracker RPC accepts `p_student_ids uuid[]` only because the caller (coach page) already had the array in-memory from its own student query; analytics RPCs compute the set server-side.
+
+### 2.3 Weekly top-3 hours (Mon-Sun ISO week)
+
+**Recommendation:** Pass `p_week_start date` (Monday) computed in TS, same as skip tracker convention (v1.4 D-01, 00016_skip_tracker.sql).
+
+```sql
+-- Inside get_coach_dashboard
+SELECT jsonb_agg(x ORDER BY hours_this_week DESC)
+FROM (
+  SELECT
+    ws.student_id,
+    s.name AS student_name,
+    ROUND(SUM(ws.session_minutes)::numeric / 60.0, 2) AS hours_this_week
+  FROM work_sessions ws
+  JOIN users s ON s.id = ws.student_id
+  WHERE s.coach_id = p_coach_id
+    AND s.status = 'active'
+    AND ws.status = 'completed'
+    AND ws.date >= p_week_start
+    AND ws.date <= p_week_start + 6
+  GROUP BY ws.student_id, s.name
+  ORDER BY hours_this_week DESC
+  LIMIT 3
+) x;
+```
+
+Index `idx_work_sessions_completed_student_date` (proposed §1.4) covers this predicate. At 5k students / ~50 per coach × 7 days × ~4 sessions/day = ~1,400 rows scanned per coach — trivial.
+
+---
+
+## 3. Milestone Notifications
+
+### 3.1 Architecture decision: **Hybrid (on-read compute + existing dismissal table)** — extends the 100h pattern from 00014
+
+**Rejecting the three alternatives as proposed, combining their best parts:**
+
+| Option | Reject reason |
+|--------|---------------|
+| (a) Pure DB triggers writing to `coach_notifications` | Triggers fire on every `daily_reports` / `work_sessions` / `roadmap_progress` / `deals` INSERT — adds write-path latency on the hottest tables; violates v1.2 write-path audit (4 DB calls optimal) |
+| (b) Scheduled pg_cron nightly | 24h stale for "Closed Deal" notifications that D-07 requires be visible immediately |
+| (c) Hybrid on-write flag + cache | Closest to correct — refined below |
+
+**Recommended hybrid:**
+
+1. **Computed at read time** in a new `get_coach_milestones(p_coach_id)` RPC that fans out the 4 milestone types across the coach's assigned students (same pattern as 00014 lines 93–109). Already proven: 100h milestone loops ~50 students × ~400 work_session rows each, fast.
+2. **Dismissals tracked in existing `alert_dismissals` table** with new `alert_key` prefixes:
+   - `milestone_tech_setup:{student_id}` — Tech/Email Setup (roadmap step TBC per D-06)
+   - `milestone_5_influencers:{student_id}` — Step 11 completed
+   - `milestone_brand_response:{student_id}` — Step 13 completed
+   - `milestone_closed_deal:{student_id}:{deal_id}` — per-deal (D-07: every deal, so idempotency key includes deal_id)
+3. **RPC invoked from** (a) `get_sidebar_badges` (extend coach block) for badge count; (b) `/coach/alerts` page for list; (c) a new tiny widget on `/coach` dashboard if "at a glance" visibility is wanted.
+4. **Invalidation:** `unstable_cache` with 60s TTL on `get_coach_milestones` + `revalidateTag('coach-milestones-${coachId}')` from `POST /api/deals` (deal closed), `POST /api/reports` (only if a report submission triggers a milestone path — none currently), `POST /api/roadmap/steps` (step completion). The 60s TTL matches v1.5 D-02.
+
+**Cost at 5k scale:** 200 checks per coach dashboard view is fine. Per coach: 50 students × 4 milestone types = 200 predicate evaluations, each O(1) against indexed columns (`roadmap_progress(student_id, step_number, status)`, `deals(student_id, created_at)`). 60s cache means a coach viewing dashboard then analytics tab pays the cost once, not twice.
+
+**Why no new `coach_notifications` table:** The existing `alert_dismissals` table (00004_alert_dismissals.sql + coach policies in 00014) already models exactly this use case — dismissible computed alerts with idempotent keys. Adding a separate notifications table duplicates the pattern, doubles the RLS policy surface, and forces a triggers-everywhere write path. The v1.5 D-08 decision explicitly says "reuse existing pattern" — honor it.
+
+### 3.2 Idempotency
+
+Idempotency is enforced by the `alert_key` shape itself:
+
+| Milestone | Key format | Re-fires? |
+|-----------|-----------|-----------|
+| Tech/Email Setup | `milestone_tech_setup:{student_id}` | No — once dismissed, gone |
+| 5 Influencers (Step 11) | `milestone_5_influencers:{student_id}` | No |
+| First Brand Response (Step 13) | `milestone_brand_response:{student_id}` | No |
+| Closed Deal (D-07: every deal) | `milestone_closed_deal:{student_id}:{deal_id}` | **Yes** per new deal — unique deal_id in key |
+
+The computed-minus-dismissed pattern (00014 line 120: `GREATEST(0, v_milestone_count - v_milestone_dismissed)`) handles the subtraction automatically.
+
+**Config sync (already precedented in 00014 Section 2 header):**
+
+Add to `src/lib/config.ts` new block:
+```ts
+export const MILESTONE_CONFIG = {
+  techSetupStep: 6,            // TBC per D-06 — Abu Lahya confirms Monday
+  influencersClosedStep: 11,
+  brandResponseStep: 13,
+  // 100h is already COACH_CONFIG.milestoneMinutesThreshold / milestoneDaysWindow
+} as const;
+```
+
+And SYNC comments in the RPC matching 00014's style.
+
+### 3.3 Sidebar badge count
+
+**Recommendation:** Extend existing `get_sidebar_badges` (00014) coach branch. Do **not** create a separate RPC.
+
+```sql
+-- Inside get_sidebar_badges, coach branch, after existing 100h milestone block:
+-- Add counts for the 4 new milestone types (deduped by alert_key shape).
+-- Return becomes:
+RETURN jsonb_build_object(
+  'unreviewed_reports', v_unreviewed_count,
+  'coach_milestone_alerts', GREATEST(0,
+    v_milestone_100h_count
+    + v_milestone_tech_setup_count
+    + v_milestone_5_influencers_count
+    + v_milestone_brand_response_count
+    + v_milestone_closed_deal_count
+    - v_dismissed_count
+  )
+);
+```
+
+Single badge key `coach_milestone_alerts` already exists in NAVIGATION (`src/lib/config.ts` line 300). No new badge wiring — UI is a free extension.
+
+---
+
+## 4. `deals.logged_by` Column
+
+### 4.1 Migration shape (migration **00022_deals_logged_by.sql**)
+
+```sql
+-- ALTER TABLE — nullable (null = student self-logged, legacy rows preserved)
+ALTER TABLE public.deals
+  ADD COLUMN logged_by uuid REFERENCES public.users(id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN public.deals.logged_by IS
+  'User who logged the deal. NULL = student self-logged (includes legacy v1.4 rows). Set = coach or owner who logged on student''s behalf. See v1.5 D-09.';
+
+-- Attribution query support
+CREATE INDEX IF NOT EXISTS idx_deals_logged_by ON public.deals(logged_by) WHERE logged_by IS NOT NULL;
+```
+
+**`ON DELETE SET NULL` (not RESTRICT):** If a coach is deleted/deactivated, their attribution becomes anonymous but the deal survives. RESTRICT would block coach deletion, an unacceptable UX coupling. The `users(id) ON DELETE CASCADE` on `deals.student_id` remains — students still own their deals.
+
+**Nullable:** All pre-existing deal rows from Phases 38–43 have no `logged_by`; nullable default NULL + interpretation "NULL = student self-logged" avoids a data backfill and matches D-09.
+
+### 4.2 RLS policy changes
+
+Current RLS (migration 00021, per ROADMAP Phase 38) restricts students to own-INSERT via `student_id = (SELECT auth.uid())`. Add two new INSERT policies side-by-side (don't modify existing — keeps student path unchanged):
+
+```sql
+-- Coach INSERT: can log deals for their assigned students only
+CREATE POLICY "coach_insert_deals" ON public.deals
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    (SELECT get_user_role()) = 'coach'
+    AND logged_by = (SELECT get_user_id())
+    AND student_id IN (
+      SELECT id FROM public.users
+      WHERE coach_id = (SELECT get_user_id())
+        AND status = 'active'
+    )
+  );
+
+-- Owner INSERT: can log deals for any student
+CREATE POLICY "owner_insert_deals" ON public.deals
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    (SELECT get_user_role()) = 'owner'
+    AND logged_by = (SELECT get_user_id())
+  );
+```
+
+Initplan pattern `(SELECT get_user_role())` / `(SELECT get_user_id())` matches v1.2 Phase 19 (D-03 locked). Precedent: 00015_v1_4_schema.sql Section 8 coach_insert_report_comments.
+
+**Note:** Per CLAUDE.md rule 4, API routes use admin client which bypasses RLS — RLS here is defense in depth. The actual gate is in `/api/deals` route handler logic.
+
+### 4.3 API route update (`src/app/api/deals/route.ts` POST)
+
+Current POST is student-only (lines 49–52). Refactor to accept an optional `student_id` in body when caller is coach/owner:
+
+```ts
+// New Zod schema
+const postDealSchema = z.object({
+  revenue: z.number().min(...).max(...),
+  profit: z.number().min(...).max(...),
+  student_id: z.string().uuid().optional(), // required if caller is coach/owner
+});
+
+// Role branch after profile lookup
+const isStudent = ["student", "student_diy"].includes(profile.role);
+const targetStudentId = isStudent ? profile.id : parsed.data.student_id;
+
+if (!isStudent) {
+  if (!targetStudentId) return 400 "student_id required for coach/owner";
+  if (profile.role === "coach") {
+    // Verify student is assigned to this coach
+    const { data: student } = await admin.from("users")
+      .select("id").eq("id", targetStudentId).eq("coach_id", profile.id).eq("status", "active").maybeSingle();
+    if (!student) return 403;
+  }
 }
+
+const insertPayload = {
+  student_id: targetStudentId,
+  revenue: parsed.data.revenue,
+  profit: parsed.data.profit,
+  logged_by: isStudent ? null : profile.id, // D-09 semantics
+};
 ```
 
-### Pattern 2: API Route Pipeline (CSRF → Auth → Role → RateLimit → Zod → Ownership → Logic)
+**Revalidation:** If coach logs, additionally `revalidateTag('deals-${targetStudentId}')` (already there) AND `revalidateTag('analytics-student-${targetStudentId}')` AND `revalidateTag('coach-milestones-${profile.id}')`.
 
-**What:** Every mutation API route follows the exact same middleware chain in the same order.
+### 4.4 Attribution display — JOIN vs denormalize
 
-**When to use:** All 7 new API routes must follow this pattern. No exceptions.
+**Recommendation:** JOIN to `users` table on read. Do **not** denormalize `logged_by_name`.
 
-**Trade-offs:** Verbose but maximally safe. The order matters: CSRF is cheapest (no DB), auth is next, role gates before expensive DB work.
-
-**Example (new comment endpoint skeleton):**
-```typescript
-// src/app/api/reports/[id]/comment/route.ts
-export async function POST(request: NextRequest, { params }) {
-  const csrfError = verifyOrigin(request);    // 1. CSRF
-  if (csrfError) return csrfError;
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); // 2. Auth
-
-  const admin = createAdminClient();
-  const { data: profile } = await admin.from("users").select("id, role").eq("auth_id", user.id).single();
-  if (!profile || profile.role !== "coach") return NextResponse.json({ error: "Forbidden" }, { status: 403 }); // 3. Role
-
-  const { allowed } = await checkRateLimit(profile.id, "/api/reports/comment"); // 4. Rate limit
-  // ... 5. Zod, 6. Ownership, 7. Logic
-}
+```ts
+// src/app/(dashboard)/coach/students/[studentId]/DealsTab reads
+const { data } = await admin
+  .from("deals")
+  .select("id, deal_number, revenue, profit, created_at, logged_by, logged_by_user:users!deals_logged_by_fkey(id, name, role)")
+  .eq("student_id", studentId)
+  .order("created_at", { ascending: false });
 ```
 
-### Pattern 3: Cursor-Based Polling for Chat
+**Why:** (1) Name changes on users won't get stale. (2) `deals` at 5k students × ~5 deals/student = 25k rows total — FK JOIN is cheap with `idx_deals_logged_by`. (3) Avoids trigger-to-sync-name write-path complexity. Precedent: student name shows by JOIN throughout codebase, no denorm anywhere.
 
-**What:** Chat messages use a `cursor` (last received message ID or timestamp) to fetch only new messages since the last poll. Client polls every 5 seconds via setInterval.
-
-**When to use:** The messages table with polling architecture. This is the only place in the codebase that uses client-side polling.
-
-**Trade-offs:** Simple, no WebSockets, no Supabase Realtime subscription (avoids 500 connection limit). Adds 5s latency maximum. Acceptable for async coaching chat. setInterval must be cleared in useEffect cleanup to prevent memory leaks.
-
-**Example:**
-```typescript
-// Polling hook — inside ChatClient.tsx
-useEffect(() => {
-  const poll = async () => {
-    const res = await fetch(`/api/messages?channel_id=${channelId}&after=${cursor}`);
-    if (!res.ok) return;
-    const { data } = await res.json();
-    if (data.length > 0) {
-      setMessages(prev => [...prev, ...data]);
-      setCursor(data[data.length - 1].id);  // advance cursor
-    }
-  };
-  const interval = setInterval(poll, 5000);
-  return () => clearInterval(interval);  // cleanup on unmount
-}, [channelId, cursor]);
+**UI attribution indicator:**
+```tsx
+{deal.logged_by && deal.logged_by_user && (
+  <Badge variant="info" size="sm">
+    Logged by {deal.logged_by_user.name} ({deal.logged_by_user.role})
+  </Badge>
+)}
 ```
 
-### Pattern 4: Config-Driven Role Expansion
+---
 
-**What:** The `student_diy` role is added to config.ts exactly like existing roles — ROLES constant, ROLE_HIERARCHY, ROUTES, NAVIGATION, ROLE_REDIRECTS, INVITE_CONFIG.
+## 5. New Files / Components Expected
 
-**When to use:** Any role-related feature. proxy.ts and session.ts derive behavior from config constants, not hardcoded strings.
+### 5.1 New routes (server components)
 
-**Trade-offs:** One edit to config.ts propagates everywhere. The `Role` type must be updated in config, types.ts, and the DB migration simultaneously to avoid TypeScript errors.
+| Route | File | Purpose |
+|-------|------|---------|
+| `/student/analytics` | `src/app/(dashboard)/student/analytics/page.tsx` + `loading.tsx` + `error.tsx` | Student self-view analytics |
+| `/student_diy/analytics` | `src/app/(dashboard)/student_diy/analytics/page.tsx` (+loading/error) | Same RPC, student_diy variant (if in scope — confirm) |
+| `/coach/analytics` (expansion) | Modify existing `src/app/(dashboard)/coach/analytics/page.tsx` | Full-page leaderboards/trends |
+| `/coach/students/[studentId]` (extend) | Existing — add `Add Deal` button, attribution column | Coach can log deals |
+| `/owner/students/[studentId]` (extend) | Existing — add `Add Deal` button | Owner can log deals for any student |
 
-**Required config.ts changes:**
-```typescript
-export const ROLES = {
-  OWNER: "owner",
-  COACH: "coach",
-  STUDENT: "student",
-  STUDENT_DIY: "student_diy",        // NEW
+**Not needed:** `/coach/students` (already exists, is the card grid). The "recent reports See All" link points to existing `/coach/reports`.
+
+### 5.2 New client components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `StudentAnalyticsClient` | `src/components/student/StudentAnalyticsClient.tsx` | Renders chart library; receives RPC payload |
+| `CoachAnalyticsClient` | `src/components/coach/CoachAnalyticsClient.tsx` | Leaderboard tables + trend charts + pagination |
+| `OutreachTrendChart` | `src/components/analytics/OutreachTrendChart.tsx` | Reusable weekly-bucket line chart |
+| `DealsHistoryChart` | `src/components/analytics/DealsHistoryChart.tsx` | Bar chart (revenue/profit per month) |
+| `HoursWorkedChart` | `src/components/analytics/HoursWorkedChart.tsx` | Weekly hours bar chart |
+| `RoadmapProgressChart` | `src/components/analytics/RoadmapProgressChart.tsx` | Horizontal timeline with deadline markers |
+| `LogDealModal` | `src/components/coach/LogDealModal.tsx` | Coach variant of existing `DealFormModal` — adds `student_id` picker |
+| `TopHoursLeaderboard` | `src/components/coach/TopHoursLeaderboard.tsx` | 3-student podium card on `/coach` |
+| `RecentReportsCard` | `src/components/coach/RecentReportsCard.tsx` | 3 most recent reports + "See All →" link |
+| `MilestoneNotificationsCard` | `src/components/coach/MilestoneNotificationsCard.tsx` | Optional — feed-style list on `/coach/alerts` |
+
+All wrapped in tiny `"use client"` shells; server components fetch data via RPC and pass payload as props. Matches existing `StudentCard` / `CalendarTab` pattern.
+
+### 5.3 New database migrations (in order)
+
+| Migration | Scope |
+|-----------|-------|
+| `00022_deals_logged_by.sql` | ADD COLUMN `logged_by`, FK+index, coach+owner INSERT policies |
+| `00023_analytics_rpcs.sql` | `get_student_analytics`, `get_coach_analytics`, plus new indexes (`idx_deals_student_created`, `idx_work_sessions_completed_student_date`) |
+| `00024_coach_dashboard_rpc.sql` | `get_coach_dashboard` + folded student enrichment |
+| `00025_milestone_alerts.sql` | `get_coach_milestones` RPC + extend `get_sidebar_badges` coach branch + `idx_roadmap_progress_student_status` |
+
+**All migrations follow existing header conventions** (Phase number, section comments, `IF NOT EXISTS` guards for local dev, `DO $$ IF EXISTS cron` blocks where applicable, `SECURITY DEFINER SET search_path = public`).
+
+### 5.4 New config entries (`src/lib/config.ts`)
+
+```ts
+// MILESTONE_CONFIG — new block (referenced in §3.2)
+export const MILESTONE_CONFIG = {
+  techSetupStep: 6,          // TBC per D-06
+  influencersClosedStep: 11,
+  brandResponseStep: 13,
 } as const;
 
-export const ROLE_HIERARCHY: Record<Role, number> = {
-  owner: 3,
-  coach: 2,
-  student: 1,
-  student_diy: 1,                    // NEW — same level as student
-};
+// ANALYTICS_CONFIG — new block
+export const ANALYTICS_CONFIG = {
+  defaultWindowDays: 90,     // student analytics trailing window
+  coachTrendWindowDays: 30,  // coach analytics trend window
+  coachLeaderboardLimit: 10,
+  topHoursLimit: 3,
+  recentReportsLimit: 3,
+  chartColors: {
+    primary: "ima-primary",
+    success: "ima-success",
+    warning: "ima-warning",
+    error: "ima-error",
+  },
+} as const;
 
-// ROUTES.student_diy — only dashboard, work, roadmap
-// NAVIGATION.student_diy — 3 items (no Ask AI, no Daily Report, no Resources, no Chat)
-// ROLE_REDIRECTS.student_diy — "/student_diy"
-// INVITE_CONFIG.inviteRules — owner can invite student_diy, coach can invite student_diy
+// ROUTES — add
+routes.student.analytics = "/student/analytics";
+// routes.student_diy.analytics = "/student_diy/analytics"; // if scoped in
+
+// NAVIGATION — add Analytics entry to student nav array
 ```
 
-### Pattern 5: Shared Components via Role Prop
+### 5.5 Chart library (D-11 evaluation)
 
-**What:** For features that are nearly identical across roles (assignments, chat), use a shared component with a `role` or `scope` prop rather than duplicating code into role-specific component folders.
+**Recommendation:** Add **recharts** (`recharts@^2.15`). Currently no chart lib is installed (grep of `package.json` returns no `recharts|nivo|chart.js|visx|apexcharts`). Rationale: declarative React components, tree-shakeable (~60KB gzipped for typical bundle), SVG-based (accessible with ARIA), matches existing project style of composable primitives. Alternative `visx` is more flexible but requires more scratch-building; not worth the time for v1.5 scope. See STACK.md for deeper comparison.
 
-**When to use:** CoachAssignmentsClient can be a role-scoped view of the same OwnerAssignmentsClient pattern. Chat UI is identical for coach and student views (just filtering differs server-side).
-
-**Trade-offs:** Reduces duplication but requires careful prop typing. Prefer this over copy-paste when >80% of the component logic is shared.
-
----
-
-## Data Flow
-
-### Chat Polling Flow
+### 5.6 Data flow summary
 
 ```
-[ChatClient mounts]
-    ↓
-[GET /api/messages?channel_id=X&after=null] ← initial load (last 50 messages)
-    ↓
-[setInterval 5s] → [GET /api/messages?channel_id=X&after=<last_id>]
-    ↓
-[append new messages to local state]
-    ↓
-[POST /api/messages] ← user sends message
-    ↓
-[optimistic append to local state, cursor advances]
+DB (daily_reports + work_sessions + deals + roadmap_progress + student_kpi_summaries)
+  ↓  (SECURITY DEFINER RPC via admin client)
+RPC: get_student_analytics / get_coach_analytics / get_coach_dashboard / get_coach_milestones
+  ↓  (unstable_cache wrapper, 60s TTL, user-scoped tag)
+Server component (async page.tsx in (dashboard)/…)
+  ↓  (prop drill typed jsonb payload)
+Client component ("use client" wrapper)
+  ↓  (pass subsliced data)
+recharts primitives (LineChart, BarChart, …) with ima-* stroke/fill colors
 ```
 
-### Sidebar Badge Flow (modified for unread messages)
-
+Mutation path (e.g., coach logs deal):
 ```
-[Dashboard layout.tsx renders]
-    ↓
-[unstable_cache(getSidebarBadges, ['sidebar-badges'], { revalidate: 60 })]
-    ↓
-[get_sidebar_badges RPC] ← MODIFIED: add unread_messages_count to result
-    ↓
-[badgeCounts passed to <Sidebar>]
-    ↓
-[NAVIGATION config badge key 'unread_messages' matched to count]
-```
-
-**Note:** The 60-second revalidation means badge counts can lag by up to 1 minute. This is acceptable for unread message counts (not time-critical). If chat badge needs to be real-time, the ChatClient can manually call `revalidateTag("badges")` after reading messages — but this requires a server action, not a fetch call, to trigger cache invalidation from the client.
-
-### Report Comment Flow
-
-```
-[Coach views report in ReportRow]
-    ↓
-[comment_text textarea inline in ReportRow]
-    ↓
-[POST /api/reports/[id]/comment] → { text: string }
-    ↓
-[INSERT into report_comments (report_id, coach_id, text)]
-    ↓
-[optimistic update: show comment inline in ReportRow]
-    ↓
-[student views /student/report history]
-    ↓
-[server component fetches daily_reports JOIN report_comments]
-    ↓
-[comment shown read-only below report fields]
-```
-
-### skip_days_this_week Computation Flow
-
-```
-[Coach/Owner student list page loads]
-    ↓
-[server component fetches work_sessions WHERE date >= ISO week Monday]
-    ↓
-[compute: days in Mon-Sun week with no completed sessions = skipped days]
-    ↓  (or better: add to get_student_detail RPC or new RPC)
-[pass skip_count to student list row component]
+LogDealModal → POST /api/deals (body: revenue, profit, student_id)
+  → CSRF + auth + role + rate-limit + Zod
+  → admin.insert({ ..., logged_by: coach.id })
+  → revalidateTag('deals-${studentId}') + revalidateTag('analytics-student-${studentId}') + revalidateTag('coach-milestones-${coach.id}')
+  → return 201
+  → useOptimistic rollback cleared, router.refresh()
 ```
 
 ---
 
-## Integration Points: New vs Modified
+## 6. Suggested Build Order
 
-### Components: NEW
+Honors v1.5 D-10 (sequential) but refines the feature numbering with phase-level dependencies. Each step is a phase-sized unit.
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `ChatClient.tsx` | `src/components/shared/` | Polling chat UI, works for coach and student views |
-| `ResourcesTab.tsx` | `src/components/shared/` | URL link list with add/delete (owner/coach) |
-| `DiscordEmbed.tsx` | `src/components/shared/` | WidgetBot iframe wrapper with CSP note |
-| `GlossaryTab.tsx` | `src/components/shared/` | Searchable glossary, CRUD for owner/coach |
-| `CoachAssignmentsClient.tsx` | `src/components/coach/` | Assignment UI for coach role (mirrors owner pattern) |
-| `StudentDIYDashboard.tsx` | `src/components/student_diy/` | DIY-specific dashboard widgets |
+| # | Phase topic | Depends on | Migration | Rationale |
+|---|-------------|-----------|-----------|-----------|
+| 1 | **`deals.logged_by` migration + API + RLS** | 00021 deals | **00022** | Unblocks "coach logs deal" UI; pure data-layer work — safest first step. Milestone "Closed Deal" identification key uses deal_id (created by this phase) |
+| 2 | **Analytics indexes + Student Analytics RPC** | migrations only | **00023** | Build the read-foundation first. Student analytics is the simplest consumer (1 student, no fan-out) — validates query shapes before coach fan-out complexity |
+| 3 | **Student Analytics page + charts** (recharts install) | #2 + recharts dep | — | Install recharts once, reuse across all analytics. Student page is self-contained — easy win ships observable user value |
+| 4 | **Coach Dashboard RPC** (consolidation) | #2 (reuses indexes) | **00024** | Fold the 4 existing coach page queries + new stats + recent reports + top hours into one RPC |
+| 5 | **Coach homepage stats UI** | #4 | — | Replace `/coach/page.tsx` queries with the new RPC; add stat cards + `RecentReportsCard` + `TopHoursLeaderboard` |
+| 6 | **Coach Analytics page full expansion** | #2 + #4 (shared index work) | part of 00023 or follow-up 00023b | Leaderboards + deal trends + active/inactive — reuses `get_coach_analytics` RPC. Paginates via URL `?page=N` following v1.2 Phase 20 server-side pagination precedent |
+| 7 | **Coach deals logging UI** | #1 + existing coach student detail page | — | Add "Log Deal" button on `/coach/students/[studentId]` deals tab + attribution column. Reuses DealFormModal with added student picker |
+| 8 | **Milestone notifications RPC + extension to get_sidebar_badges** | #1, #2 | **00025** | Last because "Closed Deal" milestone key format depends on #1's `logged_by` + deal_id, and should not block simpler features |
+| 9 | **Coach Alerts page milestone list UI** | #8 | — | New list on `/coach/alerts` + sidebar badge updates automatically via existing `get_sidebar_badges` path. Config `MILESTONE_CONFIG.techSetupStep` finalized once D-06 TBC step is confirmed Monday |
 
-### Components: MODIFIED
+**Parallelizable:** #3 and #7 can run in parallel after #2 and #1 respectively. #6 can run in parallel with #5 after #4. But the safe serial order above is recommended given the solo-dev + GSD phase model.
 
-| Component | File | Change |
-|-----------|------|--------|
-| `Sidebar.tsx` | `src/components/layout/Sidebar.tsx` | Add `unread_messages` badge key + new icon (MessageSquare already imported) |
-| `ReportRow.tsx` | `src/components/coach/ReportRow.tsx` | Add inline comment textarea + submit button |
-| `NAVIGATION` | `src/lib/config.ts` | Add `student_diy` nav array, add Chat + Resources to student/coach/owner navs |
-| `ROLES` / `Role` type | `src/lib/config.ts` | Add `student_diy` to enum + hierarchy |
-| `INVITE_CONFIG` | `src/lib/config.ts` | Add `student_diy` to inviteRules for owner and coach |
-| `ROUTES` | `src/lib/config.ts` | Add `student_diy` routes, chat routes, resources routes |
-
-### API Routes: NEW
-
-| Route | Method | Actor | Purpose |
-|-------|--------|-------|---------|
-| `/api/reports/[id]/comment` | POST | coach | Add/replace single comment on a report |
-| `/api/reports/[id]/comment` | DELETE | coach | Remove comment |
-| `/api/messages` | GET | coach, student | Poll messages (cursor-based, filter by channel) |
-| `/api/messages` | POST | coach, student | Send message |
-| `/api/resources` | GET | owner, coach, student | List resources |
-| `/api/resources` | POST | owner, coach | Create resource (URL link) |
-| `/api/resources/[id]` | PATCH | owner, coach | Update resource |
-| `/api/resources/[id]` | DELETE | owner, coach | Delete resource |
-| `/api/glossary` | GET | owner, coach, student | List glossary terms |
-| `/api/glossary` | POST | owner, coach | Create term |
-| `/api/glossary/[id]` | PATCH | owner, coach | Update term |
-| `/api/glossary/[id]` | DELETE | owner, coach | Delete term |
-| `/api/assignments` | PATCH | owner, coach | Reassign student to coach |
-
-### API Routes: MODIFIED
-
-| Route | Change |
-|-------|--------|
-| `/api/invites` | Accept `student_diy` as valid role for invite creation |
-| `/api/auth/callback` | Accept `student_diy` role during registration |
-
-### Database: NEW TABLES
-
-| Table | Key Columns | Notes |
-|-------|-------------|-------|
-| `report_comments` | `id, report_id, coach_id, text, created_at, updated_at` | UNIQUE on `report_id` — one comment per report, coach-only write |
-| `messages` | `id, channel_id, sender_id, text, created_at` | `channel_id` = concat of sorted user IDs for 1:1; broadcast uses special channel ID |
-| `resources` | `id, title, url, description, created_by, created_at` | Visible to owner/coach/student, NOT student_diy |
-| `glossary_terms` | `id, term, definition, created_by, updated_at` | UNIQUE on `term`, managed by owner/coach |
-
-### Database: MODIFIED TABLES/TYPES
-
-| Table/Type | Change |
-|-----------|--------|
-| `users.role` | Add `student_diy` to CHECK constraint or enum |
-| `magic_links.role` | Add `student_diy` to CHECK constraint |
-| `invites.role` | Add `student_diy` to CHECK constraint |
-| `roadmap_undo_log.actor_role` | Unchanged (only coach/owner undo roadmap steps) |
-| `get_sidebar_badges` RPC | Add `unread_messages` return field |
-
-### Proxy: MODIFIED
-
-```typescript
-// proxy.ts — add student_diy to both maps
-const DEFAULT_ROUTES: Record<string, string> = {
-  owner: "/owner",
-  coach: "/coach",
-  student: "/student",
-  student_diy: "/student_diy",        // NEW
-};
-
-const ROLE_ROUTE_ACCESS: Record<string, string[]> = {
-  owner: ["/owner"],
-  coach: ["/coach"],
-  student: ["/student"],
-  student_diy: ["/student_diy"],      // NEW
-};
-```
-
-### Session: MODIFIED
-
-```typescript
-// session.ts — role check for student_diy route group works via requireRole()
-// No code change needed IF Role type from config.ts is updated
-// requireRole(["student"]) will correctly EXCLUDE student_diy
-// requireRole(["student", "student_diy"]) for shared features
-```
+**Critical path for user value:** #1 → #4 → #5 (coach dashboard lights up) takes priority; #2 → #3 (student analytics) can ship independently; #8 → #9 closes out.
 
 ---
 
-## Build Order (Phase Dependency Graph)
+## Integration Points Summary
 
-```
-Phase A: DB Migration + Config Foundation
-  ├── Add student_diy to role CHECK constraints (users, invites, magic_links)
-  ├── Create report_comments, messages, resources, glossary_terms tables
-  ├── Update config.ts (ROLES, ROUTES, NAVIGATION, INVITE_CONFIG)
-  └── Update types.ts + proxy.ts
-        ↓
-Phase B: student_diy Route Group (unblocked after proxy + config)
-  ├── src/app/(dashboard)/student_diy/ layout + page + work + roadmap
-  └── Reuse student components (WorkTrackerClient, RoadmapClient) — no duplication
-        ↓
-Phase C: Skip Tracker (unblocked after schema — reads work_sessions, no new tables)
-  ├── Computation logic in coach/owner student list server component
-  └── SkipBadge component in student row
-        ↓
-Phase D: Coach Assignments (unblocked after config — adds /coach/assignments route)
-  ├── GET /api/assignments endpoint (or reuse /api/assignments PATCH for reassign)
-  ├── CoachAssignmentsClient (mirrors OwnerAssignmentsClient pattern)
-  └── /coach/assignments page
+### Tables touched (existing)
 
-Phase E: Report Comments (unblocked after report_comments table from Phase A)
-  ├── POST/DELETE /api/reports/[id]/comment
-  ├── Modify ReportRow to show inline comment
-  └── Modify student report history to show coach comment read-only
+| Table | v1.5 touch |
+|-------|-----------|
+| `deals` | `logged_by` column ADD, new INSERT RLS policies, new composite index |
+| `work_sessions` | Read-only — new partial index `idx_work_sessions_completed_student_date` |
+| `daily_reports` | Read-only — aggregation target for trends |
+| `roadmap_progress` | Read-only — milestone triggers read status transitions; new supporting index |
+| `student_kpi_summaries` | Read-only — lifetime totals |
+| `users` | Read-only JOINs for name/role attribution |
+| `alert_dismissals` | NEW alert_key namespaces: `milestone_tech_setup:*`, `milestone_5_influencers:*`, `milestone_brand_response:*`, `milestone_closed_deal:*:*` |
 
-Phase F: Chat System (unblocked after messages table from Phase A)
-  ├── GET/POST /api/messages
-  ├── ChatClient polling component
-  ├── /coach/chat + /student/chat pages
-  └── Sidebar unread badge (get_sidebar_badges RPC update)
+### Functions touched (existing)
 
-Phase G: Resources Tab (unblocked after resources + glossary tables from Phase A)
-  ├── GET/POST/PATCH/DELETE /api/resources
-  ├── GET/POST/PATCH/DELETE /api/glossary
-  ├── ResourcesTab, DiscordEmbed, GlossaryTab components
-  └── /student/resources + /coach/resources + /owner/resources pages
+| RPC | v1.5 touch |
+|-----|-----------|
+| `get_sidebar_badges` | Coach branch extends milestone count from 1 (100h) to 5 (100h + 4 new) |
+| `get_student_detail` | Unchanged — analytics is a separate RPC |
+| `refresh_student_kpi_summaries` | Unchanged — nightly cron already populates lifetime totals used by analytics |
 
-Phase H: Invite max_uses UI (unblocked after schema already has max_uses)
-  └── Modify CoachInvitesClient + OwnerInvitesClient to show use_count/max_uses
-      and default max_uses to 10 in invite creation forms
-```
+### New API routes
 
-**Critical constraint:** Phase A (DB + config) must ship first. Phases B–H can proceed in any order after Phase A, but F and G are the most complex (new tables + polling + multi-component) so should not be parallelized.
+None strictly required — extend `/api/deals` POST for coach/owner logging (§4.3). Existing `/api/alerts/dismiss` route accepts generic `alert_key` strings, so new milestone dismissal works without code change (inspect to confirm — 1-line Zod allow-list may need extending).
+
+### Rate limiting
+
+Every new API change point (`/api/deals` POST) already has `checkRateLimit`. The analytics pages are server component reads — no mutation, no rate limit needed. Only `/api/alerts/dismiss` needs to continue having its limit (already does).
 
 ---
 
-## Anti-Patterns
+## Performance Envelope (5k students)
 
-### Anti-Pattern 1: New Route Group Without Config Update
+| Query | Estimated cost | Mitigation |
+|-------|---------------|-----------|
+| `get_student_analytics(s)` | ~90 rows reports + ~400 sessions + <50 deals for 1 student | Index covers; <50ms expected |
+| `get_coach_dashboard(c)` | 50 students × (recent reports + today's stats) | Single RPC with `s.coach_id = p_coach_id` filter; 60s cache |
+| `get_coach_analytics(c)` | 50 students × 30 days of reports/deals | Indexes `(student_id, date)` + `(student_id, created_at)` cover; 60s cache |
+| `get_coach_milestones(c)` | 50 students × 4 milestone checks | Loop pattern matches 00014 which proved fast at scale |
+| Top-3 hours | 50 × 7 × ~4 sessions = ~1,400 rows | Partial index on completed sessions |
 
-**What people do:** Create `src/app/(dashboard)/student_diy/` but forget to update `ROLES`, `NAVIGATION`, `ROLE_REDIRECTS`, and `INVITE_CONFIG` in config.ts.
-
-**Why it's wrong:** proxy.ts and Sidebar.tsx derive all behavior from config. An unmapped role will hit the fallback redirect `"/"` in proxy.ts and have no nav items.
-
-**Do this instead:** Update config.ts first. Import the updated `Role` type everywhere before creating the route group. Let TypeScript errors guide what else needs updating.
-
-### Anti-Pattern 2: useEffect for Initial Chat Load
-
-**What people do:** Put the initial message fetch inside a useEffect, creating an empty state flash.
-
-**Why it's wrong:** The page is a Server Component. Fetch the last 50 messages server-side on page load; pass as `initialMessages` prop to the client ChatClient. Only the polling loop goes in useEffect.
-
-**Do this instead:**
-```typescript
-// Server component passes initial data
-<ChatClient initialMessages={initialMessages} channelId={channel.id} />
-// Client component starts polling from last message ID
-```
-
-### Anti-Pattern 3: Skipping CSRF on New Mutation Routes
-
-**What people do:** Add `/api/messages` POST or `/api/glossary` POST without the `verifyOrigin()` call at the top.
-
-**Why it's wrong:** All mutation routes require CSRF protection. The security audit in v1.2 explicitly established this as a hard rule. Missing it on new routes is a regression.
-
-**Do this instead:** Copy the exact pipeline from an existing route (e.g., `reports/route.ts`). The first line of every POST/PATCH/DELETE handler is `verifyOrigin()`.
-
-### Anti-Pattern 4: Duplicating Student Work Tracker for student_diy
-
-**What people do:** Copy `src/app/(dashboard)/student/work/` files into `student_diy/work/` and rename things.
-
-**Why it's wrong:** Any future changes to the work tracker must be made twice. WorkTrackerClient and RoadmapClient don't know about routes — they work from props.
-
-**Do this instead:** Create `student_diy/work/page.tsx` as a thin wrapper that imports the same server-side data fetching pattern and passes to the same `WorkTrackerClient` component. The only difference is the `requireRole("student_diy")` guard.
-
-### Anti-Pattern 5: Polling Without Cursor (Fetching All Messages Every 5s)
-
-**What people do:** `GET /api/messages?channel_id=X` returns all messages every poll.
-
-**Why it's wrong:** With 1:1 chats and broadcast, a busy channel could have thousands of messages. Fetching all every 5s is O(n) DB work per poll per user.
-
-**Do this instead:** Accept an `after` query param (message ID or timestamp). Return only messages `WHERE id > $after` (if using sequential IDs) or `WHERE created_at > $after`. The client tracks the cursor client-side.
-
-### Anti-Pattern 6: student_diy in report_comments / chat / resources
-
-**What people do:** Forget that student_diy has a reduced feature set and allow them to access chat, report, or resources routes.
-
-**Why it's wrong:** Decision D-05 explicitly excludes these features for student_diy. Allowing access is a product requirement violation, not just a code smell.
-
-**Do this instead:** Every API route and page for chat/reports/resources does `requireRole(["owner", "coach", "student"])` — student_diy is intentionally excluded from this array.
-
----
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Current (100-500 students) | Polling at 5s is fine. DB-backed rate limiting covers abuse. |
-| 1k-5k students | Chat polling creates N requests every 5s (N = active users). If 1k students all have chat open, that's 200 req/s hitting /api/messages. Rate limit the GET endpoint at 30 req/min (matches existing pattern). |
-| Supabase Pro limit | 500 concurrent Realtime connections avoided by using polling. 60 max_connections on Pro Small — watch if chat + glossary + resources add significant read load alongside existing RPC calls. |
-
-### Scaling Priorities
-
-1. **First bottleneck:** Chat polling volume. If >500 active chat users, consider increasing poll interval to 10s or batching channel polls.
-2. **Second bottleneck:** `get_sidebar_badges` RPC called on every page layout render (60s cache). Adding `unread_messages` to this RPC is a safe extension since it's already cached.
-
----
-
-## Integration Points Summary Table
-
-| Feature | New Files | Modified Files | New DB | Modified DB |
-|---------|-----------|----------------|--------|-------------|
-| student_diy role | `(dashboard)/student_diy/**` | `config.ts`, `proxy.ts`, `types.ts` | — | `users.role`, `invites.role`, `magic_links.role` |
-| Skip tracker | `SkipBadge.tsx` | coach/owner student list pages | — | — (reads work_sessions) |
-| Coach assignments | `(dashboard)/coach/assignments/page.tsx`, `CoachAssignmentsClient.tsx` | — | — | — (PATCH users.coach_id already exists) |
-| Report comments | `api/reports/[id]/comment/route.ts` | `ReportRow.tsx`, student report history | `report_comments` | — |
-| Chat | `api/messages/**`, `ChatClient.tsx`, chat pages | `Sidebar.tsx`, `get_sidebar_badges` RPC | `messages` | — |
-| Resources | `api/resources/**`, `ResourcesTab.tsx`, `DiscordEmbed.tsx` | — | `resources` | — |
-| Glossary | `api/glossary/**`, `GlossaryTab.tsx` | — | `glossary_terms` | — |
-| Invite max_uses | — | `CoachInvitesClient.tsx`, invite creation UI | — | `magic_links.max_uses` default |
+**Concurrency:** Per v1.2 Phase 24 baseline (P95 = 929ms at 100 VU read-mix), adding 4 new RPCs of similar shape keeps us under the 1s threshold. Pro Small compute remains adequate — monitor cloud P95 after deploy per existing decision log.
 
 ---
 
 ## Sources
 
-- Direct codebase inspection: `src/proxy.ts`, `src/lib/config.ts`, `src/lib/session.ts`, `src/lib/csrf.ts`, `src/lib/rate-limit.ts`, `src/lib/supabase/admin.ts`
-- Existing route patterns: `src/app/api/reports/route.ts`, `src/app/api/reports/[id]/review/route.ts`
-- Dashboard layout: `src/app/(dashboard)/layout.tsx`, `src/components/layout/Sidebar.tsx`
-- Schema: `src/lib/types.ts`, `supabase/migrations/00013_daily_plans_undo_log.sql`
-- Project decisions: `.planning/PROJECT.md` (D-01 through D-14)
-- RPC types: `src/lib/rpc/types.ts`
+- `supabase/migrations/00001_create_tables.sql` through `00020_add_eyoub_owner.sql` — all existing schema and RPCs
+- `supabase/migrations/00011_write_path.sql` — student_kpi_summaries + pg_cron pattern (v1.2 Phase 21)
+- `supabase/migrations/00014_coach_alert_dismissals.sql` — coach 100h milestone precedent (reuse target per D-08)
+- `supabase/migrations/00016_skip_tracker.sql` — ISO week + student_ids array RPC pattern
+- `src/lib/config.ts` — COACH_CONFIG, NAVIGATION, VALIDATION.deals
+- `src/lib/rate-limit.ts` — rate limit helper (all mutations)
+- `src/app/api/deals/route.ts` — current deals POST/GET, revalidateTag precedent
+- `src/app/(dashboard)/coach/page.tsx` — current 4-query Promise.all pattern (consolidation target)
+- `.planning/PROJECT.md` — v1.5 D-01 through D-13 locked decisions
+- `.planning/ROADMAP.md` Phase 38 — deals migration 00021 reference
 
----
-*Architecture research for: IMA Accelerator v1.4 — Roles, Chat & Resources*
-*Researched: 2026-04-03*
+**Confidence:** HIGH on all recommendations. Each pattern has a migration or file precedent in the existing codebase; no speculative technology introduced except recharts (standard React ecosystem choice, flagged for stack review).

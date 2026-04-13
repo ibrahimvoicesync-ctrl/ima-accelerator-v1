@@ -1,217 +1,148 @@
-# Project Research Summary
+# Project Research Summary — Milestone v1.5
 
-**Project:** IMA Accelerator v1.4 — Roles, Chat & Resources
-**Domain:** Student performance & coaching platform (Next.js 16 + Supabase)
-**Researched:** 2026-04-03
+**Project:** IMA Accelerator V1 — Milestone v1.5 (Analytics Pages, Coach Dashboard & Deal Logging)
+**Domain:** Student coaching / performance-tracking platform — Next.js 16 App Router + Supabase at 5k concurrent student scale
+**Researched:** 2026-04-13
 **Confidence:** HIGH
 
 ## Executive Summary
 
-IMA Accelerator v1.4 adds seven feature groups on top of a production v1.0–v1.3 system: a fourth user role (student_diy), a polling-based chat system, a resources/glossary tab, a weekly skip tracker, coach assignment parity, report comments, and invite link usage limits. This is an incremental integration release, not a greenfield build. The research is grounded in direct codebase inspection, locked decisions from `.planning/PROJECT.md` (D-01 through D-14), and verified external sources. Every new npm dependency was evaluated and rejected — all seven feature groups are implementable with the existing stack.
+v1.5 extends an already production-validated stack with analytics surfaces (student self-analytics, coach dashboard KPI cards, full coach analytics page), staff-logged deals via a `logged_by` attribution column, and four new milestone notifications for coaches. Research converges on a **single net-new runtime dependency (`recharts@^3.8.1`)** layered on top of the existing pg_cron + summary-table aggregation pattern, the existing `alert_dismissals` notification pattern (260401-cwd), and date-fns 4.1.0 which is already installed. No new infrastructure, no TimescaleDB, no notification SaaS, no real-time layer.
 
-The recommended approach is to treat the work as a strict phase dependency chain with a single hard prerequisite: Phase A (DB schema + config.ts + proxy.ts + types.ts) must ship first and atomically. Eight interdependent locations control the student_diy role — the DB CHECK constraint, proxy.ts DEFAULT_ROUTES, proxy.ts ROLE_ROUTE_ACCESS, config.ts ROLES, config.ts Role type, config.ts ROLE_HIERARCHY, config.ts NAVIGATION, and config.ts INVITE_CONFIG. Only after all eight are updated and TypeScript compiles cleanly should any page code be written. Phases B through H can then be sequenced from lowest to highest complexity.
+The recommended approach follows the sequential build order locked in v1.5 D-10 (Feature 1 → 2 → 3 → 4 → 5) because each feature depends on the prior's RPC shape or data column. All aggregation happens server-side in `SECURITY DEFINER` RPCs wrapped in `unstable_cache` 60s TTL with user-scoped `revalidateTag` invalidation — the exact pattern proven at 5k scale in v1.2 Phase 20–24.
 
-The primary risks are: (1) partial role expansion causing runtime redirect loops or silent empty dashboards; (2) chat polling memory leaks and rate limiter misuse that bloats the rate_limit_log table at scale; (3) missing ownership verification on the report comment endpoint (a known pattern from v1.2 that must be repeated); and (4) Discord iframe CSP failures that are invisible on localhost but break silently in Vercel production. All four risks have concrete, documented prevention strategies and are well understood from prior v1.x work.
-
----
+Key risks cluster around three axes: (1) **chart integration** — React 19 hydration mismatch on `ResponsiveContainer` and WCAG color-only failure; (2) **authorization regressions on the coach-logged deal path** — classic role-without-assignment-check bypass, mitigated by dual-layer route handler + RLS `WITH CHECK`; (3) **notification idempotency and noise** — D-07 "Closed Deal on every deal" requires `deal_id` in dismissal key, and migration must pre-dismiss historical qualifiers. **D-06 (Tech/Email Setup roadmap step)** is a hard blocker for Feature 5 pending Monday's stakeholder meeting.
 
 ## Key Findings
 
-### Recommended Stack
+### Top 5 Stack Additions / Decisions
 
-No new npm packages are needed for v1.4. The full feature set — polling chat, Discord iframe, glossary search, CRUD forms, role expansion — is covered by the existing stack: React 19 useEffect/useRef/useState for polling, native HTML iframe for WidgetBot, Array.filter for glossary search, react-hook-form ^7.71.2 for CRUD, and Supabase/Postgres for schema additions.
+- **`recharts@^3.8.1`** (ADD, sole new runtime dep) — declarative React 19 chart lib, ~35 KB gzipped route-scoped. May require `"overrides": { "react-is": "19.2.3" }` if peer-dep warning.
+- **`date-fns@^4.1.0`** (KEEP, already installed) — tree-shaken imports for week/month bucketing; v4 has native tz, no `date-fns-tz` peer needed.
+- **Existing pg_cron + `student_kpi_summaries`** (KEEP) — lifetime totals from summary table; trailing windows computed live with `date_trunc` + `generate_series`. Do NOT extend summary table schema (Pitfall 20).
+- **Existing `alert_dismissals` pattern** (KEEP per D-08) — new alert_key prefixes; no new notification table.
+- **Existing `unstable_cache` 60s TTL + `revalidateTag`** (KEEP) — every new RPC wrapped; every mutation route calls `revalidateTag` with user-scoped keys.
 
-The one infrastructure addition is a CSP header block in `next.config.ts` (currently empty). This is not a package install — it is a config file edit that must ship before the Discord embed component is written, because CSP failures are invisible on localhost and only surface on Vercel production deployments.
+**Explicit anti-recommendations (DO NOT ADD):** Tremor Raw / visx / Nivo / ECharts / Chart.js / Victory; TimescaleDB (TSL blocked on Supabase Cloud + deprecated on PG17); dayjs / moment / luxon / date-fns-tz; Novu / Knock / Courier / Fyno / sonner / react-hot-toast; Supabase Realtime (v1.4 D-07 excludes it); Redis / ClickHouse / DuckDB.
 
-**Core technologies:**
-- Next.js 16 App Router + proxy.ts: route guard and role-based redirect — no changes to core routing model
-- React 19 useEffect + useRef: `useInterval` custom hook for 5s polling chat — useRef prevents stale closures, useEffect cleanup prevents memory leaks
-- Supabase Postgres: 4 new tables (report_comments, messages, resources, glossary_terms), 3 modified CHECK constraints, 1 updated RPC (get_sidebar_badges)
-- config.ts as single source of truth: role expansion touches config first, code second — TypeScript errors propagate to all eight integration points automatically
-- next.config.ts headers(): CSP for `frame-src https://e.widgetbot.io` — required before any iframe component is written
+### Expected Features — Table Stakes vs Differentiators (5 features)
 
-**No new dependencies confirmed:** zero npm installs for v1.4.
+**Feature 1 — Student Self-Analytics (`/student/analytics`, `/student_diy/analytics`)**
+- *Table stakes:* 6-card lifetime totals strip (hours, emails, influencers, deals, revenue, profit); hours-worked trend chart (zero-filled); outreach trend chart; deal history table (paginated 25, attribution chip); roadmap progress vs deadlines summary; time range selector (7/30/90/All, default 30d); loading skeletons + empty states; single batch `get_student_analytics` RPC.
+- *Differentiators:* "Best day" callout; roadmap cumulative retrospective timeline; target vs actual hours for today/week; margin % sparkline on deals.
 
-### Expected Features
+**Feature 2 — Coach Dashboard Homepage Stats (`/coach`)**
+- *Table stakes:* 4–6 stat cards with period labels (Deals Closed / Revenue / Avg Roadmap Step / Total Emails this week + recommended Active Students 7d + Unreviewed Reports); each card clickable → drill-down; ima-green/ima-red delta arrows; 3 recent reports card; Top-3 hours leaderboard (ISO Mon–Sun); skeleton loaders; single batch `get_coach_dashboard` RPC.
+- *Differentiators:* "Needs attention" merged feed (unreviewed + at-risk + milestones); cohort average shown under top-3; compact/expanded stat strip.
 
-**Must have (table stakes) — P1:**
-- student_diy role: 4th role with dashboard/work tracker/roadmap only; no chat, no reports, no resources — prerequisite for chat and resources gating
-- Skip tracker: "X days skipped this week" on coach/owner student rows — ISO Mon-Sun week, Mon-Fri weekdays only, derived from existing work_sessions with no new table
-- Coach assignments parity: coach gets /coach/assignments page mirroring owner, scoped to own students and unassigned students only
-- Report comments: single nullable coach comment per daily_reports row; coach writes, student reads
-- Invite max_uses UI: default 10, use_count/max_uses displayed on invite list (schema columns already exist)
-- Chat system: 1:1 coach-student and broadcast, 5s polling, unread badge in sidebar
-- Resources tab: URL link list + Discord WidgetBot embed + searchable glossary
+**Feature 3 — Full Coach Analytics (`/coach/analytics`)**
+- *Table stakes:* Paginated student list (25/page per D-04) with Zod-validated server-side sort; active/inactive/at-risk breakdown header; aggregate deal trend chart (12 weeks); three top-5 leaderboards (hours weekly, emails weekly, deals all-time); name search; time range selector; CSV export; pagination with total count.
+- *Differentiators:* Funnel view (Students → Setup Done → First Outreach → First Influencer → First Brand Reply → First Deal); at-risk panel; revenue + margin trend panel; per-student mini-profile on hover.
+- *Defer to v1.6+:* Cohort comparison by signup-week; per-student line series.
 
-**Should have (differentiators):**
-- Weekly skip count prominently surfaced on coach dashboard student cards (proactive intervention signal)
-- Broadcast with per-student read status (read by X/Y count on coach broadcast messages)
-- Discord embed as first-class tab (keeps students in accountability environment vs. external Discord link)
-- Report comments as async micro-feedback (30-second coaching note without scheduling a call)
-- student_diy as self-service on-ramp (lower barrier for informal learners without diluting premium experience)
+**Feature 4 — Staff-Logged Deals**
+- *Table stakes:* `logged_by uuid` column (ON DELETE SET NULL, backfilled + NOT NULL); coach/owner INSERT RLS with `(SELECT get_user_role())` + `(SELECT get_user_id())` initplan + student-assignment check; "Add Deal" button on coach/owner tabs (reuses `DealFormModal`); role-gated attribution chip; audit columns `updated_at`/`updated_by` + trigger; creator-or-owner edit permissions; coach-logged vs student-logged breakdown on `/coach/analytics`; existing 30 req/min rate limit.
+- *Differentiators:* "Verified" flag for student-logged deals; soft delete `archived_at`.
+- *Defer:* Per-deal change-log popover; bulk CSV import.
 
-**Defer to v1.5+:**
-- Message editing/deletion (audit trail concern)
-- File/image uploads in chat (Supabase Storage complexity)
-- Per-student resource visibility (requires tier/segment system)
-- Threaded replies (flat chat is the correct v1 model)
-- Email notifications (Resend integration is explicitly out of scope — PROJECT.md)
-- Supabase Realtime (polling is adequate; Realtime hits 500 concurrent connection limit on Pro plan)
+**Feature 5 — Milestone Notifications for Coaches**
+- *Table stakes:* Reuse 260401-cwd pattern (D-08); four new triggers — Tech/Email Setup (step TBC D-06), 5 Influencers Closed (Step 11), First Brand Response (Step 13), Closed Deal (every deal per D-07); idempotency via alert_key shape (one-shot for first three, `closed_deal:{student_id}:{deal_id}` for per-deal); extend `get_sidebar_badges` coach branch (single source of truth); inline feed on dashboard + dedicated `/coach/alerts` page; backfill pre-dismisses historical qualifiers; 9+ badge cap + bulk-dismiss.
+- *Differentiators:* Owner roll-up; milestone chip timeline on student detail; mark-all-read.
+- *Defer:* Per-type mute preferences; per-event comment thread.
 
-### Architecture Approach
+**Anti-features across all 5 (DO NOT BUILD):** Peer/percentile comparisons; streak counters with flames; letter-grade ratings; predictive "you will close in X days"; leaderboards visible to students; public bottom-3 at-risk lists; auto-refresh polling; email/push notifications (V2+); notifying students of their own milestones; firing milestones retroactively without dismissal-seeding.
 
-The existing architecture pattern — async Server Components for reads passing props to thin "use client" islands for interactivity, with all mutations going through a strict API pipeline (CSRF → Auth → Role → RateLimit → Zod → Ownership → Logic) — applies unchanged to all v1.4 features. The chat system introduces the only client-side polling pattern in the codebase, implemented as a `useInterval` custom hook that uses `useRef` to hold a stable callback reference and pauses on `document.hidden`. Initial messages are server-rendered and passed as `initialMessages` props; the polling loop fetches only messages newer than the cursor.
+### Architecture — Integration Points / Build Order
 
-**Major components:**
-1. **proxy.ts** — must be updated atomically with config.ts; student_diy added to DEFAULT_ROUTES and ROLE_ROUTE_ACCESS
-2. **src/lib/config.ts** — expanded ROLES, ROLE_HIERARCHY, NAVIGATION, INVITE_CONFIG; the TypeScript Role type propagates errors to all integration points
-3. **(dashboard)/student_diy/ route group** — thin wrappers reusing WorkTrackerClient and RoadmapClient via props; own layout.tsx with reduced nav
-4. **ChatClient.tsx** (shared component) — polling loop, cursor-based fetch, tab visibility optimization; used by both /coach/chat and /student/chat pages
-5. **API routes (7 new + 2 modified)** — /api/reports/[id]/comment, /api/messages, /api/resources, /api/resources/[id], /api/glossary, /api/glossary/[id], /api/assignments — all follow the established pipeline without exception
-6. **ResourcesTab / DiscordEmbed / GlossaryTab** (shared components) — tabbed sub-navigation controlled by React state, not URL segments (WidgetBot back-button is broken per docs)
-7. **get_sidebar_badges RPC** — extended to return unread_messages count; sidebar badge passes server-rendered count on page load; no polling interval inside Sidebar
+Pattern: **server-component page → `SECURITY DEFINER STABLE` RPC via admin client → `unstable_cache` 60s → prop-drill to `"use client"` chart shell → recharts with `ima-*` hex constants**. All mutation routes call `revalidateTag` with user-scoped keys.
 
-### Critical Pitfalls
+| # | Phase topic | Depends on | Migration |
+|---|-------------|-----------|-----------|
+| 1 | Analytics RPC Foundation + shared helpers (`week_start`, `student_activity_status`) | existing | 00023 indexes only |
+| 2 | `deals.logged_by` migration + API + RLS | 00021 deals | **00022** |
+| 3 | Student Analytics RPC + page + recharts install | #1 | part of **00023** |
+| 4 | Coach Dashboard RPC + homepage stats UI (consolidation) | #1 | **00024** |
+| 5 | Full Coach Analytics page (leaderboards + deal trend + pagination) | #1, #4 | 00023 or follow-up |
+| 6 | Coach Deals Logging UI (Add Deal + attribution column) | #2 | — |
+| 7 | Milestone Config (`MILESTONES` constant + D-06 value) | #2 | — |
+| 8 | Milestone Notifications RPC + extend `get_sidebar_badges` + backfill | #2, #7 | **00025** |
+| 9 | Coach Alerts Page (feed UI + bulk-dismiss + 9+ cap) | #8 | — |
 
-1. **Partial role expansion (Pitfall 1)** — Adding student_diy to the DB but missing any of the other seven locations causes infinite redirect loops or runtime TypeError. Prevention: update all eight locations in a single atomic commit; let the TypeScript Role type compile errors guide which sites need updating.
+**Critical path:** #2 → #4 → #5 (coach dashboard lights up) has highest leverage; #1 → #3 (student analytics) can ship independently in parallel.
 
-2. **RLS policies missing student_diy (Pitfall 2)** — Admin client bypasses RLS so dev tests pass; anon client hits default-deny and returns empty data or 500 errors. Prevention: write student_diy RLS policies in the same migration, validate with anon client directly in Supabase Studio.
+### Watch Out For — Top 10 Pitfalls Mapped to Phases
 
-3. **Chat polling setInterval memory leak and stale closure (Pitfall 3)** — Missing clearInterval in useEffect cleanup lets intervals fire after navigation; missing useRef causes stale conversationId. Prevention: always use the useInterval custom hook pattern with useRef.
+1. **Client-side row pulls on analytics** (Feat 1/3) — all aggregation in RPCs (D-01); grep `.from(` in analytics pages = 0 hits.
+2. **Chart hydration mismatch under React 19 RSC** — `"use client"` + `next/dynamic({ ssr: false })`; establish pattern once, copy thereafter.
+3. **Timezone drift in week/day bucketing** — pass `p_today date` to every RPC; never `now()`/`CURRENT_DATE` in function body; shared `week_start` helper used by BOTH skip tracker and leaderboard.
+4. **Coach logs deal for unassigned student — authz bypass** — dual-layer check (route handler asserts `users.coach_id` match; RLS `WITH CHECK` with `(SELECT get_user_id())`); negative E2E test mandatory.
+5. **Milestone notification double-fires on reassignment / backfill** — keys scoped to `(student, milestone)` not `(student, milestone, coach)`; seed pre-dismissal rows at migration time; unit test compute-runs-twice returns zero new.
+6. **Closed-Deal firing 50× for high performers** — per-deal key `closed_deal:{deal_id}`; 9+ badge cap; bulk-dismiss; fallback digest mode as tune-knob.
+7. **`deal_number` race on concurrent coach+student insert** — composite unique index `(student_id, deal_number)` + retry on 23505; ship index in same migration as `logged_by`.
+8. **Stat-card fan-out (N RPCs for N cards)** — single `get_coach_dashboard` batch RPC with JSONB envelope; one `unstable_cache` tag.
+9. **Cache stale after mutation** — every mutation route calls `revalidateTag` for `analytics-student-${id}`, `coach-dashboard-${coachId}`, `coach-analytics-${coachId}`, `coach-milestones-${coachId}`; missing revalidate fails UAT.
+10. **Chart accessibility failures** — every chart wrapped `<div role="img" aria-label="...">` with prose summary + `<details><summary>View data table</summary><table>` fallback; shape + label + color (never color-alone); `tabIndex={0}`; `motion-safe:` on animations.
 
-4. **Discord iframe blocked by missing CSP in production (Pitfall 4)** — next.config.ts is currently empty; Vercel injects SAMEORIGIN headers that block the WidgetBot iframe. Invisible on localhost. Prevention: add `frame-src 'self' https://e.widgetbot.io` to next.config.ts as the first step of the resources phase; test on Vercel preview before marking complete.
+Full 22-pitfall list in PITFALLS.md.
 
-5. **Chat GET polling endpoint hit by rate limiter (Pitfall 7)** — checkRateLimit() INSERTs a row per request; 5k students polling at 12 req/min = 60k inserts/min into rate_limit_log. Prevention: never call checkRateLimit() in read-only GET endpoints; it is for mutation routes only.
+## Implications for Roadmap — Suggested Phases (Phase 44 onward)
 
-6. **Report comment endpoint missing ownership verification (Pitfall 8)** — Any coach can comment on any student's report without an ownership check. This identical gap was fixed in v1.2 for /api/reports/[id]/review. Prevention: two-step check — fetch report to get student_id, verify student.coach_id matches requesting coach.
+**Phase 44: Analytics RPC Foundation + Shared Helpers.** `week_start(p_today)`, `student_activity_status(student_id, p_today)`, `ACTIVITY` config (`inactiveAfterDays: 7` pending D-14), partial indexes, Phase 19 `users.coach_id` audit. Avoids Pitfalls 1, 3.
 
-7. **ISO week skip tracker UTC mismatch (Pitfall 5)** — CURRENT_DATE in Postgres is UTC; student local "today" diverges for UTC+ timezones. Prevention: pass getTodayUTC() from the application layer as a parameter to the RPC function; never use CURRENT_DATE inside the function.
+**Phase 45: `deals.logged_by` Migration + API + RLS.** `00022_deals_logged_by.sql` (column, backfill `logged_by = student_id`, NOT NULL, composite unique index, partial index, coach+owner INSERT policies), route handler refactor with Zod optional `student_id` + dual-layer ownership check + 23505 retry. Gate: negative E2E test passes. Avoids Pitfalls 4, 7.
 
----
+**Phase 46: Student Analytics RPC + Page + Recharts Install.** `get_student_analytics` RPC, `src/app/(dashboard)/student/analytics/page.tsx` + loading/error, `src/components/analytics/*Chart.tsx` wrappers, `src/lib/chart-colors.ts`, recharts install (conditional react-is override), `revalidateTag` wiring on mutations. Avoids Pitfalls 1, 2, 9, 10.
 
-## Implications for Roadmap
+**Phase 47: Coach Dashboard RPC + Homepage Stats UI.** `get_coach_dashboard` RPC consolidating existing 4-query Promise.all, rewritten `/coach/page.tsx`, `TopHoursLeaderboard` + `RecentReportsCard` + stat cards with deltas. Avoids Pitfalls 8, 9.
 
-Based on the dependency graph from ARCHITECTURE.md and the risk analysis from PITFALLS.md, the following phase structure is recommended. All phases after Phase A are unblocked by Phase A's completion, but Phases F and G are the highest complexity and should not be parallelized.
+**Phase 48: Full Coach Analytics Page.** `get_coach_analytics` RPC with pagination + Zod-validated sort, `CoachAnalyticsClient.tsx` with URL-backed pagination, CSV export endpoint, `COACH_ANALYTICS_SORT_KEYS` Zod enum. Avoids Pitfalls 1, 8, 9.
 
-### Phase A: DB Schema + Config Foundation
-**Rationale:** Every other phase gates on student_diy being defined in config.ts and the DB. The TypeScript Role type propagates errors to all call sites, making this the only correct atomic change point. Partial execution is the top critical pitfall.
-**Delivers:** student_diy added to all eight role gate locations; 4 new tables created (report_comments, messages, resources, glossary_terms); 3 CHECK constraints updated (users, invites, magic_links); types.ts updated; TypeScript compiles cleanly.
-**Addresses:** student_diy role foundation, chat/resources table schema, invite constraint
-**Avoids:** Pitfall 1 (partial role expansion), Pitfall 2 (RLS gaps — student_diy RLS written in same migration)
-**Research flag:** Standard — config-is-truth is the established codebase convention; no additional research needed.
+**Phase 49: Coach Deals Logging UI.** Separated from Phase 45 so UI cannot ship before authorization is verified. `LogDealModal`, attribution chip column, `formatDealLoggedBy(deal, viewerRole, viewerId)` role-gated helper.
 
-### Phase B: student_diy Route Group
-**Rationale:** The simplest new role feature; validates Phase A in a real user flow with zero additional tables. Reuses WorkTrackerClient and RoadmapClient as thin wrappers — no code duplication.
-**Delivers:** /student_diy/ dashboard, /student_diy/work, /student_diy/roadmap; proxy correctly routes the 4th role; invite flow accepts student_diy as a role option.
-**Addresses:** student_diy user experience, invite flow role expansion
-**Avoids:** Anti-Pattern 4 (no copy-pasting WorkTrackerClient into student_diy directory)
-**Research flag:** Standard — proxy.ts and route group patterns are identical to existing roles.
+**Phase 50: Milestone Config.** `MILESTONE_CONFIG` + `MILESTONES` constants in `src/lib/config.ts`; feature flag `tech_setup` until D-06 confirmed. **Blocker: D-06 must resolve at Monday stakeholder meeting.**
 
-### Phase C: Skip Tracker
-**Rationale:** Zero table dependencies (reads existing work_sessions), high coach value, low risk. Quick win after Phase A confirms config is live.
-**Delivers:** skip_days_this_week scalar on coach and owner student rows; SkipBadge component
-**Addresses:** Skip tracker table stakes feature
-**Avoids:** Pitfall 5 (UTC mismatch — pass getTodayUTC() as p_today parameter to RPC; never use CURRENT_DATE inside the function)
-**Research flag:** Standard — Postgres date_trunc week behavior confirmed; implementation is a single RPC function.
+**Phase 51: Milestone Notifications RPC + Backfill Migration.** `00025_milestone_alerts.sql` (alert_key namespaces, index, backfill pre-dismissals, ON DELETE CASCADE), `get_coach_milestones` RPC, extended `get_sidebar_badges` (single-source count), `revalidateTag('coach-milestones-${id}')` in deal/report/roadmap POSTs. Avoids Pitfalls 5, 6.
 
-### Phase D: Coach Assignments Parity
-**Rationale:** Low complexity (role check expansion and one new page), no new tables. Validates that the expanded /api/assignments route does not introduce privilege escalation.
-**Delivers:** /coach/assignments page; coaches can assign/unassign from their own students pool and unassigned students
-**Addresses:** Coach assignments table stakes
-**Avoids:** Pitfall 6 (unbounded student enumeration — filter server-side to role='student' AND coach_id IS NULL; coaches never see all-platform students)
-**Research flag:** One product decision to confirm with Abu Lahya — whether coaches see unassigned students only, or also their own already-assigned students, in the picker. Assume "both" based on research; verify before launch.
+**Phase 52: Coach Alerts Page.** `/coach/alerts` with grouped-by-student view, inline "needs attention" dashboard card, 9+ badge cap, bulk-dismiss for Closed Deal. Avoids Pitfall 6.
 
-### Phase E: Report Comments
-**Rationale:** Low complexity (nullable columns on existing table). Must include ownership verification matching the v1.2 review endpoint pattern — this is the only security-critical requirement.
-**Delivers:** POST/DELETE /api/reports/[id]/comment; inline comment textarea on coach report review; read-only comment block on student report history
-**Addresses:** Report comment table stakes and async micro-feedback differentiator
-**Avoids:** Pitfall 8 (ownership check — two-step: fetch report, verify student.coach_id = requesting coach — same pattern as existing /api/reports/[id]/review fix from v1.2 Phase 23)
-**Research flag:** Standard — pattern established in v1.2.
-
-### Phase F: Chat System
-**Rationale:** Highest implementation complexity in this release (2 new tables, polling hook, broadcast model, sidebar badge integration). Must follow Phase A (messages table must exist) and Phase B (student_diy role must be defined for feature gating).
-**Delivers:** GET/POST /api/messages with cursor-based polling; ChatClient useInterval component; /coach/chat and /student/chat pages; sidebar unread badge via server-rendered count from updated get_sidebar_badges RPC
-**Addresses:** Chat system P1 features, unread badge table stakes, broadcast read-status differentiator
-**Avoids:** Pitfall 3 (useInterval hook with useRef), Pitfall 7 (checkRateLimit NOT called on GET polling endpoint), Pitfall 11 (no setInterval inside Sidebar — unread count is server-rendered on page load only)
-**Research flag:** Standard — polling pattern is fully documented with implementation examples in STACK.md and FEATURES.md. Confirm broadcast filtering logic (students receive only broadcasts from their assigned coach) before implementing the broadcast message query.
-
-### Phase G: Resources Tab
-**Rationale:** Second-highest complexity (2 new tables, 3 sub-tabs, Discord CSP). CSP headers must be added to next.config.ts as the very first step, before any iframe component is written. Has one external prerequisite outside the codebase.
-**Delivers:** CRUD /api/resources and /api/glossary; ResourcesTab, DiscordEmbed, GlossaryTab shared components; /student/resources, /coach/resources, /owner/resources pages; next.config.ts CSP headers
-**Addresses:** Resources tab P2 features, Discord embed differentiator, inline glossary differentiator
-**Avoids:** Pitfall 4 (CSP first, test on Vercel preview), Pitfall 9 (case-insensitive UNIQUE index: CREATE UNIQUE INDEX idx_glossary_term_lower ON glossary (lower(term)))
-**Research flag:** Needs external validation — WidgetBot bot must be added to the Discord server by Abu Lahya before the iframe renders. UI must display "Discord not configured" placeholder (matching existing Ask AI "Coming Soon" card pattern) when NEXT_PUBLIC_DISCORD_GUILD_ID is absent. Confirm env vars are set in Vercel production before testing the live embed.
-
-### Phase H: Invite max_uses UI
-**Rationale:** Schema columns already exist. This is a migration default-value change plus two UI changes. Smallest phase in the release.
-**Delivers:** magic_links.max_uses DEFAULT 10 migration; max_uses input in invite creation form; use_count/max_uses display on invite list rows
-**Addresses:** Invite max_uses table stakes
-**Avoids:** Pitfall 10 (null guard in capacity check: max_uses !== null && use_count >= max_uses; render null as '∞'; migration must document whether existing null rows are grandfathered or retroactively capped)
-**Research flag:** One implementation detail to verify — inspect the existing invite callback (/api/auth/callback) to confirm it enforces max_uses before treating this as a pure UI change. If the callback has no cap check, that logic must be added in this phase.
-
-### Phase Ordering Rationale
-
-- Phase A is the only hard prerequisite; it must ship before a single page or API route is written.
-- Phases B–E are low complexity and validate the foundational role expansion in real user flows before the complex new systems are built.
-- Phase F should not start until Phase A is confirmed working in production (student_diy gating logic depends on the role constant being live in config and the DB).
-- Phase G is P2 and can slip to a point release without blocking the core coaching loop; it also carries an external dependency that Abu Lahya must fulfill.
-- Phase H is the smallest change in the release and can slot in at any point after Phase A.
+**Phase Ordering Rationale:**
+- Foundation before consumers (Phase 44 helpers precede all RPCs)
+- Authorization before UI (Phase 45 RLS precedes Phase 49 UI)
+- Student-first analytics (Phase 46 validates patterns for 47/48)
+- Config before compute (Phase 50 precedes Phase 51)
+- Backfill-migration last (Phase 51 needs Phase 45 `deal_id` and Phase 50 `tech_setup.stepRef`)
 
 ### Research Flags
 
-Phases needing external validation or product confirmation:
-- **Phase G (Resources/Discord):** WidgetBot bot setup is an external action by Abu Lahya. Build the "not configured" placeholder first. Confirm NEXT_PUBLIC_DISCORD_GUILD_ID and NEXT_PUBLIC_DISCORD_CHANNEL_ID are in Vercel production env before testing the live embed.
-- **Phase D (Coach Assignments):** Confirm with Abu Lahya whether coaches see unassigned students only, or also their own currently-assigned students, in the assignment picker.
-- **Phase H (Invite limits):** Verify existing /api/auth/callback enforces the max_uses cap before treating this as a pure UI phase.
+- **Phase 46:** Verify recharts 3.8.1 + React 19 peer-dep at install time; confirm `accessibilityLayer` prop behavior as template.
+- **Phase 51:** Backfill policy — validate pre-dismissal strategy against real data volume before committing migration.
+- **Phase 52:** UX grouping pattern review (TrueCoach / CoachAccountable references).
 
-Phases with standard patterns (skip additional research):
-- **Phase A:** config-is-truth pattern fully established; TypeScript Role type is the safety net.
-- **Phase B:** Route group and proxy patterns are identical to existing roles.
-- **Phase C:** Postgres date_trunc week confirmed; one RPC function.
-- **Phase E:** Ownership check pattern established in v1.2 Phase 23.
-- **Phase F:** Polling pattern fully documented with code examples in research files.
-- **Phase H:** Schema is already in place.
-
----
+**Standard patterns (skip research-phase):** Phases 44, 45, 47, 48, 49, 50.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All v1.4 features verified against existing stack; zero new packages confirmed; versions locked in package.json |
-| Features | HIGH | Decisions D-01 through D-14 are locked in PROJECT.md; feature scope is defined, not exploratory |
-| Architecture | HIGH | Derived from direct codebase inspection of proxy.ts, config.ts, existing API routes, layout.tsx, and RPC types |
-| Pitfalls | HIGH | All 11 pitfalls grounded in codebase audit and prior v1.x incident records (v1.1 UTC gap closure, v1.2 ownership fix) |
+| Stack | HIGH | Multiple sources converge on recharts; `package.json` directly inspected; Supabase docs explicit on TimescaleDB. React 19 peer-dep is MEDIUM with known workaround. |
+| Features | MEDIUM-HIGH | Salesforce/HubSpot/TrueCoach/Coach Catalyst/Gong convergence; Wiley 2023 + Spinify research; 7d inactive threshold is judgment call (D-14 pending). |
+| Architecture | HIGH | Every recommendation grounded in existing migration or shipped RPC; v1.2 Phase 20/21/23/24 patterns proven at 5k scale. |
+| Pitfalls | HIGH | 22 pitfalls each map to a specific prior-phase precedent with concrete avoid-strategy, warning signs, and phase-to-address. |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH.
 
-### Gaps to Address
+### Open Questions (with D-references) Blocking or Flagging Downstream Phases
 
-- **Coach assignment picker scope (Phase D):** Whether coaches see only unassigned students or also their own assigned students is a product decision not confirmed with Abu Lahya. Implement as "unassigned + own students" during development; verify before launch.
-- **WidgetBot allowlist (Phase G):** The production Vercel domain must be registered in the WidgetBot dashboard by Abu Lahya. Flag as a deployment-time prerequisite in Phase G success criteria.
-- **get_sidebar_badges RPC extension (Phase F):** The exact current return shape of this RPC must be read from src/lib/rpc/types.ts before writing the unread_messages extension. Low risk but requires verification during Phase F implementation.
-- **Invite callback max_uses enforcement (Phase H):** The existing /api/auth/callback may or may not already enforce max_uses. Inspect before writing the Phase H migration to avoid introducing a duplicate or conflicting check.
+| ID | Question | Research recommendation | Phase blocked | When needed |
+|----|----------|--------------------------|---------------|-------------|
+| **D-06** | "Tech/Email Setup Finished" = which roadmap step? (Placeholder Step 5 or 6.) | Requires stakeholder input | **Phase 50 + Phase 51** | **Monday stakeholder meeting** — hard blocker. Feature-flag `tech_setup` until confirmed. |
+| **D-11** | Chart library final pick. | **recharts@^3.8.1** — HIGH convergence | Phase 46 | Install time. Add `"overrides": { "react-is": "19.2.3" }` conditionally. |
+| **D-14 (proposed)** | "Inactive student" definition. | **7 days** zero activity (reports OR sessions); matches daily-accountability cadence | Phases 44, 48 | Before Phase 44 ships. Confirm with Abu Lahya. |
+| **Q-DIY** | `student_diy` analytics in scope? | **Scope in** — same RPC, new route `/student_diy/analytics`; zero incremental cost | Phase 46 | Before Phase 46 scaffolding. |
+| **Q-EDIT** | Edit audit trail (`edited_by`/`edited_at`) for coach-logged deals? | **NO for v1.5** — `updated_at` + `updated_by` trigger is sufficient; defer full change-log to v1.6+ | Phase 45 | Before migration 00022 lands. Confirm with Abu Lahya. |
 
----
+Additional downstream flag: **Q-CLOSED-DEAL** — does "Closed Deal" milestone fire on coach-logged deals or only student-logged? Recommend **all deals** (simplest, consistent with D-07); confirm during Phase 50 config work.
 
-## Sources
+### Ready for Requirements
 
-### Primary (HIGH confidence)
-- `.planning/PROJECT.md` — locked v1.4 decisions D-01 through D-14 (canonical product requirements)
-- Direct codebase inspection: `src/proxy.ts`, `src/lib/config.ts`, `src/lib/session.ts`, `src/lib/csrf.ts`, `src/lib/rate-limit.ts`, `src/lib/supabase/admin.ts`, `src/app/api/reports/route.ts`, `src/app/(dashboard)/layout.tsx`, `src/lib/types.ts`, `supabase/migrations/`
-- [WidgetBot iframe documentation](https://docs.widgetbot.io/tutorial/iframes) — iframe URL format, bot requirement, back-button caveat, allow attributes
-- [PostgreSQL date_trunc week — Medium](https://medium.com/@raileohang/postgresql-date-trunc-week-gotcha-b8a90960026c) — confirmed Monday-start ISO 8601 behavior and Sunday edge case
-- [usePolling custom hook — Dave Gray](https://www.davegray.codes/posts/usepolling-custom-hook-for-auto-fetching-in-nextjs) — setInterval + useEffect polling pattern in Next.js
-
-### Secondary (MEDIUM confidence)
-- [Long Polling vs WebSockets — Ably](https://ably.com/blog/websockets-vs-long-polling) — confirms polling is valid for async coaching chat at this scale
-- [Real-Time Features in SaaS — TwoCents](https://www.twocents.software/blog/real-time-features-in-saas/) — confirms polling correct for Supabase Pro connection constraints
-- [Chat UX Best Practices — GetStream](https://getstream.io/blog/chat-ux/) — broadcast vs 1:1 mental models, unread indicators
-- [16 Chat UI Design Patterns — BricxLabs](https://bricxlabs.com/blogs/message-screen-ui-deisgn) — message bubble patterns, sender labels, broadcast channel UI
-- [Fuse.js in Next.js — Medium](https://medium.com/@ketchasso72/implementing-client-side-search-in-next-js-with-fuse-js-7bbf241b874f) — confirms client-side Array.filter sufficient for glossary scale
-- [Designing Permissions for SaaS — UX Collective](https://uxdesign.cc/design-permissions-for-a-saas-app-db6c1825f20e) — tiered role feature-gating patterns
-
----
-
-*Research completed: 2026-04-03*
-*Ready for roadmap: yes*
+This summary feeds `REQUIREMENTS.md` scoping and the `gsd-roadmapper` phase-planning pass.
