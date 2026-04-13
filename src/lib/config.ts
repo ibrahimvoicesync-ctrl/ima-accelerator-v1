@@ -343,7 +343,19 @@ export const VALIDATION = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// 15. DEFAULT EXPORT — aggregate all V1 configs
+// 15. ACTIVITY — student active/inactive threshold (D-14)
+//     SYNC: mirrors public.student_activity_status in
+//           supabase/migrations/00021_analytics_foundation.sql
+//           Changing inactiveAfterDays REQUIRES updating the SQL helper's
+//           `v_cutoff := p_today - (inactiveAfterDays - 1)` expression and
+//           creating a new migration to redefine student_activity_status.
+// ---------------------------------------------------------------------------
+export const ACTIVITY = {
+  inactiveAfterDays: 7, // D-14 locked: inactive = no completed work_session AND no submitted report in last 7 days
+} as const;
+
+// ---------------------------------------------------------------------------
+// 16. DEFAULT EXPORT — aggregate all V1 configs
 // ---------------------------------------------------------------------------
 const config = {
   app: APP_CONFIG,
@@ -358,6 +370,7 @@ const config = {
   coach: COACH_CONFIG,
   owner: OWNER_CONFIG,
   ai: AI_CONFIG,
+  activity: ACTIVITY,
   invites: INVITE_CONFIG,
   theme: THEME,
   navigation: NAVIGATION,
