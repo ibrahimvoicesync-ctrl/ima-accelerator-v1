@@ -46,8 +46,7 @@ export async function fetchCoachMilestones(
   today:   string,
 ): Promise<CoachMilestonesPayload> {
   const admin = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (admin as any).rpc("get_coach_milestones", {
+  const { data, error } = await admin.rpc("get_coach_milestones", {
     p_coach_id:           coachId,
     p_today:              today,
     p_tech_setup_enabled: MILESTONE_FEATURE_FLAGS.techSetupEnabled,
