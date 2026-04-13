@@ -68,7 +68,7 @@ Requirements for v1.5 milestone. Each maps to roadmap phases. Build order is seq
 
 <!-- Feature 5 — extends existing 100hr alert pattern with 4 new triggers -->
 
-- [ ] **NOTIF-01**: Coach receives a notification when an assigned student completes the "Tech/Email Setup Finished" milestone (roadmap step reference configured in `MILESTONE_CONFIG`, placeholder until D-06 confirmed Monday meeting)
+- [x] **NOTIF-01**: Coach receives a notification when an assigned student completes the "Tech/Email Setup Finished" milestone (roadmap step reference configured in `MILESTONE_CONFIG`, placeholder until D-06 confirmed Monday meeting)
 - [ ] **NOTIF-02**: Coach receives a notification when an assigned student reaches Roadmap Step 11 (5 Influencers Closed)
 - [ ] **NOTIF-03**: Coach receives a notification when an assigned student reaches Roadmap Step 13 (First Brand Response)
 - [ ] **NOTIF-04**: Coach receives a notification for every closed deal by an assigned student — including coach-logged and owner-logged deals (per Q-CLOSED-DEAL resolution and D-07)

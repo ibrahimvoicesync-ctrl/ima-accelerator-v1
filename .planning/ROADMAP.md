@@ -92,7 +92,7 @@
 - [ ] **Phase 47: Coach Dashboard Homepage Stats** — 4 stat cards, recent submissions card, weekly top-3 hours leaderboard on `/coach`
 - [ ] **Phase 48: Full Coach Analytics Page** — `/coach/analytics` with leaderboards, 12-week deal trend, active/inactive split, paginated student list with search + CSV export
 - [ ] **Phase 49: Coach & Owner Deals Logging UI** — Add Deal button on coach/owner deals tab, attribution chip, shared modal reuse
-- [ ] **Phase 50: Milestone Config** — `MILESTONES` / `MILESTONE_CONFIG` constants; `tech_setup` feature flag pending D-06
+- [x] **Phase 50: Milestone Config** — `MILESTONES` / `MILESTONE_CONFIG` constants; `tech_setup` feature flag pending D-06 (completed 2026-04-13)
 - [ ] **Phase 51: Milestone Notifications RPC + Backfill** — 4 new alert types, extended `get_sidebar_badges`, historical pre-dismissal migration
 - [ ] **Phase 52: Coach Alerts Page** — `/coach/alerts` grouped feed with dismiss + bulk-dismiss, 9+ badge cap
 
@@ -536,9 +536,9 @@ Plans:
   3. SYNC comments match the 00014 style, so when the Phase 51 RPC is written it can reference the config as the single source of truth
   4. A feature flag (constant or env check) disables `milestone_tech_setup` evaluation until D-06 resolves; code path is wired but no notifications fire
   5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
-- [ ] 50-01-PLAN-milestone-config.md — Append MILESTONE_CONFIG + MILESTONES composers + MILESTONE_FEATURE_FLAGS + SYNC comments to src/lib/config.ts (D-06 gated, D-07 per-deal key)
+- [x] 50-01-PLAN-milestone-config.md — Append MILESTONE_CONFIG + MILESTONES composers + MILESTONE_FEATURE_FLAGS + SYNC comments to src/lib/config.ts (D-06 gated, D-07 per-deal key)
 
 > **Blocker note**: Phase 50 can ship with placeholder values. **Phase 51 cannot execute the Tech/Email Setup trigger until D-06 is resolved at the Monday stakeholder meeting.** The other 3 milestone triggers (NOTIF-02/03/04) are unblocked.
 
@@ -624,6 +624,6 @@ Plans:
 | 47. Coach Dashboard Homepage Stats | v1.5 | 0/TBD | Not started | — |
 | 48. Full Coach Analytics Page | v1.5 | 0/TBD | Not started | — |
 | 49. Coach & Owner Deals Logging UI | v1.5 | 0/TBD | Not started | — |
-| 50. Milestone Config | v1.5 | 0/TBD | Not started | — |
+| 50. Milestone Config | v1.5 | 1/1 | Complete   | 2026-04-13 |
 | 51. Milestone Notifications RPC + Backfill | v1.5 | 0/TBD | Not started (blocked on D-06 for NOTIF-01 only) | — |
 | 52. Coach Alerts Page | v1.5 | 0/TBD | Not started | — |
