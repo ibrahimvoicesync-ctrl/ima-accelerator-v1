@@ -39,6 +39,22 @@
 -- the existing coachDashboardTag from Phase 47).
 -- ============================================================================
 
+-- Drop any pre-existing overloads of get_coach_analytics (stale 5-arg draft
+-- may exist on remote from earlier dev attempts). This makes the migration
+-- idempotent and prevents the assert below from matching the wrong overload.
+DO $drop$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT pg_get_function_identity_arguments(p.oid) AS args
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'get_coach_analytics'
+  LOOP
+    EXECUTE format('DROP FUNCTION public.get_coach_analytics(%s) CASCADE', r.args);
+  END LOOP;
+END $drop$;
+
 CREATE OR REPLACE FUNCTION public.get_coach_analytics(
   p_coach_id          uuid,
   p_window_days       int     DEFAULT 7,
