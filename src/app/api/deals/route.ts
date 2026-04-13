@@ -7,6 +7,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
 import { VALIDATION } from "@/lib/config";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
+import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -183,6 +184,19 @@ export async function POST(request: NextRequest) {
         } catch (e) {
           console.error("[revalidate-tag]", e);
         }
+        // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
+        try {
+          const { data: studentRow } = await admin
+            .from("users")
+            .select("coach_id")
+            .eq("id", effectiveStudentId)
+            .maybeSingle();
+          if (studentRow?.coach_id) {
+            revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+          }
+        } catch (err) {
+          console.error("[deals] failed to invalidate coach-dashboard tag:", err);
+        }
         return NextResponse.json({ data: retryDeal }, { status: 201 });
       }
 
@@ -196,6 +210,19 @@ export async function POST(request: NextRequest) {
       revalidateTag(studentAnalyticsTag(effectiveStudentId), "default");
     } catch (e) {
       console.error("[revalidate-tag]", e);
+    }
+    // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
+    try {
+      const { data: studentRow } = await admin
+        .from("users")
+        .select("coach_id")
+        .eq("id", effectiveStudentId)
+        .maybeSingle();
+      if (studentRow?.coach_id) {
+        revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+      }
+    } catch (err) {
+      console.error("[deals] failed to invalidate coach-dashboard tag:", err);
     }
 
     // 11. Return 201

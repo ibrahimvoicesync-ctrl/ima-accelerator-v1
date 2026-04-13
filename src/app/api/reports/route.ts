@@ -8,6 +8,7 @@ import { isValidDateString } from "@/lib/utils";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
+import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
 
 const postSchema = z.object({
   date: z.string().refine(isValidDateString, "Invalid date format (YYYY-MM-DD)"),
@@ -110,6 +111,19 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.error("[revalidate-tag]", e);
     }
+    // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
+    try {
+      const { data: studentRow } = await admin
+        .from("users")
+        .select("coach_id")
+        .eq("id", profile.id)
+        .maybeSingle();
+      if (studentRow?.coach_id) {
+        revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+      }
+    } catch (err) {
+      console.error("[reports] failed to invalidate coach-dashboard tag:", err);
+    }
     return NextResponse.json({ data: updated });
   }
 
@@ -141,6 +155,19 @@ export async function POST(request: NextRequest) {
     revalidateTag(studentAnalyticsTag(profile.id), "default");
   } catch (e) {
     console.error("[revalidate-tag]", e);
+  }
+  // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
+  try {
+    const { data: studentRow } = await admin
+      .from("users")
+      .select("coach_id")
+      .eq("id", profile.id)
+      .maybeSingle();
+    if (studentRow?.coach_id) {
+      revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+    }
+  } catch (err) {
+    console.error("[reports] failed to invalidate coach-dashboard tag:", err);
   }
   return NextResponse.json({ data: report }, { status: 201 });
 }

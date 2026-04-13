@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
@@ -7,7 +8,20 @@ import { Badge } from "@/components/ui/Badge";
 import { StudentCard } from "@/components/coach/StudentCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
-import { Users, AlertTriangle, FileText, ArrowRight } from "lucide-react";
+import { KPICard } from "@/components/coach/KPICard";
+import { RecentSubmissionsCard } from "@/components/coach/RecentSubmissionsCard";
+import { WeeklyLeaderboardCard } from "@/components/coach/WeeklyLeaderboardCard";
+import { fetchCoachDashboard, coachDashboardTag } from "@/lib/rpc/coach-dashboard";
+import {
+  Users,
+  AlertTriangle,
+  FileText,
+  ArrowRight,
+  Briefcase,
+  DollarSign,
+  Map as MapIcon,
+  Mail,
+} from "lucide-react";
 import Link from "next/link";
 
 type EnrichedStudent = {
@@ -41,6 +55,32 @@ export default async function CoachDashboard() {
 
   const studentList = students ?? [];
   const studentIds = studentList.map((s) => s.id);
+
+  // Step 1.5 — Phase 47: batch RPC for KPIs + recent submissions + weekly hours.
+  // Wrapped in unstable_cache (60s TTL) keyed per-coach; tag is invalidated by
+  // assigned-student deal/report/work-session mutations from API routes.
+  const getCachedCoachDashboard = unstable_cache(
+    async (coachId: string, t: string) => fetchCoachDashboard(coachId, t),
+    ["coach-dashboard", user.id],
+    { revalidate: 60, tags: [coachDashboardTag(user.id)] },
+  );
+  const dashboard = await getCachedCoachDashboard(user.id, today);
+
+  // Server-format KPI values once — never format on the client (avoid hydration drift).
+  const intFormat = new Intl.NumberFormat("en-US");
+  const currencyFormat = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+  const dealsClosedLabel = intFormat.format(dashboard.stats.deals_closed ?? 0);
+  const revenueLabel = currencyFormat.format(Number(dashboard.stats.revenue ?? 0));
+  const avgStepLabel = Number(dashboard.stats.avg_roadmap_step ?? 0).toFixed(1);
+  const emailsSentLabel = intFormat.format(dashboard.stats.emails_sent ?? 0);
+
+  // Server-derived "now" timestamp for relative-time formatting in client components.
+  // Hoisted from the enrichment block below so RecentSubmissionsCard can consume it.
+  const dashboardNowMs = new Date(today + "T23:59:59Z").getTime();
 
   // Step 2 — If no students, skip enrichment. Otherwise parallel fetch.
   const [sessionsResult, reportsResult, roadmapResult, skipResult] =
@@ -304,6 +344,51 @@ export default async function CoachDashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Phase 47: 4 KPI cards (Deals Closed, Revenue, Avg Roadmap Step, Emails Sent) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+        <KPICard
+          label="Deals Closed"
+          value={dealsClosedLabel}
+          icon={Briefcase}
+          tint="primary"
+          href="/coach/analytics#deals"
+          ariaLabel={`Deals Closed: ${dealsClosedLabel}. View in analytics.`}
+        />
+        <KPICard
+          label="Revenue Generated"
+          value={revenueLabel}
+          icon={DollarSign}
+          tint="success"
+          href="/coach/analytics#revenue"
+          ariaLabel={`Revenue Generated: ${revenueLabel}. View in analytics.`}
+        />
+        <KPICard
+          label="Avg Roadmap Step"
+          value={avgStepLabel}
+          icon={MapIcon}
+          tint="info"
+          href="/coach/analytics#roadmap"
+          ariaLabel={`Average Roadmap Step: ${avgStepLabel}. View in analytics.`}
+        />
+        <KPICard
+          label="Emails Sent"
+          value={emailsSentLabel}
+          icon={Mail}
+          tint="warning"
+          href="/coach/analytics#emails"
+          ariaLabel={`Emails Sent: ${emailsSentLabel}. View in analytics.`}
+        />
+      </div>
+
+      {/* Phase 47: Recent Submissions + Weekly Top-3 Hours leaderboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+        <RecentSubmissionsCard
+          reports={dashboard.recent_reports}
+          nowMs={dashboardNowMs}
+        />
+        <WeeklyLeaderboardCard rows={dashboard.top_hours_week} />
       </div>
 
       {/* At-risk banner */}

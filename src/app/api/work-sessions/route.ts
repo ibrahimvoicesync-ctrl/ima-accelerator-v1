@@ -9,6 +9,7 @@ import { verifyOrigin } from "@/lib/csrf";
 import { getTodayUTC } from "@/lib/utils";
 import { planJsonSchema } from "@/lib/schemas/daily-plan";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
+import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
 
 const postSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -187,6 +188,19 @@ export async function POST(request: Request) {
     revalidateTag(studentAnalyticsTag(profile.id), "default");
   } catch (e) {
     console.error("[revalidate-tag]", e);
+  }
+  // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
+  try {
+    const { data: studentRow } = await admin
+      .from("users")
+      .select("coach_id")
+      .eq("id", profile.id)
+      .maybeSingle();
+    if (studentRow?.coach_id) {
+      revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+    }
+  } catch (err) {
+    console.error("[work-sessions] failed to invalidate coach-dashboard tag:", err);
   }
   return NextResponse.json(session, { status: 201 });
 }
