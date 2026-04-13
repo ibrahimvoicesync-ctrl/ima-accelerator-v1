@@ -558,10 +558,10 @@ Plans:
 
 > **Blocker**: D-06 (Tech/Email Setup roadmap step reference) must resolve at the Monday stakeholder meeting before NOTIF-01 can be activated. All other triggers (NOTIF-02/03/04) ship in this phase regardless.
 
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
-- [ ] 51-01-PLAN.md — Migration 00027: get_coach_milestones + backfill + get_sidebar_badges rewrite (atomic SQL + embedded asserts)
+- [x] 51-01-PLAN.md — Migration 00027: get_coach_milestones + backfill + get_sidebar_badges rewrite (atomic SQL + embedded asserts)
 - [ ] 51-02-PLAN.md — TS wrapper (fetch/cache 60s) + revalidateTag fan-out in deals/reports/roadmap + sidebar types drift fix
 
 ### Phase 52: Coach Alerts Page
@@ -629,5 +629,5 @@ Plans:
 | 48. Full Coach Analytics Page | v1.5 | 0/TBD | Not started | — |
 | 49. Coach & Owner Deals Logging UI | v1.5 | 0/TBD | Not started | — |
 | 50. Milestone Config | v1.5 | 1/1 | Complete   | 2026-04-13 |
-| 51. Milestone Notifications RPC + Backfill | v1.5 | 0/TBD | Not started (blocked on D-06 for NOTIF-01 only) | — |
+| 51. Milestone Notifications RPC + Backfill | v1.5 | 1/2 | In Progress|  |
 | 52. Coach Alerts Page | v1.5 | 0/TBD | Not started | — |

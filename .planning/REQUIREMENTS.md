@@ -69,16 +69,16 @@ Requirements for v1.5 milestone. Each maps to roadmap phases. Build order is seq
 <!-- Feature 5 — extends existing 100hr alert pattern with 4 new triggers -->
 
 - [x] **NOTIF-01**: Coach receives a notification when an assigned student completes the "Tech/Email Setup Finished" milestone (roadmap step reference configured in `MILESTONE_CONFIG`, placeholder until D-06 confirmed Monday meeting)
-- [ ] **NOTIF-02**: Coach receives a notification when an assigned student reaches Roadmap Step 11 (5 Influencers Closed)
-- [ ] **NOTIF-03**: Coach receives a notification when an assigned student reaches Roadmap Step 13 (First Brand Response)
-- [ ] **NOTIF-04**: Coach receives a notification for every closed deal by an assigned student — including coach-logged and owner-logged deals (per Q-CLOSED-DEAL resolution and D-07)
-- [ ] **NOTIF-05**: Each milestone notification fires exactly once per qualifying event, idempotent via `alert_key` namespaces — one-shot keys for NOTIF-01/02/03 (`milestone:{type}:{student_id}`), per-deal key for NOTIF-04 (`closed_deal:{student_id}:{deal_id}`)
+- [x] **NOTIF-02**: Coach receives a notification when an assigned student reaches Roadmap Step 11 (5 Influencers Closed)
+- [x] **NOTIF-03**: Coach receives a notification when an assigned student reaches Roadmap Step 13 (First Brand Response)
+- [x] **NOTIF-04**: Coach receives a notification for every closed deal by an assigned student — including coach-logged and owner-logged deals (per Q-CLOSED-DEAL resolution and D-07)
+- [x] **NOTIF-05**: Each milestone notification fires exactly once per qualifying event, idempotent via `alert_key` namespaces — one-shot keys for NOTIF-01/02/03 (`milestone:{type}:{student_id}`), per-deal key for NOTIF-04 (`closed_deal:{student_id}:{deal_id}`)
 - [ ] **NOTIF-06**: Notification message includes student name and achievement description; clicking navigates to the student detail page
-- [ ] **NOTIF-07**: Coach sidebar badge count is extended to include new milestone notifications alongside the existing 100+ hrs/45 days alert, via a single source (`get_sidebar_badges` RPC)
-- [ ] **NOTIF-08**: Existing 100+ hours/45 days coach alert (quick task 260401-cwd) continues to work unchanged — notifications reuse the same pattern, not a rebuild (per D-08)
+- [x] **NOTIF-07**: Coach sidebar badge count is extended to include new milestone notifications alongside the existing 100+ hrs/45 days alert, via a single source (`get_sidebar_badges` RPC)
+- [x] **NOTIF-08**: Existing 100+ hours/45 days coach alert (quick task 260401-cwd) continues to work unchanged — notifications reuse the same pattern, not a rebuild (per D-08)
 - [ ] **NOTIF-09**: New `/coach/alerts` page shows grouped-by-student feed with dismiss and bulk-dismiss actions; sidebar badge caps at "9+"
-- [ ] **NOTIF-10**: Migration pre-dismisses historical qualifying events so adding a new milestone does not flood all existing coaches with retroactive alerts
-- [ ] **NOTIF-11**: Milestone compute RPC is performant at 5k students — single batch per coach, wrapped in `unstable_cache` 60s, invalidated on deal/report/roadmap mutations
+- [x] **NOTIF-10**: Migration pre-dismisses historical qualifying events so adding a new milestone does not flood all existing coaches with retroactive alerts
+- [x] **NOTIF-11**: Milestone compute RPC is performant at 5k students — single batch per coach, wrapped in `unstable_cache` 60s, invalidated on deal/report/roadmap mutations
 
 ### Cross-Cutting Performance & Quality
 
