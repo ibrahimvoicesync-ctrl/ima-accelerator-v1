@@ -536,7 +536,9 @@ Plans:
   3. SYNC comments match the 00014 style, so when the Phase 51 RPC is written it can reference the config as the single source of truth
   4. A feature flag (constant or env check) disables `milestone_tech_setup` evaluation until D-06 resolves; code path is wired but no notifications fire
   5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 50-01-PLAN-milestone-config.md — Append MILESTONE_CONFIG + MILESTONES composers + MILESTONE_FEATURE_FLAGS + SYNC comments to src/lib/config.ts (D-06 gated, D-07 per-deal key)
 
 > **Blocker note**: Phase 50 can ship with placeholder values. **Phase 51 cannot execute the Tech/Email Setup trigger until D-06 is resolved at the Monday stakeholder meeting.** The other 3 milestone triggers (NOTIF-02/03/04) are unblocked.
 
