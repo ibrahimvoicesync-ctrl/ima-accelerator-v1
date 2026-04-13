@@ -7,6 +7,9 @@ import { ROADMAP_STEPS } from "@/lib/config";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
+import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
+import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
+import { coachMilestonesTag } from "@/lib/rpc/coach-milestones-types";
 
 const patchSchema = z.object({
   step_number: z.number().int().min(1).max(ROADMAP_STEPS.length),
@@ -113,6 +116,24 @@ export async function PATCH(request: NextRequest) {
       revalidateTag(studentAnalyticsTag(profile.id), "default");
     } catch (e) {
       console.error("[revalidate-tag]", e);
+    }
+    // Phase 51: a Step-11 or Step-13 completion for an assigned student produces
+    // a coach milestone notification. Invalidate the coach's caches + sidebar
+    // badge so the notification surfaces within one render instead of one TTL.
+    revalidateTag("badges", "default");
+    try {
+      const { data: studentRow } = await admin
+        .from("users")
+        .select("coach_id")
+        .eq("id", profile.id)
+        .maybeSingle();
+      if (studentRow?.coach_id) {
+        revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+        revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
+        revalidateTag(coachMilestonesTag(studentRow.coach_id), "default");
+      }
+    } catch (err) {
+      console.error("[roadmap] failed to invalidate coach tags:", err);
     }
 
     return NextResponse.json({ data: { completed, unlocked } });

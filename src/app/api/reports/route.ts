@@ -10,6 +10,7 @@ import { verifyOrigin } from "@/lib/csrf";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
 import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
+import { coachMilestonesTag } from "@/lib/rpc/coach-milestones-types";
 
 const postSchema = z.object({
   date: z.string().refine(isValidDateString, "Invalid date format (YYYY-MM-DD)"),
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest) {
       if (studentRow?.coach_id) {
         revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
         revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
+        revalidateTag(coachMilestonesTag(studentRow.coach_id), "default");
       }
     } catch (err) {
       console.error("[reports] failed to invalidate coach-dashboard tag:", err);
@@ -167,6 +169,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     if (studentRow?.coach_id) {
       revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+      revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
+      revalidateTag(coachMilestonesTag(studentRow.coach_id), "default");
     }
   } catch (err) {
     console.error("[reports] failed to invalidate coach-dashboard tag:", err);

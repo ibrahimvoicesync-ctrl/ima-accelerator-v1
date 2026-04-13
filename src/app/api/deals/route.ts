@@ -9,6 +9,7 @@ import { VALIDATION } from "@/lib/config";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
 import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
+import { coachMilestonesTag } from "@/lib/rpc/coach-milestones-types";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -180,12 +181,13 @@ export async function POST(request: NextRequest) {
         }
 
         revalidateTag(`deals-${effectiveStudentId}`, "default");
+        revalidateTag("badges", "default"); // Phase 51: sidebar coach_milestone_alerts count can change on every deal
         try {
           revalidateTag(studentAnalyticsTag(effectiveStudentId), "default");
         } catch (e) {
           console.error("[revalidate-tag]", e);
         }
-        // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
+        // Phase 47/51: invalidate the coach's dashboard / analytics / milestones caches.
         try {
           const { data: studentRow } = await admin
             .from("users")
@@ -195,6 +197,7 @@ export async function POST(request: NextRequest) {
           if (studentRow?.coach_id) {
             revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
             revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
+            revalidateTag(coachMilestonesTag(studentRow.coach_id), "default");
           }
         } catch (err) {
           console.error("[deals] failed to invalidate coach-dashboard tag:", err);
@@ -208,12 +211,13 @@ export async function POST(request: NextRequest) {
 
     // 10. Cache invalidation (per-student)
     revalidateTag(`deals-${effectiveStudentId}`, "default");
+    revalidateTag("badges", "default"); // Phase 51: sidebar coach_milestone_alerts count can change on every deal
     try {
       revalidateTag(studentAnalyticsTag(effectiveStudentId), "default");
     } catch (e) {
       console.error("[revalidate-tag]", e);
     }
-    // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
+    // Phase 47/51: invalidate the coach's dashboard / analytics / milestones caches.
     try {
       const { data: studentRow } = await admin
         .from("users")
@@ -223,6 +227,7 @@ export async function POST(request: NextRequest) {
       if (studentRow?.coach_id) {
         revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
         revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
+        revalidateTag(coachMilestonesTag(studentRow.coach_id), "default");
       }
     } catch (err) {
       console.error("[deals] failed to invalidate coach-dashboard tag:", err);
