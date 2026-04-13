@@ -1,36 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: verifying
-stopped_at: Phase 43 context gathered
-last_updated: "2026-04-07T19:19:39.112Z"
-last_activity: 2026-04-07
+milestone: v1.5
+milestone_name: Analytics Pages, Coach Dashboard & Deal Logging
+status: defining_requirements
+stopped_at: Milestone v1.5 initialized
+last_updated: "2026-04-13T00:00:00.000Z"
+last_activity: 2026-04-13
 progress:
-  total_phases: 25
-  completed_phases: 22
-  total_plans: 54
-  completed_plans: 53
-  percent: 98
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-03)
+See: .planning/PROJECT.md (updated 2026-04-13)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 37 — invite-link-max-uses
+**Current focus:** Milestone v1.5 — defining requirements
 
 ## Current Position
 
-Phase: 43
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-07
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-13 — Milestone v1.5 started
 
-Progress: [░░░░░░░░░░] 0% (v1.4)
+Progress: [░░░░░░░░░░] 0% (v1.5)
 
 ## Performance Metrics
 
@@ -38,19 +38,34 @@ Progress: [░░░░░░░░░░] 0% (v1.4)
 **v1.1 completed:** 2026-03-28 | 6 phases | 16 plans
 **v1.2 completed:** 2026-03-31 | 6 phases | 18 plans
 **v1.3 completed:** 2026-04-03 | 5 phases | 11 plans
-**v1.4 started:** 2026-04-03 | 8 phases (30-37)
+**v1.4 completed:** 2026-04-07 | 14 phases (30-37, 40-43) | 30+ plans
+**v1.5 started:** 2026-04-13 | Analytics Pages, Coach Dashboard & Deal Logging
 
 ## Accumulated Context
 
-### Decisions (v1.4 locked)
+### Decisions (v1.5 locked)
 
-- D-07: Chat polling 5s interval — NOT Supabase Realtime (avoid 500 connection limit on Pro)
-- D-14: Role type expands to 4: owner, coach, student, student_diy
-- D-01: "This week" = Monday-Sunday ISO week for skip tracker
-- D-10: Discord WidgetBot iframe embed — no npm package
-- D-04: student_diy has NO coach assignment (fully independent, self-service)
-- D-05: student_diy has NO Ask Abu Lahya, NO Daily Report, NO Resources, NO Chat
-- D-13: Invite link default max_uses = 10 (was null/unlimited)
+- D-01: Analytics aggregation via Postgres RPC (not client-side row pulls)
+- D-02: `unstable_cache` 60s TTL on dashboard stats
+- D-03: (SELECT auth.uid()) initplan RLS pattern on all new policies
+- D-04: Paginate any list > 25 items
+- D-05: Perf target 5,000 concurrent students
+- D-06: "Tech/Email Setup Finished" roadmap step TBC (Monday stakeholder meeting, placeholder Step 5 or 6)
+- D-07: "Closed Deal" milestone notification fires on EVERY deal (not first-only)
+- D-08: Milestone notifications reuse 260401-cwd pattern (100+ hrs/45 days)
+- D-09: `deals.logged_by` nullable UUID — null = student self, set = coach/owner
+- D-10: Build order sequential (Feat 1 → 2 → 3 → 4 → 5)
+- D-13: Top-3 hours leaderboard weekly reset (Mon-Sun, ISO week — reuses v1.4 D-01)
+
+### Decisions (v1.4 shipped — archived for reference)
+
+- v1.4 D-07: Chat polling 5s interval — NOT Supabase Realtime (avoid 500 connection limit on Pro)
+- v1.4 D-14: Role type expands to 4: owner, coach, student, student_diy
+- v1.4 D-01: "This week" = Monday-Sunday ISO week for skip tracker
+- v1.4 D-10: Discord WidgetBot iframe embed — no npm package
+- v1.4 D-04: student_diy has NO coach assignment (fully independent, self-service)
+- v1.4 D-05: student_diy has NO Ask Abu Lahya, NO Daily Report, NO Resources, NO Chat
+- v1.4 D-13: Invite link default max_uses = 10 (was null/unlimited)
 
 ### Critical Pitfalls (from research — address during execution)
 
@@ -109,7 +124,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4)
 
 ### Blockers/Concerns
 
-None currently blocking Phase 30.
+- v1.5 D-06: "Tech/Email Setup Finished" roadmap step needs stakeholder confirmation at Monday meeting (placeholder Step 5 or 6). Non-blocking for requirements/roadmap phase — will resolve before Feature 5 execution.
 
 ### Quick Tasks Completed
 
@@ -137,6 +152,6 @@ None currently blocking Phase 30.
 
 ## Session Continuity
 
-Last session: 2026-04-07T14:10:10.358Z
-Stopped at: Phase 43 context gathered
-Resume file: .planning/phases/43-coach-owner-deals-tab/43-CONTEXT.md
+Last session: 2026-04-13
+Stopped at: Milestone v1.5 initialized — defining requirements
+Resume: run `/gsd-plan-phase [N]` after roadmap approved

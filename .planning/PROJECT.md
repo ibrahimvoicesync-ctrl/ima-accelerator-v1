@@ -48,17 +48,27 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ Daily session planner (API + client) — 4h cap, auto breaks, planned execution — v1.3
 - ✓ Post-plan motivational card (Arabic + English) + ad-hoc session picker — v1.3
 
+- ✓ Student_DIY role — 4th role (dashboard + work tracker + roadmap only, no reports/AI/resources/chat) — v1.4 (Phase 31)
+- ✓ Skip tracker — "X days skipped this week" (Mon-Sun ISO week) on coach/owner dashboards — v1.4 (Phase 32)
+- ✓ Coach assignments — coaches get same assignment power as owner (any student → any coach) — v1.4 (Phase 33)
+- ✓ Report comments — single coach comment per daily report, students see on history — v1.4 (Phase 34)
+- ✓ Chat system — polling-based WhatsApp-style chat (5s poll), 1:1 coach↔student + broadcast — v1.4 (Phase 35)
+- ✓ Resources tab — URL links + Discord WidgetBot embed + searchable glossary (owner/coach/student, NOT student_diy) — v1.4 (Phase 36)
+- ✓ Invite link configurable max_uses — default 10, UI shows usage count — v1.4 (Phase 37)
+- ✓ Deals config & types — Deal type, deal_count/revenue/profit KPIs, deals table references — v1.4 (Phase 40)
+- ✓ Student deals pages — student/student_diy deals tab with create form, list, margin calc — v1.4 (Phase 41)
+- ✓ Dashboard stat cards — 3 deal cards (Deals Closed, Total Revenue, Total Profit) on student dashboards — v1.4 (Phase 42)
+- ✓ Coach/owner deals tab — read-only deals table on student detail pages with margin %, summary totals — v1.4 (Phase 43)
+
 ### Active
 
-<!-- Current scope. Building toward these for v1.4. -->
+<!-- Current scope. Building toward these for v1.5. -->
 
-- [x] Student_DIY role — 4th role (dashboard + work tracker + roadmap only, no reports/AI/resources/chat) — Validated in Phase 31
-- [x] Skip tracker — "X days skipped this week" (Mon-Sun ISO week) on coach/owner dashboards — Validated in Phase 32
-- [ ] Coach assignments — coaches get same assignment power as owner (any student → any coach)
-- [x] Report comments — single coach comment per daily report, students see on history — Validated in Phase 34
-- [ ] Chat system — polling-based WhatsApp-style chat (5s poll), 1:1 coach↔student + broadcast
-- [ ] Resources tab — URL links + Discord WidgetBot embed + searchable glossary (owner/coach/student, NOT student_diy)
-- [x] Invite link configurable max_uses — default 10, UI shows usage count — Validated in Phase 37
+- [ ] Student Analytics Page — `/student/analytics` with outreach trends, deal history, roadmap progress vs deadlines, hours worked, lifetime totals (RPC-driven)
+- [ ] Coach Dashboard Homepage Stats — quick-scan stat cards (deals closed, revenue, avg roadmap step, total emails) + 3 recent reports + top-3 hours leaderboard (weekly Mon-Sun)
+- [ ] Coach Analytics Tab (Full) — expanded `/coach/analytics` with leaderboards, deal trends, active/inactive breakdown, paginated
+- [ ] Coaches log deals for students — `logged_by` column on deals, RLS updates, Add Deal button on coach deals tab, attribution indicator
+- [ ] Milestone notifications for coaches — Tech/Email Setup (step TBC), 5 Influencers Closed (Step 11), First Brand Response (Step 13), Closed Deal (every deal), reuse 100+ hrs/45 days pattern
 
 ### Out of Scope
 
@@ -118,6 +128,10 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 **v1.4 Phase 42 complete** (2026-04-07): Dashboard stat cards — 3 deals stat cards (Deals Closed, Total Revenue, Total Profit) added to both student and student_diy dashboards. Server-side deals query with Number() coercion for Postgres numeric fields, toLocaleString formatting with 2 decimal places, ima-* design tokens, accessible icons.
 
+**v1.4 Phase 43 complete** (2026-04-07): Coach/owner deals tab — read-only deals table on coach and owner student detail pages with deal #, revenue, profit, margin %, logged date, summary totals row, empty state. Uses shared component scoped to assigned students (coach) or any student (owner).
+
+**v1.4 milestone complete** (2026-04-07): 14 phases (30-37, 40-43), 30+ plans. Student_DIY role, skip tracker, coach assignments, report comments, chat system, resources tab, invite link max_uses, plus full deals infrastructure (config/types, student pages, dashboard cards, coach/owner visibility) all shipped.
+
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
 **Invite system (v1.0):** Email whitelist model — no registration URL generated. Coach/owner enters email, auth callback auto-registers whitelisted users on Google sign-in. Magic links available as alternative.
@@ -168,24 +182,42 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | v1.4 D-12 | Glossary managed by owner + coaches | Both roles can CRUD | — Pending |
 | v1.4 D-13 | Invite link default max_uses: 10 (was null/unlimited) | Per requirement | — Pending |
 | v1.4 D-14 | Role type expands to 4: owner, coach, student, student_diy | New 4th role | — Pending |
+| v1.5 D-01 | Analytics aggregation via Postgres RPC functions | Avoid client-side row pulls at 5k scale | — Pending |
+| v1.5 D-02 | Dashboard stats wrapped in unstable_cache with 60s TTL | Cut hot-path DB load; align with v1.2 caching pattern | — Pending |
+| v1.5 D-03 | All new RLS policies use (SELECT auth.uid()) initplan pattern | Same v1.2 Phase 19 perf rule; avoids per-row re-eval | — Pending |
+| v1.5 D-04 | Paginate any list > 25 items | Consistent with v1.2 server-side pagination | — Pending |
+| v1.5 D-05 | Performance target: 5,000 concurrent students | Stress envelope for all v1.5 queries + indexes | — Pending |
+| v1.5 D-06 | "Tech/Email Setup Finished" milestone → roadmap step TBC with stakeholder (placeholder Step 5 or 6, flagged for Monday meeting) | Abu Lahya to confirm; milestone N 1 of 4 | — Pending |
+| v1.5 D-07 | "Closed Deal" milestone notification fires on EVERY deal (not first-only) | Coaches want to see when students are actively closing | — Pending |
+| v1.5 D-08 | Milestone notifications reuse existing pattern from 260401-cwd (100+ hrs/45 days coach alert) | Don't rebuild notification plumbing | — Pending |
+| v1.5 D-09 | `deals.logged_by` UUID column (nullable) — null = student self-logged, set = coach/owner creator | Attribution without changing deal ownership semantics | — Pending |
+| v1.5 D-10 | Build order sequential: Feat 1 → 2 → 3 → 4 → 5 (each builds on prior) | Feature dependencies; coach dashboard stats reuse RPC from student analytics | — Pending |
+| v1.5 D-11 | Charts library: evaluate recharts (or existing project dep) during research | No chart lib currently installed; check before adding | — Pending |
+| v1.5 D-12 | Post-phase build gate: `npm run lint && npx tsc --noEmit && npm run build` | Enforce quality bar every phase | — Pending |
+| v1.5 D-13 | Coach homepage: top-3 hours leaderboard resets weekly (Mon-Sun, same ISO week as skip tracker) | Reuse v1.4 D-01 week convention | — Pending |
 
-## Current Milestone: v1.4 Roles, Chat & Resources
+## Current Milestone: v1.5 Analytics Pages, Coach Dashboard & Deal Logging
 
-**Goal:** Add student_diy role, coach-student chat system, resources tab with Discord/glossary, plus skip tracker, coach assignments, report comments, and configurable invite limits.
+**Goal:** Give students self-visibility into their own performance, give coaches quick-scan dashboards + deep analytics + the ability to log deals on behalf of students, and extend the existing notification system with 4 new milestone triggers. Must scale to 5,000 concurrent students.
 
 **Target features:**
-- Student_DIY role — 4th role with reduced feature set (dashboard + work tracker + roadmap only)
-- Skip tracker — coach/owner see "X days skipped this week" per student (Mon-Sun ISO week)
-- Coach assignments — coaches get same assignment power as owner
-- Report comments — single coach comment per daily report
-- Chat system — polling-based WhatsApp-style (5s poll), 1:1 + broadcast, sidebar unread badges
-- Resources tab — URL links + Discord WidgetBot embed + searchable glossary
-- Invite link configurable max_uses — default 10
+- Student Analytics Page — `/student/analytics` with outreach trends, deal history, roadmap progress vs deadlines, hours worked, lifetime totals (RPC-driven)
+- Coach Dashboard Homepage Stats — quick-scan stat cards (deals closed, revenue, avg roadmap step, total emails) + 3 recent reports (See All link) + top-3 hours leaderboard (Mon-Sun weekly reset), each clickable to analytics
+- Coach Analytics Tab (Full) — expanded `/coach/analytics` with leaderboards (top deals, top emails), deal trends, active/inactive breakdown, paginated
+- Coaches can log deals for students — `logged_by` column, coach/owner INSERT RLS, Add Deal button on coach deals tab, UI attribution indicator
+- Milestone notifications for coaches — Tech/Email Setup (step TBC), 5 Influencers Closed (Step 11), First Brand Response (Step 13), Closed Deal (every deal), reusing 100+ hrs/45 days pattern; sidebar badge updated
+
+**Performance constraints (non-negotiable for all phases):**
+- Indexes on hot paths | auth + role + rate limiting on all new endpoints
+- `(SELECT auth.uid())` RLS initplan pattern | aggregations via Postgres RPC (not client-side)
+- `unstable_cache` 60s TTL on dashboard stats | paginate lists > 25
+- Post-phase gate: `npm run lint && npx tsc --noEmit && npm run build`
+- Target: 5,000 concurrent students
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
-Last updated: 2026-04-07
+Last updated: 2026-04-13
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -201,4 +233,4 @@ Last updated: 2026-04-07
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-07 after Phase 43 (coach-owner-deals-tab) complete — Deals tab on coach and owner student detail pages with read-only table, margin %, summary totals, and empty state*
+*Last updated: 2026-04-13 — Milestone v1.5 (Analytics Pages, Coach Dashboard & Deal Logging) started. v1.4 complete at Phase 43 (14 phases, 30+ plans shipped).*
