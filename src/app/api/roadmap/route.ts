@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROADMAP_STEPS } from "@/lib/config";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
+import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 
 const patchSchema = z.object({
   step_number: z.number().int().min(1).max(ROADMAP_STEPS.length),
@@ -105,6 +107,12 @@ export async function PATCH(request: NextRequest) {
         .single();
 
       unlocked = nextStep;
+    }
+
+    try {
+      revalidateTag(studentAnalyticsTag(profile.id), "default");
+    } catch (e) {
+      console.error("[revalidate-tag]", e);
     }
 
     return NextResponse.json({ data: { completed, unlocked } });

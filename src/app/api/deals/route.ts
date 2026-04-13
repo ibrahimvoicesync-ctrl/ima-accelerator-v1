@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
 import { VALIDATION } from "@/lib/config";
+import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -177,6 +178,11 @@ export async function POST(request: NextRequest) {
         }
 
         revalidateTag(`deals-${effectiveStudentId}`, "default");
+        try {
+          revalidateTag(studentAnalyticsTag(effectiveStudentId), "default");
+        } catch (e) {
+          console.error("[revalidate-tag]", e);
+        }
         return NextResponse.json({ data: retryDeal }, { status: 201 });
       }
 
@@ -186,6 +192,11 @@ export async function POST(request: NextRequest) {
 
     // 10. Cache invalidation (per-student)
     revalidateTag(`deals-${effectiveStudentId}`, "default");
+    try {
+      revalidateTag(studentAnalyticsTag(effectiveStudentId), "default");
+    } catch (e) {
+      console.error("[revalidate-tag]", e);
+    }
 
     // 11. Return 201
     return NextResponse.json({ data: deal }, { status: 201 });

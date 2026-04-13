@@ -8,6 +8,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
 import { getTodayUTC } from "@/lib/utils";
 import { planJsonSchema } from "@/lib/schemas/daily-plan";
+import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 
 const postSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -182,5 +183,10 @@ export async function POST(request: Request) {
   }
 
   revalidateTag("badges", "default");
+  try {
+    revalidateTag(studentAnalyticsTag(profile.id), "default");
+  } catch (e) {
+    console.error("[revalidate-tag]", e);
+  }
   return NextResponse.json(session, { status: 201 });
 }

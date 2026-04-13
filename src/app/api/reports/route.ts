@@ -7,6 +7,7 @@ import { VALIDATION } from "@/lib/config";
 import { isValidDateString } from "@/lib/utils";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
+import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 
 const postSchema = z.object({
   date: z.string().refine(isValidDateString, "Invalid date format (YYYY-MM-DD)"),
@@ -104,6 +105,11 @@ export async function POST(request: NextRequest) {
     }
 
     revalidateTag("badges", "default");
+    try {
+      revalidateTag(studentAnalyticsTag(profile.id), "default");
+    } catch (e) {
+      console.error("[revalidate-tag]", e);
+    }
     return NextResponse.json({ data: updated });
   }
 
@@ -131,5 +137,10 @@ export async function POST(request: NextRequest) {
   }
 
   revalidateTag("badges", "default");
+  try {
+    revalidateTag(studentAnalyticsTag(profile.id), "default");
+  } catch (e) {
+    console.error("[revalidate-tag]", e);
+  }
   return NextResponse.json({ data: report }, { status: 201 });
 }

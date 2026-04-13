@@ -754,6 +754,15 @@ export type Database = {
         };
         Returns: unknown;
       };
+      get_student_analytics: {
+        Args: {
+          p_student_id: string;
+          p_range?: string;
+          p_page?: number;
+          p_page_size?: number;
+        };
+        Returns: unknown;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

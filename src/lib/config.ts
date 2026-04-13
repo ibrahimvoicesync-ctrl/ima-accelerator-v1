@@ -88,6 +88,7 @@ export const ROUTES = {
     deals: "/student/deals",
     chat: "/student/chat",
     resources: "/student/resources",
+    analytics: "/student/analytics",
   },
   student_diy: {
     dashboard: "/student_diy",
@@ -95,6 +96,7 @@ export const ROUTES = {
     roadmap: "/student_diy/roadmap",
     deals: "/student_diy/deals",
     resources: "/student_diy/resources",
+    analytics: "/student_diy/analytics",
   },
   api: {
     auth: "/api/auth",
@@ -308,6 +310,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Ask Abu Lahya", href: "/student/ask",     icon: "MessageSquare" },
     { label: "Daily Report",  href: "/student/report",  icon: "FileText" },
     { label: "Deals",         href: ROUTES.student.deals, icon: "DollarSign" },
+    { label: "Analytics",     href: ROUTES.student.analytics, icon: "BarChart3" },
     { label: "Chat",          href: "/student/chat",    icon: "MessageSquare",  badge: "unread_messages" },
     { label: "Resources",     href: ROUTES.student.resources, icon: "BookOpen" },
   ],
@@ -316,6 +319,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Work Tracker", href: "/student_diy/work",    icon: "Timer" },
     { label: "Roadmap",      href: "/student_diy/roadmap", icon: "Map" },
     { label: "Deals",        href: ROUTES.student_diy.deals, icon: "DollarSign" },
+    { label: "Analytics",    href: ROUTES.student_diy.analytics, icon: "BarChart3" },
     { label: "Resources",    href: ROUTES.student_diy.resources, icon: "BookOpen" },
   ],
 };

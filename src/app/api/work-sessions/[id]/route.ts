@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
+import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 
 const patchSchema = z.object({
   status: z.enum(["completed", "abandoned", "paused", "in_progress"]),
@@ -139,5 +140,10 @@ export async function PATCH(
   }
 
   revalidateTag("badges", "default");
+  try {
+    revalidateTag(studentAnalyticsTag(profile.id), "default");
+  } catch (e) {
+    console.error("[revalidate-tag]", e);
+  }
   return NextResponse.json(updated);
 }
