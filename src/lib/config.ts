@@ -359,7 +359,92 @@ export const ACTIVITY = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// 16. DEFAULT EXPORT — aggregate all V1 configs
+// 16. MILESTONE CONFIG (v1.5 — coach notifications for 4 new student milestones)
+//     SYNC: roadmap-step references and alert-key namespaces are consumed by the
+//           Phase 51 milestone RPC (future migration 00027_*). Alert-key
+//           namespaces are ALSO consumed by the /coach/alerts page UI and the
+//           coach branch of get_sidebar_badges. Changing any numeric step
+//           reference, alert-key namespace, or LIKE pattern REQUIRES a new
+//           migration that rewrites the RPC to match.
+//
+//     Feature flag: techSetupEnabled defaults to false — the Tech/Email Setup
+//     trigger does NOT fire until D-06 resolves at the Monday stakeholder
+//     meeting. Code paths that evaluate this milestone MUST short-circuit on
+//     the flag. Flip to `true` in the same commit that confirms D-06 and sets
+//     MILESTONE_CONFIG.techSetupStep to the confirmed numeric step.
+// ---------------------------------------------------------------------------
+export type MilestoneType =
+  | "tech_setup"
+  | "5_influencers"
+  | "brand_response"
+  | "closed_deal";
+
+export const MILESTONE_CONFIG = {
+  // D-06 placeholder — nullable until Abu Lahya confirms at Monday meeting.
+  // Current best-guess is step 4, 5, or 6 in "Setup & Preparation" stage.
+  // Paired with MILESTONE_FEATURE_FLAGS.techSetupEnabled = false; Phase 51 RPC
+  // MUST check the flag before dereferencing this field.
+  techSetupStep: null as number | null,
+
+  // Locked: Roadmap step 11 = "Close 5 Influencers" (stage 2).
+  // SYNC: ROADMAP_STEPS[10].step === 11.
+  influencersClosedStep: 11,
+
+  // Locked: Roadmap step 13 = "Get Brand Response" (stage 3).
+  // SYNC: ROADMAP_STEPS[12].step === 13.
+  brandResponseStep: 13,
+} as const;
+
+export const MILESTONE_FEATURE_FLAGS = {
+  // Disabled until D-06 resolves at the Monday stakeholder meeting. When
+  // `true`, the Phase 51 RPC's Tech/Email Setup branch evaluates
+  // MILESTONE_CONFIG.techSetupStep and fires alerts keyed via
+  // MILESTONES.techSetup(studentId). When `false` (default), that branch is
+  // skipped entirely — no notifications, no sidebar badge contribution, no
+  // alert_dismissals rows produced.
+  techSetupEnabled: false,
+} as const;
+
+// Alert-key namespace constants + composers.
+// SYNC: alert_dismissals.alert_key shape for coach_milestone_alerts.
+// Mirrors the existing "100h_milestone:{student_id}" convention from
+// supabase/migrations/00014_coach_alert_dismissals.sql (260401-cwd pattern).
+//
+// Idempotency contract (NOTIF-05):
+//   - techSetup / fiveInfluencers / brandResponse : ONE-SHOT per student
+//       key shape: "milestone_{type}:{student_id}"
+//       → second Step 11 completion for same student = no new notification
+//   - closedDeal : PER-DEAL (D-07) — fires on EVERY deal
+//       key shape: "milestone_closed_deal:{student_id}:{deal_id}"
+//       → second deal by same student = new notification (different deal_id)
+export const MILESTONES = {
+  techSetup: (studentId: string) =>
+    `milestone_tech_setup:${studentId}` as const,
+
+  fiveInfluencers: (studentId: string) =>
+    `milestone_5_influencers:${studentId}` as const,
+
+  brandResponse: (studentId: string) =>
+    `milestone_brand_response:${studentId}` as const,
+
+  closedDeal: (studentId: string, dealId: string) =>
+    `milestone_closed_deal:${studentId}:${dealId}` as const,
+} as const;
+
+// LIKE patterns for alert_dismissals queries (Phase 51 RPC + /coach/alerts UI).
+// Kept as named constants so the migration SYNC comment can reference them by
+// name rather than duplicating the raw string.
+export const MILESTONE_KEY_PATTERNS = {
+  techSetup: "milestone_tech_setup:%",
+  fiveInfluencers: "milestone_5_influencers:%",
+  brandResponse: "milestone_brand_response:%",
+  closedDeal: "milestone_closed_deal:%",
+  // Matches ALL v1.5 milestone keys but NOT legacy 100h_milestone:%.
+  allV15Milestones: "milestone_%",
+} as const;
+
+// ---------------------------------------------------------------------------
+// 17. DEFAULT EXPORT — aggregate all V1 configs
 // ---------------------------------------------------------------------------
 const config = {
   app: APP_CONFIG,
@@ -375,6 +460,10 @@ const config = {
   owner: OWNER_CONFIG,
   ai: AI_CONFIG,
   activity: ACTIVITY,
+  milestones: MILESTONE_CONFIG,
+  milestoneFlags: MILESTONE_FEATURE_FLAGS,
+  milestoneKeys: MILESTONES,
+  milestoneKeyPatterns: MILESTONE_KEY_PATTERNS,
   invites: INVITE_CONFIG,
   theme: THEME,
   navigation: NAVIGATION,
