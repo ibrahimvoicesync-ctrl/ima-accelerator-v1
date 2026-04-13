@@ -558,7 +558,11 @@ Plans:
 
 > **Blocker**: D-06 (Tech/Email Setup roadmap step reference) must resolve at the Monday stakeholder meeting before NOTIF-01 can be activated. All other triggers (NOTIF-02/03/04) ship in this phase regardless.
 
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 51-01-PLAN.md — Migration 00027: get_coach_milestones + backfill + get_sidebar_badges rewrite (atomic SQL + embedded asserts)
+- [ ] 51-02-PLAN.md — TS wrapper (fetch/cache 60s) + revalidateTag fan-out in deals/reports/roadmap + sidebar types drift fix
 
 ### Phase 52: Coach Alerts Page
 **Goal**: A coach can review every active milestone notification in one place at `/coach/alerts`, dismiss them individually or in bulk, and see the sidebar badge cap at "9+" so a burst of closed-deal notifications never clutters the UI
