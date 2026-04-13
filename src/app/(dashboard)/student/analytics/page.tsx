@@ -9,6 +9,7 @@ import {
   type StudentAnalyticsRange,
 } from "@/lib/rpc/student-analytics";
 import { AnalyticsClient } from "./AnalyticsClient";
+import type { LoggedByUser } from "@/lib/deals-attribution";
 
 const RangeSchema = z.enum(STUDENT_ANALYTICS_RANGES).catch("30d");
 const PageSchema = z.coerce.number().int().min(1).catch(1);
@@ -55,6 +56,30 @@ export default async function StudentAnalyticsPage({
 
   const data = await fetchCached(user.id, range, page);
 
+  // Phase 49: build userMap for logged_by ids in the current deal page.
+  const loggedByIds = Array.from(
+    new Set(
+      data.deals
+        .map((d) => d.logged_by)
+        .filter((id): id is string => typeof id === "string")
+    )
+  );
+  const { data: loggedByUsers } =
+    loggedByIds.length > 0
+      ? await admin
+          .from("users")
+          .select("id, name, role")
+          .in("id", loggedByIds)
+      : { data: [] as { id: string; name: string; role: string }[] };
+  const userMap: Record<string, LoggedByUser> = {};
+  for (const u of loggedByUsers ?? []) {
+    userMap[u.id] = {
+      id: u.id,
+      name: u.name,
+      role: u.role as LoggedByUser["role"],
+    };
+  }
+
   return (
     <div className="px-4 md:px-6 py-8 md:py-12 max-w-7xl mx-auto">
       <AnalyticsClient
@@ -64,6 +89,9 @@ export default async function StudentAnalyticsPage({
         initialRange={range}
         initialPage={page}
         basePath="/student/analytics"
+        viewerId={user.id}
+        viewerRole="student"
+        userMap={userMap}
       />
     </div>
   );

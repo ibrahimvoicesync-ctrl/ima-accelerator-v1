@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { DealFormModal } from "./DealFormModal";
+import { DealAttributionChip } from "@/components/shared/DealAttributionChip";
+import type { LoggedByUser, ViewerRole } from "@/lib/deals-attribution";
 import type { Database } from "@/lib/types";
 
 type Deal = Database["public"]["Tables"]["deals"]["Row"];
@@ -40,7 +42,19 @@ function formatCurrency(value: string | number): string {
   })}`;
 }
 
-export function DealsClient({ initialDeals }: { initialDeals: Deal[] }) {
+interface DealsClientProps {
+  initialDeals: Deal[];
+  viewerId: string;
+  viewerRole: ViewerRole;
+  userMap: Record<string, LoggedByUser>;
+}
+
+export function DealsClient({
+  initialDeals,
+  viewerId,
+  viewerRole,
+  userMap,
+}: DealsClientProps) {
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -70,7 +84,7 @@ export function DealsClient({ initialDeals }: { initialDeals: Deal[] }) {
         deal_number: optimisticDeals.length + 1,
         revenue: payload.revenue,
         profit: payload.profit,
-        logged_by: "",
+        logged_by: viewerId,
         updated_by: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -109,7 +123,7 @@ export function DealsClient({ initialDeals }: { initialDeals: Deal[] }) {
         setSubmitting(false);
       }
     },
-    [optimisticDeals.length, dispatchOptimistic]
+    [optimisticDeals.length, dispatchOptimistic, viewerId]
   );
 
   const handleEdit = useCallback(
@@ -229,6 +243,7 @@ export function DealsClient({ initialDeals }: { initialDeals: Deal[] }) {
             <span className="w-24">Deal</span>
             <span className="flex-1">Revenue</span>
             <span className="flex-1">Profit</span>
+            <span className="w-28">Logged By</span>
             <span className="w-28 text-right">Date</span>
             <span className="w-32 text-right">Actions</span>
           </div>
@@ -253,6 +268,16 @@ export function DealsClient({ initialDeals }: { initialDeals: Deal[] }) {
                 {/* Profit */}
                 <span className="text-sm text-ima-text-secondary flex-1">
                   {formatCurrency(deal.profit)}
+                </span>
+
+                {/* Logged by (attribution chip) */}
+                <span className="w-28 shrink-0">
+                  <DealAttributionChip
+                    deal={deal}
+                    viewerRole={viewerRole}
+                    viewerId={viewerId}
+                    userMap={userMap}
+                  />
                 </span>
 
                 {/* Date */}

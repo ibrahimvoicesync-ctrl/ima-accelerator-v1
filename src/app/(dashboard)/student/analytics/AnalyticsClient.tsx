@@ -55,6 +55,8 @@ import {
   type StudentAnalyticsPayload,
   type StudentAnalyticsRange,
 } from "@/lib/rpc/student-analytics-types";
+import { DealAttributionChip } from "@/components/shared/DealAttributionChip";
+import type { LoggedByUser, ViewerRole } from "@/lib/deals-attribution";
 
 // Chart color constants mirror tailwind.config.ts ima-* tokens.
 // Recharts requires literal hex values for stroke/fill props, so a single
@@ -88,6 +90,9 @@ interface AnalyticsClientProps {
   initialRange: StudentAnalyticsRange;
   initialPage: number;
   basePath: "/student/analytics" | "/student_diy/analytics";
+  viewerId: string;
+  viewerRole: ViewerRole;
+  userMap: Record<string, LoggedByUser>;
 }
 
 export function AnalyticsClient({
@@ -96,6 +101,9 @@ export function AnalyticsClient({
   initialRange,
   initialPage,
   basePath,
+  viewerId,
+  viewerRole,
+  userMap,
 }: AnalyticsClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -522,7 +530,13 @@ export function AnalyticsClient({
                     </thead>
                     <tbody>
                       {data.deals.map((d) => (
-                        <DealTableRow key={d.id} deal={d} />
+                        <DealTableRow
+                          key={d.id}
+                          deal={d}
+                          viewerId={viewerId}
+                          viewerRole={viewerRole}
+                          userMap={userMap}
+                        />
                       ))}
                     </tbody>
                   </table>
@@ -647,7 +661,17 @@ function RoadmapStatusBadge({ deadline }: { deadline: DeadlineStatus }) {
   }
 }
 
-function DealTableRow({ deal }: { deal: DealRow }) {
+function DealTableRow({
+  deal,
+  viewerId,
+  viewerRole,
+  userMap,
+}: {
+  deal: DealRow;
+  viewerId: string;
+  viewerRole: ViewerRole;
+  userMap: Record<string, LoggedByUser>;
+}) {
   return (
     <tr className="border-t border-ima-border hover:bg-ima-surface-light motion-safe:transition-colors">
       <td className="p-3 font-medium text-ima-text">#{deal.deal_number}</td>
@@ -656,42 +680,14 @@ function DealTableRow({ deal }: { deal: DealRow }) {
       <td className="p-3 text-right text-ima-text-secondary">{deal.margin}%</td>
       <td className="p-3 text-ima-text-secondary">{formatDate(deal.created_at)}</td>
       <td className="p-3">
-        <AttributionChip deal={deal} />
+        <DealAttributionChip
+          deal={{ logged_by: deal.logged_by }}
+          viewerRole={viewerRole}
+          viewerId={viewerId}
+          userMap={userMap}
+        />
       </td>
     </tr>
-  );
-}
-
-function AttributionChip({ deal }: { deal: DealRow }) {
-  if (deal.is_self) {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-ima-surface-light text-ima-text">
-        <span className="sr-only">Logged by: </span>
-        Self
-      </span>
-    );
-  }
-  if (deal.logger_role === "coach") {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-ima-surface-accent text-ima-secondary">
-        <span className="sr-only">Logged by: </span>
-        Coach
-      </span>
-    );
-  }
-  if (deal.logger_role === "owner") {
-    return (
-      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-ima-primary text-white">
-        <span className="sr-only">Logged by: </span>
-        Owner
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-ima-surface-light text-ima-text-secondary">
-      <span className="sr-only">Logged by: </span>
-      Unknown
-    </span>
   );
 }
 

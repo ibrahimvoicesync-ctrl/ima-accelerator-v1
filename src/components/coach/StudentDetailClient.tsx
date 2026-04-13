@@ -9,6 +9,7 @@ import { RoadmapTab } from "./RoadmapTab";
 import { DealsTab } from "./DealsTab";
 import type { Database } from "@/lib/types";
 import { StudentKpiSummary } from "@/components/student/StudentKpiSummary";
+import type { LoggedByUser } from "@/lib/deals-attribution";
 
 type Deal = Database["public"]["Tables"]["deals"]["Row"];
 
@@ -59,6 +60,8 @@ interface StudentDetailClientProps {
   };
   milestone: { totalHours: number; days: number } | null;
   deals: Deal[];
+  viewerId: string;
+  userMap: Record<string, LoggedByUser>;
 }
 
 export function StudentDetailClient({
@@ -75,6 +78,8 @@ export function StudentDetailClient({
   kpiData,
   milestone,
   deals,
+  viewerId,
+  userMap,
 }: StudentDetailClientProps) {
   const validTabs: TabKey[] = ["calendar", "roadmap", "deals"];
   const [activeTab, setActiveTab] = useState<TabKey>(
@@ -132,7 +137,16 @@ export function StudentDetailClient({
         />
       )}
       {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} studentId={studentId} />}
-      {activeTab === "deals" && <DealsTab deals={deals} />}
+      {activeTab === "deals" && (
+        <DealsTab
+          deals={deals}
+          studentId={studentId}
+          studentName={student.name}
+          viewerRole="coach"
+          viewerId={viewerId}
+          userMap={userMap}
+        />
+      )}
     </div>
   );
 }

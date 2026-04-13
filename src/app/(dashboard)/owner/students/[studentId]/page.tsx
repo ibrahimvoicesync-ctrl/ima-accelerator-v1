@@ -13,7 +13,7 @@ export default async function OwnerStudentDetailPage({
   params: Promise<{ studentId: string }>;
   searchParams: Promise<{ tab?: string }>;
 }) {
-  await requireRole("owner");
+  const owner = await requireRole("owner");
   const { studentId } = await params;
   const { tab } = await searchParams;
 
@@ -160,6 +160,35 @@ export default async function OwnerStudentDetailPage({
 
   const deals = dealsData ?? [];
 
+  // Phase 49: fetch user info for every distinct logged_by id so the
+  // DealAttributionChip can render "You" / coach / owner labels without
+  // a per-row n+1. The admin client is fine here (server component).
+  const loggedByIds = Array.from(
+    new Set(
+      deals
+        .map((d) => d.logged_by)
+        .filter((id): id is string => typeof id === "string")
+    )
+  );
+  const { data: loggedByUsers } =
+    loggedByIds.length > 0
+      ? await admin
+          .from("users")
+          .select("id, name, role")
+          .in("id", loggedByIds)
+      : { data: [] as { id: string; name: string; role: string }[] };
+  const userMap: Record<
+    string,
+    { id: string; name: string; role: "student" | "student_diy" | "coach" | "owner" }
+  > = {};
+  for (const u of loggedByUsers ?? []) {
+    userMap[u.id] = {
+      id: u.id,
+      name: u.name,
+      role: u.role as "student" | "student_diy" | "coach" | "owner",
+    };
+  }
+
   const totalMinutes = (milestoneData ?? []).reduce(
     (sum, r) => sum + (r.session_minutes ?? 0),
     0
@@ -201,6 +230,8 @@ export default async function OwnerStudentDetailPage({
       milestone={hasMilestone ? { totalHours: Math.floor(totalMinutes / 60), days: daysSinceJoin } : null}
       skippedDays={skippedDays}
       deals={deals}
+      viewerId={owner.id}
+      userMap={userMap}
     />
   );
 }
