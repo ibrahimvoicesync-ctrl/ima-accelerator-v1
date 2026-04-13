@@ -70,6 +70,8 @@ export function DealsClient({ initialDeals }: { initialDeals: Deal[] }) {
         deal_number: optimisticDeals.length + 1,
         revenue: payload.revenue,
         profit: payload.profit,
+        logged_by: "",
+        updated_by: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

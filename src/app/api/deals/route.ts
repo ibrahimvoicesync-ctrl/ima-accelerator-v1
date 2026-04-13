@@ -11,13 +11,20 @@ import { VALIDATION } from "@/lib/config";
 // Zod schemas
 // ---------------------------------------------------------------------------
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const postDealSchema = z.object({
   revenue: z.number().min(VALIDATION.deals.revenueMin).max(VALIDATION.deals.revenueMax),
   profit: z.number().min(VALIDATION.deals.profitMin).max(VALIDATION.deals.profitMax),
+  student_id: z.string().regex(UUID_RE, "Invalid student_id").optional(),
+  logged_by: z.string().regex(UUID_RE, "Invalid logged_by").optional(),
 });
 
 // ---------------------------------------------------------------------------
-// POST /api/deals — create a new deal (student/student_diy only)
+// POST /api/deals — create a new deal
+// Phase 45: extended to support coach/owner inserts with dual-layer auth
+// (route-handler assignment check + RLS WITH CHECK on coach_insert_deals /
+// owner_insert_deals). Student/student_diy self-insert behavior preserved.
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
@@ -46,12 +53,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User profile not found" }, { status: 404 });
     }
 
-    // 4. Role check — students only can create deals
-    if (!["student", "student_diy"].includes(profile.role)) {
+    // 4. Role check — students/coach/owner can create deals (Phase 45)
+    if (!["student", "student_diy", "coach", "owner"].includes(profile.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 5. Rate limit (per D-10, endpoint = "/api/deals")
+    // 5. Rate limit
     const { allowed, retryAfterSeconds } = await checkRateLimit(profile.id, "/api/deals");
     if (!allowed) {
       return NextResponse.json(
@@ -77,11 +84,76 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. DB insert with 23505 retry (trigger assigns deal_number — do NOT include it)
+    // 8. Resolve effective student_id + logged_by per role (DEALS-03/04/05 dual-layer auth)
+    let effectiveStudentId: string;
+    let effectiveLoggedBy: string;
+
+    if (profile.role === "student" || profile.role === "student_diy") {
+      // Student self-insert: student_id = self; logged_by = self.
+      // If body.logged_by is set and != self => 403 (DEALS-04).
+      if (parsed.data.logged_by && parsed.data.logged_by !== profile.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      // If body.student_id is set and != self => 403.
+      if (parsed.data.student_id && parsed.data.student_id !== profile.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      effectiveStudentId = profile.id;
+      effectiveLoggedBy = profile.id;
+    } else if (profile.role === "coach") {
+      // Coach insert: student_id REQUIRED in body; coach must be assigned (route-layer check).
+      // logged_by must = coach.id (matches RLS WITH CHECK).
+      if (!parsed.data.student_id) {
+        return NextResponse.json(
+          { error: "student_id is required for coach inserts" },
+          { status: 400 }
+        );
+      }
+      if (parsed.data.logged_by && parsed.data.logged_by !== profile.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      const { data: assigned } = await admin
+        .from("users")
+        .select("id")
+        .eq("id", parsed.data.student_id)
+        .eq("coach_id", profile.id)
+        .maybeSingle();
+      if (!assigned) {
+        // Route-handler 403 (layer 1). RLS WITH CHECK is the second layer (DEALS-03).
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      effectiveStudentId = parsed.data.student_id;
+      effectiveLoggedBy = profile.id;
+    } else {
+      // Owner: student_id REQUIRED in body; logged_by must = owner.id.
+      if (!parsed.data.student_id) {
+        return NextResponse.json(
+          { error: "student_id is required for owner inserts" },
+          { status: 400 }
+        );
+      }
+      if (parsed.data.logged_by && parsed.data.logged_by !== profile.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      // Verify the student exists and has a student role.
+      const { data: student } = await admin
+        .from("users")
+        .select("id, role")
+        .eq("id", parsed.data.student_id)
+        .maybeSingle();
+      if (!student || !["student", "student_diy"].includes(student.role)) {
+        return NextResponse.json({ error: "Student not found" }, { status: 404 });
+      }
+      effectiveStudentId = parsed.data.student_id;
+      effectiveLoggedBy = profile.id;
+    }
+
+    // 9. DB insert with 23505 retry (trigger assigns deal_number — do NOT include it).
     const insertPayload = {
-      student_id: profile.id,
+      student_id: effectiveStudentId,
       revenue: parsed.data.revenue,
       profit: parsed.data.profit,
+      logged_by: effectiveLoggedBy,
     };
 
     const { data: deal, error: insertError } = await admin
@@ -92,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       if (insertError.code === "23505") {
-        // Retry once on unique_violation (race condition on deal_number trigger)
+        // Retry once on unique_violation (race on deal_number trigger). DEALS-02.
         const { data: retryDeal, error: retryError } = await admin
           .from("deals")
           .insert(insertPayload)
@@ -100,14 +172,11 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (retryError) {
-          console.error("[POST /api/deals] Insert failed:", retryError);
+          console.error("[POST /api/deals] Insert retry failed:", retryError);
           return NextResponse.json({ error: "Failed to create deal" }, { status: 500 });
         }
 
-        // 9. Cache invalidation
-        revalidateTag(`deals-${profile.id}`, "default");
-
-        // 10. Return 201
+        revalidateTag(`deals-${effectiveStudentId}`, "default");
         return NextResponse.json({ data: retryDeal }, { status: 201 });
       }
 
@@ -115,10 +184,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create deal" }, { status: 500 });
     }
 
-    // 9. Cache invalidation
-    revalidateTag(`deals-${profile.id}`, "default");
+    // 10. Cache invalidation (per-student)
+    revalidateTag(`deals-${effectiveStudentId}`, "default");
 
-    // 10. Return 201
+    // 11. Return 201
     return NextResponse.json({ data: deal }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/deals] Unexpected error:", err);

@@ -129,7 +129,7 @@ export default async function StudentDetailPage({
   // Fetch student deals for DealsTab
   const { data: dealsData, error: dealsError } = await admin
     .from("deals")
-    .select("id, student_id, deal_number, revenue, profit, created_at, updated_at")
+    .select("id, student_id, deal_number, revenue, profit, logged_by, updated_by, created_at, updated_at")
     .eq("student_id", student.id)
     .order("created_at", { ascending: false });
 

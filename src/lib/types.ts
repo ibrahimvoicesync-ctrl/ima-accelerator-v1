@@ -666,6 +666,8 @@ export type Database = {
           deal_number: number;
           revenue: string | number;
           profit: string | number;
+          logged_by: string;
+          updated_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -675,6 +677,8 @@ export type Database = {
           deal_number?: number;
           revenue: string | number;
           profit: string | number;
+          logged_by: string;
+          updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -684,6 +688,8 @@ export type Database = {
           deal_number?: number;
           revenue?: string | number;
           profit?: string | number;
+          logged_by?: string;
+          updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -691,6 +697,20 @@ export type Database = {
           {
             foreignKeyName: "deals_student_id_fkey";
             columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deals_logged_by_fkey";
+            columns: ["logged_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deals_updated_by_fkey";
+            columns: ["updated_by"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
