@@ -192,9 +192,13 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | v1.5 D-08 | Milestone notifications reuse existing pattern from 260401-cwd (100+ hrs/45 days coach alert) | Don't rebuild notification plumbing | — Pending |
 | v1.5 D-09 | `deals.logged_by` UUID column (nullable) — null = student self-logged, set = coach/owner creator | Attribution without changing deal ownership semantics | — Pending |
 | v1.5 D-10 | Build order sequential: Feat 1 → 2 → 3 → 4 → 5 (each builds on prior) | Feature dependencies; coach dashboard stats reuse RPC from student analytics | — Pending |
-| v1.5 D-11 | Charts library: evaluate recharts (or existing project dep) during research | No chart lib currently installed; check before adding | — Pending |
+| v1.5 D-11 | Charts library: recharts@^3.8.1 (declarative, React 19 + SSR compatible, ~35 KB gzipped; may need `"overrides": { "react-is": "19.2.3" }`) | Only new runtime dep; alternatives (visx/Nivo/Tremor/ECharts/Chart.js/Victory) rejected | 2026-04-13 |
 | v1.5 D-12 | Post-phase build gate: `npm run lint && npx tsc --noEmit && npm run build` | Enforce quality bar every phase | — Pending |
 | v1.5 D-13 | Coach homepage: top-3 hours leaderboard resets weekly (Mon-Sun, same ISO week as skip tracker) | Reuse v1.4 D-01 week convention | — Pending |
+| v1.5 D-14 | "Inactive student" = no completed work session AND no submitted report in the last 7 days | Matches daily-accountability cadence; 30d SaaS default too loose | 2026-04-13 |
+| v1.5 D-15 | `/student_diy/analytics` in scope for v1.5 | Same RPC, new route wrapper — zero incremental cost | 2026-04-13 |
+| v1.5 D-16 | "Closed Deal" milestone fires on ALL deals (student-logged, coach-logged, owner-logged) | Simplest + consistent with D-07 — coach wants to know student is closing regardless of who logged | 2026-04-13 |
+| v1.5 D-17 | Coach/owner edit of deals records `updated_at` + `updated_by` only (no per-edit change-log) | Standard audit columns sufficient for v1.5; full history deferred to v1.6+ | 2026-04-13 |
 
 ## Current Milestone: v1.5 Analytics Pages, Coach Dashboard & Deal Logging
 

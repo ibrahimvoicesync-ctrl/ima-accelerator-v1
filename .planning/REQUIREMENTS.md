@@ -1,189 +1,134 @@
-# Requirements: IMA Accelerator v1.4
+# Requirements: IMA Accelerator v1.5
 
-**Defined:** 2026-04-03
+**Defined:** 2026-04-13
+**Milestone:** v1.5 — Analytics Pages, Coach Dashboard & Deal Logging
 **Core Value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
+**Scale target:** 5,000 concurrent students (P95 < 1s per v1.2 Phase 24 baseline)
 
-## v1.4 Requirements
+## v1.5 Requirements
 
-Requirements for v1.4 milestone (Roles, Chat & Resources). Each maps to roadmap phases.
+Requirements for v1.5 milestone. Each maps to roadmap phases. Build order is sequential (Feat 1 → 2 → 3 → 4 → 5) per D-10.
 
-### Schema & Foundation
+### Student Analytics
 
-- [x] **SCHEMA-01**: All 4 new tables (report_comments, messages, resources, glossary_terms) exist with correct columns, constraints, and indexes in a single migration (00015)
-- [x] **SCHEMA-02**: Users, invites, and magic_links role CHECK constraints accept 'student_diy' as a valid value
-- [x] **SCHEMA-03**: RLS policies are enabled on all 4 new tables with appropriate read/write restrictions
-- [x] **SCHEMA-04**: TypeScript types include Row/Insert/Update types for all 4 new tables and the Role union includes 'student_diy'
+<!-- Feature 1 — /student/analytics and /student_diy/analytics self-visibility page -->
 
-### Student_DIY Role
+- [ ] **ANALYTICS-01**: Student and student_diy roles can navigate to `/student/analytics` (or `/student_diy/analytics`) via a new sidebar nav item
+- [ ] **ANALYTICS-02**: Student sees a 6-card lifetime totals strip (Total Hours, Total Emails, Total Influencers, Total Deals, Total Revenue, Total Profit) with current streak indicator
+- [ ] **ANALYTICS-03**: Student sees an outreach trend chart splitting brands-sent vs influencers-sent per week, with time range selector (7d / 30d / 90d / All, default 30d)
+- [ ] **ANALYTICS-04**: Student sees an hours-worked trend chart (daily bars or weekly totals based on range) respecting the same time range selector
+- [ ] **ANALYTICS-05**: Student sees a deal history table (paginated 25/page) with deal #, revenue, profit, margin %, logged date, attribution chip (self / coach / owner), and summary totals (deals, revenue, profit)
+- [ ] **ANALYTICS-06**: Student sees roadmap progress vs deadlines — per-step status indicator (on-track / due-soon / overdue / completed / ahead) reusing existing `getDeadlineStatus()` utility
+- [ ] **ANALYTICS-07**: All analytics data is fetched via a single batch Postgres RPC function (`get_student_analytics`), scoped to the authenticated student (never another student's data)
+- [ ] **ANALYTICS-08**: Analytics page data is wrapped in `unstable_cache` with 60s TTL and a user-scoped `revalidateTag` key, invalidated by deal/report/session/roadmap mutations
+- [ ] **ANALYTICS-09**: Charts are keyboard-accessible (tabIndex=0), use `<div role="img" aria-label="...">` wrappers with a prose summary, and include a `<details><summary>View data table</summary>` fallback
+- [ ] **ANALYTICS-10**: Chart entrance animations use `motion-safe:` wrapper; all interactive elements meet 44px touch target
 
-- [x] **ROLE-01**: User can register with a student_diy invite and be assigned role 'student_diy' via Google OAuth callback
-- [x] **ROLE-02**: Student_DIY user is redirected to /student_diy dashboard after login
-- [x] **ROLE-03**: Student_DIY sidebar shows exactly 3 items: Dashboard, Work Tracker, Roadmap
-- [x] **ROLE-04**: Student_DIY user can access work tracker and roadmap with full functionality (same as student)
-- [x] **ROLE-05**: Student_DIY user cannot access Ask Abu Lahya, Daily Report, Resources, or Chat pages
-- [x] **ROLE-06**: Student_DIY user cannot be assigned to a coach (fully independent)
-- [x] **ROLE-07**: Owner and coach can create student_diy invites
+### Coach Dashboard Homepage Stats
 
-### Skip Tracker
+<!-- Feature 2 — /coach homepage quick-scan KPIs -->
 
-- [ ] **SKIP-01**: Coach sees "X skipped" badge on each student card showing days with zero completed work sessions AND zero submitted reports in the current Mon-Sun ISO week
-- [ ] **SKIP-02**: Skip count only includes past days and today, not future days in the week
-- [ ] **SKIP-03**: Skip count resets to 0 on Monday (new ISO week)
-- [x] **SKIP-04**: Owner student views also display the skip count badge
-- [ ] **SKIP-05**: Skip count is computed via a Postgres RPC function using UTC-safe date math
+- [ ] **COACH-DASH-01**: Coach sees 4 stat cards on `/coach` showing combined KPIs across assigned students — Total Deals Closed, Total Revenue Generated, Average Roadmap Step, Total Emails Sent
+- [ ] **COACH-DASH-02**: Each stat card is clickable (min 44px touch target) and navigates to `/coach/analytics` with the relevant metric scrolled into view
+- [ ] **COACH-DASH-03**: Coach sees a "Recent Submissions" card showing the 3 most recent daily report submissions from assigned students with a "See All" link to the reports/submissions page
+- [ ] **COACH-DASH-04**: Coach sees a "Top 3 Students This Week" leaderboard ranked by hours worked during the current ISO week (Monday–Sunday), showing student name + hours; resets weekly at Monday 00:00 local
+- [ ] **COACH-DASH-05**: All coach dashboard data is fetched via a single batch RPC (`get_coach_dashboard`), scoped via `coach_id` filter to the coach's assigned students only
+- [ ] **COACH-DASH-06**: Dashboard RPC result is wrapped in `unstable_cache` with 60s TTL keyed by coach_id; invalidated on assigned-student deal/report/session writes
+- [ ] **COACH-DASH-07**: Loading skeletons display while stats load; empty state shown when coach has 0 assigned students
 
-### Coach Assignments
+### Full Coach Analytics
 
-- [x] **ASSIGN-01**: Coach can view all students (not just their own) on a /coach/assignments page
-- [x] **ASSIGN-02**: Coach can assign an unassigned student to any active coach
-- [x] **ASSIGN-03**: Coach can reassign a student from one coach to another
-- [x] **ASSIGN-04**: Coach can unassign a student (set coach_id to null)
-- [x] **ASSIGN-05**: API returns 403 for student and student_diy roles attempting assignment changes
-- [x] **ASSIGN-06**: Owner assignments page continues to work unchanged
+<!-- Feature 3 — /coach/analytics expanded comprehensive view -->
 
-### Report Comments
+- [ ] **COACH-ANALYTICS-01**: Existing `/coach/analytics` page is expanded to show: Highest Deals Closed (top student by deal count), Total Revenue Generated (all assigned students), Average Roadmap Step, Average Email Count, Most Emails Sent (top performer)
+- [ ] **COACH-ANALYTICS-02**: Coach sees three top-5 student leaderboards — by hours this week, by emails this week, by all-time deals closed
+- [ ] **COACH-ANALYTICS-03**: Coach sees aggregate "Deals Closed Over Time" trend chart covering the last 12 weeks
+- [ ] **COACH-ANALYTICS-04**: Coach sees Active vs Inactive breakdown where "Inactive" = no completed work session AND no submitted report in the last 7 days (D-14)
+- [ ] **COACH-ANALYTICS-05**: Coach sees a paginated student list (25/page per D-04) with Zod-validated server-side sort parameters (sortable columns: name, hours, emails, deals, roadmap step, last active)
+- [ ] **COACH-ANALYTICS-06**: Coach can search the student list by name (server-side match, no client-side filter over partial results)
+- [ ] **COACH-ANALYTICS-07**: All coach analytics data scoped to assigned students only; single batch RPC (`get_coach_analytics`) returning paginated envelope; wrapped in `unstable_cache` 60s TTL
 
-- [x] **COMMENT-01**: Coach can submit a text comment (max 1000 chars) on any of their students' daily reports
-- [x] **COMMENT-02**: Only one comment per report is allowed (upsert behavior — resubmitting updates the existing comment)
-- [x] **COMMENT-03**: Student sees coach comment on their report history page as a read-only feedback card
-- [x] **COMMENT-04**: Owner can also comment on any student's report
-- [x] **COMMENT-05**: API returns 403 for student and student_diy roles attempting to comment
+### Coaches Log Deals for Students
 
-### Chat System
+<!-- Feature 4 — logged_by attribution + coach/owner INSERT -->
 
-- [ ] **CHAT-01**: Coach sees a conversation list with all assigned students, showing last message preview, timestamp, and unread indicator
-- [x] **CHAT-02**: Coach can open a 1:1 conversation with a student and see message history in WhatsApp-style bubbles
-- [x] **CHAT-03**: Coach can send a message that appears as a right-aligned bubble; student sees it within 5 seconds as a left-aligned bubble
-- [x] **CHAT-04**: Student can reply to their coach; coach sees reply within 5 seconds
-- [ ] **CHAT-05**: Coach can send a broadcast message to all assigned students; students see it as a distinct system-style card with megaphone icon
-- [x] **CHAT-06**: Unread message count appears as a sidebar badge for coach and student roles
-- [x] **CHAT-07**: Opening a conversation marks its messages as read (unread indicator clears)
-- [x] **CHAT-08**: Scrolling up in a conversation loads older messages via cursor-based pagination
-- [x] **CHAT-09**: Chat auto-scrolls to newest message on send and on new incoming messages
-- [x] **CHAT-10**: Mobile layout: conversation list is default view; tapping a conversation navigates to thread with back button
-- [x] **CHAT-11**: Student_DIY does NOT have chat navigation or access to /student/chat
-- [x] **CHAT-12**: Chat composer enforces 2000 character limit with visible counter
-- [x] **CHAT-13**: Empty state displays when no conversations exist yet
+- [ ] **DEALS-01**: `deals` table gains a nullable `logged_by UUID` column with FK to `users(id)` ON DELETE SET NULL; existing rows backfilled to `logged_by = student_id`; after backfill column is NOT NULL
+- [ ] **DEALS-02**: `deals` table gains `updated_at TIMESTAMPTZ` and `updated_by UUID` audit columns with a trigger that sets them on every UPDATE (per Q-EDIT resolution — no per-edit history table)
+- [ ] **DEALS-03**: Composite unique index `(student_id, deal_number)` exists, and the POST /api/deals path retries with deal_number+1 on 23505 conflict to handle concurrent coach+student inserts
+- [ ] **DEALS-04**: New RLS INSERT policy allows coach role to insert a deal only when `logged_by = auth.uid()` AND `student_id` is in the coach's assigned students (using `(SELECT auth.uid())` initplan pattern)
+- [ ] **DEALS-05**: New RLS INSERT policy allows owner role to insert a deal for any student (using `(SELECT auth.uid())` initplan pattern)
+- [ ] **DEALS-06**: Existing student self-insert RLS continues to work; student attempts to insert with `logged_by != self` are rejected
+- [ ] **DEALS-07**: Coach sees an "Add Deal" button on the coach student-detail Deals tab that opens the same modal used for student deal creation (revenue + profit inputs)
+- [ ] **DEALS-08**: Owner sees an "Add Deal" button on the owner student-detail Deals tab with equivalent behavior
+- [ ] **DEALS-09**: Creating a deal as coach/owner sets `logged_by` to the creator's user_id and `student_id` to the viewed student; `deal_number` auto-increments correctly
+- [ ] **DEALS-10**: Deals table UI (all 3 role views) shows an attribution indicator per row: "You" for self-logged, coach name for coach-logged, "Owner: {name}" for owner-logged
+- [ ] **DEALS-11**: POST /api/deals endpoint enforces dual-layer authorization — route handler asserts coach's assignment to student, AND RLS WITH CHECK enforces the same; negative test (coach targeting unassigned student) returns 403
 
-### Resources Tab
+### Milestone Notifications for Coaches
 
-- [x] **RES-01**: Owner, coach, and student see "Resources" in their sidebar navigation
-- [x] **RES-02**: Student_DIY does NOT see Resources in sidebar
-- [x] **RES-03**: Resources page has three tabs: Links, Community (Discord), Glossary
-- [x] **RES-04**: Owner and coach can add resource links (URL + title + optional comment) and delete them
-- [x] **RES-05**: Students can view resource links in read-only mode; links open in a new tab
-- [x] **RES-06**: Community tab shows Discord WidgetBot iframe embed with the configured server/channel
-- [x] **RES-07**: Owner and coach can add, edit, and delete glossary terms (term + definition)
-- [x] **RES-08**: All eligible roles can search/filter glossary terms by name
-- [x] **RES-09**: Glossary terms have case-insensitive unique constraint on term name
+<!-- Feature 5 — extends existing 100hr alert pattern with 4 new triggers -->
 
-### Invite Enhancement
+- [ ] **NOTIF-01**: Coach receives a notification when an assigned student completes the "Tech/Email Setup Finished" milestone (roadmap step reference configured in `MILESTONE_CONFIG`, placeholder until D-06 confirmed Monday meeting)
+- [ ] **NOTIF-02**: Coach receives a notification when an assigned student reaches Roadmap Step 11 (5 Influencers Closed)
+- [ ] **NOTIF-03**: Coach receives a notification when an assigned student reaches Roadmap Step 13 (First Brand Response)
+- [ ] **NOTIF-04**: Coach receives a notification for every closed deal by an assigned student — including coach-logged and owner-logged deals (per Q-CLOSED-DEAL resolution and D-07)
+- [ ] **NOTIF-05**: Each milestone notification fires exactly once per qualifying event, idempotent via `alert_key` namespaces — one-shot keys for NOTIF-01/02/03 (`milestone:{type}:{student_id}`), per-deal key for NOTIF-04 (`closed_deal:{student_id}:{deal_id}`)
+- [ ] **NOTIF-06**: Notification message includes student name and achievement description; clicking navigates to the student detail page
+- [ ] **NOTIF-07**: Coach sidebar badge count is extended to include new milestone notifications alongside the existing 100+ hrs/45 days alert, via a single source (`get_sidebar_badges` RPC)
+- [ ] **NOTIF-08**: Existing 100+ hours/45 days coach alert (quick task 260401-cwd) continues to work unchanged — notifications reuse the same pattern, not a rebuild (per D-08)
+- [ ] **NOTIF-09**: New `/coach/alerts` page shows grouped-by-student feed with dismiss and bulk-dismiss actions; sidebar badge caps at "9+"
+- [ ] **NOTIF-10**: Migration pre-dismisses historical qualifying events so adding a new milestone does not flood all existing coaches with retroactive alerts
+- [ ] **NOTIF-11**: Milestone compute RPC is performant at 5k students — single batch per coach, wrapped in `unstable_cache` 60s, invalidated on deal/report/roadmap mutations
 
-- [x] **INVITE-01**: Magic link creation accepts an optional max_uses field, defaulting to 10
-- [x] **INVITE-02**: UI shows "X/Y used" on existing magic link cards
-- [x] **INVITE-03**: Registration via magic link is rejected when use_count >= max_uses
+### Cross-Cutting Performance & Quality
 
-## v2 Requirements
+<!-- Applies to every new table, query, API endpoint, and UI surface in v1.5 -->
 
-Deferred to future release. Tracked but not in current roadmap.
+- [ ] **PERF-01**: All new queries have indexes on hot paths (student_id, coach_id, date, logged_by where filtered)
+- [ ] **PERF-02**: All new API endpoints enforce auth + role verification + rate limiting (30 req/min/user via existing `checkRateLimit`) + CSRF `verifyOrigin` on mutations
+- [ ] **PERF-03**: All new RLS policies use the `(SELECT auth.uid())` initplan pattern (v1.2 Phase 19 convention)
+- [ ] **PERF-04**: All analytics/dashboard aggregation happens inside `SECURITY DEFINER STABLE` Postgres RPC functions, never as client-side row pulls or JavaScript reductions
+- [ ] **PERF-05**: All server-rendered stats/analytics reads are wrapped in `unstable_cache` 60s TTL with user-scoped `revalidateTag` keys; every mutation route calls `revalidateTag` for affected keys
+- [ ] **PERF-06**: Any list over 25 items is server-side paginated with a Zod-validated `page`/`pageSize` schema (no client-side slice over all rows)
+- [ ] **PERF-07**: Each phase's final commit passes `npm run lint && npx tsc --noEmit && npm run build` with zero errors
+- [ ] **PERF-08**: All v1.5 code uses `ima-*` design tokens (no hardcoded hex/gray), `motion-safe:` wrappers on animations, 44px min touch targets, `aria-label`/`<label htmlFor>` on every input, `aria-hidden="true"` on decorative icons
 
-### Chat Enhancements
+## Future Requirements (Deferred)
 
-- **CHAT-V2-01**: User can edit or delete sent messages
-- **CHAT-V2-02**: User can send images/files in chat (Supabase Storage)
-- **CHAT-V2-03**: Threaded replies within conversations
-- **CHAT-V2-04**: Supabase Realtime migration (when connection limits allow)
-
-### Notifications
-
-- **NOTF-01**: User receives in-app notifications for key events
-- **NOTF-02**: User receives email notifications (Resend integration)
-
-### Advanced Resources
-
-- **RES-V2-01**: Per-student resource visibility (tier/segment system)
-- **RES-V2-02**: Resource categories and tagging
+- Per-deal edit history log (dedicated `deal_edit_log` table) — deferred from Q-EDIT to v1.6+
+- "Verified" flag for student-logged deals
+- Soft delete on deals (`archived_at`)
+- Bulk CSV deal import
+- Student-facing cohort comparison or peer benchmarking (explicitly out of scope — see Anti-features)
+- Per-milestone mute preferences per coach
+- Per-event comment thread on milestone notifications
+- Owner-level milestone roll-up dashboard
+- Funnel view (Students → Setup Done → First Outreach → First Influencer → First Brand Reply → First Deal) — differentiator, not table stakes
+- Compact vs expanded stat strip toggle on coach dashboard
 
 ## Out of Scope
 
-Explicitly excluded. Documented to prevent scope creep.
+<!-- Explicit exclusions with reasoning to prevent re-adding -->
 
-| Feature | Reason |
-|---------|--------|
-| Message editing/deletion | Audit trail concern — defer to v2 |
-| File/image uploads in chat | Supabase Storage complexity — defer to v2 |
-| Supabase Realtime for chat | 500 concurrent connection limit on Pro plan; polling adequate (D-07) |
-| Threaded replies | Flat chat is correct v1 model |
-| Email notifications | Resend integration explicitly deferred |
-| Per-student resource visibility | Requires tier/segment system not yet built |
-| Settings pages | No name/niche editing in v1 |
-| Tier system / gamification | V2+ feature |
-| Leaderboard and rankings | V2+ feature |
+- Peer/percentile comparisons, streak counters with flame icons, letter-grade ratings, predictive "you will close in X days" text — gamification anti-patterns, conflicts with v1.0 "no gamification" ruling
+- Leaderboards visible to students (students seeing peers) — privacy / motivation research shows harm for daily-accountability products
+- Public bottom-3 at-risk lists — shaming anti-pattern
+- Auto-refresh polling on analytics/dashboard — rely on cache invalidation via `revalidateTag`, no extra load
+- Email notifications for milestones (Resend integration) — V2+
+- Push notifications for milestones — V2+
+- Notifying students about their own milestones in-app — coach-only per requirement scope
+- Firing milestones retroactively without pre-dismissal seeding — Pitfall 13
+- Supabase Realtime for notifications — excluded per v1.4 D-07 (500 connection limit)
+- Redis/Upstash notification queue — rejected per PROJECT.md Out of Scope
+- TimescaleDB continuous aggregates — not supported on Supabase Cloud (TSL-licensed, deprecated on PG17)
+- New notification/messaging SaaS (Novu, Knock, Courier) — D-08 reuse mandate
+- Chart libraries other than recharts (visx, Nivo, Tremor Raw, ECharts, Chart.js, Victory) — rejected in STACK.md with concrete reasons
+- New npm dependencies beyond recharts — date-fns 4.1 already covers date utilities
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+<!-- Filled by gsd-roadmapper during phase creation -->
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| SCHEMA-01 | Phase 30 | Complete |
-| SCHEMA-02 | Phase 30 | Complete |
-| SCHEMA-03 | Phase 30 | Complete |
-| SCHEMA-04 | Phase 30 | Complete |
-| ROLE-01 | Phase 31 | Complete |
-| ROLE-02 | Phase 31 | Complete |
-| ROLE-03 | Phase 31 | Complete |
-| ROLE-04 | Phase 31 | Complete |
-| ROLE-05 | Phase 31 | Complete |
-| ROLE-06 | Phase 31 | Complete |
-| ROLE-07 | Phase 31 | Complete |
-| SKIP-01 | Phase 32 | Pending |
-| SKIP-02 | Phase 32 | Pending |
-| SKIP-03 | Phase 32 | Pending |
-| SKIP-04 | Phase 32 | Complete |
-| SKIP-05 | Phase 32 | Pending |
-| ASSIGN-01 | Phase 33 | Complete |
-| ASSIGN-02 | Phase 33 | Complete |
-| ASSIGN-03 | Phase 33 | Complete |
-| ASSIGN-04 | Phase 33 | Complete |
-| ASSIGN-05 | Phase 33 | Complete |
-| ASSIGN-06 | Phase 33 | Complete |
-| COMMENT-01 | Phase 34 | Complete |
-| COMMENT-02 | Phase 34 | Complete |
-| COMMENT-03 | Phase 34 | Complete |
-| COMMENT-04 | Phase 34 | Complete |
-| COMMENT-05 | Phase 34 | Complete |
-| CHAT-01 | Phase 35 | Pending |
-| CHAT-02 | Phase 35 | Complete |
-| CHAT-03 | Phase 35 | Complete |
-| CHAT-04 | Phase 35 | Complete |
-| CHAT-05 | Phase 35 | Pending |
-| CHAT-06 | Phase 35 | Complete |
-| CHAT-07 | Phase 35 | Complete |
-| CHAT-08 | Phase 35 | Complete |
-| CHAT-09 | Phase 35 | Complete |
-| CHAT-10 | Phase 35 | Complete |
-| CHAT-11 | Phase 35 | Complete |
-| CHAT-12 | Phase 35 | Complete |
-| CHAT-13 | Phase 35 | Complete |
-| RES-01 | Phase 36 | Complete |
-| RES-02 | Phase 36 | Complete |
-| RES-03 | Phase 36 | Complete |
-| RES-04 | Phase 36 | Complete |
-| RES-05 | Phase 36 | Complete |
-| RES-06 | Phase 36 | Complete |
-| RES-07 | Phase 36 | Complete |
-| RES-08 | Phase 36 | Complete |
-| RES-09 | Phase 36 | Complete |
-| INVITE-01 | Phase 37 | Complete |
-| INVITE-02 | Phase 37 | Complete |
-| INVITE-03 | Phase 37 | Complete |
-
-**Coverage:**
-- v1.4 requirements: 48 total
-- Mapped to phases: 48
-- Unmapped: 0
-
----
-*Requirements defined: 2026-04-03*
-*Last updated: 2026-04-03 after roadmap creation (Phases 30-37)*
+| REQ-ID | Phase # | Phase Name |
+|--------|---------|------------|
+| (pending — roadmapper will populate) | | |
