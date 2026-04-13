@@ -69,11 +69,11 @@ export async function fetchCoachAnalytics(
 
   if (error) {
     console.error("[coach-analytics] RPC failed:", error);
-    throw new Error("Failed to load coach analytics");
+    throw new Error(`Failed to load coach analytics: ${error.message ?? "unknown"} (code=${error.code ?? "?"})`);
   }
   if (!data) {
     console.error("[coach-analytics] RPC returned no data for", coachId);
-    throw new Error("Failed to load coach analytics");
+    throw new Error("Failed to load coach analytics: RPC returned no data");
   }
 
   return data as unknown as CoachAnalyticsPayload;
