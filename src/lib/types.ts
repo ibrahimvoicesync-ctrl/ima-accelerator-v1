@@ -741,11 +741,24 @@ export type Database = {
         Args: {
           p_user_id: string;
           p_role: string;
+          p_today?: string;                // Phase 51 (migration 00027) — new optional param
+          p_tech_setup_enabled?: boolean;  // Phase 51 — gates tech_setup branch
         };
         Returns: {
           active_alerts?: number;
           unreviewed_reports?: number;
+          coach_milestone_alerts?: number; // Phase 35+51 — was missing from generated types
+          unread_messages?: number;        // Phase 35 — was missing from generated types
         };
+      };
+      get_coach_milestones: {
+        Args: {
+          p_coach_id: string;
+          p_today?: string;
+          p_tech_setup_enabled?: boolean;
+        };
+        Returns: unknown;  // Matches get_coach_dashboard / get_coach_analytics pattern
+                           // (RPC returns jsonb envelope; client casts via CoachMilestonesPayload)
       };
       get_student_detail: {
         Args: {

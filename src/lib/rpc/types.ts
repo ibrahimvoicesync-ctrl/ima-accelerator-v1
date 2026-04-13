@@ -14,7 +14,7 @@ export type OwnerDashboardStats = {
 export type SidebarBadgesResult = {
   active_alerts?: number;          // owner only
   unreviewed_reports?: number;     // coach only
-  coach_milestone_alerts?: number; // coach only — 100h milestone alerts
+  coach_milestone_alerts?: number; // coach only — 100h + v1.5 milestone alerts (folded per Phase 51)
   unread_messages?: number;        // coach + student — chat unread count (Phase 35)
 };
 
