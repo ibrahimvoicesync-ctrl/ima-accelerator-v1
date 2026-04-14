@@ -126,19 +126,12 @@ export default async function CoachAlertsPage() {
       new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
   );
 
-  const activeCount = feed.length;
-
   return (
     <div className="space-y-6 px-4">
       <div>
         <div className="flex items-center gap-3 mb-1">
           <Bell className="h-6 w-6 text-ima-primary" aria-hidden="true" />
           <h1 className="text-2xl font-semibold text-ima-text">Milestone Alerts</h1>
-          {activeCount > 0 && (
-            <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-ima-success/10 text-ima-success">
-              {activeCount} active
-            </span>
-          )}
         </div>
         <p className="text-sm text-ima-text-secondary">
           Your students&apos; milestone achievements — review and dismiss when actioned.
