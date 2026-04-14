@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
+import { coachMilestonesTag } from "@/lib/rpc/coach-milestones-types";
 
 const dismissSchema = z.object({
   alert_key: z.string().min(1).max(200),
@@ -77,5 +78,6 @@ export async function POST(request: NextRequest) {
   }
 
   revalidateTag("badges", "default");
+  revalidateTag(coachMilestonesTag(profile.id), "default");
   return NextResponse.json({ success: true });
 }
