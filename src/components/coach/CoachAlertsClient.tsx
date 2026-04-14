@@ -185,6 +185,10 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
 
   const handleBulkDismiss = useCallback(
     async (group: StudentGroup) => {
+      // Guard: if any row in this group is already inflight, bail out to prevent
+      // double-submission in the narrow window before React re-renders the button
+      // as disabled.
+      if (group.rows.some((r) => inflightKeys.has(r.alert_key))) return;
       const keys = group.rows
         .filter((r) => !dismissedKeys.has(r.alert_key))
         .map((r) => r.alert_key);
@@ -220,7 +224,7 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
         routerRef.current.refresh();
       }
     },
-    [dismissedKeys, addInflight, removeInflight],
+    [dismissedKeys, inflightKeys, addInflight, removeInflight],
   );
 
   return (
