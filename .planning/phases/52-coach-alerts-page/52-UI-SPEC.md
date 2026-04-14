@@ -43,12 +43,12 @@ Declared values (multiples of 4):
 | 3xl | 64px | Not used on this page |
 
 Exceptions:
-- Alert card inner padding: 20px (`p-5`) — matches existing `CoachAlertsClient` pattern.
+- Alert card inner padding: 16px (`p-4`) — on-grid standard value.
 - Touch targets: min-h 44px (`min-h-[44px]`) on all interactive elements per CLAUDE.md hard rule.
 - Icon container: 40px × 40px (`w-10 h-10`) for milestone type icon — sub-44px non-interactive container only.
 - Skeleton cards: height 44px per filter tab skeleton (`h-11 w-24`).
 
-**Source:** Existing `CoachAlertsClient.tsx` and `loading.tsx` patterns; CLAUDE.md hard rule 2.
+**Source:** CLAUDE.md hard rule 2 (44px touch targets); standard 8-point grid.
 
 ---
 
@@ -56,14 +56,14 @@ Exceptions:
 
 | Role | Size | Weight | Line Height | Tailwind Class |
 |------|------|--------|-------------|----------------|
-| Page heading | 24px | 700 (bold) | 1.2 | `text-2xl font-bold text-ima-text` |
+| Page heading | 24px | 600 (semibold) | 1.2 | `text-2xl font-semibold text-ima-text` |
 | Card / group heading | 14px | 600 (semibold) | 1.4 | `text-sm font-semibold text-ima-text` |
 | Body / message text | 14px | 400 (regular) | 1.5 | `text-sm text-ima-text-secondary` |
-| Label / badge / meta | 12px | 500 (medium) | 1.4 | `text-xs font-medium` |
+| Label / badge / meta | 12px | 600 (semibold) | 1.4 | `text-xs font-semibold` |
 
-Only 3 distinct sizes are used: 24px (page heading), 14px (card headings + body), 12px (labels/badges). Weight range: 400 regular + 600/700 semibold/bold — 2 weights.
+Exactly 2 weights in use: 400 (regular) for body/message text and 600 (semibold) for all heading, label, and badge roles. Visual hierarchy is maintained via size alone (24px page heading vs 14px card heading vs 12px label).
 
-**Source:** Existing `CoachAlertsClient.tsx` + `alerts/page.tsx` heading pattern. Confirmed against all sibling coach pages.
+**Source:** Existing `CoachAlertsClient.tsx` + `alerts/page.tsx` heading pattern. Weights collapsed to 2 per checker requirement (BLOCK 1 fix).
 
 ---
 
@@ -100,11 +100,11 @@ These are the exact CVA primitives and layout elements to use. Executor must not
 
 | Component | Variant / Props | Usage |
 |-----------|----------------|-------|
-| `Button` | `variant="ghost" size="sm"` | Per-row Dismiss button |
+| `Button` | `variant="ghost" size="sm"` | Per-row Dismiss Alert button |
 | `Button` | `variant="secondary" size="sm"` | Bulk Dismiss per student group |
 | `Card` | `variant="bordered-left"` | Active (undismissed) alert row — left border inherits `border-l-ima-success` via className |
 | `Card` | `variant="default"` | Dismissed alert row |
-| `CardContent` | `className="p-5"` | Alert card inner wrapper |
+| `CardContent` | `className="p-4"` | Alert card inner wrapper (16px — on-grid) |
 | `Badge` | `variant="success" size="sm"` | Milestone type chip on each alert row |
 | `Badge` | `variant="default" size="sm"` | "dismissed" chip (shown in dismissed tab only, optional) |
 | `EmptyState` | `variant="default"` | Zero alerts state (full centered) |
@@ -132,7 +132,7 @@ Route: `/coach/alerts` (inside `(dashboard)` layout — Sidebar already rendered
 │  │ GROUP HEADER: "Student Name"  [Bulk Dismiss]│  │  ← per-student group header
 │  │ ┌──────────────────────────────────────┐   │  │
 │  │ │ [icon] Type badge  •  message text   │   │  │  ← alert row (Card bordered-left)
-│  │ │         [View Student]  [Dismiss]     │   │  │
+│  │ │         [View Student]  [Dismiss Alert]│  │  │
 │  │ └──────────────────────────────────────┘   │  │
 │  │ … more rows for same student …             │  │
 │  └────────────────────────────────────────────┘  │
@@ -174,7 +174,7 @@ Route: `/coach/alerts` (inside `(dashboard)` layout — Sidebar already rendered
 |-----|---------|------|
 | Active | "All caught up!" | "No active milestone alerts. Keep coaching!" |
 | All | "No alerts yet" | "When your students hit milestones, they'll appear here." |
-| Dismissed | "No dismissed alerts" | — |
+| Dismissed | "No dismissed alerts" | "Alerts you dismiss will be archived here for reference." |
 
 - Use `EmptyState` component with `variant="default"` and `icon={<Bell className="h-6 w-6" />}`.
 - Bell icon is `aria-hidden="true"` inside EmptyState.
@@ -184,13 +184,13 @@ Route: `/coach/alerts` (inside `(dashboard)` layout — Sidebar already rendered
 - `Card variant="bordered-left"` with `className="border-l-ima-success"`.
 - Unread dot: `w-2 h-2 rounded-full bg-ima-success` in top-right of card content area.
 - `role="alert"` on the inner content div, `aria-label="milestone alert: {student name} — {type label}"`.
-- Dismiss `Button` rendered; loading state shows spinner via `loading={dismissingKey === key}`.
-- Optimistic: on click, row immediately transitions to dismissed visual state (remove unread dot, switch to `variant="default"`, hide Dismiss button). If API fails: revert + error toast.
+- Dismiss Alert `Button` rendered; loading state shows spinner via `loading={dismissingKey === key}`.
+- Optimistic: on click, row immediately transitions to dismissed visual state (remove unread dot, switch to `variant="default"`, hide Dismiss Alert button). If API fails: revert + error toast.
 
 ### Alert Row — Dismissed
 
 - `Card variant="default"` (no border-left, no colored left accent).
-- No Dismiss button.
+- No Dismiss Alert button.
 - Greyed-out message text remains visible for context (`text-ima-text-secondary`).
 - "View Student" link still active.
 
@@ -237,13 +237,14 @@ Each `CoachMilestoneRow.milestone_type` maps to a display label and icon:
 | Filter tab: active | "Active ({N})" when N > 0, else "Active" |
 | Filter tab: dismissed | "Dismissed" |
 | Group bulk dismiss button | "Dismiss All" |
-| Per-row dismiss button | "Dismiss" |
+| Per-row dismiss button | "Dismiss Alert" |
 | Per-row view link | "View Student" |
 | Empty state — active tab heading | "All caught up!" |
 | Empty state — active tab body | "No active milestone alerts. Keep coaching!" |
 | Empty state — all tab heading | "No alerts yet" |
 | Empty state — all tab body | "When your students hit milestones, they'll appear here." |
 | Empty state — dismissed tab heading | "No dismissed alerts" |
+| Empty state — dismissed tab body | "Alerts you dismiss will be archived here for reference." |
 | Dismiss success toast | "Alert dismissed" |
 | Dismiss error toast | "Failed to dismiss alert — please try again" |
 | Bulk dismiss error toast | "Some alerts could not be dismissed — please try again" |
