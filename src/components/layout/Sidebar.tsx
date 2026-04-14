@@ -258,12 +258,19 @@ export function Sidebar({
                         />
                       )}
                       <span className="truncate">{item.label}</span>
-                      {/* Badge — only rendered when count > 0 */}
-                      {item.badge && (badgeCounts[item.badge] ?? 0) > 0 && (
-                        <span className="ml-auto text-xs font-medium px-1.5 py-0.5 rounded-full bg-ima-primary/10 text-ima-primary shrink-0">
-                          {badgeCounts[item.badge]}
-                        </span>
-                      )}
+                      {/* Badge — only rendered when count > 0; caps at "9+" for coach_milestone_alerts per NOTIF-09 */}
+                      {item.badge && (badgeCounts[item.badge] ?? 0) > 0 && (() => {
+                        const rawCount = badgeCounts[item.badge] ?? 0;
+                        const displayCount =
+                          item.badge === "coach_milestone_alerts" && rawCount >= 10
+                            ? "9+"
+                            : String(rawCount);
+                        return (
+                          <span className="ml-auto text-xs font-medium px-1.5 py-0.5 rounded-full bg-ima-primary/10 text-ima-primary shrink-0">
+                            {displayCount}
+                          </span>
+                        );
+                      })()}
                       {active && !item.badge && (
                         <ChevronRight
                           className="ml-auto h-3.5 w-3.5 text-ima-primary/50 shrink-0"
