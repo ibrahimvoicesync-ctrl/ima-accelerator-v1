@@ -316,7 +316,7 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
                     >
                       <CardContent className="p-4">
                         <div
-                          role="alert"
+                          role="article"
                           aria-label={`milestone alert: ${row.student_name} — ${meta.label}`}
                           className="flex gap-4"
                         >
