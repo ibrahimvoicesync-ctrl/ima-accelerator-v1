@@ -480,7 +480,10 @@ Plans:
   5. All aggregation happens server-side in a `SECURITY DEFINER STABLE` RPC wrapped in `unstable_cache` 60s TTL with tag `analytics-student-${id}`; report/session/deal/roadmap mutation routes call `revalidateTag` for the same tag; a grep of analytics page files shows zero `.from(` calls
   6. Every chart is keyboard-accessible (`tabIndex={0}`), wrapped in `<div role="img" aria-label="...">` with a prose summary, and has a `<details><summary>View data table</summary>` fallback; animations use `motion-safe:`; all interactive elements meet 44px touch target
   7. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 52-01-PLAN.md — Shared alerts-types module, dismiss-route coach-milestones revalidation, and Sidebar 9+ badge cap
+- [ ] 52-02-PLAN.md — Rewrite coach/alerts page.tsx + CoachAlertsClient.tsx: merged 100h + milestone RPC feed, grouped-by-student UI, per-row and bulk dismiss with Promise.allSettled
 **UI hint**: yes
 
 ### Phase 47: Coach Dashboard Homepage Stats
