@@ -420,7 +420,10 @@ interface CoachAlertsClientProps {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> **Q1 RESOLVED:** Include 100h alerts — `page.tsx` fetches the legacy 100h query alongside `getCoachMilestonesCached` and merges both feeds before passing to `CoachAlertsClient` (Plan 02 objective).
+> **Q2 RESOLVED:** Keep `"default"` second arg — 30+ verified call sites use this signature across the codebase and the project builds cleanly. Phase 52 matches the existing convention rather than diverging (Plan 01 interface section).
 
 ### 1. Does the new /coach/alerts page need to show 100h_milestone alerts alongside the new milestone types?
 
