@@ -94,7 +94,7 @@
 - [ ] **Phase 49: Coach & Owner Deals Logging UI** — Add Deal button on coach/owner deals tab, attribution chip, shared modal reuse
 - [x] **Phase 50: Milestone Config** — `MILESTONES` / `MILESTONE_CONFIG` constants; `tech_setup` feature flag pending D-06 (completed 2026-04-13)
 - [ ] **Phase 51: Milestone Notifications RPC + Backfill** — 4 new alert types, extended `get_sidebar_badges`, historical pre-dismissal migration
-- [ ] **Phase 52: Coach Alerts Page** — `/coach/alerts` grouped feed with dismiss + bulk-dismiss, 9+ badge cap
+- [x] **Phase 52: Coach Alerts Page** — `/coach/alerts` grouped feed with dismiss + bulk-dismiss, 9+ badge cap (completed 2026-04-14)
 
 ## Phase Details
 
@@ -574,10 +574,10 @@ Plans:
   3. The sidebar badge shows "9+" whenever the active count is 10 or more, preventing UI clutter when a single high-performer closes many deals in one week
   4. Loading skeletons display while the feed loads; empty state renders when the coach has zero active notifications
   5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 52-01-PLAN.md — Shared alerts-types module, dismiss-route coach-milestones revalidation, and Sidebar 9+ badge cap
-- [ ] 52-02-PLAN.md — Rewrite coach/alerts page.tsx + CoachAlertsClient.tsx: merged 100h + milestone RPC feed, grouped-by-student UI, per-row and bulk dismiss with Promise.allSettled
+- [x] 52-02-PLAN.md — Rewrite coach/alerts page.tsx + CoachAlertsClient.tsx: merged 100h + milestone RPC feed, grouped-by-student UI, per-row and bulk dismiss with Promise.allSettled
 **UI hint**: yes
 
 ## Progress
@@ -633,4 +633,4 @@ Plans:
 | 49. Coach & Owner Deals Logging UI | v1.5 | 0/TBD | Not started | — |
 | 50. Milestone Config | v1.5 | 1/1 | Complete   | 2026-04-13 |
 | 51. Milestone Notifications RPC + Backfill | v1.5 | 1/2 | In Progress|  |
-| 52. Coach Alerts Page | v1.5 | 1/2 | In Progress|  |
+| 52. Coach Alerts Page | v1.5 | 2/2 | Complete   | 2026-04-14 |
