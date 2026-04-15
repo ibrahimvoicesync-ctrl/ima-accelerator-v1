@@ -389,13 +389,17 @@ export const MILESTONE_CONFIG = {
   // MUST check the flag before dereferencing this field.
   techSetupStep: null as number | null,
 
-  // Locked: Roadmap step 11 = "Close 5 Influencers" (stage 2).
-  // SYNC: ROADMAP_STEPS[10].step === 11.
-  influencersClosedStep: 11,
+  // Locked: Roadmap step 12 = "Close 5 Influencers" (stage 2).
+  // SYNC: ROADMAP_STEPS[11].step === 12. Shifted 11→12 in Phase 57 after
+  // new Step 8 "Join at least one Influencer Q&A session" was inserted at
+  // the end of Stage 1. Must match supabase/migrations/00030 RPC.
+  influencersClosedStep: 12,
 
-  // Locked: Roadmap step 13 = "Get Brand Response" (stage 3).
-  // SYNC: ROADMAP_STEPS[12].step === 13.
-  brandResponseStep: 13,
+  // Locked: Roadmap step 14 = "Get Brand Response" (stage 3).
+  // SYNC: ROADMAP_STEPS[13].step === 14. Shifted 13→14 in Phase 57 after
+  // new Step 8 "Join at least one Influencer Q&A session" was inserted at
+  // the end of Stage 1. Must match supabase/migrations/00030 RPC.
+  brandResponseStep: 14,
 } as const;
 
 export const MILESTONE_FEATURE_FLAGS = {
