@@ -10,6 +10,7 @@ import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
 import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
 import { coachMilestonesTag } from "@/lib/rpc/coach-milestones-types";
+import { ownerAnalyticsTag } from "@/lib/rpc/owner-analytics-types";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -201,6 +202,12 @@ export async function POST(request: NextRequest) {
         } catch (err) {
           console.error("[deals] failed to invalidate coach-dashboard tag:", err);
         }
+        // Phase 54: owner-analytics is a GLOBAL tag — always invalidate regardless of coach_id.
+        try {
+          revalidateTag(ownerAnalyticsTag(), "default");
+        } catch (err) {
+          console.error("[deals:POST retry] failed to invalidate owner-analytics tag:", err);
+        }
         return NextResponse.json({ data: retryDeal }, { status: 201 });
       }
 
@@ -229,6 +236,12 @@ export async function POST(request: NextRequest) {
       }
     } catch (err) {
       console.error("[deals] failed to invalidate coach-dashboard tag:", err);
+    }
+    // Phase 54: owner-analytics is a GLOBAL tag — always invalidate regardless of coach_id.
+    try {
+      revalidateTag(ownerAnalyticsTag(), "default");
+    } catch (err) {
+      console.error("[deals:POST] failed to invalidate owner-analytics tag:", err);
     }
 
     // 11. Return 201
