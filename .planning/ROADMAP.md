@@ -110,7 +110,7 @@ See [milestones/v1.5-ROADMAP.md](milestones/v1.5-ROADMAP.md) for full phase deta
 - [ ] **Phase 54: Owner Analytics** — `/owner/analytics` leaderboards + owner dashboard teaser + `owner-analytics` cache tag wired to all mutation routes
 - [ ] **Phase 55: Chat Removal + Announcements Migration** — atomic migration (rewrite `get_sidebar_badges`, CREATE `announcements` table + RLS, DROP `messages`); all chat code deleted from codebase
 - [x] **Phase 56: Announcements CRUD & Pages** — announcement create/edit/delete for owner+coach, read-only pages for all 4 roles, paginated 25/page, sidebar nav wired (completed 2026-04-15)
-- [ ] **Phase 57: Roadmap Step 8 Insertion** — atomic two-pass renumber migration, new Step 8 auto-complete for qualifying students, `ROADMAP_STEPS` + `MILESTONE_CONFIG` config updates, `get_coach_milestones` RPC rewrite, hardcoded step number grep sweep
+- [x] **Phase 57: Roadmap Step 8 Insertion** — atomic two-pass renumber migration, new Step 8 auto-complete for qualifying students, `ROADMAP_STEPS` + `MILESTONE_CONFIG` config updates, `get_coach_milestones` RPC rewrite, hardcoded step number grep sweep (completed 2026-04-15)
 
 ## Phase Details
 
@@ -582,4 +582,4 @@ Plans:
 | 54. Owner Analytics | v1.6 | 0/TBD | Not started | — |
 | 55. Chat Removal + Announcements Migration | v1.6 | 2/4 | In Progress|  |
 | 56. Announcements CRUD & Pages | v1.6 | 3/3 | Complete    | 2026-04-15 |
-| 57. Roadmap Step 8 Insertion | v1.6 | 2/3 | In Progress|  |
+| 57. Roadmap Step 8 Insertion | v1.6 | 3/3 | Complete   | 2026-04-15 |
