@@ -30,3 +30,14 @@
 -- =============================================================================
 
 BEGIN;
+
+-- -----------------------------------------------------------------------------
+-- Section 1: Drop the old BETWEEN 1 AND 15 CHECK constraint.
+-- Re-added as BETWEEN 1 AND 16 in Section 5 AFTER the two-pass renumber
+-- returns every row to the 1–16 range. Pass 1 writes 108–115 which would
+-- violate ANY BETWEEN 1 AND N check, so the constraint must be absent
+-- during the renumber window.
+-- -----------------------------------------------------------------------------
+
+ALTER TABLE public.roadmap_progress
+  DROP CONSTRAINT IF EXISTS roadmap_progress_step_number_check;
