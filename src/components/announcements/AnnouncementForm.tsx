@@ -75,7 +75,7 @@ export function AnnouncementForm({
         const response = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content: content.trim() }),
         });
         if (!response.ok) {
           // Read the server error message if present; never swallow.
@@ -140,6 +140,7 @@ export function AnnouncementForm({
           onChange={(e) => setContent(e.target.value)}
           placeholder="Share an update with your students…"
           disabled={submitting}
+          maxLength={MAX_CONTENT_LENGTH}
           aria-describedby={`announcement-counter-${mode}`}
           error={
             tooLong
