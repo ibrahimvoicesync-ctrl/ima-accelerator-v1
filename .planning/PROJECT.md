@@ -66,15 +66,21 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ Coaches log deals for students — `deals.logged_by` column with dual-layer authorization, audit trigger, Add Deal button on coach/owner deals tab, attribution chip — v1.5 (Phases 45, 49)
 - ✓ Milestone notifications for coaches — 3 of 4 triggers live (5 Influencers Closed, First Brand Response, Closed Deal-per-deal), `/coach/alerts` page with bulk dismiss, 9+ badge cap — v1.5 (Phases 50, 51, 52)
 
+- ✓ Owner Analytics page — `/owner/analytics` with 3 lifetime top-3 leaderboards (hours, profit, deals) + teaser cards on owner dashboard homepage, `ownerAnalyticsTag()` cache invalidation on deal/work-session mutations — v1.6 (Phase 54)
+- ✓ Replace chat with Announcements — chat routes/UI/sidebar nav removed, `messages` table dropped, `get_sidebar_badges` rebound; new `announcements` table with owner+coach full CRUD, students (incl. `student_diy`) read-only, paginated 25/page per-role `/announcements` page — v1.6 (Phases 55, 56)
+- ✓ New roadmap Step 8 "Join at least one Influencer Q&A session (CPM + pricing)" — inserted at end of Stage 1 with `target_days: 5`; atomic two-pass renumber of old Steps 8–15 → 9–16, RPC rebind, auto-complete for Step-7 completers, `MILESTONE_CONFIG` step indices updated in config + RPC — v1.6 (Phase 57)
+
 ### Active
 
-<!-- Current scope. Building toward v1.6. -->
+<!-- Current scope. Building toward v1.7. -->
 
-- [ ] Owner Analytics page — `/owner/analytics` with top-3 leaderboards (hours, profit, deals) + teaser cards on owner dashboard homepage
-- [ ] Replace chat with Announcements — remove chat entirely (drop messages table) and add owner+coach-authored broadcast announcements visible to all students (incl. student_diy)
-- [ ] New roadmap Step 8 — "Join at least one Influencer Q&A session (CPM + pricing)" inserted at end of Stage 1, existing steps renumber 8→9 through 15→16
-- [ ] NOTIF-01 Tech/Email Setup trigger activation — pending D-06 stakeholder decision on roadmap step placement; config ships behind `techSetupEnabled` feature flag (carry-over, not v1.6 scope)
-- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit deferred from v1.5 milestone (carry-over, not v1.6 scope)
+- [ ] Student referral links — students and student_diy users can generate a personal Rebrandly short link from their dashboard to refer friends for a $500 bonus
+- [ ] Migration 00031 adds `referral_code` + `referral_short_url` columns to `public.users` with backfill for existing student/student_diy rows only
+- [ ] Idempotent `POST /api/referral-link` — auth + role gate, DB cache lookup, Rebrandly call on first request, persist + return
+- [ ] `ReferralCard` client component on `/student` + `/student_diy` dashboards — "Get My Link" button, Copy + Web Share API, $500 professional copy
+- [ ] `REBRANDLY_API_KEY` environment variable documented in `.env.local.example`
+- [ ] NOTIF-01 Tech/Email Setup trigger activation — pending D-06 stakeholder decision; config ships behind `techSetupEnabled` feature flag (carry-over, not v1.7 scope)
+- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit (carry-over, not v1.7 scope)
 
 ### Out of Scope
 
@@ -208,29 +214,36 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | v1.5 D-16 | "Closed Deal" milestone fires on ALL deals (student-logged, coach-logged, owner-logged) | Simplest + consistent with D-07 — coach wants to know student is closing regardless of who logged | 2026-04-13 |
 | v1.5 D-17 | Coach/owner edit of deals records `updated_at` + `updated_by` only (no per-edit change-log) | Standard audit columns sufficient for v1.5; full history deferred to v1.6+ | 2026-04-13 |
 
-## Current Milestone: v1.6 Owner Analytics, Announcements & Roadmap Update
+## Current Milestone: v1.7 Student Referral Links (Rebrandly Integration)
 
-**Goal:** Deliver owner-level analytics visibility, replace 1-on-1 chat with a broadcast announcements system, and insert a new Influencer Q&A roadmap step — all at 5k-student scale.
+**Goal:** Students and student_diy users can generate and share a personal Rebrandly short link from their dashboard to refer friends for a $500 bonus — idempotent, cached forever after first generation.
 
 **Target features:**
-- Owner Analytics page (`/owner/analytics`) with 3 top-3 leaderboards (hours, profit, deals) + teaser stat cards on owner dashboard homepage
-- Replace chat with Announcements — full chat removal (routes, UI, sidebar nav, drop `messages` table, strip unread_messages branch from `get_sidebar_badges`) + new `announcements` table with owner+coach full CRUD on any announcement, students (incl. `student_diy`) read-only, per-role `/announcements` page, paginated 25/page, no expiry
-- Insert new roadmap Step 8 "Join at least one Influencer Q&A session (CPM + pricing)" (`target_days: 5`) at end of Stage 1; atomic renumber of existing Steps 8–15 → 9–16; auto-complete new step for students past old Step 7; update `ROADMAP_STEPS` config + all progress bars to /16 + grep all hardcoded step numbers
+- Migration `00031_referral_links.sql` — adds `referral_code` (varchar(12), UNIQUE where NOT NULL) and `referral_short_url` (text) to `public.users`; backfills `referral_code` for existing `student` and `student_diy` rows only (owner/coach untouched)
+- `POST /api/referral-link` — idempotent endpoint: `getSessionUser()` + role gate (student | student_diy, else 403), admin-client DB lookup, return cached `referral_short_url` if present, else generate/persist code + call Rebrandly API + persist + return `{ shortUrl, referralCode }`. 502 on Rebrandly failure, 500 on DB failure.
+- `src/components/student/ReferralCard.tsx` — "use client" card with "Get My Link" button → loading spinner → ready state with short URL + Copy (2s "Copied!" feedback) + Share (Web Share API; hidden when unavailable). $500 copy — professional, no hype, no emoji.
+- Dashboard integration — `<ReferralCard />` rendered at bottom of both `/student` and `/student_diy` pages (inside `mt-6` wrapper, below Deals Stat Cards)
+- Env: add `REBRANDLY_API_KEY=` to `.env.local.example`
 
-**Performance constraints (apply to every phase):**
-- 5,000 concurrent students stress envelope
-- Hot-path indexes on all new queries
-- Auth + role check + rate limiting on every new API route
-- New RLS policies use `(SELECT auth.uid())` initplan pattern
-- Dashboard aggregations via Postgres RPC + 60s `unstable_cache`
-- Paginate anything > 25 items
+**Explicit non-goals (do NOT build):**
+- No payout tracking or $500 credit system
+- No referral analytics / click counting UI
+- No admin/owner/coach referral management pages
+- No changes to registration/onboarding flow
+- No landing page changes (external site, out of scope)
+- No custom Rebrandly domain (use default `rebrand.ly`)
+
+**Constraints (apply to every phase):**
+- All Hard Rules from `CLAUDE.md` enforced (ima-* tokens, `min-h-[44px]`, `motion-safe:` on animations, aria-label/aria-hidden, admin client in API routes, `response.ok` checks, never-swallow errors, `import { z } from "zod"`)
+- Auth + role check + rate limiting on the new API route (reuse existing pattern)
+- Migration numbering: `00031` (continues after v1.6's `00030`)
 - Post-phase gate: `npm run lint && npx tsc --noEmit && npm run build`
 
 ## Current State
 
 **Shipped:** v1.6 (2026-04-15) — Owner Analytics, Announcements & Roadmap Update. 4 phases (54-57), 14 plans, 35/35 requirements satisfied. Owner analytics page with 3 lifetime leaderboards and cache-tag invalidation; chat system retired and replaced with broadcast announcements (CRUD for owner/coach, read-only for students + student_diy, paginated 25/page); atomic roadmap Step 8 insertion with two-pass renumber, RPC rebind, and Step-7-completer auto-complete. Migrations 00028-00030 deployed. See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md) and [v1.6-MILESTONE-AUDIT.md](v1.6-MILESTONE-AUDIT.md).
 
-**Active:** None — ready for next milestone via `/gsd-new-milestone`.
+**Active:** v1.7 Student Referral Links (Rebrandly Integration) — defining requirements → roadmap.
 
 ## Carry-overs (not next-milestone scope unless reprioritized)
 
@@ -243,7 +256,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
-Last updated: 2026-04-15
+Last updated: 2026-04-15 — v1.7 milestone started
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -259,4 +272,4 @@ Last updated: 2026-04-15
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-15 — Phase 57 complete; v1.6 milestone is fully shipped and ready for `/gsd-complete-milestone`.*
+*Last updated: 2026-04-15 — v1.7 milestone started (Student Referral Links, Rebrandly).*
