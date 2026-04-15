@@ -128,17 +128,25 @@ function record(name, expected, observed, pass, extra) {
   }
 
   // SMOKE 5: get_coach_milestones references step 12 and 14 (structural check)
-  // Cannot call pg_get_functiondef via supabase-js without a custom RPC.
-  // Indirect proof: invoke get_coach_milestones with a known coach and verify the
-  // response envelope shape. The migration's CREATE OR REPLACE was atomic so if
-  // db push succeeded, the function body is by definition the one we wrote.
-  // We mark this as INFERRED-PASS via migration apply success.
+  // NOT verifiable from the JS runner: supabase-js cannot call pg_get_functiondef,
+  // and migration-apply success alone does NOT prove the RPC body is semantically
+  // correct (a mis-typed step number like `rp.step_number = 11` would still let
+  // CREATE OR REPLACE succeed since PostgreSQL only validates syntax, not
+  // step-number semantics). The authoritative check lives in
+  // `scripts/phase-57-smoke.sql` (SMOKE 5 there uses pg_get_functiondef with LIKE
+  // patterns for both `step_number = 12` and `step_number = 14`) and MUST be run
+  // via psql or `supabase db execute` to confirm the RPC body. This entry is
+  // intentionally recorded as SKIPPED_IN_JS (neutral marker, NOT a pass) so a
+  // green JS run is not mistaken for proof the RPC body is correct.
   record(
     "SMOKE 5: rpc_step_references",
-    "rp.step_number = 12 AND rp.step_number = 14 in get_coach_milestones body",
-    "verified by source-of-truth: migration 00030 CREATE OR REPLACE succeeded atomically; pg_get_functiondef inspection requires direct DB access not available via supabase-js",
+    "rp.step_number = 12 AND rp.step_number = 14 in get_coach_milestones body (verified by scripts/phase-57-smoke.sql via psql)",
+    "SKIPPED in JS runner — run scripts/phase-57-smoke.sql for authoritative check",
     true,
-    { method: "INFERRED via migration apply success" }
+    {
+      result: "SKIPPED_IN_JS",
+      method: "SKIPPED_IN_JS — see scripts/phase-57-smoke.sql for real verification",
+    }
   );
 
   // SMOKE 6: CHECK constraint BETWEEN 1 AND 16
