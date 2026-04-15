@@ -95,6 +95,7 @@
 - [x] **Phase 50: Milestone Config** — `MILESTONES` / `MILESTONE_CONFIG` constants; `tech_setup` feature flag pending D-06 (completed 2026-04-13)
 - [ ] **Phase 51: Milestone Notifications RPC + Backfill** — 4 new alert types, extended `get_sidebar_badges`, historical pre-dismissal migration
 - [x] **Phase 52: Coach Alerts Page** — `/coach/alerts` grouped feed with dismiss + bulk-dismiss, 9+ badge cap (completed 2026-04-14)
+- [ ] **Phase 53: v1.5 Cache Invalidation & Rate Limit Fixes** — gap closure from milestone audit: work-sessions PATCH coach-tag bust, CSV export rate limit, orphaned deal tag cleanup, REQUIREMENTS checkbox backfill
 
 ## Phase Details
 
@@ -580,6 +581,19 @@ Plans:
 - [x] 52-02-PLAN.md — Rewrite coach/alerts page.tsx + CoachAlertsClient.tsx: merged 100h + milestone RPC feed, grouped-by-student UI, per-row and bulk dismiss with Promise.allSettled
 **UI hint**: yes
 
+### Phase 53: v1.5 Cache Invalidation & Rate Limit Fixes
+**Goal**: Close all cross-phase wiring gaps surfaced by the v1.5 milestone audit — coach dashboard/analytics leaderboards update immediately on session completion (not 60s later), coach analytics CSV export is rate-limited, orphaned deal cache tags are removed, and REQUIREMENTS.md traceability checkboxes reflect shipped reality
+**Depends on**: Phase 52 (entire v1.5 feature surface complete)
+**Requirements**: COACH-DASH-04, COACH-DASH-06, COACH-ANALYTICS-07, PERF-02, PERF-05, DEALS-09 (wiring fixes to already-shipped requirements; primary phase ownership unchanged)
+**Gap Closure:** Closes 1 major + 2 minor integration gaps + 1 degraded E2E flow from `.planning/v1.5-MILESTONE-AUDIT.md`
+**Success Criteria** (what must be TRUE):
+  1. `src/app/api/work-sessions/[id]/route.ts` PATCH (status → 'completed') calls `revalidateTag(coachDashboardTag)` + `revalidateTag(coachAnalyticsTag)` in addition to the existing `badges` + `studentAnalyticsTag` busts; verified by inspecting the handler and exercising the E2E flow "Student completes session → coach leaderboard updates within next request"
+  2. `src/app/api/coach/analytics/export.csv/route.ts` enforces `checkRateLimit` (30 req/min/user) matching every other coach API route; rate-limit 429 path returns the standard JSON envelope
+  3. `src/app/api/deals/route.ts` lines 183 + 213: orphaned `revalidateTag("deals-${studentId}")` calls are removed (no cache consumer registers this tag; direct-fetch server components do not benefit). No behavior regression in student/coach/owner deals pages
+  4. REQUIREMENTS.md traceability table checkboxes for all 43 shipped v1.5 items are updated `[ ]` → `[x]` (ANALYTICS-01..10, COACH-DASH-01..07, COACH-ANALYTICS-01..07, DEALS-01..11, PERF-01..08 except NOTIF-01 which stays deferred); coverage count reflects reality
+  5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
+**UI hint**: no (API-route + bookkeeping only; no UI surface changes)
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -634,3 +648,4 @@ Plans:
 | 50. Milestone Config | v1.5 | 1/1 | Complete   | 2026-04-13 |
 | 51. Milestone Notifications RPC + Backfill | v1.5 | 1/2 | In Progress|  |
 | 52. Coach Alerts Page | v1.5 | 2/2 | Complete   | 2026-04-14 |
+| 53. v1.5 Cache Invalidation & Rate Limit Fixes | v1.5 | 0/TBD | Not started | — |
