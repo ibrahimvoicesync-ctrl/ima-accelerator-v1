@@ -118,7 +118,7 @@ export default async function OwnerStudentDetailPage({
   const lastActiveDateStr =
     [latestSessionDate, latestReportDate].filter(Boolean).sort().at(-1) ?? null;
 
-  const nowMs = Date.now();
+  const nowMs = new Date(today + "T00:00:00Z").getTime();
   const reasons: string[] = [];
 
   if (lastActiveDateStr) {

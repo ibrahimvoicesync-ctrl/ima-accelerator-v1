@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // k6 load test scripts — CommonJS Node.js, not part of Next.js build
+    "load-tests/**",
   ]),
 ]);
 

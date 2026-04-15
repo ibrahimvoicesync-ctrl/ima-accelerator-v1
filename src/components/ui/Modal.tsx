@@ -35,7 +35,9 @@ export function Modal({ open, onClose, title, description, children, size = "md"
   const titleId = title ? `modal-title-${autoId}` : undefined;
 
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   const handleEscape = useCallback(
     (e: globalThis.KeyboardEvent) => {
