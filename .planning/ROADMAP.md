@@ -581,5 +581,5 @@ Plans:
 | 53. v1.5 Cache Invalidation & Rate Limit Fixes | v1.5 | 4/4 | Complete | 2026-04-15 |
 | 54. Owner Analytics | v1.6 | 0/TBD | Not started | — |
 | 55. Chat Removal + Announcements Migration | v1.6 | 2/4 | In Progress|  |
-| 56. Announcements CRUD & Pages | v1.6 | 3/3 | Complete   | 2026-04-15 |
+| 56. Announcements CRUD & Pages | v1.6 | 3/3 | Complete    | 2026-04-15 |
 | 57. Roadmap Step 8 Insertion | v1.6 | 0/TBD | Not started | — |
