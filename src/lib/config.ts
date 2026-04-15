@@ -290,6 +290,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Invites",     href: "/owner/invites",     icon: "UserPlus",      separator: true },
     { label: "Assignments", href: "/owner/assignments", icon: "ArrowLeftRight" },
     { label: "Alerts",      href: "/owner/alerts",      icon: "Bell",          badge: "active_alerts" },
+    { label: "Announcements", href: "/owner/announcements", icon: "Megaphone" },
     { label: "Resources",   href: ROUTES.owner.resources, icon: "BookOpen",    separator: true },
   ],
   coach: [
@@ -300,6 +301,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Assignments",     href: "/coach/assignments",  icon: "ArrowLeftRight" },
     { label: "Analytics",       href: "/coach/analytics",    icon: "BarChart3" },
     { label: "Alerts",          href: "/coach/alerts",       icon: "Bell",          badge: "coach_milestone_alerts" },
+    { label: "Announcements",   href: "/coach/announcements", icon: "Megaphone" },
     { label: "Resources",       href: ROUTES.coach.resources, icon: "BookOpen",      separator: true },
   ],
   student: [
@@ -308,6 +310,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Roadmap",       href: "/student/roadmap", icon: "Map" },
     { label: "Ask Abu Lahya", href: "/student/ask",     icon: "MessageSquare" },
     { label: "Daily Report",  href: "/student/report",  icon: "FileText" },
+    { label: "Announcements", href: "/student/announcements", icon: "Megaphone" },
     { label: "Deals",         href: ROUTES.student.deals, icon: "DollarSign" },
     { label: "Analytics",     href: ROUTES.student.analytics, icon: "BarChart3" },
     { label: "Resources",     href: ROUTES.student.resources, icon: "BookOpen" },
@@ -316,6 +319,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Dashboard",    href: "/student_diy",         icon: "LayoutDashboard" },
     { label: "Work Tracker", href: "/student_diy/work",    icon: "Timer" },
     { label: "Roadmap",      href: "/student_diy/roadmap", icon: "Map" },
+    { label: "Announcements", href: "/student_diy/announcements", icon: "Megaphone" },
     { label: "Deals",        href: ROUTES.student_diy.deals, icon: "DollarSign" },
     { label: "Analytics",    href: ROUTES.student_diy.analytics, icon: "BarChart3" },
     { label: "Resources",    href: ROUTES.student_diy.resources, icon: "BookOpen" },
