@@ -1,658 +1,693 @@
-# Pitfalls Research — Milestone v1.5
+# Pitfalls Research — Milestone v1.6
 
-**Domain:** Analytics Pages, Coach Dashboard Stats, Full Coach Analytics, Coach-Logged Deals, Milestone Notifications
-**Researched:** 2026-04-13
-**Confidence:** HIGH (grounded in existing v1.0–v1.4 patterns: v1.2 Phase 19 RLS, Phase 20 caching, Phase 22 rate limiting, Phase 23 ownership leak fix, 260401-cwd notification pattern, v1.4 Phase 30 role CHECK expansion, Phase 42–43 deals infrastructure)
+**Domain:** Owner Analytics (Leaderboards), Chat Removal + Announcements Replacement, Roadmap Step Insert + Atomic Renumber
+**Researched:** 2026-04-15
+**Confidence:** HIGH — grounded in this specific codebase: v1.5 RETROSPECTIVE lessons, migration files 00015–00027, exact SQL RPC bodies, config.ts ROADMAP_STEPS, NAVIGATION map, get_sidebar_badges signature history, and Phase 53 tag-staleness postmortem.
 
-Pitfalls below are tied to v1.5 Active requirements only. Each one maps to the Feature it lives in (Feat 1 Student Analytics, Feat 2 Coach Dashboard, Feat 3 Full Coach Analytics, Feat 4 Coach-Logged Deals, Feat 5 Milestone Notifications). Phase numbers assume sequential build order (v1.5 D-10) starting at Phase 44.
+Each pitfall maps to a specific phase concern and includes a concrete grep/SQL/assertion to verify prevention. Phase numbers are placeholders (54, 55, 56) aligned with the v1.6 sequential build order; the planner assigns final numbers.
 
 ---
 
-## Critical Pitfalls
+## Feature 1: Owner Analytics — TOP-N LEADERBOARDS at 5k scale
 
-### Pitfall 1: Client-side row pulls on analytics pages (Feat 1, Feat 3)
+### Pitfall 1-A: No supporting index on the leaderboard ORDER BY column
 
 **What goes wrong:**
-Analytics page hits `/api/daily-reports?student_id=X` or `.from("work_sessions").select("*")` and ships 200–2000 rows per student to the browser to group/aggregate in JavaScript. At 5k concurrent students (D-05) this saturates Pro Small egress and blows the P95 <1s envelope set in v1.2 Phase 24.
+`SELECT student_id, SUM(profit) FROM deals GROUP BY student_id ORDER BY SUM(profit) DESC LIMIT 3` does a full table scan of `deals` at 5k students × N deals each. At the v1.2 Phase 24 stress envelope (5k students, Pro Small) this adds 200–400ms to the owner analytics RPC — enough to push P95 above 1s.
 
 **Why it happens:**
-Reach for `select("*")` + `Array.reduce()` feels faster than writing a Postgres function. Old habits from non-RLS projects where egress was free. recharts tutorials all show client-side aggregation.
+The coach analytics RPC in 00025/00026 only added indexes for `deals` keyed on `(student_id, created_at)` (Phase 44: `idx_deals_student_created`). That index helps time-windowed queries but does NOT help a platform-wide SUM(profit) / SUM(revenue) / COUNT(*) grouping that spans all time.
 
-**How to avoid:**
-All aggregation goes in a Postgres RPC (locked by D-01). Each analytics panel = one RPC call returning already-grouped rows (`date_bucket, count, sum_minutes` shape). Follow v1.2 Phase 20 `get_owner_overview` / `get_student_detail` consolidation pattern. Enforce via code review: no `.select("*").from("daily_reports")` in any analytics server component.
+**Consequences:**
+Owner analytics page exceeds the 1s P95 threshold. The existing `idx_deals_student_created` will be chosen by the planner only for filtered queries; a GROUP BY all students with no date filter forces a seq scan or uses only the primary key index.
 
-**Warning signs:**
-- `.then(rows => rows.reduce(...))` in a server component or RSC
-- JSON response payload > 50KB for an analytics panel
-- `useMemo` grouping 500+ rows in a chart component
-- Missing `student_id` filter on any `.from()` call (RLS is not a substitute per CLAUDE.md rule #4)
+**Prevention:**
+For profit/revenue leaderboard: verify that `EXPLAIN (ANALYZE, BUFFERS)` shows an Index Scan on `idx_deals_student_created` (or a purpose-built covering index). If the planner does a seq scan on `deals`, add `CREATE INDEX idx_deals_profit_student ON deals(student_id, profit DESC)` in the v1.6 analytics migration.
 
-**Phase to address:** Phase 44 (Analytics RPC Foundation — MUST land before any page that uses it).
+For hours leaderboard (work_sessions): the existing `idx_work_sessions_completed_student_date` covers `(student_id, status, date)`. A platform-wide all-time hours sum without a date filter will NOT use that partial index. Add `CREATE INDEX idx_work_sessions_completed_student ON work_sessions(student_id) WHERE status = 'completed'` if the query is unbounded by date.
+
+**Detection / Verification:**
+```sql
+-- Run in Supabase SQL editor after migration ships:
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT student_id, SUM(profit) as total_profit
+FROM deals
+GROUP BY student_id
+ORDER BY total_profit DESC
+LIMIT 3;
+-- FAIL if plan shows "Seq Scan on deals" with estimated rows > 1000
+```
+
+**Phase:** v1.6 Owner Analytics (Phase 54). Index declarations must be in the same migration as the RPC.
 
 ---
 
-### Pitfall 2: Chart library hydration mismatch under React 19 RSC (Feat 1, Feat 2, Feat 3)
+### Pitfall 1-B: Ties silently drop names — LIMIT 3 without deterministic tiebreak
 
 **What goes wrong:**
-recharts (D-11 candidate) renders different SVG widths on server vs. client because it measures `ResponsiveContainer` from `window`. React 19 throws a hydration error, the chart disappears, and the server logs fill with `Hydration failed` noise — hiding real errors.
+`ORDER BY SUM(profit) DESC LIMIT 3` when two students share the same profit total causes PostgreSQL to return an arbitrary subset. On rerenders (60s cache bust), the same leaderboard shows different students, which looks broken to the owner. At 5k students the probability of exact ties in integer deal counts is non-trivial.
 
 **Why it happens:**
-recharts uses `ResponsiveContainer` which reads DOM size at mount. In RSC-first Next.js 16, an eagerly imported chart renders on the server with a different default width. React 19 is stricter about hydration mismatches than React 18.
+The coach analytics RPC in migration 00026 already solved this for its leaderboards:
+```sql
+ROW_NUMBER() OVER (ORDER BY minutes DESC, LOWER(student_name) ASC)::int AS rank
+```
+The tiebreak is `LOWER(student_name) ASC`. The owner analytics RPC must copy this pattern — it's easy to forget the secondary sort when writing a new RPC.
 
-**How to avoid:**
-Put every chart inside a dedicated `"use client"` component and either (a) render inside `useEffect`-gated state so the chart only mounts after hydration, or (b) lazy-load with `next/dynamic({ ssr: false })`. Keep the server component responsible for the RPC fetch and pass already-serialized data as props — the client chart wrapper only receives plain arrays. Document this pattern in the first analytics phase so subsequent phases copy it.
+**Consequences:**
+Leaderboard order flips on every cache expiry (60s), giving an illusion that rankings are unstable or that the page is buggy.
 
-**Warning signs:**
-- "Hydration failed because the server rendered HTML didn't match the client" in dev console
-- Chart is visible for 50ms then vanishes
-- Snapshot tests pass but E2E screenshots show blank canvas
-- SSR HTML contains `<svg width="0" height="0">`
+**Prevention:**
+Every ORDER BY in the owner analytics RPC leaderboard CTEs must have a secondary `LOWER(student_name) ASC` tiebreak. Use `ROW_NUMBER() OVER (ORDER BY <metric> DESC, LOWER(student_name) ASC)` not a bare `ORDER BY <metric> DESC LIMIT 3`.
 
-**Phase to address:** Phase 45 (Student Analytics Page) establishes the pattern; Phase 47 (Coach Analytics) and Phase 46 (Coach Dashboard) reuse it.
+**Detection / Verification:**
+```bash
+# Grep the new owner analytics migration for LIMIT without a tiebreak:
+grep -n "ORDER BY.*DESC" supabase/migrations/000XX_owner_analytics*.sql \
+  | grep -v "student_name\|LOWER"
+# Should return zero lines for leaderboard CTEs.
+```
+
+**Phase:** v1.6 Owner Analytics migration.
 
 ---
 
-### Pitfall 3: Timezone drift in week/day bucketing (Feat 1, Feat 2, Feat 3)
+### Pitfall 1-C: Nullable profit field sorts students with null profit as bottom — or breaks ORDER BY entirely
 
 **What goes wrong:**
-Top-3 hours leaderboard (D-13, Mon–Sun ISO week) shows Saturday night sessions in the next week because the RPC uses `date_trunc('week', completed_at)` on a `timestamptz` without timezone-casting. Students in UTC+3 see stats shift at 21:00 local. Skip tracker (v1.4 D-01) and leaderboard disagree on where week boundaries are.
+`deals.profit` is a Postgres `numeric` column that is NOT NULL in the schema (00015 creates it as `NOT NULL DEFAULT 0`... but the Zod schema has `profitMin: 0` and the PATCH route allows `profit` to be optional). If profit was ever 0-filled as a placeholder, `SUM(profit) = 0` for students with no real profit lands them equally at the bottom. More critically: if any migration ever allowed NULL, `ORDER BY SUM(profit) DESC` puts NULLs last by default in Postgres (NULLS LAST is the default for DESC), which is correct — but `COALESCE(SUM(profit), 0)` must be used or a student with no deals at all (NULL from LEFT JOIN aggregate) disappears from the denominator.
 
 **Why it happens:**
-Postgres `date_trunc('week', ...)` uses the session timezone, which on Supabase defaults to UTC. Client-side code uses `new Date().getDay()` which is local. The mismatch is invisible until a student works on Sunday at 23:30 local and the session "belongs" to the wrong week.
+The owner analytics page adds a profit leaderboard that coach analytics does NOT have (coach analytics only does hours, emails, deals count). This is a new aggregation path. A JOIN-less approach is safe but a `LEFT JOIN` approach requires explicit `COALESCE`.
 
-**How to avoid:**
-Pass `p_today date` as an explicit argument to every time-series RPC (same rule the codebase already applies to skip tracker per STATE.md accumulated context). Compute `p_today` in the server component via `getTodayUTC()` (already in config per Phase 13). Use `date_trunc('week', p_today)` + fixed `INTERVAL '6 days'` for Mon–Sun windows. Never use `CURRENT_DATE` or `now()` inside the function body. Unit test: assert same week-start for 2026-04-12T23:30Z and 2026-04-13T00:30Z.
+**Consequences:**
+Students with zero deals appear in the leaderboard as rank 1 if the COALESCE is omitted and the NULL sorts unexpectedly, OR they disappear entirely if filtered to `> 0` without adding an explicit zero-deals empty state.
 
-**Warning signs:**
-- Leaderboard top-3 changes when you reload at midnight
-- Skip tracker and top-3 disagree on the same week
-- Different answers from local `npm run dev` vs. Vercel deploy
-- Any `now()` or `CURRENT_DATE` grep hit inside a function body in a new migration
+**Prevention:**
+Always wrap deal aggregations in `COALESCE(SUM(profit), 0)` even for a HAVING-filtered leaderboard. The coach dashboard RPC (00024) already does this for `COALESCE(SUM(ws.duration_minutes), 0)` — copy that pattern.
 
-**Phase to address:** Phase 44 (Analytics RPC Foundation) — timezone-safe helpers must be the first RPCs written; all subsequent analytics phases consume them.
+**Detection / Verification:**
+```sql
+-- Confirm no NULL profits in leaderboard result with test data having one student with zero deals:
+SELECT COALESCE(SUM(profit), 0) FROM deals WHERE student_id = '<student-with-no-deals>';
+-- Must return 0, not NULL.
+```
+
+**Phase:** v1.6 Owner Analytics migration. Also verify in TypeScript: `total_profit: number` (not `number | null`) in the RPC type definition.
 
 ---
 
-### Pitfall 4: Coach logs deal for an unassigned student (Feat 4) — authorization bypass
+### Pitfall 1-D: Stale cache when mutations land — incomplete mutation-to-invalidation map for 3 metrics
 
 **What goes wrong:**
-New endpoint `POST /api/deals` (coach path) checks role (`coach`) but not assignment. A coach with 3 assigned students could insert a deal `{ student_id: <any_student> }` and RLS lets it through because the current `deals` RLS was written for students inserting their own deals and for coach/owner read-only (Phase 43). Cross-coach data pollution; incorrect revenue attribution; worse: a malicious insider can inflate a competitor coach's deal count.
+The owner analytics page uses `unstable_cache` with a 60s TTL. If a deal INSERT, PATCH, or DELETE lands but the owner analytics cache tag is not invalidated, the leaderboard shows stale rankings for up to 60 seconds after a real change. This is the exact failure mode that caused the v1.5 Phase 53 gap: work-sessions PATCH was not busting the coach dashboard tag.
+
+**Full mutation-to-invalidation map for the 3 ranked metrics:**
+
+| Mutation Route | Metric Affected | Tag That Must Be Invalidated |
+|---|---|---|
+| `POST /api/deals` (student creates deal) | profit, deals count | `owner-analytics` |
+| `PATCH /api/deals/[id]` (student/coach edits deal) | profit, deals count | `owner-analytics` |
+| `POST /api/deals` (coach logs deal for student) | profit, deals count | `owner-analytics` |
+| `PATCH /api/work-sessions/[id]` with `status=completed` | hours | `owner-analytics` |
+| `POST /api/work-sessions` (session started — NOT completed yet) | NOT affected — leaderboard counts completed only | skip |
+| `DELETE /api/deals/[id]` (if a delete route ever exists) | profit, deals count | `owner-analytics` |
 
 **Why it happens:**
-The 260328-level security audit (v1.2 Phase 23) caught the reports/review leak but `deals` INSERT policy was written pre-coach-logging (Phase 41 only handled student self-insert). Repeating the exact same class of bug: trusting role without ownership scoping.
+The existing `/api/deals/route.ts` already fires `revalidateTag(coachDashboardTag(...))` and `revalidateTag(coachAnalyticsTag(...))` but there is no owner-scoped analytics tag yet. The owner analytics page is new in v1.6 — its cache tag does not exist in the codebase and no mutation route busts it.
 
-**How to avoid:**
-Two-layer defense mirroring the Phase 34 report_comments pattern (STATE.md "two-step ownership check"):
-1. **Route handler:** fetch `users.coach_id` where `id = body.student_id`; if `profile.role = coach` assert `coach_id === profile.id`; owners bypass; students cannot reach this branch.
-2. **RLS INSERT policy on `deals`:** WITH CHECK clause asserting `auth.uid()` matches the student's auth_id OR matches the student's coach_id OR matches an owner — using the `(SELECT auth.uid())` initplan pattern (D-03) so it evaluates once per query, not per row.
+**Consequences:**
+Owner sees deal leaderboard frozen for 60s after a student logs a deal. At demo time with live data, this looks like a bug.
 
-Write an E2E test: coach A logs deal for student assigned to coach B → expect 403/404, not 201. Add to Phase 48 UAT.
+**Prevention:**
+1. Define `ownerAnalyticsTag = () => "owner-analytics"` in a new `src/lib/rpc/owner-analytics-types.ts` (mirroring `coachAnalyticsTag`, `coachDashboardTag`).
+2. Add `revalidateTag(ownerAnalyticsTag())` calls to every mutation route listed above.
+3. The owner analytics tag is NOT scoped per-user because there is only one owner; a global tag is correct.
 
-**Warning signs:**
-- `deals` RLS INSERT policy does not reference `users.coach_id` or `coach_id`
-- Route handler checks `role === 'coach'` but not assignment
-- Test fixture has only one coach → assignment gap not exercised
-- `logged_by` is set but never validated against `student.coach_id`
+**Detection / Verification:**
+```bash
+# After implementing: confirm every deals mutation route busts owner-analytics:
+grep -rn "owner-analytics\|ownerAnalyticsTag" src/app/api/deals/
+# Must appear in route.ts AND [id]/route.ts
 
-**Phase to address:** Phase 48 (Coach-Logged Deals — RLS & Route). MUST precede Phase 49 (Add Deal UI) to avoid shipping the button before authorization lands.
+# Confirm work-sessions PATCH also busts it:
+grep -n "owner-analytics\|ownerAnalyticsTag" src/app/api/work-sessions/\[id\]/route.ts
+```
+
+**Phase:** v1.6 Owner Analytics. The tag must be defined and wired before shipping the cached page.
 
 ---
 
-### Pitfall 5: Milestone notification double-fires (Feat 5) — idempotency bug
+## Feature 2: Chat Removal + Announcements Replacement
+
+### Pitfall 2-A: get_sidebar_badges still queries the dropped `messages` table
 
 **What goes wrong:**
-Student hits 5 closed influencers (Step 11 completion) → notification A fires. Coach is unassigned + reassigned → `coach_id` changes. Nightly recomputation sees the same "5 influencers closed" state for the new coach → notification B fires. Or: backfill migration marks 20 pre-existing students as "already hit milestone," coach dashboard shows 20 fresh badges they never earned. Coaches stop trusting the badge.
+Migration drops `messages` table. But `get_sidebar_badges` (migration 00027, currently the live function) still has:
+```sql
+SELECT count(*) INTO v_unread_count FROM messages WHERE coach_id = p_user_id ...
+SELECT count(*) INTO v_unread_count FROM messages m JOIN users u ...
+```
+After `DROP TABLE messages`, every sidebar render for every role throws a runtime error because the RPC body references a non-existent table. The dashboard layout crashes for all users simultaneously.
 
 **Why it happens:**
-Copying the 260401-cwd pattern naïvely. That pattern uses `alert_dismissals` with a key like `100h_milestone:{student_id}` and recomputes from sessions — which is safe because "sum ≥ 6000 min" is monotonic and dismiss-scoped-to-coach. New milestones like "5 Influencers Closed" or "First Brand Response" are roadmap step transitions, which are also monotonic but the fire boundary is different: firing per coach_id when coach changes causes re-fires.
+`DROP TABLE messages` is a DDL statement that takes effect immediately, but the RPC body is stored as text and compiled at runtime. The function body survives the drop and fails with "relation 'messages' does not exist" on next execution.
 
-**How to avoid:**
-Three rules:
-1. **Key scoped to (student, milestone)** not (student, milestone, coach): `milestone:{type}:{student_id}`. Coach reassignment does NOT re-fire. The coach who currently owns the student sees the badge; the old coach's badge goes away because the base query filters by current `coach_id`. No `alert_dismissals` row is re-created.
-2. **One-way transitions only.** A milestone row is "achieved" when the monotonic condition first becomes true. Never re-evaluate against downgrade (e.g., deal deleted → don't un-fire "Closed Deal"; use `alert_dismissals` to mute).
-3. **Backfill policy decision (D-required):** at migration time, seed every currently-qualifying student with a `dismissed_at = <migration timestamp>` row so historical matches are pre-dismissed, NOT newly-notifying. Add this to the migration that ships Feat 5.
+**Consequences:**
+Complete sidebar failure for all coach and student roles. Because `get_sidebar_badges` is called in `(dashboard)/layout.tsx` for every dashboard page, this breaks the entire app for every logged-in user.
 
-Unit test: run the notification-compute function twice in a row with no state change → second run returns zero new notifications.
+**Prevention:**
+The migration that drops `messages` MUST in the same transaction (a) rewrite `get_sidebar_badges` to remove the `unread_messages` branch and (b) drop the `messages` table AFTER the function rewrite. Order in the migration file:
+1. `CREATE OR REPLACE FUNCTION get_sidebar_badges` — new body with `unread_messages` removed, `announcements_unread` added if needed
+2. `DROP TABLE IF EXISTS messages CASCADE`
 
-**Warning signs:**
-- Same milestone appears twice in the coach alerts list
-- Reassigning a student triggers new notifications
-- Dismissed milestone returns after a data backfill
-- Migration does NOT insert pre-dismissal rows for existing qualifying students
+Never split these into separate migrations and never drop the table before rewriting the function.
 
-**Phase to address:** Phase 51 (Milestone Notifications — Compute & Migration). The backfill seed MUST ship in the same migration as the notification compute function.
+**Detection / Verification:**
+```bash
+# After migration: confirm get_sidebar_badges body no longer references messages:
+grep -n "messages" supabase/migrations/000XX_announcements*.sql \
+  | grep -v "^--\|DROP TABLE messages\|unread_messages.*0"
+# Should show only the DROP TABLE line, not any FROM/JOIN messages queries.
+
+# SQL verification post-migration:
+SELECT prosrc FROM pg_proc WHERE proname = 'get_sidebar_badges';
+-- The output must NOT contain 'FROM messages' anywhere.
+```
+
+**Phase:** v1.6 Announcements (chat removal phase). This is the highest-priority pitfall in the feature.
 
 ---
 
-### Pitfall 6: "Closed Deal every deal" fires 50 times for high performers (Feat 5) — notification noise
+### Pitfall 2-B: `unread_messages` badge key still consumed by layout.tsx and Sidebar after messages table drop
 
 **What goes wrong:**
-D-07 locked "Closed Deal" to fire on every deal. A student closes 30 deals in a month → coach sees 30 alert badges. Badge count drifts, coach dismisses all 30 in one go, real alerts hide in the noise. The 100hr milestone alert (260401-cwd) never had this problem because it's a one-shot threshold.
+`layout.tsx` lines 47-49:
+```typescript
+if (badges.unread_messages !== undefined && badges.unread_messages > 0) {
+  badgeCounts.unread_messages = badges.unread_messages;
+}
+```
+`config.ts` NAVIGATION has `badge: "unread_messages"` on the Chat nav item for both coach and student. If the badge field persists in the RPC response but the Chat nav item is removed, `badgeCounts.unread_messages` is populated but never consumed. If the Chat nav item is removed but the field remains, no visible bug — but the RPC is doing pointless work and the contract is wrong.
 
-**Why it happens:**
-"Every deal" without a dedup key means each `deals` row generates a distinct notification. The existing alert_dismissals key scheme (`100h_milestone:{student_id}`) collapses multiple notifications into one.
+**The actual risk:** The announcement nav item will need its OWN badge key (e.g., `announcements_unread`). If the developer reuses `unread_messages` as the badge key for announcements, the Sidebar component may render a badge on the wrong nav item or no badge at all, because Sidebar matches badge key strings to nav item `badge` property values.
 
-**How to avoid:**
-Key each Closed Deal notification by `deal_id`: `closed_deal:{deal_id}`. This lets coaches dismiss individual ones. Add a coach-level "Dismiss all closed-deal alerts for this student" bulk action in Phase 52 (Coach Alerts UI). For the sidebar badge count, display `min(count, 9)` with `9+` convention — standard mobile UX. Document in D-07 companion note.
+**Prevention:**
+1. Remove `badge: "unread_messages"` from both Chat entries in `config.ts` NAVIGATION when removing the Chat nav item.
+2. Remove the `unread_messages` handling block from `layout.tsx`.
+3. If Announcements gets a badge, add a new key `announcements_unread` to NAVIGATION and layout.tsx explicitly.
+4. The `SidebarBadgesResult` type in `src/lib/rpc/types.ts` must be updated to remove `unread_messages` and add `announcements_unread` if used.
 
-If noise proves problematic in UAT, fallback: digest mode = one notification per (student, day) aggregating that day's deals ("Closed 3 deals today"). Keep this as a Phase 52 tune-knob, not a launch blocker.
+**Detection / Verification:**
+```bash
+# No Chat nav item should remain after removal:
+grep -n '"Chat"\|/chat\|unread_messages' src/lib/config.ts
+# Must return zero lines after removal phase.
 
-**Warning signs:**
-- Coach dismisses 10+ badges in a single session
-- Sidebar badge shows "47"
-- UAT feedback: "I stopped clicking the bell"
+# No orphaned badge handling in layout:
+grep -n "unread_messages" src/app/\(dashboard\)/layout.tsx
+# Must return zero lines after removal phase.
+```
 
-**Phase to address:** Phase 51 for per-deal key design; Phase 52 (Coach Alerts UI) for bulk-dismiss + 9+ badge cap.
+**Phase:** v1.6 Announcements removal phase.
 
 ---
 
-### Pitfall 7: deal_number race condition on concurrent coach + student insert (Feat 4)
+### Pitfall 2-C: Orphaned chat route files still reachable, and proxy.ts does not 404 them cleanly
 
 **What goes wrong:**
-If `deal_number` is generated via `MAX(deal_number) + 1` subquery in a trigger or in application code, two concurrent inserts for the same student (coach logging + student logging at the same moment) can both read `MAX = 5` and both insert `6`. Unique index (if it exists) throws 23505 on the second; if no unique index, you get two deals with `deal_number = 6`.
+After removing `/coach/chat` and `/student/chat` page files, a user with a bookmarked or cached `/coach/chat` URL gets Next.js's default 404 page. This is acceptable, but the proxy.ts may still have `/chat` in its protected route pattern, causing an auth redirect loop rather than a clean 404 for unauthenticated users hitting the old URL.
+
+More critically: the API routes `/api/messages` and `/api/messages/read` are not automatically deleted. They continue to be reachable by any authenticated user. If an old client (browser with cached JS) polls `/api/messages` after deployment, it hits the old route, which queries the now-dropped `messages` table, and the server throws a 500 with "relation 'messages' does not exist" — surfacing as a noisy error in logs.
 
 **Why it happens:**
-Existing deals infrastructure (Phase 40–43) assumed single-writer: the student. `logged_by` (D-09) introduces a second writer path. `deal_number` wasn't designed for concurrent writers. The race is narrow but real given 5k concurrent students (D-05).
+Rolling deploys and browser cache mean the old JavaScript bundle (with its 5-second polling interval) can run for minutes after the server has the new code. The API route deletion and table drop happen at deploy time, but the old client is still alive.
 
-**How to avoid:**
-One of:
-1. **Trigger-based with `FOR UPDATE` lock** on the student row: `SELECT ... FROM deals WHERE student_id = NEW.student_id FOR UPDATE; NEW.deal_number := COALESCE(MAX(...), 0) + 1;` — serializes per-student inserts.
-2. **Per-student sequence** (less clean in Postgres but rock-solid): `CREATE SEQUENCE deals_student_<id>_seq` — dynamic sequences are fragile, not recommended.
-3. **Composite unique index** `(student_id, deal_number)` + retry on 23505 in the route handler (simple, battle-tested; already a pattern in Phase 28 daily_plans idempotent 23505 handling per STATE.md).
+**Prevention:**
+1. In the announcements migration, do NOT drop `messages` table in the same deploy as the initial announcements launch. Two-step deploy:
+   - Deploy 1: Ship announcements UI + keep messages table + keep `/api/messages` route returning an empty result set (or a 410 Gone). This allows old clients to drain gracefully.
+   - Deploy 2 (next migration): Drop `messages` table + delete `/api/messages` + remove chat pages.
+   
+   Alternatively, since this is a non-production app with no real users during deploy: do a single-migration drop but accept 5–60 seconds of 500 errors from any open browser tab hitting the old polling interval.
 
-Recommend option 3 paired with existing trigger. Ship the unique index in the same migration as `logged_by`. Wrap the route handler insert in a retry loop (max 3 attempts) that handles `23505` specifically for `deals_student_id_deal_number_key`.
+2. After deleting chat page files, verify proxy.ts does not reference `/chat`:
+```bash
+grep -n "chat\|messages" src/proxy.ts
+# Must return zero lines.
+```
 
-**Warning signs:**
-- Two deals with the same (student_id, deal_number) appear in the `deals` table
-- Occasional 500 errors on high-volume deal insert
-- `deal_number` jumps (7, 8, 10) — trigger skipped a value due to failed insert (acceptable)
+3. The `/api/messages` route handler must be deleted (not just emptied) before migration 2 lands.
 
-**Phase to address:** Phase 48 (Coach-Logged Deals — RLS & Route) must include the unique index migration and retry logic.
+**Detection / Verification:**
+```bash
+# Confirm chat pages are deleted:
+ls src/app/\(dashboard\)/coach/chat/ 2>/dev/null && echo "FAIL: still exists"
+ls src/app/\(dashboard\)/student/chat/ 2>/dev/null && echo "FAIL: still exists"
+
+# Confirm API routes are deleted:
+ls src/app/api/messages/ 2>/dev/null && echo "FAIL: still exists"
+
+# Confirm types file no longer exports Message types:
+grep -n "MessageWith\|ConversationList\|ChatComposer\|chat-utils" src/lib/types.ts
+# Should return zero lines.
+```
+
+**Phase:** v1.6 Announcements. The two-step deploy concern is specific to this phase.
 
 ---
 
-### Pitfall 8: Stat-card fan-out (Feat 2) — N RPC calls for N cards
+### Pitfall 2-D: RLS policies on `messages` table survive `DROP TABLE` but block the new `announcements` table if reused incorrectly
 
 **What goes wrong:**
-Coach dashboard has ~4 stat cards (deals closed, revenue, avg roadmap step, total emails) + 3 recent reports + top-3 leaderboard. Naïve implementation = 7+ parallel RPC calls. At 5k concurrent coaches hitting their dashboards, that's 35k+ RPC invocations. `unstable_cache` (D-02) helps but the thundering-herd on cold cache misses spikes Pro Small.
+`DROP TABLE messages CASCADE` will drop all RLS policies on the `messages` table automatically. This part is safe. The risk is the inverse: if the developer writes the `announcements` RLS policies by copy-pasting from the `messages` policies, they may inadvertently carry over the `is_broadcast` column concept (which does not exist on `announcements`) or the `coach_id` room-key concept. The announcements model is fundamentally different: one table, owner/coach can INSERT, all roles can SELECT, no recipient_id, no read_at.
 
-**Why it happens:**
-It feels cleaner to have one RPC per card. Easier to reason about. Easier to test. Easier to cache-invalidate selectively.
+A secondary risk: if `DROP TABLE messages CASCADE` also cascades to `alert_dismissals` somehow via a foreign key... it does NOT (alert_dismissals references only `users`), but this should be verified.
 
-**How to avoid:**
-Follow v1.2 Phase 20 consolidation pattern: single RPC `get_coach_dashboard(p_coach_id, p_today)` returns JSONB with all 7 sub-results. Wrap the whole thing in `unstable_cache({ tags: ['coach-dashboard-' + coach_id], revalidate: 60 })` per D-02. Per-card caches are strictly worse because they multiply cache misses.
+**Prevention:**
+Write announcements RLS policies from scratch, not from chat policies. The minimal correct policy set:
+```sql
+-- Owner and coach can INSERT:
+CREATE POLICY "staff_insert_announcements" ON announcements
+  FOR INSERT WITH CHECK (
+    (SELECT role FROM users WHERE id = (SELECT auth.uid())) IN ('owner', 'coach')
+  );
+-- All authenticated roles can SELECT:
+CREATE POLICY "all_select_announcements" ON announcements
+  FOR SELECT USING (true);
+-- Only creator can UPDATE/DELETE (optional, scope to owner+coach):
+CREATE POLICY "staff_manage_announcements" ON announcements
+  FOR ALL USING (
+    (SELECT role FROM users WHERE id = (SELECT auth.uid())) IN ('owner', 'coach')
+  );
+```
+All policies must use `(SELECT auth.uid())` initplan pattern per v1.2/v1.5 D-03.
 
-On the write side: revalidate the consolidated tag from `POST /api/deals`, `POST /api/daily-reports`, `POST /api/roadmap-progress` — everything that could shift any of the 7 sub-results. Exactly as v1.2 Phase 20 did for `owner-overview`.
+**Detection / Verification:**
+```sql
+-- After migration: confirm messages policies are gone:
+SELECT policyname FROM pg_policies WHERE tablename = 'messages';
+-- Must return zero rows.
 
-**Warning signs:**
-- Dashboard page has >3 `await Promise.all([...])` RPCs
-- Each card has its own `unstable_cache` wrapper
-- Page waterfall in DevTools shows sequential RPCs (not parallel — but parallel of 7 is still bad)
+-- Confirm announcements policies use (SELECT auth.uid()) not auth.uid():
+SELECT policyname, qual, with_check
+FROM pg_policies WHERE tablename = 'announcements';
+-- Manually verify no direct auth.uid() call without SELECT wrapper.
+```
 
-**Phase to address:** Phase 46 (Coach Dashboard Homepage Stats).
+**Phase:** v1.6 Announcements migration.
 
 ---
 
-### Pitfall 9: Cache stale after mutation (Feat 1, Feat 2, Feat 3)
+### Pitfall 2-E: Half-deleted TypeScript types — Message types removed but `chat-utils.ts` import survives in a non-chat component
 
 **What goes wrong:**
-Student submits a daily report or closes a deal. Student analytics page (cached 60s per D-02) still shows pre-submission numbers. Coach dashboard shows stale stats for 60s. Worse: coach logs a deal → Student's dashboard shows it only after 60s.
+`src/lib/chat-utils.ts` exports `MessageWithSender`, `ConversationListItem`, and polling helpers. These are imported by 4 files: `coach/chat/page.tsx`, `student/chat/page.tsx`, `MessageThread.tsx`, `ConversationList.tsx`. When chat pages are deleted, those imports die. But if any other component (e.g., a shared layout helper or a future analytics component) ever imported from `chat-utils.ts`, it will compile-fail after deletion.
 
-**Why it happens:**
-`unstable_cache` is keyed by args but TTL-only invalidation means writes don't proactively invalidate. The existing project already solves this pattern with `revalidateTag` (see Phase 20/21 writeups), but it's easy to forget to add the right tag from the right route.
+More concretely: `src/lib/types.ts` defines the `Messages` table type as part of the `Database` interface (lines 668–690 based on grep). After dropping the `messages` table, `types.ts` still has the stale type — it will not cause a runtime error (types are erased) but TypeScript strict mode may flag unused types, and regenerating `types.ts` from Supabase CLI will remove it automatically.
 
-**How to avoid:**
-Every mutation route that touches deals, sessions, reports, or roadmap_progress MUST call `revalidateTag` for:
-- `student-analytics-${student_id}` (Feat 1)
-- `coach-dashboard-${coach_id}` (Feat 2) — look up the student's `coach_id` from `users`
-- `coach-analytics-${coach_id}` (Feat 3)
+**Prevention:**
+1. Delete `src/lib/chat-utils.ts` as part of the removal phase.
+2. Delete `src/components/chat/` directory (ConversationList, MessageThread, ChatComposer).
+3. Run `npx tsc --noEmit` immediately after deletions — any surviving import will fail loudly.
+4. Remove `Messages` table type from `src/lib/types.ts` manually (or regenerate from CLI if Docker is running).
 
-Follow the pattern already in `/api/deals/[id]/route.ts` line 126: `revalidateTag(\`deals-${profile.id}\`, "default")`. Extend to the 3 new tags above in Phase 45/46/47.
+**Detection / Verification:**
+```bash
+# After deletion, build gate must pass:
+npx tsc --noEmit 2>&1 | grep -i "chat\|messages\|MessageWith\|ConversationList"
+# Must return zero lines.
 
-Make this a hard review criterion: any new mutation route without `revalidateTag` fails phase UAT.
+# Confirm no component imports from chat-utils:
+grep -rn "chat-utils\|ChatComposer\|ConversationList\|MessageThread" src/
+# Must return zero lines.
+```
 
-**Warning signs:**
-- "I just submitted this, why doesn't it show?" in UAT
-- Cache tags in route handlers don't match tags in server components
-- Revalidate calls missing from `POST /api/deals` once coach logging lands
-
-**Phase to address:** Phase 45, 46, 47, 48 — each analytics phase owns its tags; each mutation phase owns its revalidate calls.
+**Phase:** v1.6 Announcements removal phase. TypeScript check is the verification gate.
 
 ---
 
-### Pitfall 10: Sort/pagination parameter injection (Feat 3)
+## Feature 3: Atomic Roadmap Renumber
+
+### Pitfall 3-A: `get_coach_milestones` and `get_sidebar_badges` hard-code step 11 and step 13 — renumber makes them wrong
 
 **What goes wrong:**
-Full coach analytics has paginated tables (D-04: >25 items). Naïve implementation accepts `?sort=name&order=asc` and interpolates: `.order(searchParams.sort, { ascending: searchParams.order === 'asc' })`. An attacker passes `?sort=email` (not in allowlist) — leaks data in sort order that wasn't meant to be visible. Worse with RPC: raw string concat into `ORDER BY` causes SQL injection.
+Migration 00027 contains:
+```sql
+WHERE rp.step_number = 11   -- SYNC: MILESTONE_CONFIG.influencersClosedStep
+WHERE rp.step_number = 13   -- SYNC: MILESTONE_CONFIG.brandResponseStep
+```
+After renumber (8→9 through 15→16), "Close 5 Influencers" moves from step 11 to step 12, and "Get Brand Response" moves from step 13 to step 14. The milestone RPCs will stop firing those notifications entirely — students completing the new step 12 will not generate milestone alerts for their coaches.
+
+`config.ts` also has:
+```typescript
+influencersClosedStep: 11,
+brandResponseStep: 13,
+```
+These must be updated to 12 and 14 respectively. But the RPC is in a migration that cannot be retroactively edited — a NEW migration must `CREATE OR REPLACE FUNCTION get_coach_milestones` with updated step numbers AND rewrite the `get_sidebar_badges` function.
 
 **Why it happens:**
-Supabase JS client's `.order()` only protects against column-doesn't-exist, not against "you shouldn't sort by that." Zod schemas often validate body but not query params.
+The sync comment in 00027 says "SYNC: MILESTONE_CONFIG.influencersClosedStep" but it is a comment, not enforced. A developer updating config.ts may forget the SQL counterpart.
 
-**How to avoid:**
-Define an enum of valid sort keys in config.ts: `COACH_ANALYTICS_SORT_KEYS = ['name', 'deals', 'revenue', 'last_active']` and validate `searchParams.sort` with `z.enum(COACH_ANALYTICS_SORT_KEYS)`. Default to `'name'` on parse failure. Apply same to `order` (`z.enum(['asc', 'desc'])`), `page` (`z.coerce.number().int().min(1).max(1000)`), and `page_size` (fixed or capped). Same pattern already used in owner routes — verify and replicate.
+**Consequences:**
+Coach milestone alerts for "Close 5 Influencers" and "Get Brand Response" silently stop firing after the renumber migration. This is invisible until a student completes step 12 (new) and the coach notices no alert.
 
-**Warning signs:**
-- `.order(searchParams.get('sort'))` without validation
-- No Zod schema for query params
-- RPC with string concat building `ORDER BY`
+**Prevention:**
+The renumber migration (or a companion migration in the same PR) MUST:
+1. `CREATE OR REPLACE FUNCTION get_coach_milestones` — update hardcoded 11→12 and 13→14
+2. `CREATE OR REPLACE FUNCTION get_sidebar_badges` — same update (it calls get_coach_milestones but does not hardcode steps itself, so updating get_coach_milestones is sufficient for the badge count)
+3. Update `config.ts`: `influencersClosedStep: 12`, `brandResponseStep: 14`
+4. Add an embedded ASSERT to the new migration:
+```sql
+-- ASSERT: step numbers in get_coach_milestones match config expectations
+DO $$ BEGIN
+  ASSERT (SELECT count(*) FROM roadmap_progress WHERE step_number = 11) = 0,
+    'step 11 should be gone after renumber';
+END $$;
+```
 
-**Phase to address:** Phase 47 (Coach Analytics Full).
+**Detection / Verification:**
+```bash
+# Grep for hardcoded old step numbers in SQL (should only appear in DROP/historical comments):
+grep -rn "step_number = 11\|step_number = 13" supabase/migrations/
+# Post-renumber migrations must not contain these on WHERE clauses.
+
+grep -n "influencersClosedStep\|brandResponseStep" src/lib/config.ts
+# Values must be 12 and 14 after renumber.
+```
+
+**Phase:** v1.6 Roadmap Renumber migration. Must ship in the SAME migration file or atomic transaction as the step renumber.
 
 ---
 
-### Pitfall 11: "Active vs inactive" definition drift (Feat 3)
+### Pitfall 3-B: Unique constraint `(student_id, step_number)` on `roadmap_progress` blocks UPDATE-in-place renumber
 
 **What goes wrong:**
-Coach analytics shows "Active: 12 / Inactive: 8". Student analytics calls them "active" based on last session. Skip tracker (v1.4 D-01) uses reports. Owner alerts use another threshold. Four definitions for the same concept; coaches ask "which is right?" No answer.
+The roadmap_progress table has a unique constraint on `(student_id, step_number)`. Attempting to shift step numbers with a naive UPDATE:
+```sql
+UPDATE roadmap_progress SET step_number = step_number + 1 WHERE step_number >= 8;
+```
+Will immediately collide: the first row updated from step 8 to step 9 violates the unique constraint if a step 9 row already exists for that student. The update fails and rolls back.
 
 **Why it happens:**
-Each feature defines its own threshold ad-hoc. `daysSinceLastReport > 7` in one place, `daysSinceLastSession > 5` in another. No shared constant.
+Postgres enforces constraints IMMEDIATELY by default (not deferred). Even within a single UPDATE statement that touches multiple rows, each row is validated as it is processed.
 
-**How to avoid:**
-Add `ACTIVITY = { inactiveAfterDays: 7, signals: ['reports', 'sessions'] as const }` to config.ts before Phase 47 ships. Single RPC helper `student_activity_status(student_id, p_today)` returns `'active' | 'inactive' | 'at_risk'` used by all surfaces. Document the definition in a short inline comment on the config block so future phases don't diverge.
+**How to do it correctly:**
+Option A — Two-pass update (safest, no DEFERRABLE needed):
+```sql
+BEGIN;
+-- Step 1: shift existing 8-15 up by bumping to temporary high values (100+)
+UPDATE roadmap_progress SET step_number = step_number + 100 WHERE step_number BETWEEN 8 AND 15;
+-- Step 2: shift them from 108-115 back down to 9-16
+UPDATE roadmap_progress SET step_number = step_number - 99 WHERE step_number BETWEEN 108 AND 115;
+COMMIT;
+```
 
-**Warning signs:**
-- Two different "active/inactive" counts on two pages for the same coach
-- Activity threshold number hardcoded in >1 file
-- UAT feedback: "Owner says I have 10 active students, coach dashboard says 12"
+Option B — DEFERRABLE constraint:
+```sql
+ALTER TABLE roadmap_progress ALTER CONSTRAINT roadmap_progress_student_id_step_number_key DEFERRABLE INITIALLY DEFERRED;
+BEGIN;
+SET CONSTRAINTS ALL DEFERRED;
+UPDATE roadmap_progress SET step_number = step_number + 1 WHERE step_number >= 8;
+COMMIT;
+-- Must re-set constraint back to IMMEDIATE after or future constraints behave differently
+```
+Option B is risky because it changes the constraint behavior globally for the connection and must be carefully reversed.
 
-**Phase to address:** Phase 44 (Analytics RPC Foundation) — define `student_activity_status` alongside timezone helpers.
+**Recommendation:** Use Option A (two-pass via high-number space). It requires zero schema changes and is idempotent (re-running the migration on an already-migrated DB fails gracefully if step 108+ do not exist).
+
+**Detection / Verification:**
+```sql
+-- After migration: confirm no step numbers in 8-gap or above 16:
+SELECT DISTINCT step_number FROM roadmap_progress ORDER BY step_number;
+-- Must NOT contain 8 (old). Must contain 9 (new). Must contain 16 as max.
+
+-- Confirm no student has two rows with the same step_number:
+SELECT student_id, step_number, count(*) FROM roadmap_progress
+GROUP BY student_id, step_number HAVING count(*) > 1;
+-- Must return zero rows.
+```
+
+**Phase:** v1.6 Roadmap Renumber migration.
 
 ---
 
-### Pitfall 12: Accessibility failures in charts (Feat 1, Feat 2, Feat 3)
+### Pitfall 3-C: Auto-complete new Step 8 for students who have already passed old Step 7 — wrong student_id scope and off-by-one
 
 **What goes wrong:**
-recharts default output: decorative SVG with color-only distinctions (green vs red for up/down trend), no `aria-label`, no keyboard navigation, no tabular fallback. Platform claims accessibility (CLAUDE.md hard rule #3) but charts are black holes for screen readers. Red/green line chart fails WCAG for colorblind users.
+The renumber plan includes: "auto-complete new step for students past old Step 7." After renumber, old step 7 is still step 7. The new step 8 (Q&A session) needs to be auto-completed for any student who has already completed old step 7 (= is currently past the stage 1 boundary). The migration must:
+1. Insert a `roadmap_progress` row with `status='completed'` for the new step 8 for every qualifying student
+2. The qualifying condition is: student has a COMPLETED row for step 7 currently
 
-**Why it happens:**
-recharts and all chart libs default to pure visual output. Accessibility is a library-consumer responsibility.
+**Off-by-one risk:** If the migration first renumbers (8→9 through 15→16) and then inserts the auto-complete, the query for "students past old step 7" must look at step 7 (unchanged). But if the query mistakenly looks for "completed step 8" (the old step 8, now step 9 after renumber), it will find the wrong set.
 
-**How to avoid:**
-For every chart component:
-1. Wrapping `<div role="img" aria-label="Outreach trend: 45 emails this week, up from 30 last week">` with a prose summary of the data.
-2. Below the chart, render a `<details><summary>View data table</summary><table>...</table></details>` with the same raw data. Screen reader users and colorblind users both get equivalent content.
-3. Never rely on color alone — use shape (dashed vs solid) or direct labels.
-4. Chart container is focusable (`tabIndex={0}`) with a focus ring.
-5. Combine with the CLAUDE.md hard rules: `motion-safe:` on any entrance animation (rule #1), `aria-hidden="true"` on decorative icons, ima-* tokens only.
+**Correct migration order:**
+1. Renumber 8–15 → 9–16 (two-pass via 100+ space)
+2. Insert new step 8 rows for all students (default `status='locked'`, NOT auto-completed)
+3. Auto-complete step 8 for students with `step_number = 7 AND status = 'completed'`
 
-Add this to Phase 45 as a pattern template so Phases 46/47 copy it.
+**Step 1 and Step 8 auto-complete (`autoComplete: true`) row seeding:** The existing roadmap seeding logic in `/student/roadmap/page.tsx` line 39 does: `if (!error && progress.length < ROADMAP_STEPS.length) { /* seed missing rows */ }`. After renumber ROADMAP_STEPS.length becomes 16. This auto-seed will insert a locked step 16 row for all students who previously had 15 rows, which is correct. The migration only needs to handle the auto-complete for students already past step 7 — the page-level seed handles the insertion of the new locked step 8 on first page visit for everyone else.
 
-**Warning signs:**
-- `<ResponsiveContainer>` with no wrapping `aria-label`
-- Tooltip content not announced (no `aria-live`)
-- Chart has no tabular fallback
-- Red-up / green-down without a second visual cue
+**But:** Students currently mid-step 8 (old) will have their row renumbered to step 9, which is correct. Students currently with step_number=8 status='active' → becomes step 9 status='active'. Their new step 8 needs to be inserted as auto-completed.
 
-**Phase to address:** Phase 45 (Student Analytics Page) establishes the pattern; Phase 46/47 reuse.
+**Detection / Verification:**
+```sql
+-- After migration: every student who had completed step 7 should have step 8 completed:
+SELECT u.id, u.name
+FROM users u
+WHERE u.role IN ('student', 'student_diy')
+  AND u.status = 'active'
+  AND EXISTS (
+    SELECT 1 FROM roadmap_progress rp
+    WHERE rp.student_id = u.id AND rp.step_number = 7 AND rp.status = 'completed'
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM roadmap_progress rp
+    WHERE rp.student_id = u.id AND rp.step_number = 8 AND rp.status = 'completed'
+  );
+-- Must return zero rows.
+```
+
+**Phase:** v1.6 Roadmap Renumber migration, step 3 of migration order.
 
 ---
 
-### Pitfall 13: Milestone compute in the page render (Feat 5) — page blows up
+### Pitfall 3-D: `get_student_analytics` RPC uses `step_number` references — hardcoded step IDs become wrong after renumber
 
 **What goes wrong:**
-Coach dashboard loads → server component runs `for (student of assignedStudents) { computeMilestones(student) }` = 4 milestone checks × 50 students = 200 queries per page load. At 100 concurrent coaches refreshing their dashboard = 20k queries. Pro Small connection pool saturates.
+`get_student_analytics` (migration 00023) was searched for hardcoded step numbers. The roadmap section of that RPC fetches:
+```sql
+SELECT COALESCE(jsonb_agg(row ORDER BY (row->>'step_number')::int), '[]'::jsonb)
+```
+This is a dynamic `ORDER BY step_number` — NOT hardcoded step values. Good. However, the analytics client (`AnalyticsClient.tsx`) may display step numbers to the user (e.g., "Currently on Step 8"). After renumber, old step 8 becomes step 9. If any display logic hardcodes "Step 8 = Send Your First Email" for display purposes rather than reading from ROADMAP_STEPS config, the label will be wrong.
 
-**Why it happens:**
-Logical place to "just check milestones on load." The 260401-cwd pattern worked because it was a single threshold (100h total) per student, and the compute was cheap.
+The `get_coach_milestones` function is the only RPC with hardcoded step number comparisons (step 11 and 13, covered in Pitfall 3-A above).
 
-**How to avoid:**
-Move milestone computation to the nightly `pg_cron` job that already runs for `student_kpi_summaries` (Phase 21). Output: a `notifications` table (or extend `alert_dismissals` if keys are orthogonal — decide in Phase 51). Page render does one cheap SELECT instead of N computed checks. Cross-reference D-08: "reuse 260401-cwd pattern" — that pattern is already compute-at-render but for a smaller domain (1 milestone, window of 45 days). For 4 milestones, scale changes; pre-compute.
+**Secondary risk:** `config.ts` MILESTONE_CONFIG has `influencersClosedStep: 11` and `brandResponseStep: 13` as number constants. If any TypeScript code (not the SQL migration) does `ROADMAP_STEPS.find(s => s.step === MILESTONE_CONFIG.influencersClosedStep)` to get the step title for display, it will return the wrong step title if config is updated to 12/14 but the DB still has the old step numbers during a partial migration.
 
-If real-time badge is required (e.g., coach wants to see the alert within seconds of the student's 5th influencer close), add an INSERT-triggered compute on the affected milestone only, keyed by student_id. Don't recompute the whole world.
+**Prevention:**
+The config.ts update (`influencersClosedStep: 12`, `brandResponseStep: 14`) and the DB renumber migration MUST be deployed atomically (same deploy, same PR). Never update config.ts on a different deploy than the migration.
 
-**Warning signs:**
-- Coach dashboard load time > 500ms
-- `EXPLAIN ANALYZE` shows N+1 in milestone path
-- Pro Small CPU spikes at morning peak
+**Detection / Verification:**
+```bash
+# Grep for hardcoded step number comparisons in TypeScript:
+grep -rn "=== 8\|=== 11\|=== 13\|step_number === " src/
+# Any match that is not from config.ts itself is a potential hardcode bug.
 
-**Phase to address:** Phase 51 (Milestone Compute). Nightly pg_cron block appended to the migration; event-triggered block appended to `/api/deals POST` and `/api/roadmap-progress POST`.
+# Verify the analytics client reads step labels from ROADMAP_STEPS config:
+grep -n "step.*title\|ROADMAP_STEPS\[" src/app/\(dashboard\)/student/analytics/AnalyticsClient.tsx
+# Should only reference config, not hardcoded strings.
+```
+
+**Phase:** v1.6 Roadmap Renumber. TypeScript grep is the preventive check.
 
 ---
 
-### Pitfall 14: Broadcasting stat-card recomputes to all assigned students (Feat 2)
+### Pitfall 3-E: `roadmap_progress` cache tags not invalidated after renumber migration — students see stale progress bars
 
 **What goes wrong:**
-Coach has 50 students. Dashboard stats card "deals closed this week" aggregates across all 50. Implementation: `.from("deals").select("*").in("student_id", [50 ids])` — pulls all deals rows to JS. Or worse: loops per student. At 5k concurrent coaches = 250k deal rows streamed. This is Pitfall 1 applied to stat cards specifically.
+`unstable_cache` on the student analytics page is tagged `student-analytics:${studentId}`. The roadmap renumber migration changes `step_number` values in `roadmap_progress` for thousands of students. The Next.js server cache still holds pre-migration snapshots. On the next page visit (within 60s TTL), a student may see their progress as `/15` instead of `/16`, or see "Step 8 completed" pointing to the wrong step.
 
-**Why it happens:**
-Stat cards feel trivial ("just count deals") so devs skip the RPC discipline.
+The `ROADMAP_STEPS.length` references in page components (confirmed: student page, roadmap page, coach RoadmapTab, roadmap undo API) will automatically reflect the new value once config.ts is updated to 16 steps — because these are compile-time constants. No runtime cache invalidation needed for those.
 
-**How to avoid:**
-`get_coach_dashboard(p_coach_id, p_today)` RPC (see Pitfall 8) returns all 7 stat values pre-aggregated. No row-pulls at the page layer. RPC uses indexed queries: `SUM(revenue)` from `deals` joined on `users.coach_id = p_coach_id` — evaluates in Postgres, returns one scalar per stat.
+The runtime cache concern is the `get_student_analytics` RPC result which includes `roadmap` data with step_numbers. After migration, those step_numbers change, but the cached result retains the old values.
 
-Ensure index on `users.coach_id` exists (Phase 19 should have covered this — verify). If not, add in Phase 46 migration.
+**Prevention:**
+The renumber migration does not have a direct mechanism to bust Next.js `unstable_cache`. Options:
+1. Accept up to 60s stale display — the next request after TTL expiry shows correct data. For a planned migration during off-hours, this is acceptable.
+2. After migration, manually trigger a `revalidateTag("student-analytics*")` via a one-off admin API endpoint (complex, not worth it).
+3. The migration itself cannot call `revalidateTag` — that is a Next.js API, not Postgres.
 
-**Warning signs:**
-- `.in("student_id", [...])` with array of >10 ids in any dashboard code
-- Stat card page waterfall shows multiple RPC calls
-- Index on `users.coach_id` missing (check `supabase/migrations/00009_database_foundation.sql`)
+**Recommendation:** Accept 60s staleness. Document in the migration plan that the renumber must run off-hours. The progress bar denominator flip (/15 → /16) happens instantaneously when config.ts redeploys (compile-time), which is before any student visits the page.
 
-**Phase to address:** Phase 46 (Coach Dashboard Homepage Stats) + verify Phase 19 index exists during Phase 44.
+**Detection / Verification:**
+After migration deploys, wait 61 seconds and reload the student roadmap page. The progress bar should show X/16, not X/15.
+
+**Phase:** v1.6 Roadmap Renumber. No code change needed; awareness is the prevention.
 
 ---
 
-### Pitfall 15: Mon–Sun boundary ambiguity on leaderboards (Feat 2)
+### Pitfall 3-F: Seed scripts and test fixtures hardcode step counts (/10 or /15) — break after renumber to /16
 
 **What goes wrong:**
-Top-3 leaderboard (D-13) resets Mon–Sun. Sunday 23:59 Michael has 20h, is #1. Monday 00:01 leaderboard shows empty — correct but jarring. Worse: session started Sunday 23:45, completed Monday 00:15 → which week owns the 30 minutes? Sessions logged in the wrong bucket → leaderboard controversy ("I was #1 on Sunday, how am I #4 on Monday?").
+Any seed script, test fixture, or migration assert that does:
+- `ASSERT count(*) FROM roadmap_progress WHERE student_id = X = 15`
+- Seeds exactly 10 or 15 rows for a test student
+- Seeds step 15 as the max step
+- Checks `ROADMAP_STEPS.length === 15`
 
-**Why it happens:**
-`date_trunc('week', completed_at)` buckets by session END time by default. Sessions that span midnight are ambiguous.
+...will fail after the renumber adds step 16 and makes the total 16.
 
-**How to avoid:**
-1. Lock session attribution to `started_at` (not `completed_at`). A session started Sunday belongs to last week's leaderboard even if it ends Monday. Document this in the RPC comment and in config.ts.
-2. Add a "Week ending YYYY-MM-DD" caption above the leaderboard component so the boundary is visible.
-3. On Monday morning, show a "Last week's winner: Michael (20h)" banner for the first 48 hours — softens the reset psychologically.
-4. Ensure skip tracker (v1.4 D-01) and this leaderboard use the SAME `week_start(p_today)` helper function.
+From searching the codebase, the embedded asserts in migration 00027 (ASSERT 4) work with `step_number = 11` which will be stale after renumber. Migration 00027 itself is historical and won't re-run, but if those asserts are used as a pattern for new migration asserts, the new ones must use the post-renumber step numbers.
 
-**Warning signs:**
-- Leaderboard RPC uses `completed_at` instead of `started_at`
-- Skip tracker and leaderboard code define `weekStart` separately
-- UAT feedback: "My hours disappeared after midnight Sunday"
+**Prevention:**
+1. Search for hardcoded `15` or `10` in any migration assert or seed context and update to `16`.
+2. The roadmap seeding logic in page files uses `ROADMAP_STEPS.length` (config-driven) — this is safe and auto-updates.
+3. Any new migration assert that references specific step numbers must comment `-- SYNC: config.ts ROADMAP_STEPS[X].step`.
 
-**Phase to address:** Phase 44 (Analytics RPC Foundation) for the shared `week_start` helper; Phase 46 for the Mon-morning banner.
+**Detection / Verification:**
+```bash
+# Search for hardcoded step count in seeds or asserts:
+grep -rn "= 15\b\|= 10\b\|length.*15\|15 steps\|10 steps" supabase/ src/
+# Review matches for roadmap-step-count semantics.
+
+# After renumber, verify total unique steps in DB:
+SELECT count(DISTINCT step_number) FROM roadmap_progress;
+-- Should be 16 for any student who has completed the full roadmap seeding.
+```
+
+**Phase:** v1.6 Roadmap Renumber.
 
 ---
 
-### Pitfall 16: `logged_by` NULL interpretation drift (Feat 4)
+## Cross-Feature Interaction Pitfalls
+
+### Pitfall X-1: chat removal tags collide with announcements tags — or announcements borrows the wrong tag name
 
 **What goes wrong:**
-D-09 locks: null = student self-logged, set = coach/owner logged. But the `deals` table already has rows from Phase 41/42/43 where `logged_by` column didn't exist — after migration those rows will have `NULL`. Code that says "if (logged_by === null) show student as logger" is technically correct but misleading for pre-migration rows. Then a coach edits an old deal post-migration — should `logged_by` update? If it does, history rewrites. If it doesn't, UI is inconsistent.
+The "badges" tag (`revalidateTag("badges")`) is used by every mutation route to bust the sidebar badge cache. After chat removal, the badges RPC no longer queries `messages`, so the `badges` tag effectively becomes cheaper to bust. However: if the announcements feature adds an `announcements_unread` count to the sidebar badge RPC (e.g., "N new announcements" badge), the `badges` tag must ALSO be busted by any announcement INSERT. If this is forgotten, the sidebar badge count for announcements is always stale.
 
-**Why it happens:**
-Retroactive schema change. NULL has no temporal anchor.
+A secondary collision risk: if the announcements feature defines a cache tag with the same string as an existing tag (e.g., "announcements" coincidentally matching something used elsewhere), `revalidateTag` will bust all caches with that tag string globally. Audit the existing tag strings before introducing new ones.
 
-**How to avoid:**
-1. In the migration that adds `logged_by`, backfill explicitly: `UPDATE deals SET logged_by = student_id WHERE logged_by IS NULL;` — now NULL means "unknown" (forbidden going forward) and every row has a real UUID.
-2. Add `NOT NULL` constraint after backfill.
-3. Edits do NOT update `logged_by` (edits update `revenue` / `profit` only — existing `/api/deals/[id]` PATCH already scopes to these two fields per line 26-33).
-4. Consider adding `edited_by` + `edited_at` in Phase 48 if audit trail is needed — ask Abu Lahya; default NO for v1.5.
-5. UI display: when `logged_by !== student_id`, show "Logged by Coach [name]" subtitle. When equal, no subtitle.
+**Existing tag inventory (from grep of codebase):**
+- `"badges"` — sidebar badge count for all roles
+- `"coach-dashboard:{coachId}"` — coach homepage stats
+- `"coach-analytics:{coachId}"` — coach analytics page
+- `"coach-milestones:{coachId}"` — coach milestone alerts
+- `"student-analytics:{studentId}"` — student analytics page
+- `"deals-{studentId}"` — orphaned tag (no consumer) — should be cleaned up
 
-**Warning signs:**
-- `logged_by` column nullable after migration
-- Code branches on `logged_by === null`
-- Editing a deal changes `logged_by`
-- UAT: "Why does it say Logged by Me on a deal my coach created?"
+**New tags to introduce in v1.6 (safe names, no collision):**
+- `"owner-analytics"` — owner analytics page (global, one owner)
+- `"announcements"` — if announcements feed uses caching (only needed if list is cached)
 
-**Phase to address:** Phase 48 (Coach-Logged Deals) — migration must backfill + NOT NULL in a single transaction.
+**Prevention:**
+Before defining any new cache tag string, grep the entire codebase to confirm no collision:
+```bash
+grep -rn 'tags:\s*\[.*\]\|revalidateTag(' src/ | grep -v "^--"
+```
+
+**Phase:** v1.6 Owner Analytics (owner-analytics tag) and Announcements (announcements tag). Define tag constants in `*-types.ts` files, never as raw strings in route handlers.
 
 ---
 
-### Pitfall 17: UI attribution privacy (Feat 4)
+### Pitfall X-2: `student_kpi_summaries` pre-aggregation table uses old step numbers
 
 **What goes wrong:**
-Student sees their own deals list. Each deal shows "Logged by Coach Ibrahim." Student says "I logged this one, not Coach Ibrahim." Or a coach dashboard shows deals but the attribution column leaks which coach logged for which student — cross-coach visibility concern if later an owner scopes access differently.
+The `student_kpi_summaries` table (migration 00011) pre-aggregates KPI data via `pg_cron` nightly. If this table caches `current_roadmap_step` or `roadmap_progress` as an integer step number, the renumber leaves stale step references in the summary table until the next nightly cron run.
 
-**Why it happens:**
-Attribution indicator (from requirements) is visible by default. No role-gated display.
+From reading migration 00011 (`write_path.sql`), the `student_kpi_summaries` pre-aggregation computes `avg_star_rating`, work session counts, etc. It does NOT pre-aggregate the current roadmap step number as a denormalized value (confirmed: the `get_student_detail` query reads roadmap_progress live or from summary but does not store step_number in the summary table).
 
-**How to avoid:**
-1. Student's own view: show "Logged by you" when `logged_by === student_id`, "Logged by your coach" (no name) when `logged_by === coach_id`. Never expose owner/other-coach names.
-2. Coach's view of own assigned students: show "Logged by {coach_name}" or "Logged by student" — full transparency within scope.
-3. Owner view: full name visible (owner has visibility to everything).
-4. Encapsulate in a single helper `formatDealLoggedBy(deal, viewerRole, viewerId)` and reuse.
+The coach analytics `get_coach_analytics` RPC in 00026 computes `avg_roadmap_step` live from `roadmap_progress`. This is safe — it reads current step numbers dynamically.
 
-**Warning signs:**
-- Student page shows any coach's full name or email
-- Different attribution strings in different components — prone to drift
+**However:** The `COACH_CONFIG.milestoneMinutesThreshold` and the 100h milestone logic in `get_sidebar_badges` do not touch step numbers, so they are unaffected.
 
-**Phase to address:** Phase 49 (Coach Deals UI Logging — Add Button + Attribution).
+**Status:** LOW RISK based on code inspection. No known denormalized step_number in kpi_summaries. Verify after renumber:
+```sql
+-- Confirm no step_number column in student_kpi_summaries:
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'student_kpi_summaries';
+-- Must NOT include 'step_number' or 'current_step'.
+```
+
+**Phase:** v1.6 Roadmap Renumber — verification only, likely no code change needed.
 
 ---
 
-### Pitfall 18: Config drift for milestones across 3 role views (Feat 5)
+### Pitfall X-3: Announcements migration runs BEFORE the messages drop, leaving both tables live during a deploy window — double badge counting
 
 **What goes wrong:**
-Add milestone "5 Influencers Closed" → coach sees it, owner doesn't, admin tools don't know about it. Or: add a 5th milestone later, half the UI shows 5, the other half still shows 4.
+If the deployment sequence is:
+1. Ship announcements table migration (adds `announcements` table, new sidebar badge field)
+2. Ship updated `get_sidebar_badges` that counts BOTH `messages.unread` AND `announcements.unread`
+3. Ship chat UI removal and messages table drop (separate deploy)
 
-**Why it happens:**
-Three dashboards (owner / coach / student_detail), each written separately, each has its own copy of milestone labels/icons.
+Then during the window between step 1 and step 3, the sidebar badge RPC counts BOTH unread messages AND unread announcements. The owner/coach sees inflated badge counts and the UI shows both Chat and Announcements nav items simultaneously.
 
-**How to avoid:**
-Add `MILESTONES` to config.ts as the single source of truth (CLAUDE.md rule #1) with entries keyed by milestone type, each carrying `label`, `icon`, `stepRef`, and (for closed_deal) an `everyDeal: true` flag. All 3 role views import from this constant. Adding a milestone later = one config edit.
+**Prevention:**
+Package the entire feature (announcements table + sidebar badge rewrite + chat page deletion + messages table drop + chat API deletion) into a single deployment with a single migration. The migration contains one atomic transaction:
+```sql
+BEGIN;
+-- 1. Add announcements table
+-- 2. Rewrite get_sidebar_badges (removes unread_messages, adds announcements if needed)
+-- 3. DROP TABLE messages CASCADE
+COMMIT;
+```
+The TypeScript changes (remove chat pages, add announcements pages, update config.ts NAVIGATION) ship in the same git commit as the migration, deployed atomically.
 
-Also note D-06 blocker (STATE.md): Tech/Email Setup step is TBC pending Monday stakeholder meeting — wire the config entry with a `TODO:` comment and gate the feature behind a flag until Abu Lahya confirms.
+**Detection / Verification:**
+The deployment is a single git commit. Verify before merge:
+```bash
+# Single migration file contains both ADD and DROP:
+grep -l "announcements\|DROP TABLE messages" supabase/migrations/
+# Should be exactly ONE migration file containing both.
+```
 
-**Warning signs:**
-- Milestone label appears as a string literal in any component
-- Adding a milestone requires editing >1 file beyond config.ts and the migration
-- Owner view has 4 milestones, coach view has 3
-
-**Phase to address:** Phase 50 (Milestone Config — pre-work before Phase 51 compute).
+**Phase:** v1.6 Announcements — this is a deployment sequencing decision that the phase plan must specify.
 
 ---
 
-### Pitfall 19: RLS policy drift — new policies silently contradict existing (Feat 4, Feat 5)
+### Pitfall X-4: Roadmap renumber happens AFTER owner analytics is deployed — `avg_roadmap_step` displays step 15 max instead of 16 max during the window
 
 **What goes wrong:**
-Phase 48 migration adds INSERT policy on `deals` for coaches. Existing Phase 39/40 SELECT policy on `deals` is stricter (e.g., coach can only select where `student.coach_id = coach.id`). New policy accidentally broader: `USING (auth.uid() IS NOT NULL)` — any authenticated user can insert deals for any student. No query returns rows proving the leak because SELECT policy still restricts reads — but the write path is open.
+Owner analytics leaderboard includes `avg_roadmap_step` as a KPI (derived from the coach analytics RPC pattern). If owner analytics deploys first (correct — it is a read-only addition) and roadmap renumber deploys second, the analytics page displays `avg_roadmap_step` against a `/15` denominator for up to the 60s cache window after renumber.
 
-**Why it happens:**
-Supabase RLS policies are additive: multiple policies for the same operation compose via OR. New policy that says "coaches can INSERT" without asserting coach-student relationship becomes a bypass.
+This is cosmetic only — the stat card shows "Avg Step: 15.0/15" instead of "14.0/16" — but it briefly misleads the owner.
 
-**How to avoid:**
-1. Every new RLS migration must include a checklist comment: "Policies added: X. Policies not modified: Y. Checked OR composition: Z."
-2. Use the `(SELECT auth.uid())` initplan pattern (D-03) — faster AND clearer intent than raw `auth.uid()` per row.
-3. Run `pg_policies` diff after migration: `SELECT * FROM pg_policies WHERE tablename = 'deals';` before and after, pasted into the phase verification doc.
-4. Add a concrete RLS test in the phase UAT: "Coach A cannot insert deal for student assigned to Coach B" — same as Pitfall 4.
+**Prevention:**
+Deploy owner analytics and roadmap renumber in the same release window (same day, sequential migrations in the same PR). The 60s staleness window is acceptable; do not block release sequencing on this.
 
-**Warning signs:**
-- New RLS policy uses `USING (true)` or `USING (auth.uid() IS NOT NULL)` without additional `WITH CHECK`
-- Migration doesn't paste `pg_policies` diff in the verification doc
-- No negative-case test in UAT
+If owner analytics shows step numbers as `/16 total`, the denominator is derived from `ROADMAP_STEPS.length` (config.ts) which updates at compile time when the config changes. The numerator (`avg_roadmap_step`) comes from the live DB query. The denominator updates atomically with the deploy; the numerator is eventually consistent (60s).
 
-**Phase to address:** Phase 48 (coach deal INSERT) and Phase 51 (notification RLS).
+**Phase:** v1.6 — phase ordering concern. Owner Analytics should be Phase 54, Roadmap Renumber should be Phase 56 or later, ensuring config.ts `ROADMAP_STEPS.length` is 16 before the analytics page ships.
 
 ---
 
-### Pitfall 20: Breaking `student_kpi_summaries` schema (Integration)
+## Phase-Specific Warning Summary
 
-**What goes wrong:**
-v1.5 adds milestone computation. It's tempting to add `milestone_tech_setup_at`, `milestone_5_influencers_at`, etc. columns to `student_kpi_summaries` (Phase 21) to piggyback on the nightly pg_cron refresh. Any column added without updating the refresh function silently fails to populate; worse: adding columns that the refresh overwrites to NULL wipes other features' pre-aggregations.
-
-**Why it happens:**
-Pre-aggregation tables accrue fields over time. The refresh function is already ~100 lines; adding columns safely requires reading and updating the function body.
-
-**How to avoid:**
-1. Milestones go in a **separate** table (`milestone_achievements` or extend `alert_dismissals`). Do not modify `student_kpi_summaries` schema.
-2. If modification is truly necessary, the migration MUST update `refresh_student_kpi_summaries()` in the same commit. Leave a comment at the top of the function: "Adding columns here without updating this function will silently fail."
-3. Phase verification checklist item: "No schema change to `student_kpi_summaries`" OR "refresh function updated in the same migration."
-
-**Warning signs:**
-- Migration alters `student_kpi_summaries` without touching refresh function
-- New column on `student_kpi_summaries` shows NULL for all rows after nightly cron
-- Phase 21 helpers break because expected column is missing
-
-**Phase to address:** Phase 51 (Milestone Compute) — explicit "do not touch student_kpi_summaries" decision.
-
----
-
-### Pitfall 21: Notification count badge drift (computed vs stored) (Feat 5)
-
-**What goes wrong:**
-Sidebar badge count uses `get_sidebar_badges` RPC (existing from Phase 20). Coach alerts page uses a different query. Two sources of truth diverge: badge says 3, page shows 5. Coach loses trust.
-
-**Why it happens:**
-`get_sidebar_badges` was designed for lightweight badge-only response. The full alerts page fetches with more fields. Easy to compute count differently in the two places.
-
-**How to avoid:**
-Derive both the sidebar count and the page list from the SAME RPC (or same base query). Page calls `get_coach_alerts_full(p_coach_id, p_today)` → response includes `{ alerts: [...], total_count: N }`. Sidebar calls `get_sidebar_badges(p_user_id)` which internally calls (or duplicates the same WHERE clause as) `get_coach_alerts_full` and returns just `N`. Refactor `get_sidebar_badges` in Phase 51 so its coach block points to the same source.
-
-Unit test: for a known fixture, assert sidebar N equals page list length.
-
-**Warning signs:**
-- Badge says one number, page shows different count
-- Two different WHERE clauses in two different RPCs for the same concept
-- UAT "the 3 in the badge doesn't match the 5 alerts on the page"
-
-**Phase to address:** Phase 51 (Milestone Compute) — refactor `get_sidebar_badges` coach block to single source.
+| Phase Topic | Pitfall | Mitigation |
+|---|---|---|
+| Owner Analytics RPC | Missing index for platform-wide SUM(profit) | EXPLAIN ANALYZE before shipping; add covering index if seq scan |
+| Owner Analytics RPC | Ties with LIMIT 3 | Secondary `LOWER(name) ASC` tiebreak on every ORDER BY |
+| Owner Analytics RPC | Cache tags not wired | ownerAnalyticsTag() in deals and work-sessions mutation routes |
+| Announcements — Chat Removal | get_sidebar_badges queries dropped messages table | Rewrite function in SAME migration as DROP TABLE |
+| Announcements — Chat Removal | unread_messages badge key left in layout.tsx | Grep + remove from layout.tsx and config.ts NAVIGATION |
+| Announcements — Chat Removal | Old polling client hits deleted /api/messages | Single-deploy strategy; accept brief 500s on open tabs |
+| Announcements — Chat Removal | TypeScript chat types survive deletion | npx tsc --noEmit as build gate |
+| Roadmap Renumber | Milestone RPC hardcodes step 11 and 13 | New migration with CREATE OR REPLACE for get_coach_milestones |
+| Roadmap Renumber | Unique constraint blocks UPDATE in place | Two-pass via 100+ temporary space |
+| Roadmap Renumber | Auto-complete new step 8 for wrong student set | Query step 7 completions AFTER renumber; SQL verification |
+| Roadmap Renumber | Seed/test fixtures hardcode /15 | Grep for hardcoded 15 or 10 before migration ships |
+| Cross-feature | Chat tag collides with announcements tag | Tag inventory grep; define new tags as named constants |
+| Cross-feature | Announcements + chat overlap during deploy window | Single-migration atomic approach |
+| Cross-feature | Analytics avg_roadmap_step /15 vs /16 window | Accept 60s staleness; same-release deploy |
 
 ---
-
-### Pitfall 22: Student deletion leaves orphan notifications (Feat 5)
-
-**What goes wrong:**
-Owner removes a student (e.g., dropped out). `alert_dismissals` rows with `key = 'milestone:closed_deal:{deleted_student_id}:{deal_id}'` persist. Sidebar badge count keeps them, but the student no longer exists — clicking the alert 404s.
-
-**Why it happens:**
-No ON DELETE CASCADE on `alert_dismissals.owner_id` or equivalent student FK in the notification table.
-
-**How to avoid:**
-1. Add `ON DELETE CASCADE` to any new notification table FK pointing to `users`. Check `alert_dismissals` current setup in Phase 26 migration — extend if missing.
-2. Defensive query: page load filters out alerts where the referenced student no longer exists (JOIN + IS NOT NULL check).
-3. Nightly pg_cron cleanup job: delete notification rows orphaned by student removal.
-
-**Warning signs:**
-- Sidebar count includes alerts for deleted students
-- Clicking an alert leads to 404
-- No CASCADE on the notification table migration
-
-**Phase to address:** Phase 51 migration.
-
----
-
-## Technical Debt Patterns
-
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Client-side aggregation in a chart component | Faster dev, no RPC to write | Breaks at 5k students (Pitfall 1, contradicts D-01) | Never in v1.5 |
-| Per-card RPC for the coach dashboard | Easy to reason about, easy to test | Fan-out latency; cache misses multiply (Pitfall 8) | Only if consolidation RPC exceeds 200ms p95 — unlikely |
-| Nullable `logged_by` without backfill | Skip data migration | Ongoing NULL interpretation ambiguity (Pitfall 16) | Never |
-| "Just check milestones on page load" | Ship Feat 5 faster | Query storm at 100 concurrent coaches (Pitfall 13) | Never for v1.5 scale |
-| Hardcode milestone labels in components | Shipping UI first | Adding a 5th milestone = edits in 3+ files (Pitfall 18) | Never — violates CLAUDE.md rule #1 |
-| Skip unique index on (student_id, deal_number) | Migration simpler | Concurrent insert race (Pitfall 7) | Never |
-| One milestone notification key across coach reassignment | Fewer alert_dismissals rows | Re-fires on reassignment (Pitfall 5) | Never |
-
-## Integration Gotchas
-
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Supabase RLS INSERT policy | `USING (true)` or role-only check | Use `(SELECT auth.uid())` initplan + explicit student-coach relationship check (Pitfall 4, 19) |
-| Postgres `date_trunc('week')` | Session timezone used, defaults to UTC on Supabase | Pass `p_today` from app layer, never use `now()` inside function (Pitfall 3) |
-| recharts + RSC | SSR renders wrong SVG size | Wrap chart in `"use client"` component, lazy-load with `next/dynamic ssr:false` (Pitfall 2) |
-| `unstable_cache` + mutations | TTL-only invalidation | Explicit `revalidateTag(...)` in every mutation route that touches the cached data (Pitfall 9) |
-| Supabase query params | `.order(searchParams.sort)` without validation | Zod enum of valid sort keys; default on parse failure (Pitfall 10) |
-| pg_cron nightly refresh | Add column without updating refresh function | Update function body in same migration, or use separate table (Pitfall 20) |
-| Supabase `.from()` in server code | Rely on RLS alone | Filter by user ID AND rely on RLS (defense in depth — CLAUDE.md "Filter by user ID in queries") |
-
-## Performance Traps
-
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Row-pull analytics | High egress, slow server components | RPC-only aggregation (D-01) | ~500 concurrent students |
-| Stat-card fan-out | Many small RPC calls | Single consolidated RPC (Pitfall 8) | ~1k concurrent coaches |
-| Milestone compute at page load | Load time > 500ms | Pre-compute via pg_cron or event trigger (Pitfall 13) | ~100 concurrent coaches |
-| Missing `coach_id` index | Sequential scan on `users` | Verify Phase 19 covers; add if missing (Pitfall 14) | ~1k students |
-| Missing `(student_id, completed_at)` composite index on `work_sessions` | Analytics RPC slow | Add in Phase 44 migration alongside RPCs | ~500 students × 30 days |
-| N+1 in per-student trend | Loop over students inside server code | Single RPC returns grouped result (Pitfall 1) | ~50 students per coach |
-| Chart hydration retry | Dev console flooded, client CPU spike | Client-only chart mount (Pitfall 2) | Always, post-launch |
-| Stale cache after write | 60s of visual lag | revalidateTag from every mutation route (Pitfall 9) | Always — UX issue not perf |
-
-## Security Mistakes
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Coach inserts deal for non-assigned student | Revenue attribution pollution; privileged escalation within coach role | Dual-layer check: route handler + RLS WITH CHECK (Pitfall 4) |
-| Sort param injection on analytics | Information leak through sort ordering; SQL injection if raw | Zod enum validation on sort/order/page (Pitfall 10) |
-| Student sees other coach names via logged_by | PII leak within platform | Role-gated attribution formatter (Pitfall 17) |
-| RLS policy composition accident | Silent broadening of write access | pg_policies diff in verification doc (Pitfall 19) |
-| Rate limit per-student when coach logs | One coach can spam 30 req/min for each of N students | Ensure `checkRateLimit(profile.id, endpoint)` keys on coach's profile.id, not student — already the pattern in existing routes (verify in Phase 48) |
-| Missing CSRF on new mutation routes | Cross-site deal insert | `verifyOrigin()` on every new POST (Phase 48, 49) — existing pattern |
-| Orphan notifications after student deletion | Stale UI state, minor info leak via coach alert history | ON DELETE CASCADE (Pitfall 22) |
-
-## UX Pitfalls
-
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Chart with color-only distinction | Colorblind users excluded; fails WCAG | Shape + label + data table fallback (Pitfall 12) |
-| Leaderboard resets Mon midnight with no warning | "Where did my hours go?" confusion (Pitfall 15) | "Last week's winner" banner; visible week range caption |
-| 50 closed-deal badges flood sidebar (Pitfall 6) | Coach stops trusting badge | Bulk-dismiss + 9+ cap; optional digest mode |
-| Stat card not tappable (CLAUDE.md rule #2) | Mobile users can't drill into details | `min-h-[44px] min-w-[44px]` on each card; href or onClick |
-| Empty state for coach with 0 students | Coaches in onboarding see scary blank page | EmptyState component with "Invite your first student" CTA — use existing component |
-| Stale dashboard for 60s post-report-submit (Pitfall 9) | "I just submitted this!" | revalidateTag on mutation |
-| Chart entrance animation without motion-safe wrapper | Vestibular disorder trigger | `motion-safe:animate-*` per CLAUDE.md rule #1 |
-| Pagination state only in client (non-shareable URL) | Coach can't bookmark a specific page | URL-based page=N param |
-| Over-aggregating daily data into weekly only | Lost signal, can't see day-of-week patterns | Default day granularity, toggle to week |
-
-## "Looks Done But Isn't" Checklist
-
-- [ ] **Student analytics page:** Charts exist, but without `aria-label`, tabular fallback, and `motion-safe:` wrappers — verify all three per chart (Pitfall 12).
-- [ ] **Coach dashboard stats:** Stat cards render, but without `min-h-[44px] min-w-[44px]` and without `revalidateTag` hook from `/api/deals` — verify both.
-- [ ] **Full coach analytics:** Pagination works, but sort param not Zod-validated — verify enum exists in config.ts (Pitfall 10).
-- [ ] **Coach-logged deals:** Add Deal button works, but RLS INSERT policy not asserting coach-student assignment — write negative-case E2E test (Pitfall 4).
-- [ ] **Coach-logged deals:** Migration adds `logged_by` column but nullable without backfill — verify `NOT NULL` constraint after backfill (Pitfall 16).
-- [ ] **deal_number:** Column exists but no unique index on `(student_id, deal_number)` — verify migration creates index (Pitfall 7).
-- [ ] **Milestone notifications:** Alerts appear, but re-fire when student reassigned OR historical backfill double-counts — verify key scheme + pre-dismissal seed (Pitfall 5).
-- [ ] **Closed-deal milestone:** Fires every deal per D-07, but sidebar cap missing — verify `9+` render and bulk-dismiss (Pitfall 6).
-- [ ] **Milestone config:** MILESTONES constant in config.ts — verify all 3 role views import from it, none hardcode labels (Pitfall 18).
-- [ ] **Timezone helper:** `week_start(p_today)` RPC helper exists — verify skip tracker AND leaderboard both use it (Pitfall 3, 15).
-- [ ] **Active/inactive:** Single definition in config.ts — verify coach analytics, student analytics, and skip tracker agree (Pitfall 11).
-- [ ] **Cache invalidation:** `revalidateTag` call present in `/api/deals` POST for all 3 analytics tags — verify grep (Pitfall 9).
-- [ ] **pg_policies diff:** Every migration with new RLS policy has before/after pg_policies output in verification doc (Pitfall 19).
-- [ ] **Chart hydration:** Every chart inside `"use client"` + `next/dynamic ssr:false` — verify no SSR errors in dev console (Pitfall 2).
-- [ ] **`student_kpi_summaries` untouched:** Migrations for v1.5 do not alter this table's schema (or, if they do, refresh function is updated in same migration) (Pitfall 20).
-- [ ] **Tech/Email Setup step:** D-06 resolved and stepRef in MILESTONES config is NOT a TODO placeholder before Feat 5 ships.
-
-## Recovery Strategies
-
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Client row-pull shipped (Pitfall 1) | MEDIUM | Add RPC, swap server component; keep client chart code |
-| Chart hydration mismatch (Pitfall 2) | LOW | Wrap in client component with `next/dynamic ssr:false`; redeploy |
-| Timezone bucketing wrong (Pitfall 3) | LOW | Fix helper, re-run affected analytics queries; no data loss |
-| Coach logged unassigned deal (Pitfall 4) | HIGH | Audit `deals` rows where `logged_by`'s coach is not `student.coach_id`, null out or delete; tighten RLS; notify affected coaches |
-| Milestone double-fire (Pitfall 5) | MEDIUM | DELETE duplicate alert_dismissals rows; seed dismissals for over-counted students; add key-uniqueness constraint |
-| deal_number race (Pitfall 7) | MEDIUM | Add unique index; renumber rows with duplicates by updated_at order; re-test |
-| Milestone compute storm (Pitfall 13) | MEDIUM | Move to pg_cron; event-trigger just the affected milestone per write |
-| RLS drift silent bypass (Pitfall 19) | HIGH | Audit all writes since drift; tighten policy; notify of any leaked data |
-| student_kpi_summaries schema broken (Pitfall 20) | HIGH | Rollback migration; redesign in separate table; re-run nightly cron |
-| Orphan notifications (Pitfall 22) | LOW | Add CASCADE, run cleanup migration once |
-
-## Pitfall-to-Phase Mapping
-
-Assumes sequential phase order per D-10: Phase 44 (RPC foundation) → 45 (Student Analytics) → 46 (Coach Dashboard) → 47 (Coach Full Analytics) → 48 (Coach Deals RLS + Route) → 49 (Coach Deals UI) → 50 (Milestone Config) → 51 (Milestone Compute + migration) → 52 (Coach Alerts UI).
-
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| 1. Client row-pulls | Phase 44 (RPC Foundation) | Grep `.from(` in analytics pages returns 0 hits |
-| 2. Chart hydration | Phase 45 (Student Analytics) | `next/dynamic ssr:false` in every chart wrapper; dev console clean |
-| 3. Timezone drift | Phase 44 (RPC Foundation) | `week_start()` helper RPC defined; no `now()`/`CURRENT_DATE` in function bodies |
-| 4. Coach unassigned deal | Phase 48 (Coach Deals RLS) | E2E test: Coach A cannot insert for Coach B's student |
-| 5. Notification double-fire | Phase 51 (Milestone Compute) | Unit test: compute runs twice, zero new notifications |
-| 6. Closed-deal noise | Phase 51 + 52 | Per-deal key in Phase 51; 9+ cap and bulk-dismiss in Phase 52 |
-| 7. deal_number race | Phase 48 migration | Unique index on (student_id, deal_number); retry test |
-| 8. Stat-card fan-out | Phase 46 | Single `get_coach_dashboard` RPC; consolidated `unstable_cache` tag |
-| 9. Stale cache | Phase 45/46/47/48 mutation routes | `revalidateTag` grep finds call in every POST that touches analytics data |
-| 10. Sort param injection | Phase 47 | Zod enum for sort/order in config.ts; safeParse before RPC |
-| 11. Active/inactive drift | Phase 44 | `ACTIVITY` config constant + `student_activity_status` RPC |
-| 12. Chart a11y | Phase 45 pattern, 46/47 reuse | aria-label + data-table fallback on every chart |
-| 13. Milestone compute storm | Phase 51 | pg_cron or event-trigger; no N+1 at page load |
-| 14. Stat broadcast row-pull | Phase 46 + verify Phase 19 | `users.coach_id` index confirmed; RPC returns pre-aggregated |
-| 15. Mon-Sun boundary | Phase 44 + Phase 46 | Shared `week_start` helper; "Last week's winner" banner |
-| 16. logged_by NULL | Phase 48 migration | Backfill + NOT NULL in same transaction |
-| 17. UI attribution privacy | Phase 49 | Role-gated `formatDealLoggedBy` helper |
-| 18. Milestone config drift | Phase 50 | `MILESTONES` constant in config.ts; grep for hardcoded labels = 0 |
-| 19. RLS policy drift | Phase 48, 51 | pg_policies diff pasted into each phase's verification doc |
-| 20. KPI summaries schema break | Phase 51 | Decision: separate table for milestones; `student_kpi_summaries` untouched |
-| 21. Badge count drift | Phase 51 | Single source for both sidebar and page; fixture test |
-| 22. Orphan notifications | Phase 51 migration | ON DELETE CASCADE + cleanup job |
 
 ## Sources
 
-- `.planning/PROJECT.md` (v1.5 decisions D-01 through D-13) — HIGH
-- `.planning/STATE.md` (accumulated context: Phase 23 ownership leak fix, skip tracker timezone pattern, chat polling rate limit exemption, 260401-cwd coach milestone precedent) — HIGH
-- `.planning/quick/260401-cwd-add-coach-notification-for-100-hours-in-/260401-cwd-SUMMARY.md` — HIGH (existing notification pattern to reuse/extend)
-- `supabase/migrations/00009–00015` — HIGH (RLS patterns, indexes, v1.4 schema)
-- `src/app/api/deals/[id]/route.ts` (existing ownership-scoped update pattern, lines 104–126) — HIGH
-- `src/lib/types.ts` lines 662–695 (existing `deals` Row/Insert shape with `deal_number`) — HIGH
-- v1.2 Phase 23 Security Audit pattern (CSRF + two-step ownership check) — HIGH
-- v1.2 Phase 19 RLS initplan pattern `(SELECT auth.uid())` — HIGH
-- v1.2 Phase 20 RPC consolidation pattern — HIGH
-- v1.2 Phase 21 pg_cron nightly refresh pattern — HIGH
-- CLAUDE.md hard rules (44px, motion-safe, aria-label, admin client, response.ok, Zod import, ima-* tokens) — HIGH
-
----
-*Pitfalls research for: IMA Accelerator v1.5 — Analytics Pages, Coach Dashboard & Deal Logging*
-*Researched: 2026-04-13*
+- Direct codebase inspection: migrations 00015, 00017, 00023, 00024, 00025, 00026, 00027
+- `src/lib/config.ts` ROADMAP_STEPS, MILESTONE_CONFIG, NAVIGATION
+- `src/app/(dashboard)/layout.tsx` badge handling
+- `.planning/RETROSPECTIVE.md` v1.5 lessons: orphaned cache tag (Phase 53 postmortem), pre-dismiss backfill, batch RPC pattern
+- `CLAUDE.md` Hard Rules: admin client in API routes, unstable_cache 60s TTL, (SELECT auth.uid()) initplan pattern
+- `.planning/PROJECT.md` Key Decisions: v1.5 D-02 (60s TTL), v1.5 D-03 (initplan), v1.4 D-07 (polling not Realtime)

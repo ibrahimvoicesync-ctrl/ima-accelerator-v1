@@ -1,148 +1,246 @@
-# Project Research Summary — Milestone v1.5
+# Project Research Summary
 
-**Project:** IMA Accelerator V1 — Milestone v1.5 (Analytics Pages, Coach Dashboard & Deal Logging)
-**Domain:** Student coaching / performance-tracking platform — Next.js 16 App Router + Supabase at 5k concurrent student scale
-**Researched:** 2026-04-13
+**Project:** IMA Accelerator v1.6 -- Owner Analytics, Announcements and Roadmap Update
+**Domain:** Student coaching platform -- admin analytics, broadcast communication, sequential roadmap mutation
+**Researched:** 2026-04-15
 **Confidence:** HIGH
 
 ## Executive Summary
 
-v1.5 extends an already production-validated stack with analytics surfaces (student self-analytics, coach dashboard KPI cards, full coach analytics page), staff-logged deals via a `logged_by` attribution column, and four new milestone notifications for coaches. Research converges on a **single net-new runtime dependency (`recharts@^3.8.1`)** layered on top of the existing pg_cron + summary-table aggregation pattern, the existing `alert_dismissals` notification pattern (260401-cwd), and date-fns 4.1.0 which is already installed. No new infrastructure, no TimescaleDB, no notification SaaS, no real-time layer.
+v1.6 extends the v1.5 production-validated stack with three bounded features: an Owner Analytics leaderboard page, a full Chat-to-Announcements replacement, and an atomic roadmap step insertion with cascade renumber. All four researchers agree: zero new runtime dependencies are required. The existing stack (recharts, Zod, Supabase, unstable_cache, admin client) covers every v1.6 need. The hard work is correctness under constraints: unique constraint management during the renumber, atomic migration sequencing for the chat swap, and wiring cache invalidation tags before shipping.
 
-The recommended approach follows the sequential build order locked in v1.5 D-10 (Feature 1 → 2 → 3 → 4 → 5) because each feature depends on the prior's RPC shape or data column. All aggregation happens server-side in `SECURITY DEFINER` RPCs wrapped in `unstable_cache` 60s TTL with user-scoped `revalidateTag` invalidation — the exact pattern proven at 5k scale in v1.2 Phase 20–24.
+The recommended build order is Owner Analytics first (additive, no disruption risk), Announcements second (atomic swap -- single migration and deploy), Roadmap Step 8 last (data migration touching every student row and rewriting two live RPCs). This order was independently reached by all four research threads. The analytics phase has zero blockers. The announcements phase has one hard atomicity constraint: get_sidebar_badges must be rewritten in the same migration that drops the messages table, or the entire dashboard breaks for all users. The roadmap phase carries the highest migration risk and must ship in one transaction with the get_coach_milestones RPC rewrite.
 
-Key risks cluster around three axes: (1) **chart integration** — React 19 hydration mismatch on `ResponsiveContainer` and WCAG color-only failure; (2) **authorization regressions on the coach-logged deal path** — classic role-without-assignment-check bypass, mitigated by dual-layer route handler + RLS `WITH CHECK`; (3) **notification idempotency and noise** — D-07 "Closed Deal on every deal" requires `deal_id` in dismissal key, and migration must pre-dismiss historical qualifiers. **D-06 (Tech/Email Setup roadmap step)** is a hard blocker for Feature 5 pending Monday's stakeholder meeting.
+The two silent data-logic bugs with no TypeScript surface are the critical watch-outs: (1) MILESTONE_CONFIG.influencersClosedStep (11 to 12) and MILESTONE_CONFIG.brandResponseStep (13 to 14) must be updated in both config.ts AND get_coach_milestones SQL atomically -- missing either half silently breaks coach milestone alerts for the two highest-value triggers with no compile error and no lint warning. (2) The owner-analytics cache tag must be explicitly wired into deals and work-sessions mutation routes before the analytics page ships, or the owner sees frozen leaderboards -- the exact failure mode from v1.5 Phase 53.
+
+---
 
 ## Key Findings
 
-### Top 5 Stack Additions / Decisions
+### Recommended Stack
 
-- **`recharts@^3.8.1`** (ADD, sole new runtime dep) — declarative React 19 chart lib, ~35 KB gzipped route-scoped. May require `"overrides": { "react-is": "19.2.3" }` if peer-dep warning.
-- **`date-fns@^4.1.0`** (KEEP, already installed) — tree-shaken imports for week/month bucketing; v4 has native tz, no `date-fns-tz` peer needed.
-- **Existing pg_cron + `student_kpi_summaries`** (KEEP) — lifetime totals from summary table; trailing windows computed live with `date_trunc` + `generate_series`. Do NOT extend summary table schema (Pitfall 20).
-- **Existing `alert_dismissals` pattern** (KEEP per D-08) — new alert_key prefixes; no new notification table.
-- **Existing `unstable_cache` 60s TTL + `revalidateTag`** (KEEP) — every new RPC wrapped; every mutation route calls `revalidateTag` with user-scoped keys.
+ZERO new dependencies. Confirmed by direct inspection of package.json. recharts@^3.8.1 handles all leaderboard charts. Zod 4.3.6 handles all announcement validation. The existing unstable_cache + createAdminClient() + src/lib/rpc/ pattern handles all new server-side fetching.
 
-**Explicit anti-recommendations (DO NOT ADD):** Tremor Raw / visx / Nivo / ECharts / Chart.js / Victory; TimescaleDB (TSL blocked on Supabase Cloud + deprecated on PG17); dayjs / moment / luxon / date-fns-tz; Novu / Knock / Courier / Fyno / sonner / react-hot-toast; Supabase Realtime (v1.4 D-07 excludes it); Redis / ClickHouse / DuckDB.
+Do not add: any rich-text editor (plain textarea with whitespace-pre-wrap is the spec), any real-time library (announcements are page-load fetches not push), any chart library beyond recharts, any ORM or schema diffing tool.
 
-### Expected Features — Table Stakes vs Differentiators (5 features)
+**Core technologies (unchanged from v1.5):**
 
-**Feature 1 — Student Self-Analytics (`/student/analytics`, `/student_diy/analytics`)**
-- *Table stakes:* 6-card lifetime totals strip (hours, emails, influencers, deals, revenue, profit); hours-worked trend chart (zero-filled); outreach trend chart; deal history table (paginated 25, attribution chip); roadmap progress vs deadlines summary; time range selector (7/30/90/All, default 30d); loading skeletons + empty states; single batch `get_student_analytics` RPC.
-- *Differentiators:* "Best day" callout; roadmap cumulative retrospective timeline; target vs actual hours for today/week; margin % sparkline on deals.
+- Next.js 16 App Router + server components: all new pages use unstable_cache(60s) + small client components for interactivity
+- Supabase Postgres + RLS: three new migrations (00028, 00029, 00030); all RLS policies use (SELECT auth.uid()) initplan pattern per v1.5 D-03
+- recharts@^3.8.1: direct reuse of LeaderboardCard from src/components/coach/analytics/; zero new chart configuration
+- Zod: announcement CRUD schemas with title max(255), body/content max(2000), at-least-one-field refinement on PATCH
+- createAdminClient() + unstable_cache: every new RPC follows the established src/lib/rpc/ fetcher and cache-tag pattern
 
-**Feature 2 — Coach Dashboard Homepage Stats (`/coach`)**
-- *Table stakes:* 4–6 stat cards with period labels (Deals Closed / Revenue / Avg Roadmap Step / Total Emails this week + recommended Active Students 7d + Unreviewed Reports); each card clickable → drill-down; ima-green/ima-red delta arrows; 3 recent reports card; Top-3 hours leaderboard (ISO Mon–Sun); skeleton loaders; single batch `get_coach_dashboard` RPC.
-- *Differentiators:* "Needs attention" merged feed (unreviewed + at-risk + milestones); cohort average shown under top-3; compact/expanded stat strip.
+### Expected Features
 
-**Feature 3 — Full Coach Analytics (`/coach/analytics`)**
-- *Table stakes:* Paginated student list (25/page per D-04) with Zod-validated server-side sort; active/inactive/at-risk breakdown header; aggregate deal trend chart (12 weeks); three top-5 leaderboards (hours weekly, emails weekly, deals all-time); name search; time range selector; CSV export; pagination with total count.
-- *Differentiators:* Funnel view (Students → Setup Done → First Outreach → First Influencer → First Brand Reply → First Deal); at-risk panel; revenue + margin trend panel; per-student mini-profile on hover.
-- *Defer to v1.6+:* Cohort comparison by signup-week; per-student line series.
+**Feature 1 -- Owner Analytics: table stakes**
 
-**Feature 4 — Staff-Logged Deals**
-- *Table stakes:* `logged_by uuid` column (ON DELETE SET NULL, backfilled + NOT NULL); coach/owner INSERT RLS with `(SELECT get_user_role())` + `(SELECT get_user_id())` initplan + student-assignment check; "Add Deal" button on coach/owner tabs (reuses `DealFormModal`); role-gated attribution chip; audit columns `updated_at`/`updated_by` + trigger; creator-or-owner edit permissions; coach-logged vs student-logged breakdown on `/coach/analytics`; existing 30 req/min rate limit.
-- *Differentiators:* "Verified" flag for student-logged deals; soft delete `archived_at`.
-- *Defer:* Per-deal change-log popover; bulk CSV import.
+- Three top-3 leaderboard cards (hours all-time, profit all-time, deals all-time) on /owner/analytics
+- Lifetime scope only; deterministic tiebreak (ORDER BY metric DESC, LOWER(name) ASC)
+- Analytics teaser section on owner dashboard homepage: 3 compact leaderboard columns + View full analytics Link
+- 60s unstable_cache tagged owner-analytics; busted on every deals mutation and work-session completion
+- Leaderboard rows link to /owner/students/[studentId]
 
-**Feature 5 — Milestone Notifications for Coaches**
-- *Table stakes:* Reuse 260401-cwd pattern (D-08); four new triggers — Tech/Email Setup (step TBC D-06), 5 Influencers Closed (Step 11), First Brand Response (Step 13), Closed Deal (every deal per D-07); idempotency via alert_key shape (one-shot for first three, `closed_deal:{student_id}:{deal_id}` for per-deal); extend `get_sidebar_badges` coach branch (single source of truth); inline feed on dashboard + dedicated `/coach/alerts` page; backfill pre-dismisses historical qualifiers; 9+ badge cap + bulk-dismiss.
-- *Differentiators:* Owner roll-up; milestone chip timeline on student detail; mark-all-read.
-- *Defer:* Per-type mute preferences; per-event comment thread.
+**Feature 1 -- Defer to v2+:** Time windowing, per-coach breakdown, CSV export, trend charts, rank history
 
-**Anti-features across all 5 (DO NOT BUILD):** Peer/percentile comparisons; streak counters with flames; letter-grade ratings; predictive "you will close in X days"; leaderboards visible to students; public bottom-3 at-risk lists; auto-refresh polling; email/push notifications (V2+); notifying students of their own milestones; firing milestones retroactively without dismissal-seeding.
+**Feature 2 -- Announcements: table stakes (removal)**
 
-### Architecture — Integration Points / Build Order
+- Full chat removal: 11 files deleted, messages table dropped, get_sidebar_badges rewritten, unread_messages stripped from nav/layout/types/SidebarBadgesResult
 
-Pattern: **server-component page → `SECURITY DEFINER STABLE` RPC via admin client → `unstable_cache` 60s → prop-drill to `"use client"` chart shell → recharts with `ima-*` hex constants**. All mutation routes call `revalidateTag` with user-scoped keys.
+**Feature 2 -- Announcements: table stakes (addition)**
 
-| # | Phase topic | Depends on | Migration |
-|---|-------------|-----------|-----------|
-| 1 | Analytics RPC Foundation + shared helpers (`week_start`, `student_activity_status`) | existing | 00023 indexes only |
-| 2 | `deals.logged_by` migration + API + RLS | 00021 deals | **00022** |
-| 3 | Student Analytics RPC + page + recharts install | #1 | part of **00023** |
-| 4 | Coach Dashboard RPC + homepage stats UI (consolidation) | #1 | **00024** |
-| 5 | Full Coach Analytics page (leaderboards + deal trend + pagination) | #1, #4 | 00023 or follow-up |
-| 6 | Coach Deals Logging UI (Add Deal + attribution column) | #2 | — |
-| 7 | Milestone Config (`MILESTONES` constant + D-06 value) | #2 | — |
-| 8 | Milestone Notifications RPC + extend `get_sidebar_badges` + backfill | #2, #7 | **00025** |
-| 9 | Coach Alerts Page (feed UI + bulk-dismiss + 9+ cap) | #8 | — |
+- New announcements table; RLS: all authenticated roles SELECT; owner + coach manage any row
+- Four per-role /announcements pages sharing AnnouncementsClient with canCreate boolean prop
+- Paginated 25/page, newest-first, author name + role chip, relative timestamp, (edited) indicator
+- No sidebar badge (explicit simplification over chat)
 
-**Critical path:** #2 → #4 → #5 (coach dashboard lights up) has highest leverage; #1 → #3 (student analytics) can ship independently in parallel.
+**Feature 2 -- Defer to v2+:** Pinned announcements, reactions, read receipts, rich text, student replies, expiry, email notifications
 
-### Watch Out For — Top 10 Pitfalls Mapped to Phases
+**Feature 3 -- Roadmap Step 8: table stakes**
 
-1. **Client-side row pulls on analytics** (Feat 1/3) — all aggregation in RPCs (D-01); grep `.from(` in analytics pages = 0 hits.
-2. **Chart hydration mismatch under React 19 RSC** — `"use client"` + `next/dynamic({ ssr: false })`; establish pattern once, copy thereafter.
-3. **Timezone drift in week/day bucketing** — pass `p_today date` to every RPC; never `now()`/`CURRENT_DATE` in function body; shared `week_start` helper used by BOTH skip tracker and leaderboard.
-4. **Coach logs deal for unassigned student — authz bypass** — dual-layer check (route handler asserts `users.coach_id` match; RLS `WITH CHECK` with `(SELECT get_user_id())`); negative E2E test mandatory.
-5. **Milestone notification double-fires on reassignment / backfill** — keys scoped to `(student, milestone)` not `(student, milestone, coach)`; seed pre-dismissal rows at migration time; unit test compute-runs-twice returns zero new.
-6. **Closed-Deal firing 50× for high performers** — per-deal key `closed_deal:{deal_id}`; 9+ badge cap; bulk-dismiss; fallback digest mode as tune-knob.
-7. **`deal_number` race on concurrent coach+student insert** — composite unique index `(student_id, deal_number)` + retry on 23505; ship index in same migration as `logged_by`.
-8. **Stat-card fan-out (N RPCs for N cards)** — single `get_coach_dashboard` batch RPC with JSONB envelope; one `unstable_cache` tag.
-9. **Cache stale after mutation** — every mutation route calls `revalidateTag` for `analytics-student-${id}`, `coach-dashboard-${coachId}`, `coach-analytics-${coachId}`, `coach-milestones-${coachId}`; missing revalidate fails UAT.
-10. **Chart accessibility failures** — every chart wrapped `<div role="img" aria-label="...">` with prose summary + `<details><summary>View data table</summary><table>` fallback; shape + label + color (never color-alone); `tabIndex={0}`; `motion-safe:` on animations.
+- New step 8 in Stage 1 (target_days: 5): Join at least one Influencer Q&A session (CPM + pricing)
+- Atomic renumber: steps 8-15 to 9-16 via two-pass UPDATE to avoid unique constraint collision
+- Auto-complete new step 8 for students who completed step 7; locked for all others; both student and student_diy roles
+- influencersClosedStep: 11 to 12; brandResponseStep: 13 to 14 -- in both config.ts and get_coach_milestones RPC (same deploy)
+- Progress bars auto-update to /16 via ROADMAP_STEPS.length (dynamic at compile time, no string grep needed)
 
-Full 22-pitfall list in PITFALLS.md.
+**Feature 3 -- Defer:** Generic insert-step admin tool, retroactive deadline enforcement, in-app notifications
 
-## Implications for Roadmap — Suggested Phases (Phase 44 onward)
+### Architecture Approach
 
-**Phase 44: Analytics RPC Foundation + Shared Helpers.** `week_start(p_today)`, `student_activity_status(student_id, p_today)`, `ACTIVITY` config (`inactiveAfterDays: 7` pending D-14), partial indexes, Phase 19 `users.coach_id` audit. Avoids Pitfalls 1, 3.
+All three features follow the locked v1.5 architecture: SECURITY DEFINER RPCs, unstable_cache(60s) + revalidateTag, small client components, createAdminClient() in all route handlers, Zod safeParse + auth + role check on every mutation. No new patterns are introduced.
 
-**Phase 45: `deals.logged_by` Migration + API + RLS.** `00022_deals_logged_by.sql` (column, backfill `logged_by = student_id`, NOT NULL, composite unique index, partial index, coach+owner INSERT policies), route handler refactor with Zod optional `student_id` + dual-layer ownership check + 23505 retry. Gate: negative E2E test passes. Avoids Pitfalls 4, 7.
+**Major new components:**
 
-**Phase 46: Student Analytics RPC + Page + Recharts Install.** `get_student_analytics` RPC, `src/app/(dashboard)/student/analytics/page.tsx` + loading/error, `src/components/analytics/*Chart.tsx` wrappers, `src/lib/chart-colors.ts`, recharts install (conditional react-is override), `revalidateTag` wiring on mutations. Avoids Pitfalls 1, 2, 9, 10.
+1. src/lib/rpc/owner-analytics.ts + owner-analytics-types.ts -- server-only fetcher + ownerAnalyticsTag() helper; mirrors coach-analytics.ts
+2. src/app/(dashboard)/owner/analytics/page.tsx + OwnerAnalyticsClient -- reuses LeaderboardCard verbatim from coach analytics
+3. src/components/announcements/AnnouncementsClient.tsx + AnnouncementCard.tsx + AnnouncementForm.tsx -- shared across 4 role pages via canCreate prop
+4. src/app/api/announcements/route.ts + src/app/api/announcements/[id]/route.ts -- CRUD following resources/glossary patterns
+5. Migrations 00028, 00029, 00030 -- each atomic with embedded asserts
 
-**Phase 47: Coach Dashboard RPC + Homepage Stats UI.** `get_coach_dashboard` RPC consolidating existing 4-query Promise.all, rewritten `/coach/page.tsx`, `TopHoursLeaderboard` + `RecentReportsCard` + stat cards with deltas. Avoids Pitfalls 8, 9.
+**Key modified files:**
 
-**Phase 48: Full Coach Analytics Page.** `get_coach_analytics` RPC with pagination + Zod-validated sort, `CoachAnalyticsClient.tsx` with URL-backed pagination, CSV export endpoint, `COACH_ANALYTICS_SORT_KEYS` Zod enum. Avoids Pitfalls 1, 8, 9.
+- src/lib/config.ts: ROUTES + NAVIGATION (chat out / announcements in for all 4 roles, analytics for owner), ROADMAP_STEPS (new step 8, renumber), MILESTONE_CONFIG (11 to 12, 13 to 14)
+- src/app/(dashboard)/owner/page.tsx: add unstable_cache wrapper + analytics teaser section
+- src/app/(dashboard)/layout.tsx: remove unread_messages badge block
+- src/lib/rpc/types.ts: remove unread_messages from SidebarBadgesResult
+- src/lib/types.ts: remove messages table type block
 
-**Phase 49: Coach Deals Logging UI.** Separated from Phase 45 so UI cannot ship before authorization is verified. `LogDealModal`, attribution chip column, `formatDealLoggedBy(deal, viewerRole, viewerId)` role-gated helper.
+### Critical Pitfalls
 
-**Phase 50: Milestone Config.** `MILESTONE_CONFIG` + `MILESTONES` constants in `src/lib/config.ts`; feature flag `tech_setup` until D-06 confirmed. **Blocker: D-06 must resolve at Monday stakeholder meeting.**
+1. **get_sidebar_badges queries dropped messages table (app-breaking for all users)** -- Live RPC references messages in coach and student branches. If DROP TABLE messages runs before CREATE OR REPLACE FUNCTION get_sidebar_badges, every dashboard render fails for every user. Prevention: CREATE OR REPLACE the function FIRST within the same migration transaction, then DROP TABLE messages CASCADE.
 
-**Phase 51: Milestone Notifications RPC + Backfill Migration.** `00025_milestone_alerts.sql` (alert_key namespaces, index, backfill pre-dismissals, ON DELETE CASCADE), `get_coach_milestones` RPC, extended `get_sidebar_badges` (single-source count), `revalidateTag('coach-milestones-${id}')` in deal/report/roadmap POSTs. Avoids Pitfalls 5, 6.
+2. **Milestone RPC hardcodes step 11 and step 13 -- renumber makes them wrong (silent failure)** -- After renumber, Close 5 Influencers moves to step 12 and Get Brand Response to step 14. Migration 00027 WHERE predicates stop matching. Coach milestone alerts for the two highest-value triggers silently stop firing. No compile error, no lint warning. Prevention: migration 00030 must CREATE OR REPLACE FUNCTION get_coach_milestones with updated predicates, and config.ts must update in the same deploy.
 
-**Phase 52: Coach Alerts Page.** `/coach/alerts` with grouped-by-student view, inline "needs attention" dashboard card, 9+ badge cap, bulk-dismiss for Closed Deal. Avoids Pitfall 6.
+3. **Unique constraint blocks naive UPDATE renumber (migration failure)** -- (student_id, step_number) unique constraint fires per-row. SET step_number = step_number + 1 WHERE step_number >= 8 collides immediately. Prevention: two-pass shift -- move 8-15 to 108-115 first, then shift to 9-16.
 
-**Phase Ordering Rationale:**
-- Foundation before consumers (Phase 44 helpers precede all RPCs)
-- Authorization before UI (Phase 45 RLS precedes Phase 49 UI)
-- Student-first analytics (Phase 46 validates patterns for 47/48)
-- Config before compute (Phase 50 precedes Phase 51)
-- Backfill-migration last (Phase 51 needs Phase 45 `deal_id` and Phase 50 `tech_setup.stepRef`)
+4. **owner-analytics cache tag not wired to mutation routes (stale leaderboard -- identical to Phase 53 failure)** -- POST/PATCH /api/deals and PATCH /api/work-sessions/[id] must call revalidateTag(ownerAnalyticsTag()) before the analytics page ships.
+
+5. **Announcements + messages overlap during deploy window (badge double-count)** -- Single-migration atomic approach required: CREATE announcements, REWRITE get_sidebar_badges, DROP messages -- all in one BEGIN/COMMIT with matching TypeScript changes in the same git commit.
+
+---
+
+## Implications for Roadmap
+
+All four research files independently converged on the same three-phase build order.
+
+### Phase A: Owner Analytics
+
+**Rationale:** Purely additive -- zero disruption to live features. get_owner_analytics RPC reuses indexes already in production (migration 00021). If this phase ships with a bug, only the new analytics page is affected.
+
+**Delivers:** /owner/analytics with three top-3 leaderboards + analytics teaser on owner homepage + unstable_cache added to previously-uncached owner dashboard stats call.
+
+**Addresses:** FEATURES.md Feature 1 table stakes. Pitfalls 1-A (index coverage via EXPLAIN ANALYZE), 1-B (deterministic tiebreak), 1-C (COALESCE on profit), 1-D (ownerAnalyticsTag wired to mutation routes).
+
+**Key constraint:** ownerAnalyticsTag() must be defined in owner-analytics-types.ts (not a raw string) and wired to POST/PATCH /api/deals and PATCH /api/work-sessions/[id] in this same phase.
+
+**Research flag:** No deeper research needed. All patterns verified against live codebase.
+
+---
+
+### Phase B: Chat Removal + Announcements
+
+**Rationale:** Largest surface area but medium risk when atomicity is followed. Cannot be done incrementally. Doing this second keeps the analytics phase clean and independent.
+
+**Delivers:** Announcements feed (owner and coach write, all roles read), per-role pages, chat fully removed from codebase and database.
+
+**Addresses:** FEATURES.md Feature 2 table stakes. Pitfalls 2-A (sidebar badges app-break), 2-B (orphaned badge key), 2-C (proxy.ts cleanup), 2-D (RLS from scratch), 2-E (TypeScript build gate), X-3 (single-deploy atomicity).
+
+**Hard migration order (non-negotiable):**
+
+1. CREATE OR REPLACE FUNCTION get_sidebar_badges -- remove all messages references
+2. CREATE TABLE announcements + RLS + index on created_at DESC
+3. DROP TABLE messages CASCADE
+
+All within one BEGIN/COMMIT. All TypeScript changes (11 deletions, 4 new pages, 3 components, 2 API routes, config.ts updates) ship in the same git commit.
+
+**Open questions to resolve before planning:**
+
+- Column name: STACK.md uses body; ARCHITECTURE.md uses content. Recommendation: content.
+- Edit permissions: STACK.md author-only; FEATURES.md any owner/coach. Recommendation: FEATURES.md wins.
+
+**Research flag:** No deeper research needed. Exact migration SQL and deletion checklist documented in ARCHITECTURE.md Phase B.
+
+---
+
+### Phase C: Roadmap Step 8 Insertion
+
+**Rationale:** Highest migration risk -- data mutation on all active student rows and rewrite of a production RPC with 9 embedded asserts. Shipping last ensures phases A and B are stable and verified.
+
+**Delivers:** New step 8 in Stage 1; steps 8-15 renumbered to 9-16; coach milestone alerts corrected; progress bars show /16.
+
+**Addresses:** FEATURES.md Feature 3 table stakes. Pitfalls 3-A (milestone step refs), 3-B (unique constraint), 3-C (auto-complete scope), 3-D (TypeScript hardcode grep), 3-E (cache staleness -- acceptable), 3-F (fixture hardcodes), X-2 (student_kpi_summaries).
+
+**Migration sequence (00030_roadmap_step8.sql):**
+
+1. Expand CHECK constraint to BETWEEN 1 AND 16
+2. Shift steps 8-15 to negative space or +100 offset
+3. Shift back to 9-16
+4. INSERT new step 8: completed for students with step 7 complete, locked for others; both student and student_diy roles
+5. CREATE OR REPLACE FUNCTION get_coach_milestones -- step_number 11 to 12, step_number 13 to 14; re-issue GRANTs
+6. Embedded asserts: max step = 16, no duplicates, no step 11 rows remain
+
+**config.ts changes (same deploy):**
+
+- Insert step at ROADMAP_STEPS index 7: step 8, stage 1, Setup and Preparation, target_days 5, unlock_url null
+- Renumber entries 8-15 to 9-16 (Stage 2 starts at new step 9, Stage 3 at new step 13)
+- influencersClosedStep: 12 (was 11); brandResponseStep: 14 (was 13)
+
+**Pre-ship mandatory grep surface:**
+
+- grep for step_number 11 and 13 in supabase/migrations/ (post-00030 must only be in historical files)
+- grep influencersClosedStep and brandResponseStep in src/lib/config.ts (must show 12 and 14)
+- Read migration 00027 in full before writing 00030
+
+**Research flag:** No deeper research needed. Reading 00027 before writing 00030 is a known required step.
+
+---
+
+### Phase Ordering Rationale
+
+- Phase A first: additive-only, zero regression risk, validates v1.6 cache/leaderboard pattern
+- Phase B second: hard atomicity means its own focused phase; follows A so cache pattern is established
+- Phase C last: data migration on all student rows + live RPC rewrite -- ships when A and B are verified
+- All three phases are DB-independent and can be developed in parallel but must deploy A then B then C
 
 ### Research Flags
 
-- **Phase 46:** Verify recharts 3.8.1 + React 19 peer-dep at install time; confirm `accessibilityLayer` prop behavior as template.
-- **Phase 51:** Backfill policy — validate pre-dismissal strategy against real data volume before committing migration.
-- **Phase 52:** UX grouping pattern review (TrueCoach / CoachAccountable references).
+No phase requires /gsd-research-phase. All features are fully designed.
 
-**Standard patterns (skip research-phase):** Phases 44, 45, 47, 48, 49, 50.
+- **Phase A (Owner Analytics):** Standard pattern. Verify index coverage with EXPLAIN (ANALYZE, BUFFERS) before migration ships.
+- **Phase B (Announcements):** Atomic migration sequencing is the only non-obvious requirement. Fully documented.
+- **Phase C (Roadmap Step 8):** Migration risk is well-characterized. Two-pass renumber and get_coach_milestones rewrite are designed. Execution discipline is all that remains.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Multiple sources converge on recharts; `package.json` directly inspected; Supabase docs explicit on TimescaleDB. React 19 peer-dep is MEDIUM with known workaround. |
-| Features | MEDIUM-HIGH | Salesforce/HubSpot/TrueCoach/Coach Catalyst/Gong convergence; Wiley 2023 + Spinify research; 7d inactive threshold is judgment call (D-14 pending). |
-| Architecture | HIGH | Every recommendation grounded in existing migration or shipped RPC; v1.2 Phase 20/21/23/24 patterns proven at 5k scale. |
-| Pitfalls | HIGH | 22 pitfalls each map to a specific prior-phase precedent with concrete avoid-strategy, warning signs, and phase-to-address. |
+| Stack | HIGH | Zero new deps confirmed by direct package.json inspection; all v1.6 needs mapped to existing assets |
+| Features | HIGH | Table stakes confirmed from PROJECT.md scope and v1.5 Phases 46-53 pattern baseline |
+| Architecture | HIGH | All file paths, SQL shapes, component boundaries, and cache strategies verified against live codebase |
+| Pitfalls | HIGH | Grounded in exact migration SQL bodies (00015-00027), v1.5 Phase 53 postmortem, confirmed file greps |
 
-**Overall confidence:** HIGH.
+**Overall confidence: HIGH**
 
-### Open Questions (with D-references) Blocking or Flagging Downstream Phases
+### Gaps to Address
 
-| ID | Question | Research recommendation | Phase blocked | When needed |
-|----|----------|--------------------------|---------------|-------------|
-| **D-06** | "Tech/Email Setup Finished" = which roadmap step? (Placeholder Step 5 or 6.) | Requires stakeholder input | **Phase 50 + Phase 51** | **Monday stakeholder meeting** — hard blocker. Feature-flag `tech_setup` until confirmed. |
-| **D-11** | Chart library final pick. | **recharts@^3.8.1** — HIGH convergence | Phase 46 | Install time. Add `"overrides": { "react-is": "19.2.3" }` conditionally. |
-| **D-14 (proposed)** | "Inactive student" definition. | **7 days** zero activity (reports OR sessions); matches daily-accountability cadence | Phases 44, 48 | Before Phase 44 ships. Confirm with Abu Lahya. |
-| **Q-DIY** | `student_diy` analytics in scope? | **Scope in** — same RPC, new route `/student_diy/analytics`; zero incremental cost | Phase 46 | Before Phase 46 scaffolding. |
-| **Q-EDIT** | Edit audit trail (`edited_by`/`edited_at`) for coach-logged deals? | **NO for v1.5** — `updated_at` + `updated_by` trigger is sufficient; defer full change-log to v1.6+ | Phase 45 | Before migration 00022 lands. Confirm with Abu Lahya. |
+- **Column name conflict (body vs. content):** STACK.md uses body; ARCHITECTURE.md uses content for the announcement body. Resolve before Phase B planning. Recommendation: content.
 
-Additional downstream flag: **Q-CLOSED-DEAL** — does "Closed Deal" milestone fire on coach-logged deals or only student-logged? Recommend **all deals** (simplest, consistent with D-07); confirm during Phase 50 config work.
+- **Announcement edit permissions (author-only vs. any staff):** STACK.md restricts PATCH/DELETE to author_id; FEATURES.md says owner and coach can edit any announcement. Resolve before Phase B planning. Recommendation: FEATURES.md wins.
 
-### Ready for Requirements
+- **Read migration 00027 before writing 00030:** Both STACK.md and ARCHITECTURE.md flag this as required. The get_coach_milestones body contains hardcoded step references, embedded asserts, and GRANT statements that must be preserved in the CREATE OR REPLACE. Known read task.
 
-This summary feeds `REQUIREMENTS.md` scoping and the `gsd-roadmapper` phase-planning pass.
+- **student_diy auto-complete in Phase C:** INSERT must use WHERE s.role IN (student, student_diy) -- documented but should be confirmed in the migration embedded assert.
+
+- **owner-analytics tag and work-sessions path:** Verify PATCH /api/work-sessions/[id] is the correct route path for the status-to-completed mutation before wiring revalidateTag in Phase A.
+
+---
+
+## Sources
+
+### Primary (HIGH confidence -- direct codebase inspection)
+
+- package.json -- dependency versions confirmed
+- src/lib/config.ts -- ROADMAP_STEPS, MILESTONE_CONFIG, NAVIGATION, ROUTES
+- supabase/migrations/00025_get_coach_analytics.sql -- leaderboard RPC pattern baseline
+- supabase/migrations/00027_get_coach_milestones_and_backfill.sql -- step 11/13 hardcodes, 9 embedded asserts
+- supabase/migrations/00017_chat_badges.sql -- full get_sidebar_badges with unread_messages branches
+- supabase/migrations/00008_expand_roadmap_to_15_steps.sql -- prior roadmap expansion pattern
+- src/lib/rpc/coach-analytics.ts -- unstable_cache and tag pattern
+- src/lib/rpc/types.ts -- SidebarBadgesResult.unread_messages
+- src/app/(dashboard)/owner/page.tsx -- owner dashboard (uncached, 4 stat cards)
+- src/app/(dashboard)/coach/analytics/page.tsx -- leaderboard page structure baseline
+- src/components/coach/analytics/LeaderboardCard.tsx -- reusable component shape
+- .planning/PROJECT.md -- v1.6 scope, constraints, key decisions, carry-overs
+- .planning/MILESTONES.md -- v1.5 accomplishments
+- CLAUDE.md -- hard rules
+
+### Secondary (v1.5 retrospective lessons)
+
+- .planning/RETROSPECTIVE.md -- Phase 53 postmortem: orphaned cache tag; directly informs owner-analytics tag wiring requirement in Phase A
+
+---
+*Research completed: 2026-04-15*
+*Ready for roadmap: yes*

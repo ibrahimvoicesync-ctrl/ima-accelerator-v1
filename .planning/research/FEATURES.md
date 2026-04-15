@@ -1,353 +1,289 @@
-# Feature Landscape
+# Feature Landscape — v1.6 Owner Analytics, Announcements & Roadmap Update
 
-**Domain:** Coaching / performance-tracking platform for an influencer-marketing accelerator (student, student_diy, coach, owner)
-**Milestone:** v1.5 — Analytics Pages, Coach Dashboard & Deal Logging
-**Researched:** 2026-04-13
-**Overall confidence:** MEDIUM-HIGH (ecosystem patterns well-established; specifics tuned to project constraints in PROJECT.md)
-
----
-
-## Scope Note
-
-This research is scoped to the five v1.5 target features. The platform already has:
-- Student work tracker, 10-step roadmap, daily reports, deals tab, AI chat (stub), chat, resources
-- Coach: assigned students overview, report review, at-risk flagging, invites, basic analytics, skip tracker, report comments, chat, read-only deals
-- Owner: platform-wide stats, student/coach mgmt, assignments, alerts, deals tab
-- A notification pattern ("100+ hours in 45 days" coach alert) computed coach-side with `alert_dismissals`
-- `deals` table with revenue/profit/margin/deal_count/logged_date
-- RPC-first aggregation convention (v1.2 D-decisions), unstable_cache 60s, paginate > 25, target 5k students
-
-Rules below respect: light theme + ima-* tokens, 44px touch targets, motion-safe, admin client in route handlers, RLS `(SELECT auth.uid())` initplan pattern, `student_diy` has NO coach and reduced feature set.
+**Domain:** Student performance & coaching platform — admin analytics, broadcast communication, sequential roadmap
+**Researched:** 2026-04-15
+**Milestone:** v1.6 (Owner Analytics / Replace Chat with Announcements / Roadmap Step Insertion)
 
 ---
 
-## Feature 1 — Student Self-Analytics Page (`/student/analytics`, `/student_diy/analytics`)
+## Feature 1 — Owner Analytics at /owner/analytics
 
-### Table stakes
+### Table Stakes
 
-| # | Feature | Complexity | Why it's table stakes |
-|---|---------|------------|-----------------------|
-| 1.1 | **Lifetime totals strip** — Total Hours, Total Emails Sent, Influencers Closed, Deals Closed, Total Revenue, Total Profit (6 stat cards, same card component already used on student dashboard) | Simple | Every self-analytics view leads with the "what have I accomplished" summary. Mirrors Phase 42 deals cards. |
-| 1.2 | **Hours worked trend** — line chart, last 30 days by default, weekday buckets. Empty days shown as 0 (not gaps) | Moderate | Standard in learning / fitness / sales platforms. Empty days communicate discipline honestly. |
-| 1.3 | **Outreach trend (emails/DMs sent per day)** — same time range as hours chart, stacked or dual-series if we track emails vs DMs separately | Moderate | Primary leading indicator in this business (emails → influencers → deals). Already tracked in daily_reports. |
-| 1.4 | **Deal history table** — chronological list (most recent first), columns: date, deal #, revenue, profit, margin %, logged_by indicator (from Feature 4). Paginated at 25 | Simple | Already have `DealsTable` from Phase 41/43 — reuse. |
-| 1.5 | **Roadmap progress vs deadlines** — show current step, days-on-step, target_days, chip status (on-track / due-soon / overdue) reusing `getDeadlineStatus()` from Phase 18. Not a new chart; a single row summary with a link to `/student/roadmap` | Simple | Deadlines already exist; analytics surfaces the "am I pacing?" question. |
-| 1.6 | **Time range selector** — 7d / 30d / 90d / All-time (default 30d). Applies to hours + outreach charts; lifetime totals are always all-time | Simple | Universal convention; trivial on the query side (RPC parameter). |
-| 1.7 | **Loading skeleton + empty state** for each chart | Simple | Matches v1.0 quality bar. "No activity yet — complete your first session" etc. |
-| 1.8 | **RPC-driven aggregation** — `get_student_analytics(user_id, range)` returns all series in one call, wrapped in `unstable_cache` 60s | Moderate | v1.5 D-01, D-02. Avoids N queries per page load at 5k scale. |
+These are the minimum for the page to feel functional to an owner:
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Three top-3 leaderboard cards (Hours, Profit, Deals) | Owner already sees top-3 hours on coach dashboard; natural expectation to see platform-wide equivalent | S | Reuse `LeaderboardCard` from `src/components/coach/analytics/LeaderboardCard.tsx` verbatim — identical props shape |
+| Lifetime totals (no time windowing) | Owner context is platform health, not weekly activity; lifetime is the canonical measure at this scale | S | RPC returns aggregated totals; no date filter param needed v1.6 |
+| Student name + metric value per row | Minimum readable leaderboard row | S | Already in `LeaderboardRow` type |
+| Empty state per leaderboard | Zero students = no data yet | S | Use existing `EmptyState` primitive |
+| Page accessible from owner nav and from dashboard teaser cards | Owner must be able to get there from both entry points | S | Add `/owner/analytics` to `ROUTES.owner` in config.ts |
+| Teaser stat cards on owner dashboard homepage | Three leaderboard peeks that link to full analytics page | M | Modeled exactly on Phase 47 `KPICard` + `href` prop pattern (see `src/app/(dashboard)/coach/page.tsx` lines 350-383) |
+| 60s `unstable_cache` on RPC | Consistent with every other analytics surface in v1.5 | S | Tag: `owner-analytics` (platform-wide, not per-user since all students feed it) |
+| Link from leaderboard rows to `/owner/students/[studentId]` | Owner can drill into any student from the analytics list | S | Coach version links to `/coach/students/[id]`; owner maps to `/owner/students/[id]` |
 
 ### Differentiators
 
-| # | Feature | Complexity | Value |
-|---|---------|------------|-------|
-| 1.9 | **"Best day" callout** — highlight the student's highest-hours day and highest-emails day in the visible range ("Your best day: Mar 28 — 4.5 hrs") | Simple | Cheap morale boost tied to real data. Not a streak, not a leaderboard — just celebrating self. |
-| 1.10 | **Roadmap cumulative timeline** — small horizontal progress band showing when each completed step finished vs target (retrospective, not forward-looking) | Moderate | Shows the journey, useful for step-behind students to see they did make progress. |
-| 1.11 | **Target vs actual hours for today/week** — "You've planned 4h today, logged 2.5h so far." Integrates daily planner (Phase 28/29) with actuals | Moderate | Uses data we already compute. Closes the planner feedback loop. |
-| 1.12 | **Margin % trend on deals** — sparkline on deal history showing margin drift | Simple (once chart lib chosen) | Actionable coaching signal, unique to this product's profit-focused framing. |
+Features that go beyond minimum — not expected for MVP but add clear value:
 
-### Anti-features — DO NOT BUILD
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Tie-breaking display (e.g. "(tied)") | Prevents confusion when two students share the exact same value | S | RPC ORDER BY metric DESC, student_name ASC for determinism; "(tied)" suffix is optional display |
+| "See all →" footer link on teaser cards | Clear affordance to navigate to full `/owner/analytics` page | S | Text link below each teaser card |
+| Section heading with "All-time" label | Makes the lifetime scope explicit — owner knows this is not weekly | XS | Static copy in subheading |
 
-| Anti-feature | Why avoid | Do instead |
-|--------------|-----------|-----------|
-| **Peer comparison / percentile rank** ("You're in the top 30% of students") | Violates v1.0 "no leaderboards, no gamification" out-of-scope, induces anxiety (Wiley 2023 confirms gamified comparison dashboards cause measurable negative affect in subset of students) | Comparison to self: "vs your 30-day average" |
-| **Streak counter with flames/milestones** | Already explicitly out of scope ("Streaks and streak milestones — gamification is V2+"); streak loss is a top anxiety driver in learning analytics research | Show skip count factually (already done in skip tracker) without streak framing |
-| **Color-coded "grade" or letter rating** for overall performance | Reductive; "D" grades tank motivation for students already struggling | Use existing RAG deadline chips on specific steps only |
-| **Predictive "you will close your first deal in X days"** | Likely wrong; when wrong, erodes trust; halal-mentorship tone should not make probabilistic promises | Show trajectory factually: "at this pace, you've averaged 2 emails/day" |
-| **Heat-map calendar of activity** (GitHub contributions style) | Duplicates the existing Phase 17 CalendarTab; adds visual clutter; tiny squares fail 44px touch target | Reuse the Phase 17 calendar via a link from analytics page |
-| **Over-granular hourly breakdown** ("your most productive hour is 2–3pm") | Sample sizes too small to be meaningful at individual level; borders on surveillance | Day-level is enough |
-| **Public or shared profile** | Scope creep, privacy risk in a small cohort | Self-only view |
+### Anti-Features (NOT doing in v1.6)
 
-### Streak display guidance (since it will be asked)
-- ISO Mon-Sun week already used by skip tracker (v1.4 D-01). Reuse.
-- Display as `3 active days this week / 1 skipped` — factual, no fire emoji, no cumulative streak counter.
-- Do NOT break-streak-animate or send "you lost your streak" notifications.
+1. **Time windowing / date-range picker** — Owner context is platform-wide lifetime; weekly/monthly filters are V2. The coach homepage already covers weekly (Mon-Sun). Mixing time windows at owner level adds a filter UI and complicates the RPC for no MVP gain.
+2. **Top-N > 3 on homepage teaser** — The teaser cards show top-3 only. A top-10 or paginated leaderboard belongs on the analytics page itself, not the dashboard homepage.
+3. **Per-coach breakdown** — Owner analytics is student-centric. Aggregating by coach ("which coach's students perform best") is a V2 management feature requiring a different query shape.
+4. **CSV export from owner analytics** — Coach analytics already has CSV (Phase 48/53). Owner export, if needed, is V2; the existing student list page covers bulk views.
+5. **Charts / trend lines** — Coach analytics (Phase 48) has the 12-week deal trend chart. Owner analytics in v1.6 is leaderboard-only; trend charts would require additional recharts columns and are out of scope.
+6. **Rank history / movement arrows** — "Student went from #3 to #1 this week" requires snapshot comparison. V2+ feature.
 
-### Dependencies
-- **Requires:** New RPC `get_student_analytics`, chart library decision (see STACK.md), existing deals/work_sessions/daily_reports/roadmap_progress tables.
-- **Blocks:** Feature 2 (coach dashboard) — coach homepage reuses the student RPC signature per build-order decision v1.5 D-10.
-- **Student_diy variant:** Identical structure; just lives at `/student_diy/analytics`. No change to RPC — same query filters by user_id.
+### Complexity Assessment: S-M overall
+
+The page is structurally identical to the coach analytics leaderboard section (Phase 48). The delta is:
+- New `get_owner_analytics` RPC (platform-wide, not coach-scoped) — M
+- Owner dashboard teaser card section (3 small stat cards linking to analytics) — S
+- Route registration + nav update in config.ts — XS
+- Leaderboard component reuse — XS (zero new component code)
+
+### Dependencies on Existing Code
+
+| Dependency | File | How Used |
+|-----------|------|----------|
+| `LeaderboardCard` | `src/components/coach/analytics/LeaderboardCard.tsx` | Direct reuse — identical prop shape for owner-scoped rows |
+| `KPICard` | `src/components/coach/KPICard.tsx` | Teaser card on owner dashboard homepage |
+| `unstable_cache` pattern | `src/app/(dashboard)/coach/analytics/page.tsx` lines 47-55 | Same 60s cache wrapper pattern |
+| `ROUTES.owner` | `src/lib/config.ts` line 59-69 | Add `analytics: "/owner/analytics"` |
+| `NAVIGATION.owner` | `src/lib/config.ts` line 285-294 | Add Analytics nav item |
+| `OWNER_CONFIG` | `src/lib/config.ts` line 209-222 | May extend with leaderboard config |
+
+### Owner-Level Leaderboard Behavior: Key Decisions
+
+**Scope: Lifetime, not windowed.** The coach dashboard already owns "this week" (Mon-Sun ISO). The owner page is a different audience — Abu Lahya wants to see who his best overall students are across the entire program lifetime. Time windowing requires a filter UI and complicates the RPC for no MVP gain.
+
+**Top 3 only.** Consistent with the coach homepage `WeeklyLeaderboardCard` (Phase 47) and the spec context. Top-3 is the conventional podium. The full analytics page shows all three leaderboards side-by-side at top-3 each — not paginated — because the set is bounded.
+
+**Tie-breaking:** When two students share the same metric value, the RPC must break ties deterministically (ORDER BY metric DESC, student_name ASC). No user-visible tie indicator is required for MVP but the RPC must never produce non-deterministic ordering.
+
+**Teaser card pattern:** The established pattern (Phase 47 coach homepage) is KPICard with `href` prop wrapping the entire card in a `<Link>`. Three teaser cards on the owner dashboard homepage — one per leaderboard — each link to `/owner/analytics`.
 
 ---
 
-## Feature 2 — Coach Dashboard Homepage Stats
+## Feature 2 — Replace Chat with Announcements
 
-### Table stakes
+### Removal Surface Area (Chat OUT)
 
-| # | Feature | Complexity | Why it's table stakes |
-|---|---------|------------|-----------------------|
-| 2.1 | **4–6 "at-a-glance" stat cards** — confirmed set from PROJECT.md Active: **Deals Closed (this week)**, **Revenue (this week)**, **Avg Roadmap Step (all assigned students)**, **Total Emails (this week)**. Suggest adding **Active Students (7d)** and **Unreviewed Reports** to hit the high end of the 4–6 range | Simple | "4–6 KPIs above the fold" is the canonical sales-dashboard pattern (Salesforce, HubSpot, Gong all converge on this). |
-| 2.2 | **Each stat card clickable → drill-down** — Revenue → coach analytics deal trend; Unreviewed → existing reports view filtered; Active Students → analytics active/inactive tab | Simple | Expected UX per every modern dashboard survey. |
-| 2.3 | **Period label on every card** — "This week (Mon–Sun)" or "All students". No unlabeled numbers | Simple | Unlabeled numbers are the #1 dashboard anti-pattern (HubSpot, Salesforce docs both call this out). |
-| 2.4 | **3 recent reports card** — newest first, each row: student name, date, star rating, hours, "Review" pill if unreviewed. "See all" → existing reports view | Simple | Already in scope per PROJECT.md. |
-| 2.5 | **Top-3 hours leaderboard (weekly Mon–Sun)** — ranked by hours logged this ISO week across coach's assigned students. Show name, hours, small delta vs previous week | Moderate | In scope per PROJECT.md + v1.5 D-13. See leaderboard guidance below. |
-| 2.6 | **Deltas / direction arrows on stat cards** — "↑ 12% vs last week" or "↓ 2 deals" in ima-green/ima-red. Requires previous-period fetch in the RPC | Moderate | Color-coded deltas are 2026 standard. Green/yellow/red must use ima-* tokens. |
-| 2.7 | **Skeleton loaders** for cards + recent reports while RPC resolves | Simple | v1.0 quality bar. |
-| 2.8 | **Single RPC `get_coach_dashboard(coach_id)`** returning all sections (stats, recent reports, top-3). Cached 60s | Moderate | Per v1.5 D-01/D-02 and v1.2 consolidation pattern. Prevents N+1 across cards. |
+Before building anything new, these must be cleanly removed:
+
+| Surface | Location | Removal Action |
+|---------|----------|----------------|
+| Coach chat page | `src/app/(dashboard)/coach/chat/page.tsx` | Delete route |
+| Student chat page | `src/app/(dashboard)/student/chat/page.tsx` | Delete route |
+| Chat components | `src/components/chat/` (6 files: BroadcastCard, ChatComposer, ConversationList, DaySeparator, MessageBubble, MessageThread) | Delete directory |
+| Chat API route | `src/app/api/messages/route.ts` | Delete |
+| Messages read API | `src/app/api/messages/read/route.ts` | Delete |
+| Chat utilities | `src/lib/chat-utils.ts` | Delete |
+| `messages` table | New migration | `DROP TABLE IF EXISTS public.messages CASCADE` |
+| `chat` nav item (coach) | `src/lib/config.ts` NAVIGATION.coach | Remove entry with `href: "/coach/chat"` |
+| `chat` nav item (student) | `src/lib/config.ts` NAVIGATION.student | Remove entry with `href: "/student/chat"` |
+| `ROUTES.coach.chat` | `src/lib/config.ts` line 79 | Remove route key |
+| `ROUTES.student.chat` | `src/lib/config.ts` line 88 | Remove route key |
+| `unread_messages` badge branch | `src/app/(dashboard)/layout.tsx` lines 47-49 | Remove badge consumer |
+| `unread_messages` in `get_sidebar_badges` RPC | New DB migration | Remove that branch from the RPC function; replace with no-op or remove from RETURNS shape |
+| `SidebarBadgesResult.unread_messages` | `src/lib/rpc/types.ts` | Remove field |
+| `messages` table types | `src/lib/types.ts` | Remove Insert/Row/Update triplet |
+
+### Table Stakes (Announcements IN)
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| `announcements` table: `id uuid PK, author_id uuid FK→users, content text NOT NULL, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now()` | Minimal schema for persistent broadcast feed | S | One migration; RLS: students SELECT only, owner+coach INSERT/UPDATE/DELETE any row |
+| `/announcements` route per role (owner, coach, student, student_diy) | Each role has its own namespaced route prefix | S | 4 page files; student + student_diy are read-only views; all 4 render the same feed |
+| List view: most recent first, paginated 25/page | Per v1.5 D-04 (paginate anything > 25) | S | Server component + searchParams `page` param; same URL pagination pattern as coach analytics student list |
+| Author name + role chip on each announcement | Students need to know who is speaking | S | JOIN `users.name` and `users.role` in query; display "Abu Lahya (Owner)" or "Coach Name (Coach)" |
+| Relative timestamp ("2 hours ago", "Apr 14") | Standard for announcement feeds | S | Reuse existing date formatting utilities |
+| Owner + Coach: Create new announcement (textarea + submit) | Primary write action | S | POST `/api/announcements` with Zod-validated content |
+| Owner + Coach: Edit any announcement (not just their own) | Multi-author system — owner should be able to fix coach typos | M | PATCH `/api/announcements/[id]`; updates content + sets `updated_at`; show "(edited)" indicator |
+| Owner + Coach: Delete any announcement with confirmation | Clean up outdated announcements | S | DELETE `/api/announcements/[id]`; confirmation dialog to prevent accidental loss |
+| "(edited)" indicator on modified announcements | Transparency — readers know content changed | S | Render when `updated_at > created_at + interval '5 seconds'`; show as small chip next to timestamp |
+| Empty state when no announcements exist | First-use state | XS | Use existing `EmptyState` primitive |
+| Sidebar nav item "Announcements" for all 4 roles | Replaces "Chat" entry | S | Update `NAVIGATION` in config.ts; no badge on this item |
+| No sidebar badge on announcements | No read/unread tracking in v1.6 | XS | Explicitly no badge — primary simplification over chat system |
 
 ### Differentiators
 
-| # | Feature | Complexity | Value |
-|---|---------|------------|-------|
-| 2.9 | **"Needs attention" activity feed** — merges unreviewed reports, at-risk (existing logic), and new milestone-notification events into one reverse-chron list on the dashboard (NOT replacing existing tabs) | Moderate | Collapses 3 existing signals into one scannable feed. Inline-on-dashboard is the pattern that out-performs notification centers for small-team coaches (TrueCoach, CoachAccountable both do this). |
-| 2.10 | **"This week's average"** comparison on top-3 leaderboard — show cohort average hours underneath the top 3 so middle/bottom-ranked students see a positive reference point rather than feeling excluded | Simple | Mitigates the "top-3-only" demotivation effect documented in leaderboard-fatigue research. |
-| 2.11 | **Stat card compact/expanded toggle** — coaches with >20 students want to collapse the cards to a dense strip | Moderate | Nice-to-have; defer unless owner requests. |
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Character count feedback on compose textarea | Prevents overlong announcements; gives author real-time feedback | XS | Max 2000 chars recommended; Zod max enforced; display "X / 2000" counter |
+| "Edited at [time]" tooltip on the "(edited)" chip | Full transparency for curious readers | XS | `title` attribute on the chip element |
+| Optimistic add (announcement appears immediately after POST) | Eliminates "did it send?" dead wait | M | Use React state prepend on successful POST response; server re-validates on next load |
 
-### Anti-features
+### Anti-Features (NOT doing in v1.6)
 
-| Anti-feature | Why avoid | Do instead |
-|--------------|-----------|-----------|
-| **Bottom-3 / "at-risk" leaderboard** displayed publicly anywhere | Publicly naming laggards = demotivation, resentment, and violates the "no public rankings" spirit of the v1.0 out-of-scope list | Keep at-risk as existing private coach-only alerts; use the existing skip-tracker for "who's slipping" signal |
-| **Leaderboard visible to students** | Out of scope (no rankings in V1); research confirms consistently-low rankings destroy motivation | Top-3 is coach-only; individual students see only their own analytics |
-| **Revenue / deal goals displayed as big gauges** | Implies the coach has a quota — they don't, they mentor. Wrong affordance | Show absolute numbers + week-over-week delta |
-| **10+ metrics on the homepage** | Every sales-dashboard guide from 2023–2026 flags "metric overload" as the top failure mode | Enforce 4–6 cards; push extras to /coach/analytics |
-| **Auto-refresh / live polling on the stats** | Adds DB load at 5k scale, no real-time requirement for weekly metrics | 60s cache is plenty; manual refresh button if needed |
-| **Trendline sparklines on every stat card** | Visual clutter + chart lib rendered N times per card = perf hit | Either number + delta arrow, OR full chart on analytics page — not both |
+1. **Pinned announcements** — No pin/unpin toggle. All announcements are chronological only. Pinning requires a `pinned boolean` column and sort-priority changes in the query. V2.
+2. **Reactions / likes / emoji responses** — No reaction system. Students read, do not interact. Adding reactions requires a separate `announcement_reactions` table. V2.
+3. **Read receipts / unread badge** — No tracking of which students have seen which announcements. This is the primary simplification over chat. The chat system's `unread_messages` badge required per-user-per-message read state; removing that complexity is a core goal of this migration.
+4. **Rich text / markdown formatting** — Plain text only in v1.6. Rich text requires a WYSIWYG editor (Tiptap, Quill) and HTML sanitization. V2.
+5. **Student replies / comments on announcements** — Read-only for students. Two-way discussion is chat behavior, which is being removed. Students have Ask Abu Lahya for questions.
+6. **Announcement expiry / auto-archive** — No `expires_at` column. Announcements persist indefinitely. Per spec: "no expiry."
+7. **Email notifications on new announcements** — Out of scope per PROJECT.md constraints (email notifications are V2+ via Resend).
+8. **Per-coach scoped announcements** — All announcements are platform-wide. There is no coach-to-their-own-students-only targeting in v1.6. One feed, all readers.
 
-### Leaderboard guidance (calling out what competitors get wrong)
+### Complexity Assessment: M
 
-**Pattern research (Spinify, cluelabs, Medium):**
-- Top-3 with cohort average shown underneath = motivates winners, doesn't demotivate middle.
-- Reset weekly (already decided, v1.5 D-13) — rolling leaderboards prevent the "locked out forever" feeling.
-- Do NOT show ordinal rank (1st/2nd/3rd medal icons) — show hours numeric with names.
-- Do NOT send notifications when someone drops off the top-3.
-- Coach-only visibility — students never see this board (project already rules this out).
+The write side (3 CRUD API routes) is straightforward. The removal surface area is the larger risk. Key complexity:
+- Atomic migration: drop `messages`, create `announcements`, rewrite `get_sidebar_badges` RPC to remove `unread_messages` branch — all in one `BEGIN/COMMIT` block
+- 4 route page files (owner/coach/student/student_diy) sharing common read logic
+- Edit flow: tracking `updated_at` and "(edited)" indicator
 
-### Dependencies
-- Requires: coach_id → assigned_student_ids join (already exists via assignments table); the `get_student_analytics` RPC pattern from Feature 1.
-- Reuses: ISO Mon-Sun week helper from v1.4 skip tracker.
+### Multi-Author Edit Semantics
+
+**Who can edit/delete:** Owner and coaches can CRUD any announcement — not just their own. RLS must reflect this: `FOR ALL TO owner, coach` (or via role check), `FOR SELECT TO student, student_diy`.
+
+**What "edited" shows to readers:** A small `(edited)` text chip next to the timestamp, conditionally rendered when `updated_at - created_at > interval '5 seconds'`. No original-version preservation in v1.6. Full change history is V2 (consistent with v1.5 D-17 philosophy).
+
+### Dependencies on Existing Code
+
+| Dependency | File | How Used |
+|-----------|------|----------|
+| Pagination pattern | `src/components/coach/analytics/StudentListTable.tsx` | Page/prev/next URL param pattern to replicate for announcements list |
+| `unstable_cache` + revalidateTag | `src/app/(dashboard)/coach/analytics/page.tsx` | Same 60s cache on announcement list reads |
+| `EmptyState` | `src/components/ui/EmptyState.tsx` | Empty feed state |
+| `NAVIGATION` config | `src/lib/config.ts` lines 285-325 | Remove Chat entries, add Announcements for coach, student, student_diy; add to owner nav |
+| Auth + Zod guard pattern | Any existing API route | All announcement mutations follow same auth+role+Zod pattern |
+| `get_sidebar_badges` RPC | Previously `supabase/migrations/00027_*` | New migration rewrites to remove `unread_messages` branch |
+| `layout.tsx` badge consumer | `src/app/(dashboard)/layout.tsx` lines 47-49 | Remove `unread_messages` lines |
 
 ---
 
-## Feature 3 — Coach Analytics Tab / Page (Full) (`/coach/analytics`)
+## Feature 3 — New Roadmap Step 8 (Influencer Q&A Session)
 
-### Table stakes
+### Table Stakes
 
-| # | Feature | Complexity | Why it's table stakes |
-|---|---------|------------|-----------------------|
-| 3.1 | **Paginated student list with sorting** — 25 per page (v1.5 D-04). Columns: Name, Current Roadmap Step, Hours (this week), Emails (this week), Deals Closed (total), Last Active (relative), Status (active/inactive/at-risk chip) | Moderate | Sortable list is the core artifact coaches spend 80% of their time on. |
-| 3.2 | **Sort by each column, asc/desc**; default sort = "Last Active desc" | Moderate | Expected UX. Server-side sort (ORDER BY in RPC) for pagination correctness. |
-| 3.3 | **Active / Inactive breakdown** — top-of-page summary: "18 active · 3 inactive · 2 at-risk" with active = activity in last 7 days. See "inactive definition" below | Simple | Primary question a coach opens this page to answer. |
-| 3.4 | **Deal trend chart** — line or bar, count of deals per week across all assigned students, last 12 weeks. Second series (optional toggle): revenue per week | Moderate | Expected on any sales-coach view. Aggregate-only (no per-student lines at this scale — becomes unreadable). |
-| 3.5 | **Leaderboards: top 5 by hours (weekly), top 5 by emails (weekly), top 5 by deals (all-time)** — three separate top-5s, each clickable to student detail | Moderate | Per PROJECT.md. Use top-5 here (not top-3) because this is the deep view, not the homepage. |
-| 3.6 | **Search / filter by student name** on the student list | Simple | Tables >15 rows need this. |
-| 3.7 | **Pagination controls** with total count, page X of Y, 25/page | Simple | v1.5 D-04. |
-| 3.8 | **Time range selector on trends + leaderboards** — 7d / 30d / 90d / All. Student list respects period for "hours this period" / "emails this period" columns | Moderate | Standard. |
-| 3.9 | **Export CSV** of the student list (current filters applied) | Simple | Table-stakes for manager-type users; serve as attachment from API route. |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| New entry in `ROADMAP_STEPS` config | Config is truth (CLAUDE.md Rule 1) | XS | Insert at index 7 (0-based): `{ step: 8, stage: 1, stageName: "Setup & Preparation", title: "Join at least one Influencer Q&A session (CPM + pricing)", target_days: 5 }` |
+| Renumber existing config steps 8-15 → 9-16 | All step references must stay consistent | XS | Mechanical config edit: 8 entries change their `step` value |
+| Atomic DB migration: renumber existing rows then insert new step | No duplicate `step_number` UK violation mid-migration | M | Renumber in DESCENDING order (15→16, 14→15, …, 8→9) to avoid constraint collision, then INSERT new step 8; wrapped in `BEGIN/COMMIT` |
+| Auto-complete new step 8 for students who completed old step 7 | Students past step 7 must not be blocked by new step | M | Migration INSERT with `status='completed', completed_at=now()` WHERE `student_id IN (SELECT student_id FROM roadmap_progress WHERE step_number=7 AND status='completed')` |
+| Insert new step 8 as `locked` for students on step 7 or earlier | Students who haven't finished step 7 should proceed normally | S | Migration INSERT with `status='locked'` for remaining active students |
+| Progress bar denominator updated from /15 to /16 everywhere | Shows correct total step count | S | Grep `src/` for `/15`, `"15"`, `of 15`; update to 16 |
+| Student self-mark complete on new step 8 | Standard step completion UX | XS | No new API needed — existing `POST /api/roadmap` handles any step number; step 8 is identical to any other step |
+| Stage header remains "Setup & Preparation" for new step 8 | Step 8 is end of Stage 1, not start of Stage 2 | XS | `stage: 1` in new config entry; old step 8 (now step 9 "Send Your First Email") is first step of Stage 2 |
+| Update `MILESTONE_CONFIG.influencersClosedStep` from 11 → 12 | Old "Close 5 Influencers" was step 11, now step 12 after renumber | S | Config.ts edit + new DB migration that rewrites `get_coach_milestones` RPC |
+| Update `MILESTONE_CONFIG.brandResponseStep` from 13 → 14 | Old "Get Brand Response" was step 13, now step 14 after renumber | S | Same config.ts edit + same DB migration |
+| New DB migration rewrites `get_coach_milestones` RPC with updated step numbers | RPC currently hardcodes 11 and 13 in multiple places | M | Migration 00028 or next: `CREATE OR REPLACE FUNCTION get_coach_milestones` with 12 and 14 in place of 11 and 13 |
 
 ### Differentiators
 
-| # | Feature | Complexity | Value |
-|---|---------|------------|-------|
-| 3.10 | **Cohort comparison** — group students by signup-week cohort, show avg roadmap step by cohort age | Complex | Only valuable once multiple cohorts exist. Defer unless owner explicitly wants it. Flag for v1.6. |
-| 3.11 | **Funnel view** — Total Students → Completed Setup → First Outreach → First Influencer Signed → First Brand Reply → First Deal. Counts + conversion rate per step | Moderate | High-signal visualization for an influencer-marketing accelerator. Directly maps to roadmap steps — data already exists. |
-| 3.12 | **At-risk student list panel** — students with skip_count >= 3 in current week OR no activity in 7d. Separate from the main table, surfaced as a callout | Simple | Reuses existing skip-tracker logic; just aggregates. |
-| 3.13 | **Revenue + margin trend** as second panel under deal trend | Simple | Same RPC, different series. |
-| 3.14 | **Per-student mini-profile on row-hover** (or row-click → expand) — shows skip count, last report date, AI-chat-used flag | Moderate | Reduces trips to student detail page. |
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Migration assertion: validate step count = 16 after migration | Catch migration bugs before production | S | `DO $$ BEGIN ASSERT (SELECT COUNT(*) FROM roadmap_progress WHERE step_number = 8) > 0; END $$` |
+| Coach/owner roadmap view automatically shows updated step titles | Config-driven rendering means no extra code needed | XS | Automatic — components read from `ROADMAP_STEPS` config array |
 
-### Anti-features
+### Anti-Features (NOT doing in v1.6)
 
-| Anti-feature | Why avoid | Do instead |
-|--------------|-----------|-----------|
-| **Predictive "likelihood to close" scoring** | ML-free platform; building a scoring model is out of scope and ethically fraught for mentorship | Funnel counts + deadline chips |
-| **"Grade" each student A–F** | Reductive, demotivating when leaked to student via screen-share | Status chip: active / inactive / at-risk — factual only |
-| **Per-student line series on the deal trend chart** at >10 students | Becomes unreadable (spaghetti chart); doesn't scale to 5k | Aggregate, then drill into individual student detail page |
-| **Download all students' raw daily reports as one CSV** | PII + report comments leak; not needed for analytics | Summary CSV only |
-| **Email digests / scheduled PDFs of analytics** | Out of scope ("Email notifications — V2+") | Rely on the in-app notification feed from Feature 5 |
-| **Real-time refresh / WebSocket** | Contradicts v1.4 D-07 decision (chat intentionally polled, not realtime) | 60s cache, manual refresh button |
+1. **Gap numbering (e.g., step 7 → step 10 with gaps 8-9 empty)** — This codebase uses dense sequential step numbers. Gap numbering would break all "step X of N" progress bars, the `MILESTONE_CONFIG` step references, and the RPC step comparisons. Hard-renumber is the only correct approach for this schema.
+2. **Undo support specific to the new step 8** — The roadmap undo system (v1.3) handles undo/cascade-relock for any step uniformly. The new step 8 inherits undo support automatically. No new undo logic needed.
+3. **Retroactive deadline enforcement for past-step-7 students** — Auto-completed students get `completed_at = now()` at migration time. Do not backfill `completed_at` with a fake date relative to `joined_at` — it would produce false "on-track" or "late" deadline status for historical students.
+4. **In-app notification to students about new step insertion** — No in-app notification system in V1 (V2+ per PROJECT.md). Students see the updated roadmap on next visit.
+5. **Generic "insert step" admin tool** — This is a one-time migration. No tooling investment justified.
+6. **Renaming stage 2 start** — Old step 8 "Send Your First Email" becomes new step 9 and remains the first step of Stage 2. Stage boundary does not move.
 
-### "Inactive" definition — recommend this, flag for owner confirmation
-- **Active** = ≥1 work session started OR ≥1 daily report OR ≥1 outreach update in last **7 days**
-- **Inactive** = no activity of any kind in **7+ days**
-- **At-risk** = existing skip-tracker logic (≥3 skipped weekdays this ISO week)
+### Complexity Assessment: M (migration complexity dominates)
 
-Rationale: 7 days matches the Mon-Sun cadence already chosen. 30-day SaaS default is too loose for a daily-accountability program. Mark as **v1.5 D-14 pending** — needs Abu Lahya confirmation.
+TypeScript changes are mechanical (config edit + grep/replace in ~10 files). The migration is the risk surface:
+- Must not violate `(student_id, step_number)` unique key during renumbering
+- Must correctly classify "past step 7" students for auto-complete
+- Must check `roadmap_undo_log` for stored step_number references (audit records are not renumbered, but the undo RPC must tolerate that)
+- Must update `get_coach_milestones` RPC step number literals (step 11 → 12, step 13 → 14) in a new migration
 
-### Common-columns research (sales/coach platforms)
-Most consistent set across Salesforce, HubSpot, TrueCoach, Coach Catalyst coach-list tables: `Name · Status · Key Activity Metric · Deals/Outcomes · Last Active · Row Action`. Our column set above matches this pattern exactly.
+### Invariants That Must Hold
 
-### Dependencies
-- Requires: `get_coach_analytics(coach_id, range, page, sort)` RPC with server-side pagination + sort; deal-trend RPC (can be same or separate).
-- Reuses: Feature 1's aggregation helpers; existing at-risk / skip-tracker logic.
+| Invariant | Verification |
+|-----------|-------------|
+| No student blocked at new step 8 who already passed step 7 | All students with step 7 `status='completed'` get new step 8 as `completed` |
+| `step_number` unique constraint never violated mid-migration | Renumber in descending order (15→16 first), then insert new step 8 |
+| `ROADMAP_STEPS` config array length changes from 15 to 16 | Assert `ROADMAP_STEPS.length === 16` |
+| `MILESTONE_CONFIG.influencersClosedStep` updated 11 → 12 | Config.ts change; SYNC comment updated |
+| `MILESTONE_CONFIG.brandResponseStep` updated 13 → 14 | Config.ts change; SYNC comment updated |
+| `get_coach_milestones` RPC hardcoded step numbers updated | New migration rewrites RPC body; `rp.step_number = 11` → `12`, `rp.step_number = 13` → `14` in all locations in migration 00027 pattern |
+| Progress bars show /16 not /15 | Grep `src/` for literal `/15` or `"15"` in .tsx files; update to 16 |
+| `roadmap_undo_log` historical rows are NOT renumbered | Undo log rows are audit records tied to historical step_number values; acceptable; undo RPC reads live `roadmap_progress` rows, not undo log step_number for comparison |
 
----
+### Student UX Mid-Step: Detailed Breakdown
 
-## Feature 4 — Staff-Logged Deals (coach/owner log on behalf of student)
+**Student currently active on old step 8 "Send Your First Email" (soon-to-be step 9):**
+- Their old step 8 row is renumbered to step 9 — they remain active on it
+- New step 8 "Join Influencer Q&A" inserts as `completed` (because they completed step 7 to unlock step 8)
+- UX after migration: roadmap shows new step 8 as complete, step 9 as active — no disruption
 
-### Table stakes
+**Student currently active on step 7 "Draft Your First Outreach Emails":**
+- New step 8 inserts as `locked`
+- They complete step 7 → step 8 (Influencer Q&A) unlocks → they complete step 8 → step 9 (Send Your First Email) unlocks
+- This is the only cohort that actually "does" the new step
 
-| # | Feature | Complexity | Why it's table stakes |
-|---|---------|------------|-----------------------|
-| 4.1 | **`logged_by uuid` column on `deals`** (nullable) — per v1.5 D-09. Null = student self-logged, set = coach/owner user_id. Migration also adds `logged_by` index for attribution queries | Simple | Foundation. |
-| 4.2 | **RLS update** — coach/owner INSERT allowed with constraint that `logged_by` must equal `auth.uid()` and `user_id` (student) must be in their assigned-students set (coach) or any student (owner). Use `(SELECT auth.uid())` initplan pattern (v1.5 D-03) | Moderate | Defense in depth. |
-| 4.3 | **"Add Deal" button on coach deals tab** (and owner) — opens the same form used by students in Phase 41, prefilled with student_id from the URL context | Simple | Consistent UI with student flow. |
-| 4.4 | **Attribution chip on deal rows** — when `logged_by IS NOT NULL AND logged_by != user_id`, show `Logged by {coach_name}` pill next to the date. Student sees this chip too on their own analytics/deals list | Simple | Non-negotiable transparency. Users must always know who entered data about them. |
-| 4.5 | **Audit-trail columns** — add `created_at` (if not already), `updated_at`, `updated_by` to deals. Trigger on UPDATE sets `updated_at = now()` and records the `auth.uid()` into `updated_by` | Moderate | Audit-trail research (CRM convention): creator + last-editor + timestamps is the minimum expected set. |
-| 4.6 | **Edit/Delete permissions** — **recommend:** coach/owner who created the deal can edit/delete it; student can edit/delete deals they themselves logged. Student **cannot** edit coach-logged deals (can request correction via chat). Owner can always edit anything | Moderate | Matches CRM norm: "only the logger or an admin can mutate" prevents students from rewriting revenue numbers their coach verified. |
-| 4.7 | **Attribution also surfaces on coach dashboard stats** — "Coach-logged deals: 12 · Student-logged deals: 38" small breakdown on `/coach/analytics` | Simple | Keeps the coach honest about how much they're entering vs the student. |
-| 4.8 | **Rate limiting** on the new INSERT path (30 req/min, existing pattern) | Simple | v1.2 convention. |
+**Student on steps 1-6 (before step 7):**
+- New step 8 inserts as `locked` — correct, they have not reached the prerequisite
 
-### Differentiators
+**Students on steps 9-16 (already past old step 8):**
+- All old steps 8-15 are renumbered 9-16
+- New step 8 inserts as `completed` (they completed step 7 to get here)
+- No disruption to their current active step
 
-| # | Feature | Complexity | Value |
-|---|---------|------------|-------|
-| 4.9 | **"Verified" flag** — coach can mark a student-logged deal as verified (separate from logged_by). Shows a check icon. Owner aggregate can filter to "verified only" | Moderate | Addresses the self-reporting trust problem inherent in accelerators. High value. |
-| 4.10 | **Soft delete** (archived_at) instead of hard delete | Simple | Preserves audit trail; standard CRM pattern. |
-| 4.11 | **Change log per deal** — small "history" popover showing every edit | Complex | Useful but maintenance cost non-trivial. Defer unless disputes become a pattern. |
-| 4.12 | **Bulk import CSV** for coaches migrating data from elsewhere | Complex | Only if an actual migration need surfaces. |
+### Dependencies on Existing Code
 
-### Anti-features
-
-| Anti-feature | Why avoid | Do instead |
-|--------------|-----------|-----------|
-| **Hiding `logged_by` from the student** | Erodes trust; students will eventually notice deals they didn't enter and feel surveilled | Always show attribution to the student whose deal it is |
-| **Letting coach edit deals they didn't create** (without explicit owner permission) | Two coaches overwriting each other = data corruption. Violates "who owns this record" CRM discipline | Owner-only for cross-coach edits |
-| **Silent overwrite on concurrent edits** | Lost-update bug | Display `updated_at` — stale-form warnings if timestamp changes |
-| **"Enter deal as student" impersonation** (setting `logged_by = null` to look self-entered) | Fraudulent attribution, breaks analytics | `logged_by` defaults to `auth.uid()` on insert; enforce at RLS |
-| **Deleting deals without confirmation** | Losing revenue records destroys analytics retroactively | Modal confirm + soft delete |
-| **Notifying the student every time a coach edits their deal** | Notification fatigue on small corrections | Only notify on create; edits visible in attribution chip on next view |
-
-### Dependencies
-- Requires: migration for `logged_by`, `updated_at`, `updated_by` + trigger; RLS policy updates; share deal form component between student/coach/owner.
-- Affects: Feature 1 (student analytics table shows chip), Feature 3 (coach analytics breakdown), Feature 5 (notifications fire on coach-logged deals too).
-- Student_diy: no coach → always self-logged → `logged_by` will always be null or equal to user_id. No UI change needed for student_diy.
+| Dependency | File | Impact |
+|-----------|------|--------|
+| `ROADMAP_STEPS` | `src/lib/config.ts` lines 155-174 | New entry at index 7; entries at indices 7-14 each increment their `step` value by 1; `stage` values update: old steps 8-11 (now 9-12) stay stage 2, old steps 12-15 (now 13-16) stay stage 3 |
+| `MILESTONE_CONFIG.influencersClosedStep` | `src/lib/config.ts` line 393 | Change value from 11 to 12 |
+| `MILESTONE_CONFIG.brandResponseStep` | `src/lib/config.ts` line 397 | Change value from 13 to 14 |
+| `get_coach_milestones` RPC | `supabase/migrations/00027_get_coach_milestones_and_backfill.sql` | New migration (00028 or next) rewrites entire RPC with updated step references; does NOT modify 00027 (migrations are immutable) |
+| Progress bar `/15` references | All roadmap-rendering .tsx components | Grep and update |
+| `roadmap_undo_log` table | Check migrations for step_number column | Historical rows are not renumbered; undo RPC must tolerate stale step_number values in audit log |
 
 ---
 
-## Feature 5 — Milestone Notifications for Coaches
+## Cross-Feature Dependencies
 
-### Table stakes
-
-| # | Feature | Complexity | Why it's table stakes |
-|---|---------|------------|-----------------------|
-| 5.1 | **Reuse the existing 100+ hrs / 45 days notification pattern** (v1.5 D-08). Same surface: coach-side computed, dismissable via `alert_dismissals`, badge in sidebar | Moderate | Don't rebuild plumbing. |
-| 5.2 | **Four new milestone triggers per PROJECT.md:** Tech/Email Setup Finished (step TBC — v1.5 D-06 flagged); 5 Influencers Closed (Step 11); First Brand Response (Step 13); Closed Deal (EVERY deal — v1.5 D-07) | Moderate | Explicit spec. |
-| 5.3 | **Idempotency per (student, milestone_type, optional_nonce)** — Tech Setup / 5 Influencers / First Brand Response fire ONCE per student ever; Closed Deal fires once per deal_id | Moderate | Prevents duplicate toasts on re-aggregation. Standard idempotent-consumer pattern (record processed event IDs). |
-| 5.4 | **Storage table `milestone_events`** — `id, student_id, coach_id, type, payload jsonb, created_at, deal_id nullable`. RLS: coach sees events for their students, owner sees all, students do NOT see this table | Simple | Makes idempotency checkable (`ON CONFLICT (student_id, type, deal_id)`). |
-| 5.5 | **Dismiss per event** — reuses `alert_dismissals` with a key like `milestone:{event_id}`. Dismissed events don't show in badge count but stay in feed history | Simple | v1.0 pattern. |
-| 5.6 | **Sidebar badge updated** — integer count of undismissed milestone events across all assigned students; navigates to the feed (see 5.8) | Simple | In scope per PROJECT.md. |
-| 5.7 | **Event payload** contains student name, milestone type, deal info (if applicable), and a deep link to that student's detail page | Simple | Click → action. |
-| 5.8 | **Notification feed inline on coach dashboard** — reverse-chron list, ~10 most recent, "See all" link to a `/coach/notifications` page (or a modal). Grouped by student when 3+ events from same student | Moderate | See pattern guidance below. |
-
-### Differentiators
-
-| # | Feature | Complexity | Value |
-|---|---------|------------|-------|
-| 5.9 | **Owner sees an aggregate roll-up** — count of milestones hit platform-wide this week on owner dashboard | Simple | Reuses same events table, different query. |
-| 5.10 | **Milestone chip on student detail page** — timeline of achieved milestones at the top of coach/owner student detail | Simple | Context when coaching. |
-| 5.11 | **Mark-all-read** on the feed page | Simple | UX nicety. |
-| 5.12 | **Per-milestone-type mute** (coach preference: "don't notify me on every deal, only first-of-month") | Complex | Wait for a coach to actually ask. |
-| 5.13 | **Per-event comment thread** (coach leaves a congratulations note that feeds into chat) | Complex | Bridges to existing chat system — interesting but defer. |
-
-### Anti-features
-
-| Anti-feature | Why avoid | Do instead |
-|--------------|-----------|-----------|
-| **Email or push notifications** | Out of scope ("Email notifications — V2+"); no push infra exists | In-app only |
-| **Firing the "First Brand Response" notification multiple times if the roadmap step is undone/redone** | Duplicate-fire annoyance | Idempotency key `(student_id, 'first_brand_response')` unique constraint |
-| **Notifying student of their own milestone** | Risks gamification creep which is explicitly out of scope for v1.5 (and v2 territory); the point is coaches celebrate with students, not the app gamifying | Coach-only; coaches can manually message students to congratulate via existing chat |
-| **Silent aggregation** (events exist but nothing visibly changes) | Defeats the purpose | Badge MUST increment on new event |
-| **Firing milestones retroactively on the migration that creates the feature** | Would flood coaches with historical events on launch day | Backfill with `created_at` capped at migration timestamp OR skip backfill — only fire forward |
-| **Notification-center-only** (no inline feed on dashboard) | Research: coaches with <30 students prefer inline feeds because they see signals in context; notification center is a second click | Both inline top-10 AND dedicated feed page |
-| **Notification-inline-only-on-each-student-row** | Forces coach to scan every row | Central feed + optional chip on student row |
-
-### Notification center vs inline — recommendation
-**Ship both.** Inline "needs attention" feed on coach dashboard (newest 10), plus `/coach/notifications` feed page for history. Badge count on sidebar drives both. Dismiss works on either. This matches TrueCoach and CoachAccountable.
-
-### Idempotency implementation sketch
-```
-milestone_events (
-  id uuid primary key,
-  student_id uuid,
-  type text,        -- 'tech_setup' | '5_influencers' | 'first_brand_response' | 'closed_deal' | '100hr_45d'
-  deal_id uuid null,
-  created_at timestamptz,
-  unique (student_id, type, coalesce(deal_id, '00000000-0000-0000-0000-000000000000'::uuid))
-)
-```
-Detection runs nightly (pg_cron, reuse v1.2 pattern) AND on-write (deal insert trigger, roadmap step complete trigger). Both paths `INSERT ... ON CONFLICT DO NOTHING`.
-
-### Dependencies
-- Requires: new `milestone_events` table + RLS; detection logic (triggers or pg_cron); reuse existing `alert_dismissals` table; sidebar badge query update.
-- Blocks: nothing downstream in v1.5.
-- **Open decision D-06:** which roadmap step is "Tech/Email Setup Finished"? Flagged for Monday stakeholder meeting. Do not code until confirmed.
+| Feature | Blocked By | Notes |
+|---------|-----------|-------|
+| Owner Analytics RPC | None | Standalone new RPC; no dependency on Features 2 or 3 |
+| Owner Analytics page | Owner Analytics RPC | Page is a thin wrapper over the RPC |
+| Owner dashboard teaser cards | Owner Analytics RPC | Teaser cards read from same RPC result |
+| Announcements table migration | Chat removal in same migration | Drop `messages`, create `announcements`, rewrite `get_sidebar_badges` — atomic |
+| Announcements CRUD API | Announcements table migration | Cannot build API before schema exists |
+| Announcements nav items | Chat nav removal | Remove Chat, add Announcements in same config.ts commit |
+| Roadmap step 8 DB migration | Config.ts step update | Migration and config.ts edit must ship together |
+| `MILESTONE_CONFIG` step updates | Roadmap step 8 migration | Step number references in config + RPC must stay in sync; new migration updates both |
 
 ---
 
-## Cross-feature Dependency Graph
+## Build Order Recommendation
 
-```
-Feature 1 (student analytics RPC)
-   │
-   ├──► Feature 2 (coach dashboard reuses aggregation shape)
-   │        │
-   │        └──► Feature 3 (coach analytics — superset of dashboard queries)
-   │
-   ├──► Feature 4 (deals tables read by both 1 and 3; logged_by chip shown in 1)
-   │
-   └──► Feature 5 (milestone events reference deals from F4, roadmap steps)
-               │
-               └──► Badge + feed surfaces on F2 dashboard
-```
+1. **Feature 3 (Roadmap Step 8)** — smallest UI surface area; clears step-number debt before other features potentially reference step numbers in any new analytics queries
+2. **Feature 2 (Announcements)** — medium surface area; removal and creation can be two sequential phases; announcements schema is independent of owner analytics
+3. **Feature 1 (Owner Analytics)** — builds on stable foundation; reuses established leaderboard + RPC + cache patterns; no blockers from Features 2 or 3
 
-Build order per v1.5 D-10 (sequential): **F1 → F2 → F3 → F4 → F5**. Confirmed — each depends on the prior one's RPCs or data.
-
----
-
-## MVP Recommendation (if scope has to shrink)
-
-Ship tier by tier:
-1. **Must ship (MVP):** 1.1–1.8, 2.1–2.8, 3.1–3.9, 4.1–4.8, 5.1–5.8 — the full table-stakes column.
-2. **Ship if time allows:** 2.9 "needs attention" feed (huge coach UX win), 3.11 funnel view, 4.9 verified flag.
-3. **Defer to v1.6:** 1.9–1.12, 2.10–2.11, 3.10 cohort, 3.12–3.14, 4.10–4.12, 5.9–5.13.
-
----
-
-## Open questions for stakeholder
-
-| # | Question | Needed by |
-|---|----------|-----------|
-| Q1 | "Tech/Email Setup Finished" = which roadmap step? (v1.5 D-06) | Feature 5 coding |
-| Q2 | "Inactive" = 7 days of zero activity — confirm? | Feature 3 coding |
-| Q3 | Should deal edits by coach trigger any student-side notification? Current recommendation: no. | Feature 4 coding |
-| Q4 | Chart library final pick — recharts vs shadcn/charts wrapper (see STACK.md, v1.5 D-11) | Feature 1 coding |
-| Q5 | Closed-Deal milestone on coach-logged deals too, or only student-logged? Recommendation: ALL deals (simplest + consistent with v1.5 D-07). | Feature 5 coding |
-
----
-
-## Confidence by section
-
-| Section | Confidence | Basis |
-|---------|------------|-------|
-| Table-stakes lists | HIGH | Converge across Salesforce, HubSpot, TrueCoach, Coach Catalyst, learning-analytics research |
-| Differentiators | MEDIUM | Product-specific judgment; confirmed compatible with existing architecture |
-| Anti-features | HIGH | Backed by explicit PROJECT.md out-of-scope items and published research on dashboard anti-patterns (Wiley 2023 on gamification anxiety; Spinify/cluelabs on leaderboard demotivation) |
-| Inactive-user threshold (7d) | MEDIUM | Standard SaaS is 30d; 7d is a judgment call matching daily-accountability cadence — flagged for stakeholder |
-| Idempotency pattern for notifications | HIGH | Context-standard idempotent-consumer pattern (microservices.io, bytebytego) |
-| Logged-by / audit-trail conventions | MEDIUM | CRM convention well-established; no single canonical spec — recommendation grounded in principle |
+Features 1 and 3 have no shared dependencies and can be parallelized if needed.
 
 ---
 
 ## Sources
 
-- [Sales Performance Dashboard Guide for 2026 — Everstage](https://www.everstage.com/sales-performance/sales-performance-dashboard)
-- [10 Sales Performance Dashboard Examples — CaptivateIQ](https://www.captivateiq.com/blog/sales-performance-dashboard-examples)
-- [Sales performance dashboard: 13 examples — HubSpot](https://blog.hubspot.com/sales/sales-dashboard)
-- [8 innovative sales dashboard examples — Gong](https://www.gong.io/blog/sales-dashboard-example)
-- [What is a Sales Dashboard? — Salesforce](https://www.salesforce.com/sales/analytics/sales-dashboard-examples/)
-- [Investigating the impact of a gamified learning analytics dashboard — Wiley (Alam 2023)](https://onlinelibrary.wiley.com/doi/10.1111/jcal.12853)
-- [A Tale of Two Institutions: gamified student response systems and student anxiety — PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC8734391/)
-- [Investigating the impact of gamification components on online learners' engagement — Smart Learning Environments](https://slejournal.springeropen.com/articles/10.1186/s40561-024-00336-3)
-- [Could Gamification Designs Enhance Online Learning Through Personalization? — INFORMS](https://pubsonline.informs.org/doi/10.1287/isre.2022.1123)
-- [Leaderboard Fatigue Is Real — Spinify](https://spinify.com/blog/leaderboard-fatigue-is-real-heres-how-to-fix-it/)
-- [The Psychology of Leaderboards in Instructional Design — cluelabs](https://cluelabs.com/blog/the-psychology-of-leaderboards-in-instructional-design/)
-- [Top 10 Best Practices for Gamification and Sales Leaderboard — Spinify](https://spinify.com/blog/top-10-sales-leaderboard-best-practices/)
-- [11 SaaS Milestone Emails to Celebrate User Wins — Encharge](https://encharge.io/saas-milestone-emails/)
-- [Idempotent requests in notification infrastructure — Fyno](https://www.fyno.io/blog/idempotent-requests-in-notification-infrastructure-cm4s7axck002x9jffvml6fx1y)
-- [Microservices Pattern: Idempotent Consumer — microservices.io](https://microservices.io/patterns/communication-style/idempotent-consumer.html)
-- [Mastering Idempotency: Building Reliable APIs — ByteByteGo](https://blog.bytebytego.com/p/mastering-idempotency-building-reliable)
-- [What makes a user active vs inactive? — Fullstory](https://help.fullstory.com/hc/en-us/articles/360020624734-What-makes-a-user-active-vs-inactive)
-- [Active Users are a Vanity Metric — Sixteen Ventures](https://sixteenventures.com/active-users-vanity-metric)
-- [Coach's Notification Settings — TrueCoach](https://help.truecoach.co/en/articles/2403627-coach-s-notification-settings)
-- [Notification Center — Coach Catalyst](https://coachcatalyst.com/solutions/notification-center)
-- [8 Top React Chart Libraries for Data Visualization in 2026 — Querio](https://querio.ai/articles/top-react-chart-libraries-data-visualization)
-- [My Take on React Chart Libraries — Kyle Gill](https://www.kylegill.com/essays/react-chart-libraries)
+- `src/lib/config.ts` — `ROADMAP_STEPS` (15 steps, 3 stages), `NAVIGATION` (chat items on coach + student), `MILESTONE_CONFIG` (step 11, 13), `ROUTES`, `OWNER_CONFIG`
+- `src/app/(dashboard)/coach/analytics/page.tsx` — unstable_cache pattern, revalidate=60, RPC wrapper
+- `src/components/coach/analytics/LeaderboardCard.tsx` — reusable leaderboard component shape (`LeaderboardRow` type, rank-1 badge, avatar initials, linked rows)
+- `src/components/coach/WeeklyLeaderboardCard.tsx` — top-3 leaderboard variant on coach homepage
+- `src/app/(dashboard)/coach/page.tsx` — KPICard + href teaser pattern (Phase 47, lines 350-383)
+- `src/app/(dashboard)/owner/page.tsx` — existing owner dashboard structure (4 stat cards, Link-wrapped cards)
+- `src/app/(dashboard)/layout.tsx` — badge RPC integration; `unread_messages` branch at lines 47-49 to remove
+- `src/app/(dashboard)/coach/chat/page.tsx` — full chat removal surface (polling, 3 API endpoints, broadcast + direct modes)
+- `src/components/chat/` — 6 components to delete (BroadcastCard, ChatComposer, ConversationList, DaySeparator, MessageBubble, MessageThread)
+- `supabase/migrations/00027_get_coach_milestones_and_backfill.sql` — hardcoded step 11 and 13 references that require update after renumber; migration pattern to follow for new milestones RPC rewrite
+- `.planning/PROJECT.md` — v1.6 scope definition, out-of-scope list, key decisions log
+- `.planning/MILESTONES.md` — v1.5 accomplishments (analytics pattern baseline, phase 47-48 leaderboard precedent)
