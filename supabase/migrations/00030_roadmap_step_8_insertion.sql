@@ -206,3 +206,32 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.get_coach_milestones(uuid, date, boolean) TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_coach_milestones(uuid, date, boolean) TO authenticated;
+
+-- -----------------------------------------------------------------------------
+-- Section 4: Auto-complete new Step 8 for students who completed old Step 7.
+-- Gate on current step_number = 7 (post-Section-2 renumber leaves step 7
+-- unchanged). The `status = 'completed'` filter excludes students whose
+-- step 7 row exists in 'active' or 'locked' state (they'll self-mark via
+-- the standard flow per ROADMAP-04).
+--
+-- SYNC: schema is `status varchar(20) NOT NULL CHECK (status IN
+-- ('locked','active','completed'))` per 00001:106 — NOT a boolean
+-- `completed` column. `step_name` is NOT NULL so we must provide the
+-- Phase 57 title verbatim.
+--
+-- ON CONFLICT DO NOTHING guards against migration re-run (second run finds
+-- step 8 rows already present per the student_id+step_number UNIQUE index
+-- from 00001:112).
+-- -----------------------------------------------------------------------------
+
+INSERT INTO public.roadmap_progress (student_id, step_number, step_name, status, completed_at)
+SELECT
+  rp.student_id,
+  8,
+  'Join at least one Influencer Q&A session (CPM + pricing)',
+  'completed',
+  now()
+FROM public.roadmap_progress rp
+WHERE rp.step_number = 7
+  AND rp.status = 'completed'
+ON CONFLICT (student_id, step_number) DO NOTHING;
