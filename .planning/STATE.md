@@ -1,13 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: Owner Analytics, Announcements & Roadmap Update
-status: verifying
-stopped_at: Phase 56 UI-SPEC approved
-last_updated: "2026-04-15T17:41:48.768Z"
-last_activity: 2026-04-15
+milestone: none
+last_shipped: v1.6
+milestone_name: Owner Analytics, Announcements & Roadmap Update (shipped)
+status: milestone_complete
+stopped_at: v1.6 shipped 2026-04-15 — ready for next milestone
+last_updated: "2026-04-15T21:00:00.000Z"
+last_activity: 2026-04-15 -- v1.6 milestone audit passed (35/35); archived; tagged v1.6
 progress:
-  total_phases: 27
+  total_phases: 4
   completed_phases: 4
   total_plans: 14
   completed_plans: 14

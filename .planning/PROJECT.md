@@ -228,10 +228,11 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 ## Current State
 
-**Shipped:** v1.5 (2026-04-15) — Analytics Pages, Coach Dashboard & Deal Logging
-**Active:** v1.6 — Phase 57 (Roadmap Step 8 Insertion) complete on 2026-04-15: atomic migration 00030 inserts new Stage-1 Step 8 "Join at least one Influencer Q&A session (CPM + pricing)" at the end of Stage 1, two-pass renumbers existing steps 8–15 → 9–16, rebinds `MILESTONE_CONFIG.influencersClosedStep` 11→12 and `brandResponseStep` 13→14 in lockstep with `get_coach_milestones` RPC, auto-completes new Step 8 for prior Step 7 completers. Migration applied to linked Supabase project; 8/8 post-deploy smokes PASS. Phase 57 is the last phase of v1.6 milestone.
+**Shipped:** v1.6 (2026-04-15) — Owner Analytics, Announcements & Roadmap Update. 4 phases (54-57), 14 plans, 35/35 requirements satisfied. Owner analytics page with 3 lifetime leaderboards and cache-tag invalidation; chat system retired and replaced with broadcast announcements (CRUD for owner/coach, read-only for students + student_diy, paginated 25/page); atomic roadmap Step 8 insertion with two-pass renumber, RPC rebind, and Step-7-completer auto-complete. Migrations 00028-00030 deployed. See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md) and [v1.6-MILESTONE-AUDIT.md](v1.6-MILESTONE-AUDIT.md).
 
-## Carry-overs (not v1.6 scope)
+**Active:** None — ready for next milestone via `/gsd-new-milestone`.
+
+## Carry-overs (not next-milestone scope unless reprioritized)
 
 - NOTIF-01 Tech/Email Setup activation once D-06 resolves
 - Nyquist test-coverage audit across v1.5 phases (44-52)

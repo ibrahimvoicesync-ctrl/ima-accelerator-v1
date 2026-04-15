@@ -8,7 +8,7 @@
 - ✅ **v1.3 Roadmap Update, Session Planner & Coach Controls** — Phases 25-29 (shipped 2026-04-03)
 - ✅ **v1.4 Roles, Chat, Resources & Student Deals** — Phases 30-37, 40-43 (shipped 2026-04-07)
 - ✅ **v1.5 Analytics Pages, Coach Dashboard & Deal Logging** — Phases 44-53 (shipped 2026-04-15)
-- 🚧 **v1.6 Owner Analytics, Announcements & Roadmap Update** — Phases 54-57 (in progress)
+- ✅ **v1.6 Owner Analytics, Announcements & Roadmap Update** — Phases 54-57 (shipped 2026-04-15)
 
 > Phases 38–39 were retired during v1.4 scope consolidation. v1.5 continues numbering from Phase 44.
 
@@ -103,14 +103,17 @@ See [milestones/v1.5-ROADMAP.md](milestones/v1.5-ROADMAP.md) for full phase deta
 
 </details>
 
-### 🚧 v1.6 Owner Analytics, Announcements & Roadmap Update (In Progress)
+<details>
+<summary>✅ v1.6 Owner Analytics, Announcements & Roadmap Update (Phases 54-57) — SHIPPED 2026-04-15</summary>
 
-**Milestone Goal:** Deliver owner-level analytics visibility, replace 1-on-1 chat with a broadcast announcements system, and insert a new Influencer Q&A roadmap step — all at 5k-student scale.
+- [x] **Phase 54: Owner Analytics** — completed 2026-04-15
+- [x] **Phase 55: Chat Removal + Announcements Migration** — completed 2026-04-15
+- [x] **Phase 56: Announcements CRUD & Pages** — completed 2026-04-15
+- [x] **Phase 57: Roadmap Step 8 Insertion** — completed 2026-04-15
 
-- [ ] **Phase 54: Owner Analytics** — `/owner/analytics` leaderboards + owner dashboard teaser + `owner-analytics` cache tag wired to all mutation routes
-- [ ] **Phase 55: Chat Removal + Announcements Migration** — atomic migration (rewrite `get_sidebar_badges`, CREATE `announcements` table + RLS, DROP `messages`); all chat code deleted from codebase
-- [x] **Phase 56: Announcements CRUD & Pages** — announcement create/edit/delete for owner+coach, read-only pages for all 4 roles, paginated 25/page, sidebar nav wired (completed 2026-04-15)
-- [x] **Phase 57: Roadmap Step 8 Insertion** — atomic two-pass renumber migration, new Step 8 auto-complete for qualifying students, `ROADMAP_STEPS` + `MILESTONE_CONFIG` config updates, `get_coach_milestones` RPC rewrite, hardcoded step number grep sweep (completed 2026-04-15)
+See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md) for full phase details.
+
+</details>
 
 ## Phase Details
 
@@ -470,59 +473,7 @@ Plans:
 - [x] 43-01-PLAN.md — Shared StudentDealsTable component + coach/owner student detail page Deals tab integration
 **UI hint**: yes
 
-### Phase 54: Owner Analytics
-**Goal**: The owner can view a dedicated analytics page with three top-3 leaderboards and see a teaser on their dashboard homepage; the `owner-analytics` cache tag is wired to all deal and work-session mutation routes so leaderboards never go stale
-**Depends on**: Phase 53
-**Requirements**: OA-01, OA-02, OA-03, OA-04, OA-05, OA-06
-**Cross-cutting**: PERF-01, PERF-02, PERF-03, PERF-04, PERF-06, PERF-07
-**Success Criteria** (what must be TRUE):
-  1. Owner can navigate to `/owner/analytics` and see three leaderboard cards: Top 3 Students by Hours Worked (lifetime), Top 3 Students by Profit Earned (lifetime), Top 3 Students by Deals Closed (lifetime); each row links to `/owner/students/[studentId]`
-  2. Owner dashboard homepage shows a teaser analytics section with compact top-1 entries for each leaderboard and a "View full analytics" link to `/owner/analytics`; the section is served by the same `get_owner_analytics` RPC
-  3. `get_owner_analytics` is a single Postgres RPC wrapped in `unstable_cache` with a 60s TTL tagged `owner-analytics`; all three leaderboards return from one database call
-  4. `revalidateTag("owner-analytics")` is called in POST `/api/deals`, PATCH `/api/deals/[id]`, DELETE `/api/deals/[id]`, and PATCH `/api/work-sessions/[id]` (when status becomes `completed`); after any deal or session mutation the owner sees updated leaderboards within one page load
-  5. EXPLAIN ANALYZE on the RPC confirms index scans (not seq scans) on existing `idx_deals_student_created` and `idx_work_sessions_completed_student_date` indexes; no new indexes needed
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 55: Chat Removal + Announcements Migration
-**Goal**: The `messages` table is permanently dropped and `get_sidebar_badges` no longer references it — in one atomic migration transaction — so the dashboard never enters a broken state; all chat code is deleted from the codebase in the same deploy
-**Depends on**: Phase 54
-**Requirements**: CHAT-REM-01, CHAT-REM-02, CHAT-REM-03, CHAT-REM-04, CHAT-REM-05, CHAT-REM-06, CHAT-REM-07, CHAT-REM-08, ANNOUNCE-01, ANNOUNCE-09, ANNOUNCE-10
-**Cross-cutting**: PERF-02, PERF-03, PERF-06
-**Success Criteria** (what must be TRUE):
-  1. The dashboard loads without errors for all roles (owner, coach, student, student_diy) after the migration; `get_sidebar_badges` returns correctly shaped JSON with no `unread_messages` field; `SidebarBadgesResult` TypeScript type has no `unread_messages` field and `npm run build` passes clean
-  2. The `messages` table no longer exists in the database; `src/app/(dashboard)/coach/chat/`, `src/app/(dashboard)/student/chat/`, `src/app/api/messages/`, `src/lib/chat-utils.ts`, and all chat component files are deleted; `src/proxy.ts` has no `/coach/chat` or `/student/chat` entries; `src/lib/config.ts` has no chat entries in `ROUTES` or `NAVIGATION`
-  3. The `announcements` table exists in the database with `id`, `author_id` (FK → users), `content` (text, max 2000), `created_at`, `updated_at`; an index on `created_at DESC` supports pagination; RLS is enabled with `(SELECT auth.uid())` initplan pattern on all policies
-  4. Migration 00029 is a single `BEGIN … COMMIT` block that executes in order: (1) `CREATE OR REPLACE FUNCTION get_sidebar_badges` with `unread_messages` branches removed, (2) `CREATE TABLE announcements` with RLS policies and index, (3) `DROP TABLE messages CASCADE` — this order is non-negotiable
-  5. TypeScript `src/lib/types.ts` no longer contains the `messages` table type block; all call-sites that previously read `badges.unread_messages` are removed or updated
-**Plans**: TBD
-
-### Phase 56: Announcements CRUD & Pages
-**Goal**: All four roles have a working `/announcements` page accessible from the sidebar; owner and coach can create, edit, and delete any announcement; students and student_diy can read; the list is paginated 25/page and edited announcements show an "(edited)" indicator
-**Depends on**: Phase 55
-**Requirements**: ANNOUNCE-02, ANNOUNCE-03, ANNOUNCE-04, ANNOUNCE-05, ANNOUNCE-06, ANNOUNCE-07, ANNOUNCE-08, ANNOUNCE-11, ANNOUNCE-12
-**Cross-cutting**: PERF-02, PERF-03, PERF-05, PERF-06, PERF-07
-**Success Criteria** (what must be TRUE):
-  1. All four sidebar navs (owner, coach, student, student_diy) contain an "Announcements" link pointing to the role-scoped `/[role]/announcements` page; navigating to the page renders the announcement list with author name, role chip, relative timestamp, and content
-  2. Owner and coach see a "New Announcement" button; submitting the form (title + content, both required, content max 2000 chars) creates an announcement and prepends it to the list without page reload; students and student_diy see no create/edit/delete controls
-  3. Owner or coach can click "Edit" on any announcement (not just their own), update the content, and save; the list re-renders with updated content and an "(edited)" indicator visible when `updated_at > created_at`
-  4. Owner or coach can click "Delete" on any announcement with a confirmation step; the announcement is removed from the list immediately
-  5. The announcements list loads 25 per page ordered by `created_at DESC`; a "Load more" or pagination control fetches the next page; API routes (`POST /api/announcements`, `PATCH /api/announcements/[id]`, `DELETE /api/announcements/[id]`) enforce auth, role check (`owner` or `coach`), `verifyOrigin()`, and `checkRateLimit()` at 30 req/min per user
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 57: Roadmap Step 8 Insertion
-**Goal**: A new Step 8 "Join at least one Influencer Q&A session (CPM + pricing)" is inserted at the end of Stage 1; existing Steps 8–15 become Steps 9–16 atomically without any duplicate `step_number` visible mid-transaction; students who completed old Step 7 have new Step 8 auto-marked complete; coach milestone alerts fire on the correct renumbered steps
-**Depends on**: Phase 56
-**Requirements**: ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05, ROADMAP-06, ROADMAP-07, ROADMAP-08, ROADMAP-09
-**Cross-cutting**: PERF-01, PERF-03, PERF-06, PERF-07
-**Success Criteria** (what must be TRUE):
-  1. The student roadmap page shows 16 steps with a new Step 8 titled "Join at least one Influencer Q&A session (CPM + pricing)" inside Stage 1 (Setup & Preparation); Steps 9–16 are the previously-named Steps 8–15 with all descriptions, stage headers, and deadline chips intact
-  2. A student who had completed old Step 7 (or any step past it) sees new Step 8 already marked complete on first page load after migration; a student still on Steps 1–7 sees new Step 8 as locked; both student and student_diy rows are handled
-  3. `ROADMAP_STEPS` in `src/lib/config.ts` has exactly 16 entries; `MILESTONE_CONFIG.influencersClosedStep` is `12` and `MILESTONE_CONFIG.brandResponseStep` is `14`; the `get_coach_milestones` Postgres RPC matches these values; a coach milestone alert fires correctly for a student who reaches the new step 12 (5 influencers closed) or step 14 (first brand response)
-  4. All progress-bar denominators across student, coach, and owner roadmap views show `/16` (derived from `ROADMAP_STEPS.length`); no hardcoded `/15` or `/10` literals remain in `src/`
-  5. Migration 00030 uses a two-pass UPDATE (shift steps 8–15 to 108–115, then shift to 9–16) inside a single `BEGIN … COMMIT`; the `CHECK (step_number BETWEEN 1 AND 15)` constraint is dropped and recreated as `BETWEEN 1 AND 16` before any renumber UPDATE; embedded `DO $$ ASSERT $$` blocks verify max step = 16 and zero duplicate (student_id, step_number) rows before `COMMIT`
-**Plans**: TBD
+> Phase details for v1.6 (Phases 54-57) archived to [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md).
 
 ## Progress
 
