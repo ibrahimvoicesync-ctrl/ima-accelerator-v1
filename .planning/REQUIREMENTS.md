@@ -2,7 +2,7 @@
 
 **Goal:** Students and student_diy users can generate and share a personal Rebrandly short link from their dashboard to refer friends for a $500 bonus — idempotent, cached forever after first generation.
 
-**Status:** Defining — not yet mapped to phases.
+**Status:** Roadmapped — 3 phases (58–60), 19/19 requirements mapped.
 **Last updated:** 2026-04-15
 
 ---
@@ -73,6 +73,30 @@
 
 ## Traceability
 
-<!-- Filled by roadmap creation. Each REQ-ID maps to exactly one phase. -->
+<!-- Each REQ-ID maps to exactly one phase. CFG-02 is a cross-cutting build gate that applies to every phase (listed on each). -->
 
-_Pending — to be populated by gsd-roadmapper._
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| DB-01       | Phase 58 — Schema & Backfill | Pending |
+| DB-02       | Phase 58 — Schema & Backfill | Pending |
+| DB-03       | Phase 58 — Schema & Backfill | Pending |
+| API-01      | Phase 59 — Referral API + Rebrandly | Pending |
+| API-02      | Phase 59 — Referral API + Rebrandly | Pending |
+| API-03      | Phase 59 — Referral API + Rebrandly | Pending |
+| API-04      | Phase 59 — Referral API + Rebrandly | Pending |
+| API-05      | Phase 59 — Referral API + Rebrandly | Pending |
+| API-06      | Phase 59 — Referral API + Rebrandly | Pending |
+| API-07      | Phase 59 — Referral API + Rebrandly | Pending |
+| API-08      | Phase 59 — Referral API + Rebrandly | Pending |
+| UI-01       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
+| UI-02       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
+| UI-03       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
+| UI-04       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
+| UI-05       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
+| UI-06       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
+| INT-01      | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
+| INT-02      | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
+| CFG-01      | Phase 58 — Schema & Backfill | Pending |
+| CFG-02      | Phases 58, 59, 60 (cross-cutting build gate) | Pending |
+
+**Coverage:** 19/19 requirements mapped to exactly one phase (CFG-02 is a per-phase gate, applied to all three).

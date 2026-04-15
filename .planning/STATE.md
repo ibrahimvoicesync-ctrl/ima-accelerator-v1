@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.7
 last_shipped: v1.6
 milestone_name: Student Referral Links (Rebrandly Integration)
-status: defining_requirements
-stopped_at: v1.7 started — defining requirements
-last_updated: "2026-04-15T22:00:00.000Z"
-last_activity: 2026-04-15 -- v1.7 milestone kicked off via /gsd-new-milestone
+status: ready_to_plan_phase_58
+stopped_at: roadmap complete
+last_updated: "2026-04-15T23:00:00.000Z"
+last_activity: 2026-04-15 -- v1.7 roadmap created (3 phases)
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -22,14 +22,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-15)
 
 **Core value:** Students can track their daily work, follow the roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** v1.7 Student Referral Links — defining requirements → roadmap
+**Current focus:** v1.7 Student Referral Links — roadmap complete, ready to plan Phase 58
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 58 (Schema & Backfill) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-15 — Milestone v1.7 started
+Status: Roadmap complete, ready to plan Phase 58
+Last activity: 2026-04-15 — v1.7 roadmap created (3 phases, 19/19 reqs mapped)
 
 ## Performance Metrics
 
@@ -58,6 +58,13 @@ Last activity: 2026-04-15 — Milestone v1.7 started
 - **Rebrandly-only scope**: no custom domain, no webhook, no click tracking ingestion.
 - **Role gate**: only `student` + `student_diy` can generate links. Owner/coach calling this endpoint returns 403.
 - **Fail-soft**: missing `REBRANDLY_API_KEY` must return 500 with clear `console.error`, never crash the dashboard.
+- **Post-phase build gate (CFG-02)**: `npm run lint && npx tsc --noEmit && npm run build` exits 0 at every phase boundary.
+
+### v1.7 Phase Map (3 phases)
+
+- **Phase 58 — Schema & Backfill**: DB-01, DB-02, DB-03, CFG-01, CFG-02
+- **Phase 59 — Referral API + Rebrandly**: API-01..08, CFG-02
+- **Phase 60 — ReferralCard UI & Dashboard Integration**: UI-01..06, INT-01, INT-02, CFG-02
 
 ### Open Blockers Carried Into v1.7
 
@@ -73,6 +80,6 @@ Last activity: 2026-04-15 — Milestone v1.7 started
 
 ## Session Continuity
 
-Last session: 2026-04-15 — v1.6 audit passed, tag `v1.6` created locally
-Stopped at: v1.7 requirements definition
-Resume: after requirements + roadmap commit, `/gsd-discuss-phase 58` or `/gsd-plan-phase 58`
+Last session: 2026-04-15 — v1.7 roadmap created (3 phases, 19/19 requirements mapped)
+Stopped at: roadmap complete
+Resume: `/gsd-discuss-phase 58` or `/gsd-plan-phase 58`

@@ -9,6 +9,7 @@
 - ✅ **v1.4 Roles, Chat, Resources & Student Deals** — Phases 30-37, 40-43 (shipped 2026-04-07)
 - ✅ **v1.5 Analytics Pages, Coach Dashboard & Deal Logging** — Phases 44-53 (shipped 2026-04-15)
 - ✅ **v1.6 Owner Analytics, Announcements & Roadmap Update** — Phases 54-57 (shipped 2026-04-15)
+- 🚧 **v1.7 Student Referral Links (Rebrandly Integration)** — Phases 58-60 (planning, started 2026-04-15)
 
 > Phases 38–39 were retired during v1.4 scope consolidation. v1.5 continues numbering from Phase 44.
 
@@ -112,6 +113,15 @@ See [milestones/v1.5-ROADMAP.md](milestones/v1.5-ROADMAP.md) for full phase deta
 - [x] **Phase 57: Roadmap Step 8 Insertion** — completed 2026-04-15
 
 See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md) for full phase details.
+
+</details>
+
+<details open>
+<summary>🚧 v1.7 Student Referral Links (Rebrandly Integration) (Phases 58-60) — IN PROGRESS</summary>
+
+- [ ] **Phase 58: Schema & Backfill** — referral columns + per-student backfill on `public.users`; env example documented
+- [ ] **Phase 59: Referral API + Rebrandly** — idempotent `POST /api/referral-link` end-to-end
+- [ ] **Phase 60: ReferralCard UI & Dashboard Integration** — student + student_diy dashboards render the referral card
 
 </details>
 
@@ -475,6 +485,45 @@ Plans:
 
 > Phase details for v1.6 (Phases 54-57) archived to [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md).
 
+### Phase 58: Schema & Backfill
+**Goal**: The `public.users` table can store a per-user Rebrandly referral code and short URL, with every existing student and student_diy row pre-seeded with a deterministic code, and dev onboarding knows the new env var is required
+**Depends on**: Phase 57 (v1.6 baseline — migration 00030 deployed)
+**Requirements**: DB-01, DB-02, DB-03, CFG-01, CFG-02
+**Success Criteria** (what must be TRUE):
+  1. Migration `supabase/migrations/00031_referral_links.sql` applies cleanly on top of `00030`, leaving `public.users` with two new nullable columns: `referral_code` (`varchar(12)`) and `referral_short_url` (`text`)
+  2. After migration, every pre-existing row with `role IN ('student','student_diy')` has a non-null `referral_code` matching `upper(substr(md5(id::text), 1, 8))`; every owner and coach row still has `referral_code IS NULL`
+  3. Attempting to insert a duplicate non-null `referral_code` is rejected by a UNIQUE-where-NOT-NULL index, so collisions surface at write time rather than silently overwriting
+  4. `.env.local.example` documents `REBRANDLY_API_KEY=` (empty value) under a clearly labelled section so a fresh clone fails loudly with the existing missing-env error path rather than crashing
+  5. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0 with no new errors or warnings
+**Plans**: TBD
+
+### Phase 59: Referral API + Rebrandly
+**Goal**: Any authenticated student or student_diy user can `POST /api/referral-link` and receive an idempotent JSON `{ shortUrl, referralCode }` — Rebrandly is called at most once per user for life, and every documented failure mode (auth, role, missing key, Rebrandly outage, DB error) returns a stable HTTP status without corrupting state
+**Depends on**: Phase 58
+**Requirements**: API-01, API-02, API-03, API-04, API-05, API-06, API-07, API-08, CFG-02
+**Success Criteria** (what must be TRUE):
+  1. An unauthenticated `POST /api/referral-link` returns HTTP 401; an authenticated owner or coach calling the same endpoint returns HTTP 403 — neither path touches the DB or Rebrandly
+  2. The first authenticated `POST` from a backfilled student or student_diy user returns 200 with `{ shortUrl, referralCode }`; the second and every subsequent `POST` from the same user returns the same `shortUrl` without making any outbound Rebrandly request (verified by zero new Rebrandly calls beyond the first)
+  3. A backfill-skipped student/student_diy user (e.g. `referral_code IS NULL`) calling the endpoint receives a freshly generated 8-char code persisted to `public.users` before Rebrandly is called; the response includes the same code
+  4. With `REBRANDLY_API_KEY` unset, the endpoint returns HTTP 500 and the dashboard continues to load; with the key set but Rebrandly returning non-OK / throwing / timing out, the endpoint returns HTTP 502, logs the underlying cause via `console.error`, and leaves `referral_short_url` NULL (no partial persistence)
+  5. The route enforces the standard pipeline — `getSessionUser()` + role gate run BEFORE any Zod `safeParse` of the request body, all DB access uses the admin client, `response.ok` is checked before parsing the Rebrandly JSON, and Zod is imported as `import { z } from "zod"`
+  6. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0
+**Plans**: TBD
+
+### Phase 60: ReferralCard UI & Dashboard Integration
+**Goal**: Students and student_diy users see a polished referral card at the bottom of their dashboard, can generate their link with one click, and can copy or share it from the same card — with all CLAUDE.md Hard Rules (touch targets, motion-safe animations, ima-* tokens, aria labels, response.ok, never-swallow errors) satisfied
+**Depends on**: Phase 59
+**Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, INT-01, INT-02, CFG-02
+**Success Criteria** (what must be TRUE):
+  1. `src/components/student/ReferralCard.tsx` is a `"use client"` component with no props; on mount it shows the $500 referral headline (one professional sentence, no hype, no emoji, no exclamation marks) plus a "Get My Link" button with `min-h-[44px]` and an accessible label
+  2. Clicking "Get My Link" shows a `motion-safe:animate-spin` spinner inside the button, then transitions to a ready state showing the short URL, a Copy button (toggles to "Copied!" + check icon for 2 s), and a Share button that uses `navigator.share` and is hidden when the API is unavailable; every interactive element meets the 44 px touch-target rule
+  3. The card shell uses `bg-ima-surface border border-ima-border rounded-xl p-6` with no hardcoded hex/gray colors anywhere in the component; decorative icons carry `aria-hidden="true"` and icon-only buttons (Copy, Share) carry an `aria-label`
+  4. A failing fetch (network error or non-2xx response) surfaces a visible toast or inline error AND fires `console.error` — the spinner clears, the button re-enables, and `response.ok` is checked before any JSON parse so a 500/502 cannot crash the component
+  5. `<ReferralCard />` is rendered at the bottom of both `src/app/(dashboard)/student/page.tsx` and `src/app/(dashboard)/student_diy/page.tsx`, each inside an `mt-6` wrapper directly below the existing Deals stat cards grid; logging in as a student or student_diy user shows the card in the expected position with no layout shift
+  6. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -534,3 +583,6 @@ Plans:
 | 55. Chat Removal + Announcements Migration | v1.6 | 2/4 | In Progress|  |
 | 56. Announcements CRUD & Pages | v1.6 | 3/3 | Complete    | 2026-04-15 |
 | 57. Roadmap Step 8 Insertion | v1.6 | 3/3 | Complete    | 2026-04-15 |
+| 58. Schema & Backfill | v1.7 | 0/TBD | Not started | — |
+| 59. Referral API + Rebrandly | v1.7 | 0/TBD | Not started | — |
+| 60. ReferralCard UI & Dashboard Integration | v1.7 | 0/TBD | Not started | — |
