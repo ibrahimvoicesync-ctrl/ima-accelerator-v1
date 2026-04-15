@@ -8,6 +8,7 @@ import { verifyOrigin } from "@/lib/csrf";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
 import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
+import { ownerAnalyticsTag } from "@/lib/rpc/owner-analytics-types";
 
 const patchSchema = z.object({
   status: z.enum(["completed", "abandoned", "paused", "in_progress"]),
@@ -160,6 +161,13 @@ export async function PATCH(
       }
     } catch (err) {
       console.error("[work-sessions] failed to invalidate coach-dashboard tag:", err);
+    }
+    // Phase 54: owner-analytics is a GLOBAL tag — invalidate on every session
+    // completion regardless of coach_id. Lifetime hours leaderboard changes.
+    try {
+      revalidateTag(ownerAnalyticsTag(), "default");
+    } catch (err) {
+      console.error("[work-sessions:PATCH] failed to invalidate owner-analytics tag:", err);
     }
   }
   return NextResponse.json(updated);
