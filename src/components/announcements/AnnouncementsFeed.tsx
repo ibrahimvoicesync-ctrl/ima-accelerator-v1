@@ -12,7 +12,7 @@
  *  - Renders the correct role-aware empty state.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -44,6 +44,12 @@ export function AnnouncementsFeed({
   const [page, setPage] = useState(1); // page 1 was the SSR fetch
   const [showCreate, setShowCreate] = useState(false);
   const { toast } = useToast();
+  // Stable ref so handleLoadMore doesn't rebind on every toast identity change
+  // (pattern from CLAUDE.md §Code Quality "Stable useCallback deps").
+  const toastRef = useRef(toast);
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const canAuthor = role === "owner" || role === "coach";
 
@@ -71,7 +77,7 @@ export function AnnouncementsFeed({
         method: "GET",
       });
       if (!response.ok) {
-        toast({
+        toastRef.current({
           type: "error",
           title: "Could not load more announcements. Try again.",
         });
@@ -98,14 +104,14 @@ export function AnnouncementsFeed({
       setPage(nextPage);
     } catch (err) {
       console.error("[AnnouncementsFeed] Load more failed:", err);
-      toast({
+      toastRef.current({
         type: "error",
         title: "Could not load more announcements. Try again.",
       });
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, page, toast]);
+  }, [loadingMore, hasMore, page]);
 
   // ---------------- Empty state ----------------
   if (items.length === 0 && !showCreate) {
