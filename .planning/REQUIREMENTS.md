@@ -12,9 +12,9 @@
 ### Owner Analytics (OA)
 
 - [ ] **OA-01** — Owner can view `/owner/analytics` page (separate route from owner dashboard homepage)
-- [ ] **OA-02** — Owner Analytics page shows 3 top-3 leaderboards: Top 3 Students by Hours Worked, Top 3 Students by Profit Earned, Top 3 Students by Deals Closed (lifetime scope, deterministic tie-break)
+- [x] **OA-02** — Owner Analytics page shows 3 top-3 leaderboards: Top 3 Students by Hours Worked, Top 3 Students by Profit Earned, Top 3 Students by Deals Closed (lifetime scope, deterministic tie-break)
 - [ ] **OA-03** — Owner dashboard homepage shows teaser stat cards linking to `/owner/analytics`
-- [ ] **OA-04** — Owner Analytics served by a single batch Postgres RPC (`get_owner_analytics`) wrapped in `unstable_cache` with 60s TTL
+- [x] **OA-04** — Owner Analytics served by a single batch Postgres RPC (`get_owner_analytics`) wrapped in `unstable_cache` with 60s TTL
 - [ ] **OA-05** — `owner-analytics` cache tag is invalidated on every `deals` mutation (INSERT/UPDATE/DELETE) and on work-session completion (PATCH → completed)
 - [ ] **OA-06** — Leaderboard rows link to `/owner/students/[studentId]`
 
@@ -58,13 +58,13 @@
 
 ### Performance & Quality (PERF — cross-cutting, applies to every phase)
 
-- [ ] **PERF-01** — All new hot-path queries have supporting indexes (reuse Phase 44 indexes where possible; add new indexes only if verified gap)
+- [x] **PERF-01** — All new hot-path queries have supporting indexes (reuse Phase 44 indexes where possible; add new indexes only if verified gap)
 - [ ] **PERF-02** — Every new API route performs auth check + role verification + rate limiting (30 req/min/user) + Zod `safeParse` + `verifyOrigin()` for mutations
-- [ ] **PERF-03** — All new RLS policies use `(SELECT auth.uid())` initplan pattern
-- [ ] **PERF-04** — Dashboard aggregations served via Postgres RPC with 60s `unstable_cache` + tag-based invalidation
+- [x] **PERF-03** — All new RLS policies use `(SELECT auth.uid())` initplan pattern
+- [x] **PERF-04** — Dashboard aggregations served via Postgres RPC with 60s `unstable_cache` + tag-based invalidation
 - [ ] **PERF-05** — Any list larger than 25 items is paginated
 - [ ] **PERF-06** — Every phase ends with passing `npm run lint && npx tsc --noEmit && npm run build`
-- [ ] **PERF-07** — All features meet the 5,000 concurrent student stress envelope (query plans reviewed, no client-side aggregation on large sets)
+- [x] **PERF-07** — All features meet the 5,000 concurrent student stress envelope (query plans reviewed, no client-side aggregation on large sets)
 
 ---
 
