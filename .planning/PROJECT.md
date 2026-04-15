@@ -60,15 +60,18 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ Dashboard stat cards — 3 deal cards (Deals Closed, Total Revenue, Total Profit) on student dashboards — v1.4 (Phase 42)
 - ✓ Coach/owner deals tab — read-only deals table on student detail pages with margin %, summary totals — v1.4 (Phase 43)
 
+- ✓ Student Analytics Page — `/student/analytics` + `/student_diy/analytics` with outreach trends, deal history, roadmap progress vs deadlines, hours worked, lifetime totals (RPC-driven) — v1.5 (Phase 46)
+- ✓ Coach Dashboard Homepage Stats — quick-scan stat cards (deals, revenue, avg roadmap step, emails) + recent reports + top-3 hours leaderboard (Mon-Sun weekly) — v1.5 (Phase 47)
+- ✓ Coach Analytics Tab (Full) — `/coach/analytics` with leaderboards, 12-week deal trend, active/inactive split, paginated searchable student list, rate-limited CSV export — v1.5 (Phases 48, 53)
+- ✓ Coaches log deals for students — `deals.logged_by` column with dual-layer authorization, audit trigger, Add Deal button on coach/owner deals tab, attribution chip — v1.5 (Phases 45, 49)
+- ✓ Milestone notifications for coaches — 3 of 4 triggers live (5 Influencers Closed, First Brand Response, Closed Deal-per-deal), `/coach/alerts` page with bulk dismiss, 9+ badge cap — v1.5 (Phases 50, 51, 52)
+
 ### Active
 
-<!-- Current scope. Building toward these for v1.5. -->
+<!-- Current scope. Building toward v1.6. -->
 
-- [ ] Student Analytics Page — `/student/analytics` with outreach trends, deal history, roadmap progress vs deadlines, hours worked, lifetime totals (RPC-driven)
-- [ ] Coach Dashboard Homepage Stats — quick-scan stat cards (deals closed, revenue, avg roadmap step, total emails) + 3 recent reports + top-3 hours leaderboard (weekly Mon-Sun)
-- [ ] Coach Analytics Tab (Full) — expanded `/coach/analytics` with leaderboards, deal trends, active/inactive breakdown, paginated
-- [ ] Coaches log deals for students — `logged_by` column on deals, RLS updates, Add Deal button on coach deals tab, attribution indicator
-- [ ] Milestone notifications for coaches — Tech/Email Setup (step TBC), 5 Influencers Closed (Step 11), First Brand Response (Step 13), Closed Deal (every deal), reuse 100+ hrs/45 days pattern
+- [ ] NOTIF-01 Tech/Email Setup trigger activation — pending D-06 stakeholder decision on roadmap step placement; config ships behind `techSetupEnabled` feature flag
+- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit deferred from v1.5 milestone
 
 ### Out of Scope
 
@@ -131,6 +134,8 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **v1.4 Phase 43 complete** (2026-04-07): Coach/owner deals tab — read-only deals table on coach and owner student detail pages with deal #, revenue, profit, margin %, logged date, summary totals row, empty state. Uses shared component scoped to assigned students (coach) or any student (owner).
 
 **v1.4 milestone complete** (2026-04-07): 14 phases (30-37, 40-43), 30+ plans. Student_DIY role, skip tracker, coach assignments, report comments, chat system, resources tab, invite link max_uses, plus full deals infrastructure (config/types, student pages, dashboard cards, coach/owner visibility) all shipped.
+
+**v1.5 milestone complete** (2026-04-15): 10 phases (44-53), 16 plans, 93 commits, 151 files modified. Analytics RPC foundation (Phase 44), Student Analytics + Coach Dashboard Homepage + Full Coach Analytics pages (Phases 46-48) with recharts + batch RPCs + `unstable_cache`, `deals.logged_by` dual-layer authorization + coach/owner Add Deal UI (Phases 45, 49), milestone config + notifications RPC + `/coach/alerts` grouped feed (Phases 50-52), v1.5 gap-closure for work-sessions coach-tag cache bust + CSV rate limit + tag cleanup + requirements traceability backfill (Phase 53). 53/54 requirements satisfied; NOTIF-01 deferred pending D-06.
 
 **Platform purpose:** Abu Lahya runs an influencer marketing accelerator. Students learn to become influencer marketing agents — finding influencers, signing them, then closing brand deals. The platform tracks their daily work discipline and progress through a structured 10-step roadmap.
 
@@ -200,23 +205,19 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | v1.5 D-16 | "Closed Deal" milestone fires on ALL deals (student-logged, coach-logged, owner-logged) | Simplest + consistent with D-07 — coach wants to know student is closing regardless of who logged | 2026-04-13 |
 | v1.5 D-17 | Coach/owner edit of deals records `updated_at` + `updated_by` only (no per-edit change-log) | Standard audit columns sufficient for v1.5; full history deferred to v1.6+ | 2026-04-13 |
 
-## Current Milestone: v1.5 Analytics Pages, Coach Dashboard & Deal Logging
+## Current State
 
-**Goal:** Give students self-visibility into their own performance, give coaches quick-scan dashboards + deep analytics + the ability to log deals on behalf of students, and extend the existing notification system with 4 new milestone triggers. Must scale to 5,000 concurrent students.
+**Shipped:** v1.5 (2026-04-15) — Analytics Pages, Coach Dashboard & Deal Logging
+**Next:** v1.6 (scope TBD — run `/gsd-new-milestone` to define)
 
-**Target features:**
-- Student Analytics Page — `/student/analytics` with outreach trends, deal history, roadmap progress vs deadlines, hours worked, lifetime totals (RPC-driven)
-- Coach Dashboard Homepage Stats — quick-scan stat cards (deals closed, revenue, avg roadmap step, total emails) + 3 recent reports (See All link) + top-3 hours leaderboard (Mon-Sun weekly reset), each clickable to analytics
-- Coach Analytics Tab (Full) — expanded `/coach/analytics` with leaderboards (top deals, top emails), deal trends, active/inactive breakdown, paginated
-- Coaches can log deals for students — `logged_by` column, coach/owner INSERT RLS, Add Deal button on coach deals tab, UI attribution indicator
-- Milestone notifications for coaches — Tech/Email Setup (step TBC), 5 Influencers Closed (Step 11), First Brand Response (Step 13), Closed Deal (every deal), reusing 100+ hrs/45 days pattern; sidebar badge updated
+## Next Milestone Goals
 
-**Performance constraints (non-negotiable for all phases):**
-- Indexes on hot paths | auth + role + rate limiting on all new endpoints
-- `(SELECT auth.uid())` RLS initplan pattern | aggregations via Postgres RPC (not client-side)
-- `unstable_cache` 60s TTL on dashboard stats | paginate lists > 25
-- Post-phase gate: `npm run lint && npx tsc --noEmit && npm run build`
-- Target: 5,000 concurrent students
+To be defined via `/gsd-new-milestone`. Known carry-overs / candidates:
+- NOTIF-01 Tech/Email Setup activation once D-06 resolves
+- Nyquist test-coverage audit across v1.5 phases (44-52)
+- Full per-edit change-log for deal updates (v1.5 D-17 deferred)
+- Deal ownership transfer UI if attribution grows into workflow
+- Full email notifications pipeline (Resend) — currently out-of-scope
 
 ## Evolution
 
@@ -237,4 +238,4 @@ Last updated: 2026-04-13
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-13 — Milestone v1.5 (Analytics Pages, Coach Dashboard & Deal Logging) started. v1.4 complete at Phase 43 (14 phases, 30+ plans shipped).*
+*Last updated: 2026-04-15 — Milestone v1.5 (Analytics Pages, Coach Dashboard & Deal Logging) shipped: 10 phases (44-53), 16 plans, 93 commits. Ready to scope v1.6.*
