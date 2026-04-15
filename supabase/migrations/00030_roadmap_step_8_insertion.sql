@@ -1,0 +1,32 @@
+-- =============================================================================
+-- Phase 57: Roadmap Step 8 Insertion
+-- Migration: 00030_roadmap_step_8_insertion.sql
+--
+-- Closes ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-06, ROADMAP-09.
+--
+-- SYNC: src/lib/config.ts ROADMAP_STEPS (16 entries) + MILESTONE_CONFIG
+-- (.influencersClosedStep = 12, .brandResponseStep = 14). These two files
+-- MUST land in the SAME Git commit as this migration — missing either half
+-- silently breaks coach milestone alerts (STATE.md §Critical Constraints v1.6).
+--
+-- ATOMIC: single BEGIN…COMMIT. The CHECK constraint swap MUST happen BEFORE
+-- any UPDATE that pushes step_number above 15, because pass 1 of the
+-- two-pass renumber writes 108–115 (to dodge the UNIQUE(student_id,
+-- step_number) collision), which violates the old BETWEEN 1 AND 15 CHECK.
+--
+-- Two-pass renumber (non-negotiable):
+--   Pass 1: UPDATE … SET step_number = step_number + 100 WHERE step_number BETWEEN 8 AND 15
+--   Pass 2: UPDATE … SET step_number = step_number - 99 WHERE step_number BETWEEN 108 AND 115
+-- A naive single-pass "SET step_number = step_number + 1 WHERE step_number BETWEEN 8 AND 15"
+-- violates the UNIQUE(student_id, step_number) index (8→9 collides with existing 9, etc.).
+--
+-- Auto-complete: every student with a completed row at step 7 (post-renumber,
+-- step 7 is untouched) gets a fresh completed row at step 8. ON CONFLICT
+-- DO NOTHING guards against re-run idempotency.
+--
+-- Asserts: MAX(step_number) = 16 AND zero duplicate (student_id, step_number)
+-- rows. Assertion failure raises an exception — Postgres rolls back the
+-- transaction atomically; zero db state change.
+-- =============================================================================
+
+BEGIN;
