@@ -77,7 +77,6 @@ export const ROUTES = {
     analytics: "/coach/analytics",
     alerts: "/coach/alerts",
     assignments: "/coach/assignments",
-    chat: "/coach/chat",
     resources: "/coach/resources",
   },
   student: {
@@ -87,7 +86,6 @@ export const ROUTES = {
     askAI: "/student/ask",
     report: "/student/report",
     deals: "/student/deals",
-    chat: "/student/chat",
     resources: "/student/resources",
     analytics: "/student/analytics",
   },
@@ -302,8 +300,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Assignments",     href: "/coach/assignments",  icon: "ArrowLeftRight" },
     { label: "Analytics",       href: "/coach/analytics",    icon: "BarChart3" },
     { label: "Alerts",          href: "/coach/alerts",       icon: "Bell",          badge: "coach_milestone_alerts" },
-    { label: "Chat",            href: "/coach/chat",         icon: "MessageSquare", badge: "unread_messages",        separator: true },
-    { label: "Resources",       href: ROUTES.coach.resources, icon: "BookOpen" },
+    { label: "Resources",       href: ROUTES.coach.resources, icon: "BookOpen",      separator: true },
   ],
   student: [
     { label: "Dashboard",     href: "/student",         icon: "LayoutDashboard" },
@@ -313,7 +310,6 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Daily Report",  href: "/student/report",  icon: "FileText" },
     { label: "Deals",         href: ROUTES.student.deals, icon: "DollarSign" },
     { label: "Analytics",     href: ROUTES.student.analytics, icon: "BarChart3" },
-    { label: "Chat",          href: "/student/chat",    icon: "MessageSquare",  badge: "unread_messages" },
     { label: "Resources",     href: ROUTES.student.resources, icon: "BookOpen" },
   ],
   student_diy: [
