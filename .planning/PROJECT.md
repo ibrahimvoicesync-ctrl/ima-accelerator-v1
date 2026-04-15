@@ -229,7 +229,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 ## Current State
 
 **Shipped:** v1.5 (2026-04-15) — Analytics Pages, Coach Dashboard & Deal Logging
-**Active:** v1.6 — requirements + roadmap next
+**Active:** v1.6 — Phase 57 (Roadmap Step 8 Insertion) complete on 2026-04-15: atomic migration 00030 inserts new Stage-1 Step 8 "Join at least one Influencer Q&A session (CPM + pricing)" at the end of Stage 1, two-pass renumbers existing steps 8–15 → 9–16, rebinds `MILESTONE_CONFIG.influencersClosedStep` 11→12 and `brandResponseStep` 13→14 in lockstep with `get_coach_milestones` RPC, auto-completes new Step 8 for prior Step 7 completers. Migration applied to linked Supabase project; 8/8 post-deploy smokes PASS. Phase 57 is the last phase of v1.6 milestone.
 
 ## Carry-overs (not v1.6 scope)
 
@@ -258,4 +258,4 @@ Last updated: 2026-04-15
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-15 — Milestone v1.6 (Owner Analytics, Announcements & Roadmap Update) scoped and kicked off.*
+*Last updated: 2026-04-15 — Phase 57 complete; v1.6 milestone is fully shipped and ready for `/gsd-complete-milestone`.*
