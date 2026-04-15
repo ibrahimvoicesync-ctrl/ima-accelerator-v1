@@ -592,11 +592,11 @@ Plans:
   3. `src/app/api/deals/route.ts` lines 183 + 213: orphaned `revalidateTag("deals-${studentId}")` calls are removed (no cache consumer registers this tag; direct-fetch server components do not benefit). No behavior regression in student/coach/owner deals pages
   4. REQUIREMENTS.md traceability table checkboxes for all 43 shipped v1.5 items are updated `[ ]` → `[x]` (ANALYTICS-01..10, COACH-DASH-01..07, COACH-ANALYTICS-01..07, DEALS-01..11, PERF-01..08 except NOTIF-01 which stays deferred); coverage count reflects reality
   5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans:** 4 plans (2 waves)
+**Plans:** 3/4 plans executed
 Wave 1 (parallel, no file overlap):
-- [ ] 53-01-PLAN.md — work-sessions PATCH: add coachDashboardTag + coachAnalyticsTag bust on status=completed
-- [ ] 53-02-PLAN.md — coach analytics CSV export: add checkRateLimit (30 req/min/user)
-- [ ] 53-03-PLAN.md — remove orphaned revalidateTag(`deals-${studentId}`) calls from POST /api/deals
+- [x] 53-01-PLAN.md — work-sessions PATCH: add coachDashboardTag + coachAnalyticsTag bust on status=completed
+- [x] 53-02-PLAN.md — coach analytics CSV export: add checkRateLimit (30 req/min/user)
+- [x] 53-03-PLAN.md — remove orphaned revalidateTag(`deals-${studentId}`) calls from POST /api/deals
 Wave 2 (depends_on 01/02/03):
 - [ ] 53-04-PLAN.md — REQUIREMENTS.md traceability checkbox backfill (45 line changes) + D-12 post-phase build gate
 **UI hint**: no (API-route + bookkeeping only; no UI surface changes)
@@ -655,4 +655,4 @@ Wave 2 (depends_on 01/02/03):
 | 50. Milestone Config | v1.5 | 1/1 | Complete   | 2026-04-13 |
 | 51. Milestone Notifications RPC + Backfill | v1.5 | 1/2 | In Progress|  |
 | 52. Coach Alerts Page | v1.5 | 2/2 | Complete   | 2026-04-14 |
-| 53. v1.5 Cache Invalidation & Rate Limit Fixes | v1.5 | 0/4   | Not started | — |
+| 53. v1.5 Cache Invalidation & Rate Limit Fixes | v1.5 | 3/4 | In Progress|  |
