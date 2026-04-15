@@ -235,3 +235,47 @@ FROM public.roadmap_progress rp
 WHERE rp.step_number = 7
   AND rp.status = 'completed'
 ON CONFLICT (student_id, step_number) DO NOTHING;
+
+-- -----------------------------------------------------------------------------
+-- Section 5: Re-add the CHECK constraint at the NEW ceiling (BETWEEN 1 AND 16).
+-- Safe to do now — Section 2's two-pass renumber has returned every row to
+-- the 1–16 range, and Section 4's INSERT only writes step_number = 8.
+-- -----------------------------------------------------------------------------
+
+ALTER TABLE public.roadmap_progress
+  ADD CONSTRAINT roadmap_progress_step_number_check
+  CHECK (step_number BETWEEN 1 AND 16);
+
+-- -----------------------------------------------------------------------------
+-- Section 6: Embedded ASSERT block — verifies migration invariants.
+-- Failure raises an exception → Postgres rolls back the transaction
+-- atomically; zero db state change.
+-- -----------------------------------------------------------------------------
+
+DO $phase57_assert$
+DECLARE
+  v_max_step   integer;
+  v_dup_count  integer;
+BEGIN
+  -- ASSERT 1: renumber + constraint permit MAX(step_number) = 16.
+  SELECT COALESCE(MAX(step_number), 0) INTO v_max_step FROM public.roadmap_progress;
+  ASSERT v_max_step <= 16,
+    format('Phase 57 ASSERT 1: MAX(step_number) exceeds 16, got %s', v_max_step);
+
+  -- ASSERT 2: zero duplicate (student_id, step_number) rows.
+  -- UNIQUE index on (student_id, step_number) from 00001 makes this
+  -- structurally impossible, but we assert for defense-in-depth:
+  -- if somehow a duplicate slipped through (e.g., via ON CONFLICT
+  -- DO NOTHING masking a bug), the assert catches it.
+  SELECT COUNT(*) INTO v_dup_count
+    FROM (
+      SELECT student_id, step_number
+        FROM public.roadmap_progress
+       GROUP BY student_id, step_number
+      HAVING COUNT(*) > 1
+    ) dup;
+  ASSERT v_dup_count = 0,
+    format('Phase 57 ASSERT 2: %s duplicate (student_id, step_number) rows detected', v_dup_count);
+END $phase57_assert$;
+
+COMMIT;
