@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
 import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
+import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
+import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
 
 const patchSchema = z.object({
   status: z.enum(["completed", "abandoned", "paused", "in_progress"]),
@@ -144,6 +146,21 @@ export async function PATCH(
     revalidateTag(studentAnalyticsTag(profile.id), "default");
   } catch (e) {
     console.error("[revalidate-tag]", e);
+  }
+  if (newStatus === "completed") {
+    try {
+      const { data: studentRow } = await admin
+        .from("users")
+        .select("coach_id")
+        .eq("id", profile.id)
+        .maybeSingle();
+      if (studentRow?.coach_id) {
+        revalidateTag(coachDashboardTag(studentRow.coach_id), "default");
+        revalidateTag(coachAnalyticsTag(studentRow.coach_id), "default");
+      }
+    } catch (err) {
+      console.error("[work-sessions] failed to invalidate coach-dashboard tag:", err);
+    }
   }
   return NextResponse.json(updated);
 }
