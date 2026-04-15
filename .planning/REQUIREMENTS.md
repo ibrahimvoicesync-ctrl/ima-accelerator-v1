@@ -95,12 +95,52 @@
 
 ## Traceability
 
-<!-- Filled by roadmapper after phases are defined. -->
-
 | REQ-ID | Phase | Success Criterion |
 |--------|-------|-------------------|
-| (pending) | | |
+| OA-01 | Phase 54 | Owner navigates to `/owner/analytics` and sees three leaderboard cards |
+| OA-02 | Phase 54 | Three top-3 leaderboards render (hours, profit, deals) with deterministic tie-break |
+| OA-03 | Phase 54 | Owner dashboard homepage shows analytics teaser with "View full analytics" link |
+| OA-04 | Phase 54 | Single `get_owner_analytics` RPC wrapped in `unstable_cache` 60s TTL |
+| OA-05 | Phase 54 | `revalidateTag("owner-analytics")` called in deals + work-session mutation routes |
+| OA-06 | Phase 54 | Each leaderboard row links to `/owner/students/[studentId]` |
+| CHAT-REM-01 | Phase 55 | Chat page + API routes deleted from `src/app/`; `npm run build` passes |
+| CHAT-REM-02 | Phase 55 | Chat component files deleted from `src/components/chat/` |
+| CHAT-REM-03 | Phase 55 | No chat entries in `ROUTES` or `NAVIGATION` in `src/lib/config.ts` |
+| CHAT-REM-04 | Phase 55 | `src/lib/chat-utils.ts` and chat-related type entries deleted |
+| CHAT-REM-05 | Phase 55 | `messages` table does not exist after migration 00029 |
+| CHAT-REM-06 | Phase 55 | `get_sidebar_badges` rewritten before `DROP TABLE messages` in same transaction |
+| CHAT-REM-07 | Phase 55 | `SidebarBadgesResult` has no `unread_messages` field; TypeScript build clean |
+| CHAT-REM-08 | Phase 55 | `src/proxy.ts` has no `/coach/chat` or `/student/chat` entries |
+| ANNOUNCE-01 | Phase 55 | `announcements` table created with correct schema and FK constraint |
+| ANNOUNCE-02 | Phase 56 | Owner and coach can submit the create announcement form successfully |
+| ANNOUNCE-03 | Phase 56 | Owner and coach can edit any announcement (not scoped to own rows) |
+| ANNOUNCE-04 | Phase 56 | Owner and coach can delete any announcement with confirmation step |
+| ANNOUNCE-05 | Phase 56 | Student role sees full announcement list, read-only, no edit/delete controls |
+| ANNOUNCE-06 | Phase 56 | `student_diy` role sees full announcement list, same feed as students |
+| ANNOUNCE-07 | Phase 56 | All four sidebar navs contain "Announcements" link to role-scoped page |
+| ANNOUNCE-08 | Phase 56 | List paginates at 25/page ordered `created_at DESC` |
+| ANNOUNCE-09 | Phase 55 | No `expires_at` column; announcements persist indefinitely |
+| ANNOUNCE-10 | Phase 55 | RLS policies use `(SELECT auth.uid())` initplan pattern; students SELECT only |
+| ANNOUNCE-11 | Phase 56 | Mutation routes enforce auth + role + `verifyOrigin()` + rate limit 30 req/min |
+| ANNOUNCE-12 | Phase 56 | "(edited)" indicator visible when `updated_at > created_at` |
+| ROADMAP-01 | Phase 57 | New Step 8 appears in student roadmap inside Stage 1 with `target_days: 5` |
+| ROADMAP-02 | Phase 57 | Steps 9–16 are the renamed Steps 8–15; no duplicate step_number mid-migration |
+| ROADMAP-03 | Phase 57 | Students past old Step 7 see new Step 8 already completed on first page load |
+| ROADMAP-04 | Phase 57 | Students can self-mark new Step 8 complete using the standard roadmap flow |
+| ROADMAP-05 | Phase 57 | `ROADMAP_STEPS` in `config.ts` has 16 entries with correct stage headers |
+| ROADMAP-06 | Phase 57 | `influencersClosedStep: 12` and `brandResponseStep: 14` in both config.ts and RPC |
+| ROADMAP-07 | Phase 57 | All progress bars show `/16`; derived from `ROADMAP_STEPS.length` |
+| ROADMAP-08 | Phase 57 | Grep sweep finds zero hardcoded `/15` or step-number literals in `src/` |
+| ROADMAP-09 | Phase 57 | `CHECK (step_number BETWEEN 1 AND 16)` constraint in place before renumber |
+| PERF-01 | All phases | EXPLAIN ANALYZE confirms index scans on new hot-path queries |
+| PERF-02 | All phases | Every new mutation route: auth + role + rate limit + Zod + verifyOrigin |
+| PERF-03 | All phases | All new RLS policies use `(SELECT auth.uid())` initplan pattern |
+| PERF-04 | Phase 54 | `get_owner_analytics` RPC with 60s `unstable_cache` + tag invalidation |
+| PERF-05 | Phase 56 | Announcements list paginates at 25/page |
+| PERF-06 | All phases | `npm run lint && npx tsc --noEmit && npm run build` passes at phase end |
+| PERF-07 | All phases | No client-side aggregation on unbounded sets; query plans reviewed |
 
 ---
 
 *Created: 2026-04-15 — milestone v1.6 kickoff after 4-dimension research synthesis.*
+*Traceability filled: 2026-04-15 — roadmap Phases 54-57 defined.*

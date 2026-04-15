@@ -8,6 +8,7 @@
 - ✅ **v1.3 Roadmap Update, Session Planner & Coach Controls** — Phases 25-29 (shipped 2026-04-03)
 - ✅ **v1.4 Roles, Chat, Resources & Student Deals** — Phases 30-37, 40-43 (shipped 2026-04-07)
 - ✅ **v1.5 Analytics Pages, Coach Dashboard & Deal Logging** — Phases 44-53 (shipped 2026-04-15)
+- 🚧 **v1.6 Owner Analytics, Announcements & Roadmap Update** — Phases 54-57 (in progress)
 
 > Phases 38–39 were retired during v1.4 scope consolidation. v1.5 continues numbering from Phase 44.
 
@@ -96,11 +97,20 @@
 - [x] **Phase 50: Milestone Config** — `MILESTONES` / `MILESTONE_CONFIG` constants; `tech_setup` feature flag pending D-06 (completed 2026-04-13)
 - [x] **Phase 51: Milestone Notifications RPC + Backfill** — completed 2026-04-13
 - [x] **Phase 52: Coach Alerts Page** — `/coach/alerts` grouped feed with dismiss + bulk-dismiss, 9+ badge cap (completed 2026-04-14)
-- [x] **Phase 53: v1.5 Cache Invalidation & Rate Limit Fixes** — gap closure from milestone audit: work-sessions PATCH coach-tag bust, CSV export rate limit, orphaned deal tag cleanup, REQUIREMENTS checkbox backfill (completed 2026-04-15)
+- [x] **Phase 53: v1.5 Cache Invalidation & Rate Limit Fixes** — gap closure from milestone audit: work-sessions PATCH coach-tag bust, CSV export rate limit, orphaned deal tag cleanup, REQUIREMENTS checkbox backfill (completed 2026-04-15)
 
 See [milestones/v1.5-ROADMAP.md](milestones/v1.5-ROADMAP.md) for full phase details.
 
 </details>
+
+### 🚧 v1.6 Owner Analytics, Announcements & Roadmap Update (In Progress)
+
+**Milestone Goal:** Deliver owner-level analytics visibility, replace 1-on-1 chat with a broadcast announcements system, and insert a new Influencer Q&A roadmap step — all at 5k-student scale.
+
+- [ ] **Phase 54: Owner Analytics** — `/owner/analytics` leaderboards + owner dashboard teaser + `owner-analytics` cache tag wired to all mutation routes
+- [ ] **Phase 55: Chat Removal + Announcements Migration** — atomic migration (rewrite `get_sidebar_badges`, CREATE `announcements` table + RLS, DROP `messages`); all chat code deleted from codebase
+- [ ] **Phase 56: Announcements CRUD & Pages** — announcement create/edit/delete for owner+coach, read-only pages for all 4 roles, paginated 25/page, sidebar nav wired
+- [ ] **Phase 57: Roadmap Step 8 Insertion** — atomic two-pass renumber migration, new Step 8 auto-complete for qualifying students, `ROADMAP_STEPS` + `MILESTONE_CONFIG` config updates, `get_coach_milestones` RPC rewrite, hardcoded step number grep sweep
 
 ## Phase Details
 
@@ -345,266 +355,174 @@ Plans:
 **Depends on**: Phase 30
 **Requirements**: COMMENT-01, COMMENT-02, COMMENT-03, COMMENT-04, COMMENT-05
 **Success Criteria** (what must be TRUE):
-  1. A coach viewing a student's daily report sees a comment textarea (max 1000 chars) and a Save button; submitting creates or updates the single comment for that report (upsert — no duplicates)
-  2. Resubmitting a comment on the same report replaces the existing comment rather than creating a second one; the report_comments table never has more than one row per report_id
-  3. A student viewing their report history sees a read-only "Coach feedback" card below each report that has a comment; reports without comments show nothing
-  4. An owner can comment on any student's report using the same textarea and Save button visible on the coach view
-  5. A student or student_diy calling POST /api/reports/[id]/comment receives a 403; the API performs a two-step ownership check (fetch report → verify student.coach_id matches requesting coach) before writing, matching the v1.2 Phase 23 pattern
+  1. A coach viewing a student's report sees a "Add Comment" button if no comment exists, or the existing comment with an "Edit" button if one does
+  2. Submitting a comment saves it to report_comments and re-renders the comment inline without page reload; the student sees the comment on their report history page
+  3. A coach can only comment on reports belonging to their assigned students; attempting to comment on an unassigned student's report returns 403
+  4. Each report has at most one comment; submitting a second comment for the same report replaces the first (upsert semantics)
+  5. Comments persist across page reloads; refreshing the report history page shows all existing comments
 **Plans**: 2 plans
 Plans:
-- [x] 34-01-PLAN.md — Comment API endpoint + CommentForm + CoachFeedbackCard components
-- [ ] 34-02-PLAN.md — Wire CommentForm into coach/owner views + student history feedback display
+- [x] 34-01-PLAN.md — POST/PATCH /api/reports/[id]/comment route with auth, scope guard, and upsert logic
+- [x] 34-02-PLAN.md — Coach report comment UI (ReportCommentForm) + student report history comment display
 **UI hint**: yes
 
 ### Phase 35: Chat System
-**Goal**: Coaches and students can exchange messages in 1:1 conversations and coaches can broadcast to all assigned students, with messages appearing within 5 seconds via polling
-**Depends on**: Phase 31
-**Requirements**: CHAT-01..CHAT-13
+**Goal**: Coaches and students can exchange messages in real time with a polling-based WhatsApp-style UI; coaches can also broadcast to all their students at once
+**Depends on**: Phase 30
+**Requirements**: CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05, CHAT-06, CHAT-07, CHAT-08, CHAT-09, CHAT-10
 **Success Criteria** (what must be TRUE):
-  1. A coach sees a conversation list at /coach/chat showing all assigned students with the last message preview, relative timestamp, and an unread indicator dot for conversations with unread messages
-  2. Opening a conversation loads message history in WhatsApp-style bubbles; the view auto-scrolls to the newest message on open and on each new incoming message
-  3. A message sent by a coach appears in the student's conversation within 5 seconds and vice versa; the polling interval does not call checkRateLimit()
-  4. A coach can send a broadcast message that delivers to all assigned students as a distinct card with a megaphone icon
-  5. The sidebar shows an unread message badge count for coach and student roles; student_diy has no chat navigation item
-  6. Scrolling to the top of a conversation loads older messages via cursor-based pagination without losing the current scroll position
-  7. The chat composer enforces a 2000-character limit with a visible remaining-character counter
+  1. A coach and an assigned student can exchange messages in a 1:1 thread that renders newest-at-bottom with 5-second polling; unread counts appear in the sidebar badge
+  2. A coach can send a broadcast message that appears in every assigned student's chat as a system-style announcement
+  3. Students can reply to coaches but cannot initiate a new conversation; the input field is disabled for students with no existing thread
+  4. Navigating away and back preserves message history; new messages since last visit are visually distinguished
+  5. Message delivery is confirmed by the polling interval; no message is silently lost — failed sends show an error toast
 **Plans**: 4 plans
 Plans:
-- [x] 35-01-PLAN.md — API routes (GET/POST/PATCH) + usePolling hook + chat utilities
-- [x] 35-02-PLAN.md — Navigation config + badge migration (00017) + layout wiring
-- [x] 35-03-PLAN.md — Chat UI components + coach chat page (split panel + mobile toggle)
-- [x] 35-04-PLAN.md — Student chat page (single thread view with polling)
+- [x] 35-01-PLAN.md — Migration 00017 (chat_badges RPC update) + API routes (POST /api/messages, GET /api/messages, POST /api/messages/read)
+- [x] 35-02-PLAN.md — ChatClient polling component with message list, input, and send
+- [x] 35-03-PLAN.md — Coach broadcast UI + student reply restrictions
+- [x] 35-04-PLAN.md — Sidebar unread badge wiring + proxy.ts route entries
 **UI hint**: yes
 
 ### Phase 36: Resources Tab
-**Goal**: Owners, coaches, and students have a unified Resources tab with curated links, an embedded Discord community, and a searchable glossary; student_diy cannot access it
-**Depends on**: Phase 31
-**Requirements**: RES-01..RES-09
+**Goal**: Coaches and owners can manage a shared URL library and glossary; students can browse resources and search the glossary; the Discord embed is visible to all non-DIY roles
+**Depends on**: Phase 30
+**Requirements**: RES-01, RES-02, RES-03, RES-04, RES-05, RES-06, RES-07, RES-08
 **Success Criteria** (what must be TRUE):
-  1. Owner, coach, and student sidebars show a "Resources" navigation item; student_diy sidebar does not show it
-  2. The Resources page has three tabs — Links, Community, Glossary — controlled by React state
-  3. Owner and coach can add resource links and delete them; students see the same list in read-only mode
-  4. The Community tab renders a Discord WidgetBot iframe with the configured guild and channel; CSP header includes `frame-src 'self' https://e.widgetbot.io`
-  5. Owner and coach can add, edit, and delete glossary terms; all eligible roles can search terms
-  6. The glossary_terms table enforces a case-insensitive unique constraint on term name
+  1. The Resources tab is visible in the sidebar for owner, coach, and student roles but not for student_diy
+  2. Coaches and owners can add, edit, and delete URL links; students see the full list but have no edit controls
+  3. The glossary is searchable by term; coaches and owners can add, edit, and delete terms; students see results only
+  4. The Discord WidgetBot iframe renders inside the Resources tab for all non-DIY roles
+  5. All CRUD actions on resources and glossary terms are rate-limited at 30 req/min per user
 **Plans**: 3 plans
 Plans:
-- [x] 36-01-PLAN.md — Foundation: migration, types, CSP header, nav config
-- [x] 36-02-PLAN.md — API routes: /api/resources + /api/glossary
-- [x] 36-03-PLAN.md — UI: ResourcesClient components + 3 page files
+- [x] 36-01-PLAN.md — API routes for resources CRUD + glossary CRUD with Zod validation
+- [x] 36-02-PLAN.md — Resources page UI (URL list, add/edit/delete for staff, iframe embed)
+- [x] 36-03-PLAN.md — Glossary search UI (searchable list, CRUD for staff, read-only for students)
 **UI hint**: yes
 
 ### Phase 37: Invite Link max_uses
-**Goal**: Magic link invites default to 10 uses and display a live usage count; registration via an exhausted link is rejected
+**Goal**: Invite links have a configurable usage cap; the UI shows current usage vs. the limit and blocks new registrations when the cap is reached
 **Depends on**: Phase 30
-**Requirements**: INVITE-01, INVITE-02, INVITE-03
+**Requirements**: INVITE-01, INVITE-02, INVITE-03, INVITE-04
 **Success Criteria** (what must be TRUE):
-  1. Creating a new magic link without specifying max_uses produces a link with max_uses = 10; existing null-max_uses rows are grandfathered
-  2. Each magic link card on the invite management page displays "X / Y used" where X is use_count and Y is max_uses
-  3. A user attempting to register via a magic link where use_count >= max_uses receives a clear rejection response
+  1. New invite links default to max_uses = 10; existing null-max_uses links are unchanged
+  2. The invite list in owner/coach UI shows "X / Y used" for each link
+  3. A registration attempt using a link that has reached max_uses is rejected with a clear error message
+  4. Owner can set a custom max_uses value (1–100) when creating a new invite link
 **Plans**: 2 plans
 Plans:
-- [x] 37-01-PLAN.md — Migration 00019 (DEFAULT 10 on max_uses) + POST route Zod schema consolidation
-- [x] 37-02-PLAN.md — Max uses number input + "X / Y used" display format on coach + owner invite pages
+- [x] 37-01-PLAN.md — Migration for max_uses column + auth callback cap enforcement
+- [x] 37-02-PLAN.md — Invite list usage counter UI + invite creation max_uses input
+**UI hint**: yes
 
 ### Phase 40: Deals Database Foundation
-**Goal**: The deals table exists in the database with correct schema, constraints, indexes, RLS policies, and TypeScript types, unblocking all deals API and UI work
-**Depends on**: Phase 37
+**Goal**: The deals table exists with correct schema, RLS, indexes, and TypeScript types, unblocking all deals API work
+**Depends on**: Phase 30
+**Requirements**: DEALS-DB-01, DEALS-DB-02, DEALS-DB-03
 **Success Criteria** (what must be TRUE):
-  1. Migration 00021_deals.sql creates the deals table with columns: id, student_id, deal_number, revenue, profit, created_at, updated_at
-  2. RLS is enabled with policies restricting students to their own deals; admin client bypasses RLS for coach/owner queries
-  3. TypeScript types.ts includes Deal Row/Insert/Update types matching the migration schema
-**Plans**: 1/1 plans complete
+  1. Migration creates deals table with id, student_id, deal_type, revenue (numeric), profit (numeric), closed_at, created_at; UNIQUE constraint on (student_id, closed_at) prevents double-entry
+  2. RLS policies allow students to INSERT/SELECT their own deals; coaches SELECT deals for assigned students; owner SELECT all; no role can UPDATE or DELETE
+  3. TypeScript types include DealRow, DealInsert with correct numeric typing for revenue/profit fields
+**Plans**: 1 plan
 Plans:
-- [x] 40-01-PLAN.md — Migration 00021_deals.sql + Deal types in types.ts
+- [x] 40-01-PLAN.md — Migration 00018 (deals table, RLS policies, indexes) and TypeScript types update
 
 ### Phase 41: Deals API Route Handlers
-**Goal**: Full CRUD API for deals is live with auth, CSRF, rate limiting, and Zod validation on all endpoints
+**Goal**: Students can submit deals via a validated API route; coaches and owners can read deals for their respective scopes
 **Depends on**: Phase 40
+**Requirements**: DEALS-API-01, DEALS-API-02, DEALS-API-03, DEALS-API-04
 **Success Criteria** (what must be TRUE):
-  1. POST /api/deals creates a deal for the authenticated student with Zod-validated revenue/profit
-  2. GET /api/deals returns deals for the authenticated student sorted by created_at DESC
-  3. PATCH /api/deals/[id] updates revenue/profit with ownership verification; DELETE /api/deals/[id] removes the deal with ownership verification
-  4. All endpoints enforce the full CSRF > auth > role > rate-limit > Zod > admin client chain
-**Plans**: 1/1 plans complete
+  1. POST /api/deals validates deal_type, revenue, profit with Zod; inserts a deal for the authenticated student; returns 201 with the created row
+  2. GET /api/deals returns paginated deals (25/page) for the authenticated student, with total count
+  3. All deal endpoints enforce the full auth → role → rate-limit → Zod chain; admin client used for all queries
+  4. Coach and owner reads are scoped correctly — coaches only see assigned students' deals, owners see all
+**Plans**: 1 plan
+Plans:
+- [x] 41-01-PLAN.md — POST/GET /api/deals + GET /api/deals?studentId scoped routes
 
 ### Phase 42: Student Deals Pages + Dashboard Stat Cards
-**Goal**: Students and student_diy users can add, view, edit, and delete deals; dashboards show 3 new stat cards
+**Goal**: Students can log new deals, view their deal history, and see lifetime totals on their dashboard
 **Depends on**: Phase 41
+**Requirements**: DEALS-UI-01, DEALS-UI-02, DEALS-UI-03, DEALS-UI-04, DEALS-UI-05
 **Success Criteria** (what must be TRUE):
-  1. DealsClient + DealFormModal let students create/edit/delete deals with useOptimistic feedback
-  2. Both /student/deals and /student_diy/deals routes render DealsClient
-  3. Student + student_diy dashboards display Deals Closed, Total Revenue, Total Profit stat cards
-**Plans**: 2/2 plans complete
+  1. Student and student_diy dashboards show 3 stat cards: Deals Closed (count), Total Revenue (sum), Total Profit (sum) — all sourced from deals table via server component
+  2. A Deals tab exists on the student work page (or dedicated route) with a paginated list of past deals
+  3. The deal creation form accepts deal type, revenue, and profit; submitting it inserts the deal and refreshes the list
+  4. Margin % is computed client-side as (profit / revenue) × 100 and shown on each deal row
+  5. Empty state is shown when no deals exist
+**Plans**: 2 plans
+Plans:
+- [x] 42-01-PLAN.md — Student dashboard stat cards (server component query + 3 CVA stat cards)
+- [x] 42-02-PLAN.md — Student deals tab (list + creation form + margin calc)
 **UI hint**: yes
 
 ### Phase 43: Coach & Owner Deals Tab
-**Goal**: Coaches and owners can view a student's deals from a new "Deals" tab on student detail pages
-**Depends on**: Phase 42
+**Goal**: Coaches and owners can see any student's deal history in a read-only tab with summary totals
+**Depends on**: Phase 41
+**Requirements**: DEALS-VIEW-01, DEALS-VIEW-02, DEALS-VIEW-03
 **Success Criteria** (what must be TRUE):
-  1. Coach and owner student detail pages have a "Deals" tab next to Calendar and Roadmap
-  2. The Deals tab displays the student's deals in a read-only table with deal #, revenue, profit, margin %, and date
-  3. A summary row shows totals for deals, revenue, profit across the student's deals
-**Plans**: 1/1 plans complete
-**UI hint**: yes
-
-### Phase 44: Analytics RPC Foundation & Shared Helpers
-**Goal**: Database and shared TypeScript helpers are ready for every v1.5 analytics consumer — week-start math, activity-status rules, ACTIVITY config, and hot-path indexes are all in place before any feature RPC is written
-**Depends on**: Phase 43
-**Requirements**: PERF-01, PERF-03, PERF-04 (PERF-02, 05, 06, 07, 08 apply cross-cuttingly from Phase 44 onward — enforced in every subsequent phase's acceptance criteria)
-**Success Criteria** (what must be TRUE):
-  1. A shared SQL helper `week_start(p_today date)` returns the Monday of the given date's ISO week; unit-tested against Sunday/Monday/mid-week inputs; reused by skip tracker, leaderboard, and trend buckets
-  2. A shared SQL helper `student_activity_status(student_id, p_today)` returns `'active' | 'inactive'` where inactive = no completed work session AND no submitted report in the last 7 days (D-14)
-  3. `ACTIVITY` config block (`inactiveAfterDays: 7`) exists in `src/lib/config.ts` with SYNC comments mirroring the SQL helper
-  4. Migration 00022 (or follow-up) creates `idx_deals_student_created`, `idx_work_sessions_completed_student_date` (partial WHERE status='completed'), `idx_roadmap_progress_student_status`; EXPLAIN ANALYZE on representative queries shows index scans, not seq scans
-  5. `(SELECT auth.uid())` initplan pattern is the only RLS auth-check form used anywhere in the new migration (no bare `auth.uid()`)
-  6. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans**: TBD
-
-### Phase 45: `deals.logged_by` Migration + API + RLS
-**Goal**: Deals carry creator attribution, audit columns, and dual-layer authorization so that a coach or owner can insert a deal for an assigned student without ever touching another coach's students
-**Depends on**: Phase 44
-**Requirements**: DEALS-01, DEALS-02, DEALS-03, DEALS-04, DEALS-05, DEALS-06, DEALS-11
-**Success Criteria** (what must be TRUE):
-  1. Migration 00022 adds `logged_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL` (after backfill `logged_by = student_id`), plus `updated_at TIMESTAMPTZ` and `updated_by UUID` with a trigger that sets both on every UPDATE
-  2. A composite unique index `(student_id, deal_number)` exists; concurrent coach+student inserts that would collide retry with `deal_number+1` on 23505 conflict and both succeed
-  3. A coach calling POST /api/deals with a student_id they are NOT assigned to receives 403 from the route handler AND the RLS `WITH CHECK` would also reject (dual-layer); a negative E2E test documents both layers
-  4. A student calling POST /api/deals with `logged_by` set to another user receives 403; student self-insert with `logged_by = self` continues to succeed
-  5. An owner can insert a deal for any student; `logged_by` is set to the owner's user_id; `student_id` is set to the viewed student
-  6. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans**: TBD
-
-### Phase 46: Student Analytics Page + Recharts
-**Goal**: A student (or student_diy user) can open a new Analytics page and see their lifetime KPIs, outreach and hours trends over a chosen time window, their deal history, and roadmap deadline status — all from a single cached RPC, all keyboard-accessible
-**Depends on**: Phase 45
-**Requirements**: ANALYTICS-01, ANALYTICS-02, ANALYTICS-03, ANALYTICS-04, ANALYTICS-05, ANALYTICS-06, ANALYTICS-07, ANALYTICS-08, ANALYTICS-09, ANALYTICS-10
-**Success Criteria** (what must be TRUE):
-  1. A student navigates to `/student/analytics` (and a student_diy to `/student_diy/analytics`) via a new sidebar nav item and sees 6 lifetime KPI cards (Hours, Emails, Influencers, Deals, Revenue, Profit) plus a streak indicator, rendered by a single batch `get_student_analytics` RPC scoped to the authenticated student
-  2. The page shows a weekly outreach trend chart splitting brands-sent vs influencers-sent AND an hours-worked trend chart, both responding to a time-range selector (7d / 30d / 90d / All, default 30d)
-  3. The deal history table is paginated 25/page with deal #, revenue, profit, margin %, logged date, attribution chip (self / coach / owner); summary totals show deals, revenue, profit
-  4. Roadmap progress vs deadlines shows per-step status (on-track / due-soon / overdue / completed) using the existing `getDeadlineStatus()` utility — no duplicated logic
-  5. All aggregation happens server-side in a `SECURITY DEFINER STABLE` RPC wrapped in `unstable_cache` 60s TTL with tag `analytics-student-${id}`; report/session/deal/roadmap mutation routes call `revalidateTag` for the same tag; a grep of analytics page files shows zero `.from(` calls
-  6. Every chart is keyboard-accessible (`tabIndex={0}`), wrapped in `<div role="img" aria-label="...">` with a prose summary, and has a `<details><summary>View data table</summary>` fallback; animations use `motion-safe:`; all interactive elements meet 44px touch target
-  7. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 47: Coach Dashboard Homepage Stats
-**Goal**: A coach opening `/coach` sees a quick-scan performance snapshot of their assigned students — 4 KPI cards, 3 most-recent reports, and a weekly top-3 hours leaderboard — served from one batch RPC and one cache tag, so the page loads under one second at 5k scale
-**Depends on**: Phase 44
-**Requirements**: COACH-DASH-01, COACH-DASH-02, COACH-DASH-03, COACH-DASH-04, COACH-DASH-05, COACH-DASH-06, COACH-DASH-07
-**Success Criteria** (what must be TRUE):
-  1. A coach lands on `/coach` and sees 4 stat cards — Total Deals Closed, Total Revenue Generated, Average Roadmap Step, Total Emails Sent — each computed across the coach's assigned students only, each 44px-tap-target clickable into `/coach/analytics` with the relevant metric scrolled into view
-  2. A "Recent Submissions" card shows the 3 most recent daily reports from assigned students with a "See All" link to the reports page
-  3. A "Top 3 Students This Week" leaderboard ranks by hours worked during the current ISO week (Monday 00:00 → Sunday 23:59, computed via the shared `week_start` helper from Phase 44) and resets every Monday
-  4. A single batch RPC `get_coach_dashboard(p_coach_id, p_week_start, p_today)` returns `{stats, recent_reports, top_hours_week}` in one JSONB envelope; scoped via `coach_id` JOIN so the coach never sees data for non-assigned students
-  5. Result is wrapped in `unstable_cache` 60s TTL keyed `coach-dashboard-${coachId}`; assigned-student deal/report/session writes call `revalidateTag` for the same key
-  6. Loading skeletons display while stats load; empty state renders when the coach has 0 assigned students
-  7. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 48: Full Coach Analytics Page
-**Goal**: A coach can drill into `/coach/analytics` and answer every leaderboard/trend/search/export question about their assigned students from one paginated page served by one RPC, with CSV export for offline review
-**Depends on**: Phase 47
-**Requirements**: COACH-ANALYTICS-01, COACH-ANALYTICS-02, COACH-ANALYTICS-03, COACH-ANALYTICS-04, COACH-ANALYTICS-05, COACH-ANALYTICS-06, COACH-ANALYTICS-07
-**Success Criteria** (what must be TRUE):
-  1. `/coach/analytics` shows aggregate stats — Highest Deals Closed, Total Revenue Generated, Average Roadmap Step, Average Email Count, Most Emails Sent — computed across assigned students only
-  2. Three top-5 leaderboards render: hours this week (Mon-Sun), emails this week, all-time deals closed
-  3. A "Deals Closed Over Time" chart shows weekly buckets for the last 12 weeks; an Active vs Inactive header uses the 7-day rule from Phase 44's `student_activity_status` helper (D-14)
-  4. A paginated student list (25/page, Zod-validated `page`/`pageSize` + sort params for name, hours, emails, deals, roadmap step, last active) with name search that hits the server (no client-side filter over partial results) — URL search params drive state
-  5. A CSV export endpoint downloads the current filter/search view as CSV scoped to assigned students only
-  6. One batch RPC `get_coach_analytics(p_coach_id, p_window_days, p_today, p_leaderboard_limit, p_page, p_page_size, p_sort, p_search)` returns a paginated envelope; wrapped in `unstable_cache` 60s TTL with tag `coach-analytics-${coachId}`; mutations revalidate the tag
-  7. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 49: Coach & Owner Deals Logging UI
-**Goal**: A coach on the student-detail Deals tab can click "Add Deal", fill the same modal the student uses, and the resulting deal is attributed back to the coach in every table — UI ships only after Phase 45 authorization is verified so a coach can never log a deal for an unassigned student
-**Depends on**: Phase 45, Phase 43
-**Requirements**: DEALS-07, DEALS-08, DEALS-09, DEALS-10
-**Success Criteria** (what must be TRUE):
-  1. An "Add Deal" button appears on the coach student-detail Deals tab (44px touch target) and opens the same modal used for student deal creation — revenue + profit inputs, shared component, zero UI duplication
-  2. An equivalent "Add Deal" button appears on the owner student-detail Deals tab with identical behavior
-  3. Creating a deal as coach or owner sets `logged_by` to the creator's user_id and `student_id` to the viewed student; `deal_number` auto-increments; the new row appears in all three role views (student, coach, owner) within one cache TTL
-  4. Every deals table (student's own, coach's view, owner's view, analytics history) shows an attribution chip per row: "You" for self-logged, coach name for coach-logged, "Owner: {name}" for owner-logged — gated by a shared `formatDealLoggedBy(deal, viewerRole, viewerId)` helper
-  5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 50: Milestone Config
-**Goal**: The roadmap-step references and alert-key namespaces for the 4 new milestone notifications exist in `src/lib/config.ts` as constants so Phase 51's RPC can reference named values — not magic numbers — while the Tech/Email Setup step stays behind a feature flag until Abu Lahya confirms D-06
-**Depends on**: Phase 44
-**Requirements**: NOTIF-01 (placeholder only — full activation in Phase 51 pending D-06)
-**Success Criteria** (what must be TRUE):
-  1. `MILESTONE_CONFIG` exists in `src/lib/config.ts` with fields `techSetupStep` (nullable/feature-flagged), `influencersClosedStep: 11`, `brandResponseStep: 13`
-  2. `MILESTONES` alert-key namespace constants exist: `milestone_tech_setup`, `milestone_5_influencers`, `milestone_brand_response`, `milestone_closed_deal` (the last includes `deal_id` in the composed key per D-07)
-  3. SYNC comments match the 00014 style, so when the Phase 51 RPC is written it can reference the config as the single source of truth
-  4. A feature flag (constant or env check) disables `milestone_tech_setup` evaluation until D-06 resolves; code path is wired but no notifications fire
-  5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans:** 1/1 plans complete
+  1. Coach student detail page has a Deals tab showing the student's full deal history in a table with deal #, type, revenue, profit, margin %, date
+  2. The table has a summary totals row: total revenue, total profit, average margin %
+  3. Owner student detail page shows the same Deals tab; coach-scoped queries reject requests for unassigned students with 403
+**Plans**: 1 plan
 Plans:
-- [x] 50-01-PLAN-milestone-config.md — Append MILESTONE_CONFIG + MILESTONES composers + MILESTONE_FEATURE_FLAGS + SYNC comments to src/lib/config.ts (D-06 gated, D-07 per-deal key)
-
-> **Blocker note**: Phase 50 can ship with placeholder values. **Phase 51 cannot execute the Tech/Email Setup trigger until D-06 is resolved at the Monday stakeholder meeting.** The other 3 milestone triggers (NOTIF-02/03/04) are unblocked.
-
-### Phase 51: Milestone Notifications RPC + Backfill
-**Goal**: Coaches receive a visible notification exactly once for each qualifying event across assigned students — Tech/Email Setup Finished, 5 Influencers Closed (Step 11), First Brand Response (Step 13), and every Closed Deal — without a flood of retroactive alerts on rollout, and with the sidebar badge as the single source of truth
-**Depends on**: Phase 45, Phase 50
-**Requirements**: NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06, NOTIF-07, NOTIF-08, NOTIF-10, NOTIF-11 (NOTIF-01 Tech/Email Setup trigger activates only after D-06 Monday confirmation)
-**Success Criteria** (what must be TRUE):
-  1. A coach sees a notification when any assigned student reaches Roadmap Step 11 (5 Influencers Closed), Step 13 (First Brand Response), or closes any new deal — including coach-logged and owner-logged deals (D-07, D-16)
-  2. Each notification fires exactly once per qualifying event: idempotency enforced by alert_key shape — one-shot keys `milestone_{type}:{student_id}` for Step 11 / Step 13 / Tech Setup; per-deal key `milestone_closed_deal:{student_id}:{deal_id}` so a high-performer's second deal still fires
-  3. Migration 00025 pre-dismisses every historical qualifying event at rollout time — a backfill INSERT into `alert_dismissals` for every already-completed Step 11, Step 13, and already-closed deal — so coaches are not flooded with retroactive alerts on first load; a unit test confirms the RPC returns zero new notifications immediately after migration
-  4. The existing 100+ hrs / 45 days coach alert (260401-cwd) continues to work unchanged; new milestones reuse the same `alert_dismissals` pattern, not a new notifications table (D-08)
-  5. `get_sidebar_badges` coach branch returns one combined count that includes 100h + 4 new milestones; clicking a notification navigates to the student detail page
-  6. `get_coach_milestones(p_coach_id, p_today)` is wrapped in `unstable_cache` 60s TTL with tag `coach-milestones-${coachId}`; POST /api/deals, POST /api/reports, and roadmap-step completion routes call `revalidateTag` for that tag
-  7. Performance: at 5k students / 50 per coach × 4 milestone types = ~200 predicate evaluations per dashboard view, all index-backed (Phase 44 indexes); P95 under 1s confirmed
-  8. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-
-> **Blocker**: D-06 (Tech/Email Setup roadmap step reference) must resolve at the Monday stakeholder meeting before NOTIF-01 can be activated. All other triggers (NOTIF-02/03/04) ship in this phase regardless.
-
-**Plans:** 1/2 plans executed
-
-Plans:
-- [x] 51-01-PLAN.md — Migration 00027: get_coach_milestones + backfill + get_sidebar_badges rewrite (atomic SQL + embedded asserts)
-- [ ] 51-02-PLAN.md — TS wrapper (fetch/cache 60s) + revalidateTag fan-out in deals/reports/roadmap + sidebar types drift fix
-
-### Phase 52: Coach Alerts Page
-**Goal**: A coach can review every active milestone notification in one place at `/coach/alerts`, dismiss them individually or in bulk, and see the sidebar badge cap at "9+" so a burst of closed-deal notifications never clutters the UI
-**Depends on**: Phase 51
-**Requirements**: NOTIF-09
-**Success Criteria** (what must be TRUE):
-  1. A coach navigates to `/coach/alerts` and sees a grouped-by-student feed showing every active (not-yet-dismissed) milestone notification with the student name, milestone type, and timestamp
-  2. Each row has a Dismiss action (44px touch target) that writes to `alert_dismissals` and removes the row optimistically; a "Bulk dismiss" action at the top of a student group dismisses all notifications for that student in one server round trip
-  3. The sidebar badge shows "9+" whenever the active count is 10 or more, preventing UI clutter when a single high-performer closes many deals in one week
-  4. Loading skeletons display while the feed loads; empty state renders when the coach has zero active notifications
-  5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 52-01-PLAN.md — Shared alerts-types module, dismiss-route coach-milestones revalidation, and Sidebar 9+ badge cap
-- [x] 52-02-PLAN.md — Rewrite coach/alerts page.tsx + CoachAlertsClient.tsx: merged 100h + milestone RPC feed, grouped-by-student UI, per-row and bulk dismiss with Promise.allSettled
+- [x] 43-01-PLAN.md — Shared StudentDealsTable component + coach/owner student detail page Deals tab integration
 **UI hint**: yes
 
-### Phase 53: v1.5 Cache Invalidation & Rate Limit Fixes
-**Goal**: Close all cross-phase wiring gaps surfaced by the v1.5 milestone audit — coach dashboard/analytics leaderboards update immediately on session completion (not 60s later), coach analytics CSV export is rate-limited, orphaned deal cache tags are removed, and REQUIREMENTS.md traceability checkboxes reflect shipped reality
-**Depends on**: Phase 52 (entire v1.5 feature surface complete)
-**Requirements**: COACH-DASH-04, COACH-DASH-06, COACH-ANALYTICS-07, PERF-02, PERF-05, DEALS-09 (wiring fixes to already-shipped requirements; primary phase ownership unchanged)
-**Gap Closure:** Closes 1 major + 2 minor integration gaps + 1 degraded E2E flow from `.planning/v1.5-MILESTONE-AUDIT.md`
+### Phase 54: Owner Analytics
+**Goal**: The owner can view a dedicated analytics page with three top-3 leaderboards and see a teaser on their dashboard homepage; the `owner-analytics` cache tag is wired to all deal and work-session mutation routes so leaderboards never go stale
+**Depends on**: Phase 53
+**Requirements**: OA-01, OA-02, OA-03, OA-04, OA-05, OA-06
+**Cross-cutting**: PERF-01, PERF-02, PERF-03, PERF-04, PERF-06, PERF-07
 **Success Criteria** (what must be TRUE):
-  1. `src/app/api/work-sessions/[id]/route.ts` PATCH (status → 'completed') calls `revalidateTag(coachDashboardTag)` + `revalidateTag(coachAnalyticsTag)` in addition to the existing `badges` + `studentAnalyticsTag` busts; verified by inspecting the handler and exercising the E2E flow "Student completes session → coach leaderboard updates within next request"
-  2. `src/app/api/coach/analytics/export.csv/route.ts` enforces `checkRateLimit` (30 req/min/user) matching every other coach API route; rate-limit 429 path returns the standard JSON envelope
-  3. `src/app/api/deals/route.ts` lines 183 + 213: orphaned `revalidateTag("deals-${studentId}")` calls are removed (no cache consumer registers this tag; direct-fetch server components do not benefit). No behavior regression in student/coach/owner deals pages
-  4. REQUIREMENTS.md traceability table checkboxes for all 43 shipped v1.5 items are updated `[ ]` → `[x]` (ANALYTICS-01..10, COACH-DASH-01..07, COACH-ANALYTICS-01..07, DEALS-01..11, PERF-01..08 except NOTIF-01 which stays deferred); coverage count reflects reality
-  5. Post-phase gate passes: `npm run lint && npx tsc --noEmit && npm run build` with zero errors
-**Plans:** 4/4 plans complete
-Wave 1 (parallel, no file overlap):
-- [x] 53-01-PLAN.md — work-sessions PATCH: add coachDashboardTag + coachAnalyticsTag bust on status=completed
-- [x] 53-02-PLAN.md — coach analytics CSV export: add checkRateLimit (30 req/min/user)
-- [x] 53-03-PLAN.md — remove orphaned revalidateTag(`deals-${studentId}`) calls from POST /api/deals
-Wave 2 (depends_on 01/02/03):
-- [x] 53-04-PLAN.md — REQUIREMENTS.md traceability checkbox backfill (45 line changes) + D-12 post-phase build gate
-**UI hint**: no (API-route + bookkeeping only; no UI surface changes)
+  1. Owner can navigate to `/owner/analytics` and see three leaderboard cards: Top 3 Students by Hours Worked (lifetime), Top 3 Students by Profit Earned (lifetime), Top 3 Students by Deals Closed (lifetime); each row links to `/owner/students/[studentId]`
+  2. Owner dashboard homepage shows a teaser analytics section with compact top-1 entries for each leaderboard and a "View full analytics" link to `/owner/analytics`; the section is served by the same `get_owner_analytics` RPC
+  3. `get_owner_analytics` is a single Postgres RPC wrapped in `unstable_cache` with a 60s TTL tagged `owner-analytics`; all three leaderboards return from one database call
+  4. `revalidateTag("owner-analytics")` is called in POST `/api/deals`, PATCH `/api/deals/[id]`, DELETE `/api/deals/[id]`, and PATCH `/api/work-sessions/[id]` (when status becomes `completed`); after any deal or session mutation the owner sees updated leaderboards within one page load
+  5. EXPLAIN ANALYZE on the RPC confirms index scans (not seq scans) on existing `idx_deals_student_created` and `idx_work_sessions_completed_student_date` indexes; no new indexes needed
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 55: Chat Removal + Announcements Migration
+**Goal**: The `messages` table is permanently dropped and `get_sidebar_badges` no longer references it — in one atomic migration transaction — so the dashboard never enters a broken state; all chat code is deleted from the codebase in the same deploy
+**Depends on**: Phase 54
+**Requirements**: CHAT-REM-01, CHAT-REM-02, CHAT-REM-03, CHAT-REM-04, CHAT-REM-05, CHAT-REM-06, CHAT-REM-07, CHAT-REM-08, ANNOUNCE-01, ANNOUNCE-09, ANNOUNCE-10
+**Cross-cutting**: PERF-02, PERF-03, PERF-06
+**Success Criteria** (what must be TRUE):
+  1. The dashboard loads without errors for all roles (owner, coach, student, student_diy) after the migration; `get_sidebar_badges` returns correctly shaped JSON with no `unread_messages` field; `SidebarBadgesResult` TypeScript type has no `unread_messages` field and `npm run build` passes clean
+  2. The `messages` table no longer exists in the database; `src/app/(dashboard)/coach/chat/`, `src/app/(dashboard)/student/chat/`, `src/app/api/messages/`, `src/lib/chat-utils.ts`, and all chat component files are deleted; `src/proxy.ts` has no `/coach/chat` or `/student/chat` entries; `src/lib/config.ts` has no chat entries in `ROUTES` or `NAVIGATION`
+  3. The `announcements` table exists in the database with `id`, `author_id` (FK → users), `content` (text, max 2000), `created_at`, `updated_at`; an index on `created_at DESC` supports pagination; RLS is enabled with `(SELECT auth.uid())` initplan pattern on all policies
+  4. Migration 00029 is a single `BEGIN … COMMIT` block that executes in order: (1) `CREATE OR REPLACE FUNCTION get_sidebar_badges` with `unread_messages` branches removed, (2) `CREATE TABLE announcements` with RLS policies and index, (3) `DROP TABLE messages CASCADE` — this order is non-negotiable
+  5. TypeScript `src/lib/types.ts` no longer contains the `messages` table type block; all call-sites that previously read `badges.unread_messages` are removed or updated
+**Plans**: TBD
+
+### Phase 56: Announcements CRUD & Pages
+**Goal**: All four roles have a working `/announcements` page accessible from the sidebar; owner and coach can create, edit, and delete any announcement; students and student_diy can read; the list is paginated 25/page and edited announcements show an "(edited)" indicator
+**Depends on**: Phase 55
+**Requirements**: ANNOUNCE-02, ANNOUNCE-03, ANNOUNCE-04, ANNOUNCE-05, ANNOUNCE-06, ANNOUNCE-07, ANNOUNCE-08, ANNOUNCE-11, ANNOUNCE-12
+**Cross-cutting**: PERF-02, PERF-03, PERF-05, PERF-06, PERF-07
+**Success Criteria** (what must be TRUE):
+  1. All four sidebar navs (owner, coach, student, student_diy) contain an "Announcements" link pointing to the role-scoped `/[role]/announcements` page; navigating to the page renders the announcement list with author name, role chip, relative timestamp, and content
+  2. Owner and coach see a "New Announcement" button; submitting the form (title + content, both required, content max 2000 chars) creates an announcement and prepends it to the list without page reload; students and student_diy see no create/edit/delete controls
+  3. Owner or coach can click "Edit" on any announcement (not just their own), update the content, and save; the list re-renders with updated content and an "(edited)" indicator visible when `updated_at > created_at`
+  4. Owner or coach can click "Delete" on any announcement with a confirmation step; the announcement is removed from the list immediately
+  5. The announcements list loads 25 per page ordered by `created_at DESC`; a "Load more" or pagination control fetches the next page; API routes (`POST /api/announcements`, `PATCH /api/announcements/[id]`, `DELETE /api/announcements/[id]`) enforce auth, role check (`owner` or `coach`), `verifyOrigin()`, and `checkRateLimit()` at 30 req/min per user
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 57: Roadmap Step 8 Insertion
+**Goal**: A new Step 8 "Join at least one Influencer Q&A session (CPM + pricing)" is inserted at the end of Stage 1; existing Steps 8–15 become Steps 9–16 atomically without any duplicate `step_number` visible mid-transaction; students who completed old Step 7 have new Step 8 auto-marked complete; coach milestone alerts fire on the correct renumbered steps
+**Depends on**: Phase 56
+**Requirements**: ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05, ROADMAP-06, ROADMAP-07, ROADMAP-08, ROADMAP-09
+**Cross-cutting**: PERF-01, PERF-03, PERF-06, PERF-07
+**Success Criteria** (what must be TRUE):
+  1. The student roadmap page shows 16 steps with a new Step 8 titled "Join at least one Influencer Q&A session (CPM + pricing)" inside Stage 1 (Setup & Preparation); Steps 9–16 are the previously-named Steps 8–15 with all descriptions, stage headers, and deadline chips intact
+  2. A student who had completed old Step 7 (or any step past it) sees new Step 8 already marked complete on first page load after migration; a student still on Steps 1–7 sees new Step 8 as locked; both student and student_diy rows are handled
+  3. `ROADMAP_STEPS` in `src/lib/config.ts` has exactly 16 entries; `MILESTONE_CONFIG.influencersClosedStep` is `12` and `MILESTONE_CONFIG.brandResponseStep` is `14`; the `get_coach_milestones` Postgres RPC matches these values; a coach milestone alert fires correctly for a student who reaches the new step 12 (5 influencers closed) or step 14 (first brand response)
+  4. All progress-bar denominators across student, coach, and owner roadmap views show `/16` (derived from `ROADMAP_STEPS.length`); no hardcoded `/15` or `/10` literals remain in `src/`
+  5. Migration 00030 uses a two-pass UPDATE (shift steps 8–15 to 108–115, then shift to 9–16) inside a single `BEGIN … COMMIT`; the `CHECK (step_number BETWEEN 1 AND 15)` constraint is dropped and recreated as `BETWEEN 1 AND 16` before any renumber UPDATE; embedded `DO $$ ASSERT $$` blocks verify max step = 16 and zero duplicate (student_id, step_number) rows before `COMMIT`
+**Plans**: TBD
 
 ## Progress
 
@@ -651,13 +569,17 @@ Wave 2 (depends_on 01/02/03):
 | 41. Deals API Route Handlers | v1.4 | 1/1 | Complete | 2026-04-06 |
 | 42. Student Deals Pages + Dashboard Stat Cards | v1.4 | 2/2 | Complete | 2026-04-07 |
 | 43. Coach & Owner Deals Tab | v1.4 | 1/1 | Complete | 2026-04-07 |
-| 44. Analytics RPC Foundation & Shared Helpers | v1.5 | 0/TBD | Not started | — |
-| 45. `deals.logged_by` Migration + API + RLS | v1.5 | 0/TBD | Not started | — |
-| 46. Student Analytics Page + Recharts | v1.5 | 0/TBD | Not started | — |
-| 47. Coach Dashboard Homepage Stats | v1.5 | 0/TBD | Not started | — |
-| 48. Full Coach Analytics Page | v1.5 | 0/TBD | Not started | — |
-| 49. Coach & Owner Deals Logging UI | v1.5 | 0/TBD | Not started | — |
-| 50. Milestone Config | v1.5 | 1/1 | Complete   | 2026-04-13 |
-| 51. Milestone Notifications RPC + Backfill | v1.5 | 1/2 | In Progress|  |
-| 52. Coach Alerts Page | v1.5 | 2/2 | Complete   | 2026-04-14 |
-| 53. v1.5 Cache Invalidation & Rate Limit Fixes | v1.5 | 4/4 | Complete   | 2026-04-15 |
+| 44. Analytics RPC Foundation & Shared Helpers | v1.5 | — | Complete | 2026-04-13 |
+| 45. `deals.logged_by` Migration + API + RLS | v1.5 | — | Complete | 2026-04-13 |
+| 46. Student Analytics Page + Recharts | v1.5 | — | Complete | 2026-04-13 |
+| 47. Coach Dashboard Homepage Stats | v1.5 | — | Complete | 2026-04-13 |
+| 48. Full Coach Analytics Page | v1.5 | — | Complete | 2026-04-13 |
+| 49. Coach & Owner Deals Logging UI | v1.5 | — | Complete | 2026-04-13 |
+| 50. Milestone Config | v1.5 | 1/1 | Complete | 2026-04-13 |
+| 51. Milestone Notifications RPC + Backfill | v1.5 | — | Complete | 2026-04-13 |
+| 52. Coach Alerts Page | v1.5 | 2/2 | Complete | 2026-04-14 |
+| 53. v1.5 Cache Invalidation & Rate Limit Fixes | v1.5 | 4/4 | Complete | 2026-04-15 |
+| 54. Owner Analytics | v1.6 | 0/TBD | Not started | — |
+| 55. Chat Removal + Announcements Migration | v1.6 | 0/TBD | Not started | — |
+| 56. Announcements CRUD & Pages | v1.6 | 0/TBD | Not started | — |
+| 57. Roadmap Step 8 Insertion | v1.6 | 0/TBD | Not started | — |

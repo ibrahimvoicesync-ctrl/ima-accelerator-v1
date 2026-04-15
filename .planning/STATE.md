@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Owner Analytics, Announcements & Roadmap Update
-status: defining_requirements
-last_updated: "2026-04-15T13:00:00.000Z"
-last_activity: 2026-04-15 -- Milestone v1.6 started
+status: ready_to_plan
+last_updated: "2026-04-15T14:00:00.000Z"
+last_activity: 2026-04-15 -- Roadmap created for v1.6 (Phases 54-57)
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,17 +19,17 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-04-15)
 
-**Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** v1.6 — Owner Analytics, Announcements & Roadmap Update
+**Core value:** Students can track their daily work, follow the roadmap, and submit daily reports that coaches review — the core accountability loop.
+**Current focus:** v1.6 — Owner Analytics, Announcements & Roadmap Update (Phase 54 next)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 54 of 57 (Owner Analytics) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-15 — Milestone v1.6 started
+Status: Ready to plan Phase 54
+Last activity: 2026-04-15 — v1.6 roadmap created; Phases 54-57 defined
 
-Progress: [░░░░░░░░░░] 0% (requirements + roadmap pending)
+Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
 
 ## Performance Metrics
 
@@ -42,29 +42,27 @@ Progress: [░░░░░░░░░░] 0% (requirements + roadmap pending)
 
 ## Accumulated Context
 
-### Open Blockers Carrying Into v1.6
+### Critical Constraints for v1.6
 
-- **D-06**: "Tech/Email Setup Finished" roadmap step still pending stakeholder decision. NOTIF-01 config ships behind `techSetupEnabled` feature flag (Phase 50). On activation, `src/app/(dashboard)/layout.tsx` must forward `p_tech_setup_enabled=true` to `get_sidebar_badges`.
-- **AI chat iframe URL** (carried from v1.0; non-blocking) — Abu Lahya must supply URL.
+- **Phase 55 atomicity**: `CREATE OR REPLACE FUNCTION get_sidebar_badges` MUST run before `DROP TABLE messages CASCADE` in the same migration transaction (migration 00029). Breaking this order crashes the dashboard for all users.
+- **Phase 57 atomicity**: `MILESTONE_CONFIG.influencersClosedStep` (11→12) and `brandResponseStep` (13→14) must update in BOTH `src/lib/config.ts` AND `get_coach_milestones` RPC SQL in the same deploy. Missing either half silently breaks coach milestone alerts.
+- **Phase 57 two-pass renumber**: Shift steps 8–15 to offset 108–115 first, then shift back to 9–16. Naive single-pass UPDATE violates the UNIQUE(student_id, step_number) constraint.
+- **Phase 54 cache tag**: `ownerAnalyticsTag()` must be wired to `POST/PATCH/DELETE /api/deals` and `PATCH /api/work-sessions/[id]` (status → completed) in Phase 54. This is the exact failure mode from v1.5 Phase 53 postmortem.
+- **Migration numbering**: 00028 = get_owner_analytics RPC, 00029 = chat removal + announcements atomic swap, 00030 = roadmap step 8 insertion.
+
+### Open Blockers Carried Into v1.6
+
+- **D-06**: "Tech/Email Setup Finished" roadmap step pending stakeholder decision. NOTIF-01 stays behind `techSetupEnabled` feature flag. Not v1.6 scope.
+- **AI chat iframe URL** (v1.0 carry-over; non-blocking) — Abu Lahya must supply URL.
 
 ### Tech Debt Carried Into v1.6
 
-- No Nyquist `VALIDATION.md` for v1.5 phases 44-52 — `workflow.nyquist_validation: true` was enabled but `/gsd-validate-phase` was never run.
-- `student_activity_status('active')` branch lacks direct test coverage (exercised transitively only).
-- Dual-layer HTTP+RLS E2E tests for deals (Phase 45) are documented recipes, not automated.
-- Live `/student/analytics` + `/student_diy/analytics` smoke tests pending deployment.
-- Per-edit change-log for deal updates deferred (v1.5 D-17 — current impl records `updated_at` + `updated_by` only).
-
-### Quick Tasks Completed (v1.3 + v1.4 archive — retained for reference)
-
-| # | Description | Date | Commit |
-|---|-------------|------|--------|
-| 260401-cwd | Coach 100h milestone alert (computed, coach-only) | 2026-04-01 | 4477e3f |
-| 260401-tuq | Fix work sessions production bugs | 2026-04-01 | e534448 |
-| 260404-hgo | Fix student_diy role label display | 2026-04-04 | a5da893 |
+- No Nyquist VALIDATION.md for v1.5 phases 44-52.
+- `student_activity_status('active')` branch lacks direct test coverage.
+- Per-edit change-log for deal updates deferred (v1.5 D-17).
 
 ## Session Continuity
 
-Last session: 2026-04-15 — v1.5 milestone close
-Stopped at: Milestone v1.5 shipped and tagged
-Resume: run `/gsd-new-milestone` to scope v1.6
+Last session: 2026-04-15 — v1.5 milestone shipped; v1.6 roadmap defined
+Stopped at: ROADMAP.md + STATE.md written for v1.6 (Phases 54-57)
+Resume: run `/gsd-plan-phase 54` to begin Owner Analytics planning
