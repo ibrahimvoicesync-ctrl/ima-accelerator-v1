@@ -62,3 +62,147 @@ UPDATE public.roadmap_progress
 UPDATE public.roadmap_progress
   SET step_number = step_number - 99
  WHERE step_number BETWEEN 108 AND 115;
+
+-- -----------------------------------------------------------------------------
+-- Section 3: CREATE OR REPLACE get_coach_milestones — shift step references
+--   influencersClosedStep: 11 → 12
+--   brandResponseStep:     13 → 14
+-- Must land in the SAME Git commit as src/lib/config.ts MILESTONE_CONFIG
+-- updates. Other function logic preserved verbatim from 00027.
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_coach_milestones(
+  p_coach_id              uuid,
+  p_today                 date    DEFAULT CURRENT_DATE,
+  p_tech_setup_enabled    boolean DEFAULT false
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller      uuid := (SELECT auth.uid());
+  v_student_ids uuid[];
+  v_milestones  jsonb;
+BEGIN
+  -- Auth guard (mirrors 00025:97-99). When called via service_role (admin
+  -- client), auth.uid() is NULL — that path bypasses by design. When called
+  -- by an authenticated user, caller must match p_coach_id.
+  IF v_caller IS NOT NULL AND v_caller IS DISTINCT FROM p_coach_id THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+
+  -- Resolve assigned active students. Both 'student' and 'student_diy' roles
+  -- count per RESEARCH A1 — any active user with coach_id = p_coach_id.
+  SELECT array_agg(id) INTO v_student_ids
+  FROM users
+  WHERE role IN ('student', 'student_diy')
+    AND status = 'active'
+    AND coach_id = p_coach_id;
+
+  -- Zero-student short-circuit
+  IF v_student_ids IS NULL OR array_length(v_student_ids, 1) IS NULL THEN
+    RETURN jsonb_build_object('milestones', '[]'::jsonb, 'count', 0);
+  END IF;
+
+  -- Build qualifying-but-not-dismissed events across 4 milestone types,
+  -- then UNION ALL, then LEFT JOIN alert_dismissals, then serialize to jsonb.
+  WITH
+  five_inf AS (
+    SELECT
+      ('milestone_5_influencers:' || rp.student_id::text) AS alert_key,
+      rp.student_id                                        AS student_id,
+      u.name                                               AS student_name,
+      '5_influencers'::text                                AS milestone_type,
+      NULL::uuid                                           AS deal_id,
+      rp.completed_at                                      AS occurred_at
+    FROM roadmap_progress rp
+    JOIN users u ON u.id = rp.student_id
+    WHERE rp.student_id = ANY(v_student_ids)
+      AND rp.step_number = 12   -- SYNC: MILESTONE_CONFIG.influencersClosedStep (Phase 57: shifted 11→12)
+      AND rp.status = 'completed'
+      AND rp.completed_at IS NOT NULL
+  ),
+  brand_resp AS (
+    SELECT
+      ('milestone_brand_response:' || rp.student_id::text),
+      rp.student_id,
+      u.name,
+      'brand_response'::text,
+      NULL::uuid,
+      rp.completed_at
+    FROM roadmap_progress rp
+    JOIN users u ON u.id = rp.student_id
+    WHERE rp.student_id = ANY(v_student_ids)
+      AND rp.step_number = 14   -- SYNC: MILESTONE_CONFIG.brandResponseStep (Phase 57: shifted 13→14)
+      AND rp.status = 'completed'
+      AND rp.completed_at IS NOT NULL
+  ),
+  closed_deals AS (
+    SELECT
+      ('milestone_closed_deal:' || d.student_id::text || ':' || d.id::text),
+      d.student_id,
+      u.name,
+      'closed_deal'::text,
+      d.id            AS deal_id,
+      d.created_at    AS occurred_at
+    FROM deals d
+    JOIN users u ON u.id = d.student_id
+    WHERE d.student_id = ANY(v_student_ids)
+    -- D-16: ALL deals count, regardless of logged_by (student/coach/owner)
+  ),
+  -- Tech-setup branch: gated by p_tech_setup_enabled. When false (default)
+  -- this CTE evaluates to zero rows even if historical data exists.
+  -- NOTE: MILESTONE_CONFIG.techSetupStep is currently NULL (D-06 pending);
+  -- when D-06 resolves, replace the hard-coded step reference here and in
+  -- the backfill block with the confirmed step number.
+  tech_setup AS (
+    SELECT
+      ('milestone_tech_setup:' || rp.student_id::text),
+      rp.student_id,
+      u.name,
+      'tech_setup'::text,
+      NULL::uuid,
+      rp.completed_at
+    FROM roadmap_progress rp
+    JOIN users u ON u.id = rp.student_id
+    WHERE p_tech_setup_enabled = true
+      AND rp.student_id = ANY(v_student_ids)
+      AND rp.step_number = 0   -- PLACEHOLDER — replace when D-06 resolves
+      AND rp.status = 'completed'
+      AND rp.completed_at IS NOT NULL
+  ),
+  all_events AS (
+    SELECT * FROM five_inf
+    UNION ALL SELECT * FROM brand_resp
+    UNION ALL SELECT * FROM closed_deals
+    UNION ALL SELECT * FROM tech_setup
+  )
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'student_id',     ae.student_id,
+      'student_name',   ae.student_name,
+      'milestone_type', ae.milestone_type,
+      'alert_key',      ae.alert_key,
+      'deal_id',        ae.deal_id,
+      'occurred_at',    ae.occurred_at
+    )
+    ORDER BY ae.occurred_at DESC
+  ), '[]'::jsonb)
+  INTO v_milestones
+  FROM all_events ae
+  LEFT JOIN alert_dismissals ad
+    ON ad.owner_id = p_coach_id
+   AND ad.alert_key = ae.alert_key
+  WHERE ad.alert_key IS NULL;
+
+  RETURN jsonb_build_object(
+    'milestones', v_milestones,
+    'count',      jsonb_array_length(v_milestones)
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_coach_milestones(uuid, date, boolean) TO service_role;
+GRANT EXECUTE ON FUNCTION public.get_coach_milestones(uuid, date, boolean) TO authenticated;
