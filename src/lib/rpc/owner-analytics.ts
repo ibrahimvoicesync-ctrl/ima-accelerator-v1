@@ -21,7 +21,6 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  OWNER_ANALYTICS_TAG,
   ownerAnalyticsTag,
   type OwnerAnalyticsPayload,
 } from "@/lib/rpc/owner-analytics-types";
