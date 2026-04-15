@@ -88,6 +88,7 @@ export function AnnouncementCard({
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="min-h-[44px] min-w-[44px]"
                 aria-label="Edit announcement"
                 onClick={() => setEditing(true)}
               >
@@ -97,6 +98,7 @@ export function AnnouncementCard({
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="min-h-[44px] min-w-[44px]"
                 aria-label="Delete announcement"
                 onClick={() => setDeleteOpen(true)}
               >
