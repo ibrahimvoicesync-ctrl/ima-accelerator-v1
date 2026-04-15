@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getGreeting } from "@/lib/utils";
@@ -5,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { GraduationCap, Shield, Users, FileText } from "lucide-react";
 import Link from "next/link";
 import type { OwnerDashboardStats } from "@/lib/rpc/types";
+import { OwnerAnalyticsTeaser } from "@/components/owner/analytics/OwnerAnalyticsTeaser";
 
 export default async function OwnerDashboard() {
   const user = await requireRole("owner");
@@ -29,6 +31,13 @@ export default async function OwnerDashboard() {
         {getGreeting()}, {firstName}!
       </h1>
       <p className="mt-1 text-ima-text-secondary">Platform overview</p>
+
+      {/* Phase 54: Analytics teaser (streams in independently of stats grid) */}
+      <div className="mt-6">
+        <Suspense fallback={<OwnerAnalyticsTeaserSkeleton />}>
+          <OwnerAnalyticsTeaser />
+        </Suspense>
+      </div>
 
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
@@ -108,6 +117,31 @@ export default async function OwnerDashboard() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function OwnerAnalyticsTeaserSkeleton() {
+  return (
+    <div
+      aria-busy="true"
+      aria-live="polite"
+      className="rounded-lg border border-ima-border bg-ima-surface p-4"
+    >
+      <div className="h-5 w-24 rounded bg-ima-surface-light motion-safe:animate-pulse" />
+      <div className="mt-1 h-3 w-56 rounded bg-ima-surface-light motion-safe:animate-pulse" />
+      <div className="mt-3 space-y-1">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-11 rounded bg-ima-surface-light motion-safe:animate-pulse"
+          />
+        ))}
+      </div>
+      <div className="mt-4 pt-3 border-t border-ima-border">
+        <div className="h-5 w-32 rounded bg-ima-surface-light motion-safe:animate-pulse" />
+      </div>
+      <span className="sr-only">Loading analytics teaser…</span>
     </div>
   );
 }
