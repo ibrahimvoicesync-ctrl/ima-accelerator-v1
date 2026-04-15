@@ -56,7 +56,12 @@ function toAnnouncementPayload(row: AnnouncementRow) {
       ? {
           id: row.author.id,
           name: row.author.name,
-          role: row.author.role,
+          // Narrow unknown role strings to the declared union so the payload
+          // can't violate AnnouncementAuthor.role ("owner" | "coach").
+          role:
+            row.author.role === "owner" || row.author.role === "coach"
+              ? row.author.role
+              : "coach",
         }
       : null,
   };
