@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Owner Analytics, Announcements & Roadmap Update
-status: blocked_human
-stopped_at: Phase 55 Wave 1 complete; Phase 56 blocked on user applying migration 00029
-last_updated: "2026-04-15T16:30:00.000Z"
-last_activity: 2026-04-15 -- Phase 54 complete (passed); Phase 55 Wave 1 complete; checkpoint saved for resume
+status: ready
+stopped_at: Phase 55 passed; Phase 56 ready to execute
+last_updated: "2026-04-15T18:00:00.000Z"
+last_activity: 2026-04-15 -- Phase 54 + 55 complete (passed); migration 00029 applied; types regenerated
 progress:
   total_phases: 27
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 14
-  completed_plans: 4
-  percent: 29
+  completed_plans: 8
+  percent: 57
 ---
 
 # Project State
@@ -21,23 +21,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-15)
 
 **Core value:** Students can track their daily work, follow the roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 55 — chat-removal-announcements-migration
+**Current focus:** Phase 56 — announcements-crud-pages
 
 ## Current Position
 
-Phase: 56 (announcements-crud-pages) — READY, blocked on Phase 55 migration
+Phase: 56 (announcements-crud-pages) — READY to execute
 Plan: —
-Status: Autonomous run paused — user must apply migration 00029 before Phase 56 executes
-Last activity: 2026-04-15 -- Phase 54 complete; Phase 55 Wave 1 complete (plans 1-2); checkpoint saved
+Status: Phase 55 passed; migration 00029 applied; types regenerated. Ready to execute Phase 56.
+Last activity: 2026-04-15 -- Phase 55 closed (commits 7ab17c5, 2ead492, 94d6592)
 
-**Resume instructions:** See `.planning/v16-AUTONOMOUS-CHECKPOINT.md` — read it first in a fresh session, then run:
-```bash
-supabase db push
-npx supabase gen types typescript --local > src/lib/types.ts
-```
-Then `/gsd-autonomous --from 56 --interactive`.
+**Resume instructions:** In a fresh session, run `/gsd-autonomous --from 56 --interactive`.
+Migration + types work is done — no DB action required to start Phase 56.
 
-Progress: [██░░░░░░░░] 25% (1/4 phases complete — Phase 54 passed; 55 Wave 1 done)
+Progress: [█████░░░░░] 50% (2/4 phases complete — Phases 54, 55 passed)
 
 ## Performance Metrics
 
