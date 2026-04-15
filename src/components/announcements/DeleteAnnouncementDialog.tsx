@@ -34,10 +34,20 @@ export function DeleteAnnouncementDialog({
   const { toast } = useToast();
   const toastRef = useRef(toast);
   const routerRef = useRef(router);
+  // Mount guard — if the user Escapes mid-delete the modal unmounts but the
+  // fetch is still in flight. We must not call onDeleted/onClose or toast
+  // after unmount.
+  const isMountedRef = useRef(true);
   useEffect(() => {
     toastRef.current = toast;
     routerRef.current = router;
   }, [toast, router]);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleConfirm = useCallback(async () => {
     if (submitting) return;
@@ -51,7 +61,7 @@ export function DeleteAnnouncementDialog({
         try {
           const errBody = (await response.json()) as { error?: string };
           if (response.status === 429) {
-            message = "You are posting too fast. Please wait a minute.";
+            message = "You are acting too fast. Please wait a minute.";
           } else if (errBody?.error) {
             message = errBody.error;
           }
@@ -61,39 +71,59 @@ export function DeleteAnnouncementDialog({
             parseErr
           );
         }
-        toastRef.current({
-          type: "error",
-          title: "Could not delete the announcement. Try again.",
-          description: message,
-        });
+        if (isMountedRef.current) {
+          toastRef.current({
+            type: "error",
+            title: "Could not delete the announcement. Try again.",
+            description: message,
+          });
+        }
         console.error(
           `[DeleteAnnouncementDialog] DELETE failed with status ${response.status}`
         );
         return;
       }
-      onDeleted();
-      toastRef.current({ type: "success", title: "Announcement deleted." });
-      onClose();
-      routerRef.current.refresh();
+      if (isMountedRef.current) {
+        onDeleted();
+        toastRef.current({ type: "success", title: "Announcement deleted." });
+        onClose();
+        routerRef.current.refresh();
+      }
     } catch (err) {
       console.error("[DeleteAnnouncementDialog] Unexpected error:", err);
-      toastRef.current({
-        type: "error",
-        title: "Could not delete the announcement. Try again.",
-      });
+      if (isMountedRef.current) {
+        toastRef.current({
+          type: "error",
+          title: "Could not delete the announcement. Try again.",
+        });
+      }
     } finally {
-      setSubmitting(false);
+      if (isMountedRef.current) {
+        setSubmitting(false);
+      }
     }
   }, [submitting, announcementId, onClose, onDeleted]);
 
   return (
     <Modal
       open={open}
-      onClose={submitting ? () => {} : onClose}
+      // Allow Escape/backdrop to close even while submitting so keyboard users
+      // are never trapped. The mount guard above makes post-unmount success
+      // and error paths a no-op.
+      onClose={onClose}
       title="Delete this announcement?"
       description="This cannot be undone. Students who already saw it will no longer see it in their feed."
       size="md"
     >
+      {submitting && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-xs font-medium text-ima-text-secondary mt-1"
+        >
+          Deleting…
+        </p>
+      )}
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end mt-2">
         <Button
           type="button"
