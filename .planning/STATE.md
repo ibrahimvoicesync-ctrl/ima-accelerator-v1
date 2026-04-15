@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Owner Analytics, Announcements & Roadmap Update
-status: executing
-stopped_at: Phase 56 UI-SPEC approved
-last_updated: "2026-04-15T15:16:26.104Z"
-last_activity: 2026-04-15 -- Phase 55 execution started
+status: blocked_human
+stopped_at: Phase 55 Wave 1 complete; Phase 56 blocked on user applying migration 00029
+last_updated: "2026-04-15T16:30:00.000Z"
+last_activity: 2026-04-15 -- Phase 54 complete (passed); Phase 55 Wave 1 complete; checkpoint saved for resume
 progress:
   total_phases: 27
   completed_phases: 1
@@ -25,12 +25,19 @@ See: .planning/PROJECT.md (updated 2026-04-15)
 
 ## Current Position
 
-Phase: 55 (chat-removal-announcements-migration) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 55
-Last activity: 2026-04-15 -- Phase 55 execution started
+Phase: 56 (announcements-crud-pages) — READY, blocked on Phase 55 migration
+Plan: —
+Status: Autonomous run paused — user must apply migration 00029 before Phase 56 executes
+Last activity: 2026-04-15 -- Phase 54 complete; Phase 55 Wave 1 complete (plans 1-2); checkpoint saved
 
-Progress: [░░░░░░░░░░] 0% (0/4 phases complete)
+**Resume instructions:** See `.planning/v16-AUTONOMOUS-CHECKPOINT.md` — read it first in a fresh session, then run:
+```bash
+supabase db push
+npx supabase gen types typescript --local > src/lib/types.ts
+```
+Then `/gsd-autonomous --from 56 --interactive`.
+
+Progress: [██░░░░░░░░] 25% (1/4 phases complete — Phase 54 passed; 55 Wave 1 done)
 
 ## Performance Metrics
 
