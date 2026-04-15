@@ -41,3 +41,24 @@ BEGIN;
 
 ALTER TABLE public.roadmap_progress
   DROP CONSTRAINT IF EXISTS roadmap_progress_step_number_check;
+
+-- -----------------------------------------------------------------------------
+-- Section 2: Two-pass renumber of existing Steps 8–15 → 9–16.
+-- Pass 1 shifts 8–15 into 108–115 (outside the collision range) so Pass 2
+-- can shift into 9–16 without colliding with existing rows on the
+-- UNIQUE(student_id, step_number) index.
+--
+-- Single-pass "step_number + 1 WHERE step_number BETWEEN 8 AND 15" would
+-- violate the UNIQUE constraint: e.g., student X's row at step 8 moving
+-- to step 9 collides with student X's existing row at step 9.
+-- -----------------------------------------------------------------------------
+
+-- Pass 1: Shift old Steps 8–15 to 108–115.
+UPDATE public.roadmap_progress
+  SET step_number = step_number + 100
+ WHERE step_number BETWEEN 8 AND 15;
+
+-- Pass 2: Shift 108–115 down to 9–16.
+UPDATE public.roadmap_progress
+  SET step_number = step_number - 99
+ WHERE step_number BETWEEN 108 AND 115;
