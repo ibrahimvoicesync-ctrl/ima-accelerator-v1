@@ -46,15 +46,15 @@
 
 ### Roadmap Step 8 Insertion (ROADMAP)
 
-- [ ] **ROADMAP-01** — New step inserted at end of Stage 1 (after current Step 7, before current Step 8 "Send your First Email"): title "Join at least one Influencer Q&A session (CPM + pricing)", `target_days: 5`
-- [ ] **ROADMAP-02** — Existing Steps 8–15 renumbered to 9–16 atomically in a single transaction with no duplicate `step_number` visible mid-transaction
-- [ ] **ROADMAP-03** — Students who completed old Step 7 (or any step ≥ 7) have new Step 8 auto-marked `completed` so their progress is not blocked
+- [x] **ROADMAP-01** — New step inserted at end of Stage 1 (after current Step 7, before current Step 8 "Send your First Email"): title "Join at least one Influencer Q&A session (CPM + pricing)", `target_days: 5`
+- [x] **ROADMAP-02** — Existing Steps 8–15 renumbered to 9–16 atomically in a single transaction with no duplicate `step_number` visible mid-transaction
+- [x] **ROADMAP-03** — Students who completed old Step 7 (or any step ≥ 7) have new Step 8 auto-marked `completed` so their progress is not blocked
 - [ ] **ROADMAP-04** — Students can self-mark new Step 8 complete with the same flow as all other roadmap steps
 - [ ] **ROADMAP-05** — `ROADMAP_STEPS` in `src/lib/config.ts` updated to 16 entries with correct stage headers
-- [ ] **ROADMAP-06** — `MILESTONE_CONFIG.influencersClosedStep` updated from 11 → 12; `MILESTONE_CONFIG.brandResponseStep` updated from 13 → 14 — in both `src/lib/config.ts` AND `get_coach_milestones` RPC SQL, in the same migration
+- [x] **ROADMAP-06** — `MILESTONE_CONFIG.influencersClosedStep` updated from 11 → 12; `MILESTONE_CONFIG.brandResponseStep` updated from 13 → 14 — in both `src/lib/config.ts` AND `get_coach_milestones` RPC SQL, in the same migration
 - [ ] **ROADMAP-07** — All progress-bar denominators show /16 (via dynamic `ROADMAP_STEPS.length`)
 - [ ] **ROADMAP-08** — Full grep sweep across codebase for hardcoded step numbers (string literals like `/10`, `/15`, `step_number === 8`, step range guards); any found are updated
-- [ ] **ROADMAP-09** — `CHECK (step_number BETWEEN 1 AND 15)` constraint dropped and recreated as `BETWEEN 1 AND 16` in the migration
+- [x] **ROADMAP-09** — `CHECK (step_number BETWEEN 1 AND 15)` constraint dropped and recreated as `BETWEEN 1 AND 16` in the migration
 
 ### Performance & Quality (PERF — cross-cutting, applies to every phase)
 
