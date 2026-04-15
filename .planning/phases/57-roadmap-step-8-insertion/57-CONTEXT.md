@@ -20,8 +20,8 @@ Migration 00030 inserts a new Step 8 ("Join at least one Influencer Q&A session 
   2. **Pass 1**: `UPDATE roadmap_progress SET step_number = step_number + 100 WHERE step_number BETWEEN 8 AND 15` — shifts old Steps 8–15 to 108–115 (outside collision range)
   3. **Pass 2**: `UPDATE roadmap_progress SET step_number = step_number - 99 WHERE step_number BETWEEN 108 AND 115` — shifts 108–115 to 9–16
   4. `CREATE OR REPLACE FUNCTION get_coach_milestones` with `influencersClosedStep = 12` and `brandResponseStep = 14` (shifted +1 each)
-  5. Auto-complete: `INSERT INTO roadmap_progress (student_id, step_number, completed, completed_at) SELECT student_id, 8, true, NOW() FROM roadmap_progress WHERE step_number = 7 AND completed = true`
-     — Note: step 7 rows after Pass 2 are still at 7 (unchanged); the INSERT references the POST-renumber state, so old step-7 completers get a fresh completed row at new step 8.
+  5. Auto-complete: `INSERT INTO roadmap_progress (student_id, step_number, step_name, status, completed_at) SELECT student_id, 8, '<Phase 57 title>', 'completed', NOW() FROM roadmap_progress WHERE step_number = 7 AND status = 'completed' ON CONFLICT (student_id, step_number) DO NOTHING`
+     — Schema correction: `roadmap_progress` uses `status varchar` (not boolean `completed`); `step_name` is NOT NULL. Planner caught this during Phase 57 planning. Step 7 rows after Pass 2 are still at 7 (unchanged); the INSERT references the POST-renumber state, so old step-7 completers get a fresh completed row at new step 8.
   6. `DO $$ BEGIN ASSERT (SELECT MAX(step_number) FROM roadmap_progress) = 16; ASSERT (SELECT COUNT(*) FROM (SELECT student_id, step_number FROM roadmap_progress GROUP BY student_id, step_number HAVING COUNT(*) > 1) dup) = 0; END $$;`
   7. Implicit `COMMIT` (via migration boundary) — ASSERT failures roll back automatically.
 - Order non-negotiable: the CHECK constraint must be relaxed BEFORE any UPDATE that could temporarily exceed 15.
@@ -36,10 +36,16 @@ Migration 00030 inserts a new Step 8 ("Join at least one Influencer Q&A session 
 ### D-57-02: Auto-complete logic for new Step 8
 - Gate on **old Step 7 completion state** only. SQL (after renumber, step 7 is still step 7):
   ```sql
-  INSERT INTO roadmap_progress (student_id, step_number, completed, completed_at)
-  SELECT student_id, 8, true, NOW()
+  -- Schema: roadmap_progress uses status varchar (NOT boolean 'completed');
+  -- step_name is NOT NULL.
+  INSERT INTO roadmap_progress (student_id, step_number, step_name, status, completed_at)
+  SELECT student_id,
+         8,
+         'Join at least one Influencer Q&A session (CPM + pricing)',
+         'completed',
+         NOW()
   FROM roadmap_progress
-  WHERE step_number = 7 AND completed = true
+  WHERE step_number = 7 AND status = 'completed'
   ON CONFLICT (student_id, step_number) DO NOTHING;
   ```
 - Students with old Step 7 in-progress or not started: no row inserted; new Step 8 shows as locked/available per existing gating rules.
