@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Analytics Pages, Coach Dashboard & Deal Logging
-status: shipped
-shipped_at: 2026-04-15
-last_updated: "2026-04-15T12:45:00.000Z"
-last_activity: 2026-04-15 -- v1.5 milestone shipped
+milestone: v1.6
+milestone_name: Owner Analytics, Announcements & Roadmap Update
+status: defining_requirements
+last_updated: "2026-04-15T13:00:00.000Z"
+last_activity: 2026-04-15 -- Milestone v1.6 started
 progress:
-  total_phases: 33
-  completed_phases: 33
-  total_plans: 81
-  completed_plans: 81
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-15)
 
 **Core value:** Students can track their daily work, follow the 10-step roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Planning next milestone (v1.6 scope TBD)
+**Current focus:** v1.6 — Owner Analytics, Announcements & Roadmap Update
 
 ## Current Position
 
-Milestone: v1.5 — SHIPPED 2026-04-15
-Next: Run `/gsd-new-milestone` to scope v1.6
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-15 — Milestone v1.6 started
 
-Progress: [██████████] 100% (v1.5 — 10/10 phases complete)
+Progress: [░░░░░░░░░░] 0% (requirements + roadmap pending)
 
 ## Performance Metrics
 

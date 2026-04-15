@@ -70,8 +70,11 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 
 <!-- Current scope. Building toward v1.6. -->
 
-- [ ] NOTIF-01 Tech/Email Setup trigger activation — pending D-06 stakeholder decision on roadmap step placement; config ships behind `techSetupEnabled` feature flag
-- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit deferred from v1.5 milestone
+- [ ] Owner Analytics page — `/owner/analytics` with top-3 leaderboards (hours, profit, deals) + teaser cards on owner dashboard homepage
+- [ ] Replace chat with Announcements — remove chat entirely (drop messages table) and add owner+coach-authored broadcast announcements visible to all students (incl. student_diy)
+- [ ] New roadmap Step 8 — "Join at least one Influencer Q&A session (CPM + pricing)" inserted at end of Stage 1, existing steps renumber 8→9 through 15→16
+- [ ] NOTIF-01 Tech/Email Setup trigger activation — pending D-06 stakeholder decision on roadmap step placement; config ships behind `techSetupEnabled` feature flag (carry-over, not v1.6 scope)
+- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit deferred from v1.5 milestone (carry-over, not v1.6 scope)
 
 ### Out of Scope
 
@@ -205,14 +208,31 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | v1.5 D-16 | "Closed Deal" milestone fires on ALL deals (student-logged, coach-logged, owner-logged) | Simplest + consistent with D-07 — coach wants to know student is closing regardless of who logged | 2026-04-13 |
 | v1.5 D-17 | Coach/owner edit of deals records `updated_at` + `updated_by` only (no per-edit change-log) | Standard audit columns sufficient for v1.5; full history deferred to v1.6+ | 2026-04-13 |
 
+## Current Milestone: v1.6 Owner Analytics, Announcements & Roadmap Update
+
+**Goal:** Deliver owner-level analytics visibility, replace 1-on-1 chat with a broadcast announcements system, and insert a new Influencer Q&A roadmap step — all at 5k-student scale.
+
+**Target features:**
+- Owner Analytics page (`/owner/analytics`) with 3 top-3 leaderboards (hours, profit, deals) + teaser stat cards on owner dashboard homepage
+- Replace chat with Announcements — full chat removal (routes, UI, sidebar nav, drop `messages` table, strip unread_messages branch from `get_sidebar_badges`) + new `announcements` table with owner+coach full CRUD on any announcement, students (incl. `student_diy`) read-only, per-role `/announcements` page, paginated 25/page, no expiry
+- Insert new roadmap Step 8 "Join at least one Influencer Q&A session (CPM + pricing)" (`target_days: 5`) at end of Stage 1; atomic renumber of existing Steps 8–15 → 9–16; auto-complete new step for students past old Step 7; update `ROADMAP_STEPS` config + all progress bars to /16 + grep all hardcoded step numbers
+
+**Performance constraints (apply to every phase):**
+- 5,000 concurrent students stress envelope
+- Hot-path indexes on all new queries
+- Auth + role check + rate limiting on every new API route
+- New RLS policies use `(SELECT auth.uid())` initplan pattern
+- Dashboard aggregations via Postgres RPC + 60s `unstable_cache`
+- Paginate anything > 25 items
+- Post-phase gate: `npm run lint && npx tsc --noEmit && npm run build`
+
 ## Current State
 
 **Shipped:** v1.5 (2026-04-15) — Analytics Pages, Coach Dashboard & Deal Logging
-**Next:** v1.6 (scope TBD — run `/gsd-new-milestone` to define)
+**Active:** v1.6 — requirements + roadmap next
 
-## Next Milestone Goals
+## Carry-overs (not v1.6 scope)
 
-To be defined via `/gsd-new-milestone`. Known carry-overs / candidates:
 - NOTIF-01 Tech/Email Setup activation once D-06 resolves
 - Nyquist test-coverage audit across v1.5 phases (44-52)
 - Full per-edit change-log for deal updates (v1.5 D-17 deferred)
@@ -222,7 +242,7 @@ To be defined via `/gsd-new-milestone`. Known carry-overs / candidates:
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
-Last updated: 2026-04-13
+Last updated: 2026-04-15
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -238,4 +258,4 @@ Last updated: 2026-04-13
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-15 — Milestone v1.5 (Analytics Pages, Coach Dashboard & Deal Logging) shipped: 10 phases (44-53), 16 plans, 93 commits. Ready to scope v1.6.*
+*Last updated: 2026-04-15 — Milestone v1.6 (Owner Analytics, Announcements & Roadmap Update) scoped and kicked off.*
