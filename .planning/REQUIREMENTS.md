@@ -16,7 +16,7 @@
 - [ ] **OA-03** — Owner dashboard homepage shows teaser stat cards linking to `/owner/analytics`
 - [x] **OA-04** — Owner Analytics served by a single batch Postgres RPC (`get_owner_analytics`) wrapped in `unstable_cache` with 60s TTL
 - [ ] **OA-05** — `owner-analytics` cache tag is invalidated on every `deals` mutation (INSERT/UPDATE/DELETE) and on work-session completion (PATCH → completed)
-- [ ] **OA-06** — Leaderboard rows link to `/owner/students/[studentId]`
+- [x] **OA-06** — Leaderboard rows link to `/owner/students/[studentId]`
 
 ### Chat Removal (CHAT-REM)
 
