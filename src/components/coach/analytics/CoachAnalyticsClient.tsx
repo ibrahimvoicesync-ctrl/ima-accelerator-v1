@@ -18,7 +18,7 @@ import type { CoachAnalyticsSearchParams } from "@/lib/schemas/coach-analytics-p
 import { ActiveInactiveChip } from "./ActiveInactiveChip";
 import { ExportCsvButton } from "./ExportCsvButton";
 import { KPIGrid } from "./KPIGrid";
-import { LeaderboardCard, type LeaderboardRow } from "./LeaderboardCard";
+import { LeaderboardCard, type LeaderboardRow } from "@/components/analytics/LeaderboardCard";
 import { DealsTrendChart } from "./DealsTrendChart";
 import { StudentListTable } from "./StudentListTable";
 

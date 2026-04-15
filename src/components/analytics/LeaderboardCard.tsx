@@ -1,9 +1,15 @@
 /**
- * Phase 48: Single leaderboard card. Instanced 3x for hours/emails/deals.
+ * Phase 54: Shared leaderboard card — reused by /coach/analytics (Phase 48) and
+ * /owner/analytics (Phase 54) via the `hrefPrefix` prop. Relocated from
+ * src/components/coach/analytics/LeaderboardCard.tsx per locked decision D-02.
  *
- * Reuses the avatar circle + rank-1 badge geometry from Phase 47. Empty state
- * via the existing EmptyState primitive. Each row links to the student detail
- * page with min-h-[44px] and a focus-visible ring.
+ * Original Phase 48 behavior: rank-1 badge, avatar initials, 44px touch target,
+ * focus-visible ring, ima-* tokens, EmptyState on zero rows. Unchanged here.
+ *
+ * New in Phase 54: `hrefPrefix` prop. Default "/coach/students/" preserves the
+ * Phase 48 coach behavior without forcing CoachAnalyticsClient to pass it.
+ * Owner passes "/owner/students/" to produce /owner/students/<uuid> links per
+ * OA-06.
  */
 
 import Link from "next/link";
@@ -25,6 +31,11 @@ type LeaderboardCardProps = {
   emptyBody: string;
   // Used to give the heading + aria-labelledby a stable unique id.
   headingId: string;
+  // Optional prefix for the row link, e.g. "/owner/students/" — defaults to
+  // "/coach/students/" to preserve Phase 48 call-sites without modification.
+  // Include the trailing slash in the prefix; the component concatenates
+  // `${hrefPrefix}${row.student_id}` without adding one.
+  hrefPrefix?: string;
 };
 
 function getInitials(name: string): string {
@@ -41,6 +52,7 @@ export function LeaderboardCard({
   emptyHeading,
   emptyBody,
   headingId,
+  hrefPrefix = "/coach/students/",
 }: LeaderboardCardProps) {
   return (
     <Card aria-labelledby={headingId}>
@@ -66,7 +78,7 @@ export function LeaderboardCard({
             {rows.map((row) => (
               <li key={row.student_id}>
                 <Link
-                  href={`/coach/students/${row.student_id}`}
+                  href={`${hrefPrefix}${row.student_id}`}
                   aria-label={`View ${row.student_name} — ${row.metric_display}`}
                   className="flex items-center gap-3 p-3 rounded-lg motion-safe:transition-colors hover:bg-ima-surface-light min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2"
                 >
