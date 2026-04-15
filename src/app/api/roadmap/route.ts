@@ -117,9 +117,10 @@ export async function PATCH(request: NextRequest) {
     } catch (e) {
       console.error("[revalidate-tag]", e);
     }
-    // Phase 51: a Step-11 or Step-13 completion for an assigned student produces
-    // a coach milestone notification. Invalidate the coach's caches + sidebar
-    // badge so the notification surfaces within one render instead of one TTL.
+    // A MILESTONE_CONFIG.influencersClosedStep / .brandResponseStep completion
+    // for an assigned student produces a coach milestone notification.
+    // Invalidate the coach's caches + sidebar badge so the notification surfaces
+    // within one render instead of one TTL.
     revalidateTag("badges", "default");
     try {
       const { data: studentRow } = await admin
