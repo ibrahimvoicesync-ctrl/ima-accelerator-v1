@@ -11,9 +11,9 @@
 
 ### Owner Analytics (OA)
 
-- [ ] **OA-01** — Owner can view `/owner/analytics` page (separate route from owner dashboard homepage)
+- [x] **OA-01** — Owner can view `/owner/analytics` page (separate route from owner dashboard homepage)
 - [x] **OA-02** — Owner Analytics page shows 3 top-3 leaderboards: Top 3 Students by Hours Worked, Top 3 Students by Profit Earned, Top 3 Students by Deals Closed (lifetime scope, deterministic tie-break)
-- [ ] **OA-03** — Owner dashboard homepage shows teaser stat cards linking to `/owner/analytics`
+- [x] **OA-03** — Owner dashboard homepage shows teaser stat cards linking to `/owner/analytics`
 - [x] **OA-04** — Owner Analytics served by a single batch Postgres RPC (`get_owner_analytics`) wrapped in `unstable_cache` with 60s TTL
 - [ ] **OA-05** — `owner-analytics` cache tag is invalidated on every `deals` mutation (INSERT/UPDATE/DELETE) and on work-session completion (PATCH → completed)
 - [x] **OA-06** — Leaderboard rows link to `/owner/students/[studentId]`
