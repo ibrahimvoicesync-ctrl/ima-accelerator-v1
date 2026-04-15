@@ -180,7 +180,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: "Failed to create deal" }, { status: 500 });
         }
 
-        revalidateTag(`deals-${effectiveStudentId}`, "default");
         revalidateTag("badges", "default"); // Phase 51: sidebar coach_milestone_alerts count can change on every deal
         try {
           revalidateTag(studentAnalyticsTag(effectiveStudentId), "default");
@@ -210,7 +209,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 10. Cache invalidation (per-student)
-    revalidateTag(`deals-${effectiveStudentId}`, "default");
     revalidateTag("badges", "default"); // Phase 51: sidebar coach_milestone_alerts count can change on every deal
     try {
       revalidateTag(studentAnalyticsTag(effectiveStudentId), "default");
