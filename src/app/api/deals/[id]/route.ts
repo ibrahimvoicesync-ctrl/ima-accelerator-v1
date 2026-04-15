@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyOrigin } from "@/lib/csrf";
 import { VALIDATION } from "@/lib/config";
+import { ownerAnalyticsTag } from "@/lib/rpc/owner-analytics-types";
 
 // ---------------------------------------------------------------------------
 // Route context type (Next.js 16 uses Promise<Params>)
@@ -125,6 +126,13 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     // 11. Cache invalidation
     revalidateTag(`deals-${profile.id}`, "default");
 
+    // Phase 54: owner-analytics is a GLOBAL tag — invalidate on every deal edit.
+    try {
+      revalidateTag(ownerAnalyticsTag(), "default");
+    } catch (err) {
+      console.error("[deals/[id]:PATCH] failed to invalidate owner-analytics tag:", err);
+    }
+
     // 12. Return updated deal
     return NextResponse.json({ data: updated });
   } catch (err) {
@@ -231,6 +239,13 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     // 10. Cache invalidation — use deal.student_id (NOT profile.id) so coach/owner
     //     invalidate the correct student's cache (per D-02, Pitfall 4)
     revalidateTag(`deals-${deal.student_id}`, "default");
+
+    // Phase 54: owner-analytics is a GLOBAL tag — invalidate on every deal deletion.
+    try {
+      revalidateTag(ownerAnalyticsTag(), "default");
+    } catch (err) {
+      console.error("[deals/[id]:DELETE] failed to invalidate owner-analytics tag:", err);
+    }
 
     // 11. Return success
     return NextResponse.json({ success: true });
