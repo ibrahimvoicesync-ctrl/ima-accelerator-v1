@@ -146,13 +146,13 @@ export const KPI_TARGETS = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// 6. ROADMAP MILESTONES (15 steps, 3 stages)
+// 6. ROADMAP MILESTONES (16 steps, 3 stages)
 // target_days = cumulative days from student's joined_at date
 // Stage 2-3 steps have target_days: null (no deadlines)
 // unlock_url = optional link shown when step becomes active
 // ---------------------------------------------------------------------------
 export const ROADMAP_STEPS = [
-  // Stage 1: Setup & Preparation (Steps 1-7, day-based deadlines)
+  // Stage 1: Setup & Preparation (Steps 1-8, day-based deadlines)
   { step: 1, stage: 1, stageName: "Setup & Preparation", title: "Join the Course", description: "Complete your onboarding and set up your profile (time asap)", autoComplete: true, target_days: 0 as number | null, unlock_url: null as string | null },
   { step: 2, stage: 1, stageName: "Setup & Preparation", title: "Finish Welcome Chapter", description: "Watch the welcome videos and complete the introductory chapter (2 hrs)", target_days: 0 as number | null, unlock_url: null as string | null },
   { step: 3, stage: 1, stageName: "Setup & Preparation", title: "Select Niche Chapter", description: "Choose the influencer niche you will focus on and complete the niche chapter (1hr - don't overthink it)", target_days: 0 as number | null, unlock_url: null as string | null },
@@ -160,16 +160,17 @@ export const ROADMAP_STEPS = [
   { step: 5, stage: 1, stageName: "Setup & Preparation", title: "Begin 14 Day Warmup", description: "Start your 14-day email warmup to build sender reputation (Day 3)", target_days: 3 as number | null, unlock_url: "https://www.skool.com/the-ima-accelerator-9388/ultimate-influencer-brand-crm-organize-your-contacts" as string | null },
   { step: 6, stage: 1, stageName: "Setup & Preparation", title: "Build 100 Influencer Lead List", description: "Build 100 Influencer Lead List, and Watch 3 Influencer Roast My Email (Day 6)", target_days: 4 as number | null, unlock_url: null as string | null },
   { step: 7, stage: 1, stageName: "Setup & Preparation", title: "Draft Your First Outreach Emails", description: "Draft your first outreach emails using the templates and frameworks from the course (volume is key here)", target_days: 4 as number | null, unlock_url: null as string | null },
-  // Stage 2: Influencer Outreach (Steps 8-11, no deadlines)
-  { step: 8, stage: 2, stageName: "Influencer Outreach", title: "Send Your First Email", description: "Send your first outreach email to an influencer (Day 14)", target_days: 14 as number | null, unlock_url: "https://www.loom.com/share/placeholder-osama" as string | null },
-  { step: 9, stage: 2, stageName: "Influencer Outreach", title: "Get First Reply", description: "Receive a reply from an influencer — positive or negative, it counts", target_days: null as number | null, unlock_url: null as string | null },
-  { step: 10, stage: 2, stageName: "Influencer Outreach", title: "Close First Influencer", description: "Sign your first influencer to your roster — you are officially an agent", target_days: null as number | null, unlock_url: null as string | null },
-  { step: 11, stage: 2, stageName: "Influencer Outreach", title: "Close 5 Influencers", description: "Build your roster to 5 signed influencers ready for brand deals", target_days: null as number | null, unlock_url: null as string | null },
-  // Stage 3: Brand Outreach (Steps 12-15, no deadlines)
-  { step: 12, stage: 3, stageName: "Brand Outreach", title: "Enter Brand Outreach", description: "Transition from influencer outreach to pitching brands", target_days: null as number | null, unlock_url: "https://www.loom.com/share/placeholder-motivator" as string | null },
-  { step: 13, stage: 3, stageName: "Brand Outreach", title: "Get Brand Response", description: "Receive your first response from a brand you pitched", target_days: null as number | null, unlock_url: "https://www.loom.com/share/placeholder-motivator" as string | null },
-  { step: 14, stage: 3, stageName: "Brand Outreach", title: "Receive Your First Brand Rejection", description: "Get your first brand rejection — a milestone that means you are in the game", target_days: null as number | null, unlock_url: "https://www.loom.com/share/placeholder-motivator" as string | null },
-  { step: 15, stage: 3, stageName: "Brand Outreach", title: "Close First Deal", description: "Negotiate and close your first paid brand deal — this is where it all pays off", target_days: null as number | null, unlock_url: "https://www.loom.com/share/placeholder-congratulation" as string | null },
+  { step: 8, stage: 1, stageName: "Setup & Preparation", title: "Join at least one Influencer Q&A session (CPM + pricing)", description: "Attend a live Influencer Q&A call with the IMA team. Learn how CPM is calculated and how to price influencer deals before your first outreach email lands.", target_days: 5 as number | null, unlock_url: null as string | null },
+  // Stage 2: Influencer Outreach (Steps 9-12, no deadlines)
+  { step: 9, stage: 2, stageName: "Influencer Outreach", title: "Send Your First Email", description: "Send your first outreach email to an influencer (Day 14)", target_days: 14 as number | null, unlock_url: "https://www.loom.com/share/placeholder-osama" as string | null },
+  { step: 10, stage: 2, stageName: "Influencer Outreach", title: "Get First Reply", description: "Receive a reply from an influencer — positive or negative, it counts", target_days: null as number | null, unlock_url: null as string | null },
+  { step: 11, stage: 2, stageName: "Influencer Outreach", title: "Close First Influencer", description: "Sign your first influencer to your roster — you are officially an agent", target_days: null as number | null, unlock_url: null as string | null },
+  { step: 12, stage: 2, stageName: "Influencer Outreach", title: "Close 5 Influencers", description: "Build your roster to 5 signed influencers ready for brand deals", target_days: null as number | null, unlock_url: null as string | null },
+  // Stage 3: Brand Outreach (Steps 13-16, no deadlines)
+  { step: 13, stage: 3, stageName: "Brand Outreach", title: "Enter Brand Outreach", description: "Transition from influencer outreach to pitching brands", target_days: null as number | null, unlock_url: "https://www.loom.com/share/placeholder-motivator" as string | null },
+  { step: 14, stage: 3, stageName: "Brand Outreach", title: "Get Brand Response", description: "Receive your first response from a brand you pitched", target_days: null as number | null, unlock_url: "https://www.loom.com/share/placeholder-motivator" as string | null },
+  { step: 15, stage: 3, stageName: "Brand Outreach", title: "Receive Your First Brand Rejection", description: "Get your first brand rejection — a milestone that means you are in the game", target_days: null as number | null, unlock_url: "https://www.loom.com/share/placeholder-motivator" as string | null },
+  { step: 16, stage: 3, stageName: "Brand Outreach", title: "Close First Deal", description: "Negotiate and close your first paid brand deal — this is where it all pays off", target_days: null as number | null, unlock_url: "https://www.loom.com/share/placeholder-congratulation" as string | null },
 ] as const;
 
 // ---------------------------------------------------------------------------
