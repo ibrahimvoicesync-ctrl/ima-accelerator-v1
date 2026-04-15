@@ -14,6 +14,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/session";
 import { getTodayUTC } from "@/lib/utils";
 import { fetchCoachAnalytics } from "@/lib/rpc/coach-analytics";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   COACH_ANALYTICS_SORT_KEYS,
   type CoachAnalyticsSort,
@@ -62,7 +63,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 2. Validate params.
+    // 2. Rate limit (per D-01, D-04 — 30 req/min/user matches all coach API routes).
+    const { allowed, retryAfterSeconds } = await checkRateLimit(
+      user.id,
+      "/api/coach/analytics/export.csv"
+    );
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `Too many requests, try again in ${retryAfterSeconds} seconds.` },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+      );
+    }
+
+    // 3. Validate params.
     const url = new URL(request.url);
     const raw: Record<string, string> = {};
     for (const [k, v] of url.searchParams.entries()) raw[k] = v;
@@ -73,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     const today = getTodayUTC();
 
-    // 3. Fetch full filtered set (no pagination — single dump).
+    // 4. Fetch full filtered set (no pagination — single dump).
     const payload = await fetchCoachAnalytics(user.id, {
       page: 1,
       pageSize: EXPORT_HARD_CAP,
@@ -90,13 +103,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 4. Build CSV body.
+    // 5. Build CSV body.
     const header =
       "Name,Hours This Week (minutes),Emails This Week,All-Time Deals,Roadmap Step,Last Active (ISO),Status";
     const lines = [header, ...payload.students.map(rowToCsv)];
     const body = lines.join("\r\n") + "\r\n";
 
-    // 5. Return as attachment.
+    // 6. Return as attachment.
     return new NextResponse(body, {
       status: 200,
       headers: {
