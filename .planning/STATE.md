@@ -50,7 +50,7 @@ Last activity: 2026-04-16 — Milestone v1.8 started
 - **Proxy not middleware** — Next.js 16 route guard lives in `src/proxy.ts`.
 - **Config is truth** — import roles/nav/roadmap from `src/lib/config.ts`; never hardcode.
 - **Auth pattern** — `getSessionUser()` + `requireRole()` from `src/lib/session.ts` on every protected route.
-- **Migration numbering** — next migration is `00032` (00031_referral_links applied 2026-04-16 in Phase 58).
+- **Migration numbering** — next migration is `00033`. `00032_drop_get_sidebar_badges_legacy_4arg.sql` already applied (v1.7 PGRST203 hotfix, commit 0583d09); `00031_referral_links.sql` applied in Phase 58.
 - **Filter by user ID** in queries, never rely on RLS alone (defense in depth).
 - **Post-phase build gate** — `npm run lint && npx tsc --noEmit && npm run build` exits 0 at every phase boundary.
 

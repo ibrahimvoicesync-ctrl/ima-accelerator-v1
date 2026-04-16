@@ -253,7 +253,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 **Constraints (apply to every phase):**
 - All 8 Hard Rules from `CLAUDE.md` enforced (ima-* tokens, `min-h-[44px]`, `motion-safe:` animations, aria-label/aria-hidden, admin client in API routes, `response.ok` checks, never-swallow errors, `import { z } from "zod"`)
 - Auth + role check + rate limiting pattern reused on any new/modified mutation routes
-- Migration numbering: **00032** (continues after v1.7's `00031`)
+- Migration numbering: **00033** (continues after `00032_drop_get_sidebar_badges_legacy_4arg.sql` — v1.7 PGRST203 hotfix, commit 0583d09)
 - Post-phase gate: `npm run lint && npx tsc --noEmit && npm run build` exits 0
 - Feature 1: bump `unstable_cache` key for student analytics — breaking RPC change will crash SSR on stale cache
 - Features 2 & 3: verify every deal mutation still calls `revalidateTag(ownerAnalyticsTag())` with expanded payload
