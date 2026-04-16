@@ -5,6 +5,7 @@ import { getGreeting, getToday, cn, formatHoursMinutes } from "@/lib/utils";
 import Link from "next/link";
 import { CheckCircle, Handshake, DollarSign, TrendingUp } from "lucide-react";
 import type { Database } from "@/lib/types";
+import { ReferralCard } from "@/components/student/ReferralCard";
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
 
@@ -222,6 +223,10 @@ export default async function StudentDiyDashboard() {
           </p>
           <p className="text-xs text-ima-text-muted mt-1">all time</p>
         </div>
+      </div>
+      {/* Referral Card */}
+      <div className="mt-6">
+        <ReferralCard />
       </div>
     </div>
   );

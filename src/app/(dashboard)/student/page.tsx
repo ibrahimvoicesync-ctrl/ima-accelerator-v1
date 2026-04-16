@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER, ROADMAP_STEPS, KPI_TARGETS } from "@/lib/config";
 import { getGreeting, getToday, cn, formatHoursMinutes } from "@/lib/utils";
+import { ReferralCard } from "@/components/student/ReferralCard";
 import {
   lifetimeOutreachRag,
   dailyOutreachRag,
@@ -354,6 +355,10 @@ export default async function StudentDashboard() {
             {todayReport?.submitted_at ? "Update Report" : "Submit Report"}
           </Link>
         </div>
+      </div>
+      {/* Referral Card */}
+      <div className="mt-6">
+        <ReferralCard />
       </div>
     </div>
   );
