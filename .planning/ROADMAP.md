@@ -121,7 +121,7 @@ See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md) for full phase deta
 
 - [x] **Phase 58: Schema & Backfill** — referral columns + per-student backfill on `public.users`; env example documented
 - [x] **Phase 59: Referral API + Rebrandly** — idempotent `POST /api/referral-link` end-to-end (completed 2026-04-16)
-- [ ] **Phase 60: ReferralCard UI & Dashboard Integration** — student + student_diy dashboards render the referral card
+- [x] **Phase 60: ReferralCard UI & Dashboard Integration** — student + student_diy dashboards render the referral card (completed 2026-04-16)
 
 </details>
 
@@ -526,9 +526,9 @@ Plans:
   4. A failing fetch (network error or non-2xx response) surfaces a visible toast or inline error AND fires `console.error` — the spinner clears, the button re-enables, and `response.ok` is checked before any JSON parse so a 500/502 cannot crash the component
   5. `<ReferralCard />` is rendered at the bottom of both `src/app/(dashboard)/student/page.tsx` and `src/app/(dashboard)/student_diy/page.tsx`, each inside an `mt-6` wrapper directly below the existing Deals stat cards grid; logging in as a student or student_diy user shows the card in the expected position with no layout shift
   6. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
-- [ ] 60-01-PLAN.md — ReferralCard component + dashboard integration + CFG-02 build gate
+- [x] 60-01-PLAN.md — ReferralCard component + dashboard integration + CFG-02 build gate
 **UI hint**: yes
 
 ## Progress
@@ -592,4 +592,4 @@ Plans:
 | 57. Roadmap Step 8 Insertion | v1.6 | 3/3 | Complete    | 2026-04-15 |
 | 58. Schema & Backfill | v1.7 | 2/2 | Complete    | 2026-04-16 |
 | 59. Referral API + Rebrandly | v1.7 | 1/1 | Complete    | 2026-04-16 |
-| 60. ReferralCard UI & Dashboard Integration | v1.7 | 0/TBD | Not started | — |
+| 60. ReferralCard UI & Dashboard Integration | v1.7 | 1/1 | Complete    | 2026-04-16 |
