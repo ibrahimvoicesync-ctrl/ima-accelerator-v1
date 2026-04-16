@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // k6 load test scripts — CommonJS Node.js, not part of Next.js build
     "load-tests/**",
+    // Dev-only smoke/verification CommonJS scripts — not part of Next.js build
+    "scripts/**/*.cjs",
     // GSD worktree copies — orphaned snapshots used by parallel executors
     ".claude/worktrees/**",
   ]),
