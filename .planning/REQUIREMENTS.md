@@ -17,14 +17,14 @@
 
 ### API (API)
 
-- [ ] **API-01**: `POST /api/referral-link` authenticates the caller via `getSessionUser()` and rejects any role other than `student` or `student_diy` with HTTP 403. Unauthenticated requests return 401.
-- [ ] **API-02**: On each call, the endpoint loads the caller's `referral_code` and `referral_short_url` from `public.users` via the admin client. If `referral_short_url` is already set, it is returned immediately — no Rebrandly call made.
-- [ ] **API-03**: If `referral_code` is NULL at request time (e.g. for a future role added outside backfill scope), the endpoint generates one (`upper(uuid.slice(0, 8))`) and persists it before calling Rebrandly.
-- [ ] **API-04**: On first call, the endpoint POSTs to `https://api.rebrandly.com/v1/links` with `Content-Type: application/json` + `apikey: process.env.REBRANDLY_API_KEY`, body `{ destination: "https://www.imaccelerator.com/?ref={CODE}", title: "IMA Referral – {user.name}" }`. Must check `response.ok` before parsing (CLAUDE.md Hard Rule 6).
-- [ ] **API-05**: The endpoint persists the returned `shortUrl` into `public.users.referral_short_url` and responds with JSON `{ shortUrl, referralCode }`.
-- [ ] **API-06**: Rebrandly failures (non-OK response, thrown error, or timeout) produce HTTP 502, a `console.error` with the underlying cause, and do not corrupt DB state (never persists a partial row). CLAUDE.md Hard Rule 5 (never swallow errors) observed.
-- [ ] **API-07**: Missing `REBRANDLY_API_KEY` env var returns HTTP 500 with a clear `console.error` (e.g. "REBRANDLY_API_KEY not configured") — the route does not crash and the dashboard continues to load.
-- [ ] **API-08**: Request input (body, if any) parsed with Zod `safeParse` and `import { z } from "zod"` (CLAUDE.md Hard Rule 7). Auth + role check runs BEFORE validation.
+- [x] **API-01**: `POST /api/referral-link` authenticates the caller via `getSessionUser()` and rejects any role other than `student` or `student_diy` with HTTP 403. Unauthenticated requests return 401.
+- [x] **API-02**: On each call, the endpoint loads the caller's `referral_code` and `referral_short_url` from `public.users` via the admin client. If `referral_short_url` is already set, it is returned immediately — no Rebrandly call made.
+- [x] **API-03**: If `referral_code` is NULL at request time (e.g. for a future role added outside backfill scope), the endpoint generates one (`upper(uuid.slice(0, 8))`) and persists it before calling Rebrandly.
+- [x] **API-04**: On first call, the endpoint POSTs to `https://api.rebrandly.com/v1/links` with `Content-Type: application/json` + `apikey: process.env.REBRANDLY_API_KEY`, body `{ destination: "https://www.imaccelerator.com/?ref={CODE}", title: "IMA Referral – {user.name}" }`. Must check `response.ok` before parsing (CLAUDE.md Hard Rule 6).
+- [x] **API-05**: The endpoint persists the returned `shortUrl` into `public.users.referral_short_url` and responds with JSON `{ shortUrl, referralCode }`.
+- [x] **API-06**: Rebrandly failures (non-OK response, thrown error, or timeout) produce HTTP 502, a `console.error` with the underlying cause, and do not corrupt DB state (never persists a partial row). CLAUDE.md Hard Rule 5 (never swallow errors) observed.
+- [x] **API-07**: Missing `REBRANDLY_API_KEY` env var returns HTTP 500 with a clear `console.error` (e.g. "REBRANDLY_API_KEY not configured") — the route does not crash and the dashboard continues to load.
+- [x] **API-08**: Request input (body, if any) parsed with Zod `safeParse` and `import { z } from "zod"` (CLAUDE.md Hard Rule 7). Auth + role check runs BEFORE validation.
 
 ### UI (UI)
 
@@ -80,14 +80,14 @@
 | DB-01       | Phase 58 — Schema & Backfill | Complete |
 | DB-02       | Phase 58 — Schema & Backfill | Complete |
 | DB-03       | Phase 58 — Schema & Backfill | Complete |
-| API-01      | Phase 59 — Referral API + Rebrandly | Pending |
-| API-02      | Phase 59 — Referral API + Rebrandly | Pending |
-| API-03      | Phase 59 — Referral API + Rebrandly | Pending |
-| API-04      | Phase 59 — Referral API + Rebrandly | Pending |
-| API-05      | Phase 59 — Referral API + Rebrandly | Pending |
-| API-06      | Phase 59 — Referral API + Rebrandly | Pending |
-| API-07      | Phase 59 — Referral API + Rebrandly | Pending |
-| API-08      | Phase 59 — Referral API + Rebrandly | Pending |
+| API-01      | Phase 59 — Referral API + Rebrandly | Complete |
+| API-02      | Phase 59 — Referral API + Rebrandly | Complete |
+| API-03      | Phase 59 — Referral API + Rebrandly | Complete |
+| API-04      | Phase 59 — Referral API + Rebrandly | Complete |
+| API-05      | Phase 59 — Referral API + Rebrandly | Complete |
+| API-06      | Phase 59 — Referral API + Rebrandly | Complete |
+| API-07      | Phase 59 — Referral API + Rebrandly | Complete |
+| API-08      | Phase 59 — Referral API + Rebrandly | Complete |
 | UI-01       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
 | UI-02       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
 | UI-03       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
