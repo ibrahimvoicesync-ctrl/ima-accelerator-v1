@@ -774,6 +774,8 @@ export type Database = {
           last_active_at: string | null
           name: string
           niche: string | null
+          referral_code: string | null
+          referral_short_url: string | null
           // HAND-EDIT: narrow from DB CHECK constraint — reapply after regen.
           role: "owner" | "coach" | "student" | "student_diy"
           status: "active" | "inactive" | "suspended"
@@ -790,6 +792,8 @@ export type Database = {
           last_active_at?: string | null
           name: string
           niche?: string | null
+          referral_code?: string | null
+          referral_short_url?: string | null
           role: "owner" | "coach" | "student" | "student_diy"
           status?: "active" | "inactive" | "suspended"
           streak_count?: number
@@ -805,6 +809,8 @@ export type Database = {
           last_active_at?: string | null
           name?: string
           niche?: string | null
+          referral_code?: string | null
+          referral_short_url?: string | null
           role?: "owner" | "coach" | "student" | "student_diy"
           status?: "active" | "inactive" | "suspended"
           streak_count?: number
