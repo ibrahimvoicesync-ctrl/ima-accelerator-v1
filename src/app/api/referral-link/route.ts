@@ -151,7 +151,10 @@ export async function POST(request: Request) {
         { status: 200 }
       );
     }
-    console.error("[POST /api/referral-link] Lost CAS but no winner found");
+    console.error(
+      "[POST /api/referral-link] Lost CAS but no winner found for user.id=",
+      profile.id
+    );
     return NextResponse.json({ error: "Failed to save referral link" }, { status: 500 });
   }
 
