@@ -122,12 +122,14 @@
 
 | REQ-ID | Phase | Plan(s) | Status |
 |--------|-------|---------|--------|
-| SA-01 – SA-09 | — | — | Pending |
-| OA-01 – OA-08 | — | — | Pending |
-| WS-01 – WS-10 | — | — | Pending |
-| OAL-01 – OAL-09 | — | — | Pending |
-| CA-01 – CA-07 | — | — | Pending |
-| DIY-01 – DIY-10 | — | — | Pending |
+| SA-01 – SA-09 | 61 (F1) | TBD | Pending |
+| CA-01 – CA-07 | 62 (F5) | TBD | Pending |
+| DIY-01 – DIY-10 | 63 (F6) | TBD | Pending |
+| OA-01 – OA-08 | 64 (F2) | TBD | Pending |
+| WS-01 – WS-10 | 64 (F3) | TBD | Pending |
+| OAL-01 – OAL-09 | 65 (F4) | TBD | Pending |
+
+**Coverage:** 53 / 53 v1.8 requirements mapped to exactly one phase. Phase 61 = 9 reqs (SA), Phase 62 = 7 reqs (CA), Phase 63 = 10 reqs (DIY), Phase 64 = 18 reqs (OA + WS), Phase 65 = 9 reqs (OAL).
 
 ---
 
