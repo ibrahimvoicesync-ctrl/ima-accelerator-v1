@@ -57,9 +57,9 @@ Exceptions:
 | Card heading | 16px (`text-base`) | 600 (`font-semibold`) | 1.5 |
 | Body / description | 14px (`text-sm`) | 400 (`font-normal`) | 1.5 |
 | URL display | 14px (`text-sm`) | 400 (`font-normal`) | 1.5 |
-| Button label | 14px (`text-sm`) | 500 (`font-medium`) | n/a (button) |
+| Button label | 14px (`text-sm`) | 600 (`font-semibold`) | n/a (button) |
 
-*Source: Existing dashboard cards use text-sm/font-medium for secondary content, font-semibold for card headings. Matches student/page.tsx heading patterns.*
+*Source: Existing dashboard cards use font-semibold for card headings and emphasis; font-normal for body text. Matches student/page.tsx heading patterns.*
 
 ---
 
@@ -129,7 +129,7 @@ Replaces the CTA button area with:
    - **Copy button** (icon-only, toggles):
      - Default: `<button className="shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-ima-surface-accent motion-safe:transition-colors" aria-label="Copy referral link">`
        - Icon: `<Copy className="h-4 w-4 text-ima-text-secondary" aria-hidden="true" />`
-     - Copied (2-second toggle): label becomes `"Copied to clipboard"`, icon swaps to `<Check className="h-4 w-4 text-ima-success" aria-hidden="true" />`, button text `"Copied!"` appears beside icon (`text-xs text-ima-success font-medium`)
+     - Copied (2-second toggle): label becomes `"Copied to clipboard"`, icon swaps to `<Check className="h-4 w-4 text-ima-success" aria-hidden="true" />`, button text `"Copied!"` appears beside icon (`text-xs text-ima-success font-semibold`)
      - After 2 seconds: reverts to default Copy state via `setTimeout` + `useRef` cleanup.
    - **Share button** (icon-only, conditionally rendered):
      - Condition: rendered only when `navigator.share` is available — detected via `useEffect` + boolean state (`shareSupported`), never read during SSR render. Defaults to `false`.
