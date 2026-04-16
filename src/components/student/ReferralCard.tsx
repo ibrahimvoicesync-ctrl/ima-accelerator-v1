@@ -49,8 +49,18 @@ export function ReferralCard() {
         setCardState("initial");
         return;
       }
-      const data = (await res.json()) as { shortUrl: string; referralCode: string };
-      setShortUrl(data.shortUrl);
+      const data = await res.json();
+      if (!data?.shortUrl || typeof data.shortUrl !== "string") {
+        console.error("[ReferralCard] unexpected response shape:", data);
+        toastRef.current({
+          type: "error",
+          title: "Could not generate your link",
+          description: "Please try again.",
+        });
+        setCardState("initial");
+        return;
+      }
+      setShortUrl(data.shortUrl as string);
       setCardState("ready");
     } catch (err) {
       console.error("[ReferralCard]", err);
