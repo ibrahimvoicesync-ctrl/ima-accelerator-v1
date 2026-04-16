@@ -1,0 +1,146 @@
+"use client";
+
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
+import { Copy, Check, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
+
+type CardState = "initial" | "loading" | "ready";
+
+function detectShareSupport(): boolean {
+  return typeof navigator !== "undefined" && typeof navigator.share === "function";
+}
+
+export function ReferralCard() {
+  const { toast } = useToast();
+  const toastRef = useRef(toast);
+  useLayoutEffect(() => {
+    toastRef.current = toast;
+  });
+
+  const [cardState, setCardState] = useState<CardState>("initial");
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [shareSupported] = useState<boolean>(detectShareSupport);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  const handleGetLink = useCallback(async () => {
+    setCardState("loading");
+    try {
+      const res = await fetch("/api/referral-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("[ReferralCard]", err);
+        toastRef.current({
+          type: "error",
+          title: "Could not generate your link",
+          description: "Please try again.",
+        });
+        setCardState("initial");
+        return;
+      }
+      const data = (await res.json()) as { shortUrl: string; referralCode: string };
+      setShortUrl(data.shortUrl);
+      setCardState("ready");
+    } catch (err) {
+      console.error("[ReferralCard]", err);
+      toastRef.current({
+        type: "error",
+        title: "Could not generate your link",
+        description: "Please try again.",
+      });
+      setCardState("initial");
+    }
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    if (!shortUrl) return;
+    try {
+      await navigator.clipboard.writeText(shortUrl);
+      setCopied(true);
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("[ReferralCard] clipboard error:", err);
+      toastRef.current({
+        type: "error",
+        title: "Copy failed — please copy the URL manually",
+      });
+    }
+  }, [shortUrl]);
+
+  const handleShare = useCallback(async () => {
+    if (!shortUrl) return;
+    try {
+      await navigator.share({ url: shortUrl, title: "IMA Accelerator Referral" });
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      console.error("[ReferralCard] share error:", err);
+      toastRef.current({ type: "error", title: "Share failed" });
+    }
+  }, [shortUrl]);
+
+  return (
+    <div className="bg-ima-surface border border-ima-border rounded-xl p-6">
+      <h2 className="text-base font-semibold text-ima-text">Refer a Friend — Earn $500</h2>
+      <p className="text-sm text-ima-text-secondary mt-1">
+        Share your personal referral link with a friend and earn a $500 bonus when they join the IMA Accelerator program.
+      </p>
+
+      {cardState !== "ready" && (
+        <Button
+          variant="primary"
+          size="md"
+          className="w-full mt-4"
+          aria-label="Get My Link"
+          loading={cardState === "loading"}
+          disabled={cardState === "loading"}
+          onClick={handleGetLink}
+        >
+          {cardState === "loading" ? null : "Get My Link"}
+        </Button>
+      )}
+
+      {cardState === "ready" && shortUrl && (
+        <div className="flex items-center gap-2 mt-4 bg-ima-surface-light rounded-lg px-2 py-2">
+          <span className="flex-1 text-sm text-ima-text truncate font-mono">{shortUrl}</span>
+          <button
+            type="button"
+            className="shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-ima-surface-accent motion-safe:transition-colors"
+            aria-label={copied ? "Copied to clipboard" : "Copy referral link"}
+            onClick={handleCopy}
+          >
+            {copied ? (
+              <>
+                <Check className="h-4 w-4 text-ima-success" aria-hidden="true" />
+                <span className="ml-1 text-xs text-ima-success font-semibold">Copied!</span>
+              </>
+            ) : (
+              <Copy className="h-4 w-4 text-ima-text-secondary" aria-hidden="true" />
+            )}
+          </button>
+          {shareSupported && (
+            <button
+              type="button"
+              className="shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-ima-surface-accent motion-safe:transition-colors"
+              aria-label="Share referral link"
+              onClick={handleShare}
+            >
+              <Share2 className="h-4 w-4 text-ima-text-secondary" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
