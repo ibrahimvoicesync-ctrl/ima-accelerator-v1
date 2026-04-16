@@ -70,17 +70,24 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ Replace chat with Announcements — chat routes/UI/sidebar nav removed, `messages` table dropped, `get_sidebar_badges` rebound; new `announcements` table with owner+coach full CRUD, students (incl. `student_diy`) read-only, paginated 25/page per-role `/announcements` page — v1.6 (Phases 55, 56)
 - ✓ New roadmap Step 8 "Join at least one Influencer Q&A session (CPM + pricing)" — inserted at end of Stage 1 with `target_days: 5`; atomic two-pass renumber of old Steps 8–15 → 9–16, RPC rebind, auto-complete for Step-7 completers, `MILESTONE_CONFIG` step indices updated in config + RPC — v1.6 (Phase 57)
 
+- ✓ Student referral links — students and student_diy users can generate a personal Rebrandly short link from their dashboard ($500 bonus CTA) — v1.7
+- ✓ Migration 00031 — `referral_code` + `referral_short_url` columns on `public.users` with MD5 backfill + partial UNIQUE index — v1.7
+- ✓ Idempotent `POST /api/referral-link` — auth + role gate, DB cache check, at-most-one Rebrandly call per user for life via compare-and-swap persist — v1.7
+- ✓ `ReferralCard` client component — "Get My Link" → Copy + Web Share on `/student` + `/student_diy` dashboards — v1.7
+- ✓ `REBRANDLY_API_KEY` documented in `.env.local.example` — v1.7
+
 ### Active
 
-<!-- Current scope. Building toward v1.7. -->
+<!-- Current scope. Building toward v1.8. -->
 
-- [ ] Student referral links — students and student_diy users can generate a personal Rebrandly short link from their dashboard to refer friends for a $500 bonus
-- [ ] Migration 00031 adds `referral_code` + `referral_short_url` columns to `public.users` with backfill for existing student/student_diy rows only
-- [ ] Idempotent `POST /api/referral-link` — auth + role gate, DB cache lookup, Rebrandly call on first request, persist + return
-- [ ] `ReferralCard` client component on `/student` + `/student_diy` dashboards — "Get My Link" button, Copy + Web Share API, $500 professional copy
-- [ ] `REBRANDLY_API_KEY` environment variable documented in `.env.local.example`
-- [ ] NOTIF-01 Tech/Email Setup trigger activation — pending D-06 stakeholder decision; config ships behind `techSetupEnabled` feature flag (carry-over, not v1.7 scope)
-- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit (carry-over, not v1.7 scope)
+- [ ] Student Analytics: rename "Total Emails"/"Total Influencers" KPI cards to "Total Brand Outreach"/"Total Influencer Outreach" AND re-split source data (brands-only / influencers-only, not combined sum)
+- [ ] New migration replacing `get_student_analytics` RPC — `total_brand_outreach = SUM(brands_contacted)`, `total_influencer_outreach = SUM(influencers_contacted)`, remove old `total_emails` / `total_influencers` keys (breaking change)
+- [ ] Owner Analytics: add Coach Performance section with 3 coach leaderboards (revenue, avg brand outreach per student per day, deals) beneath existing student leaderboards
+- [ ] Owner Analytics: per-leaderboard Weekly / Monthly / Yearly / All Time selector on all 6 leaderboards (independent client-side toggles, single cached RPC returns all 24 slots)
+- [ ] Owner Alerts: prune to `deal_closed` only — remove `student_inactive`, `student_dropoff`, `unreviewed_reports`, `coach_underperforming`; one info alert per closed deal, reuses `alert_dismissals`
+- [ ] Coach Alerts: `MILESTONE_META["tech_setup"].label` → "Set Up Your Agency", `techSetupStep: 4`, `techSetupEnabled: true` (internal type key `tech_setup` unchanged)
+- [ ] student_diy Owner Detail Page — extend `/owner/students/[studentId]` to handle DIY role; hide Reports tab; Calendar renders hours-only (no report markers); list page includes DIY with badge
+- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit (carry-over, not v1.8 scope)
 
 ### Out of Scope
 
@@ -214,38 +221,51 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 | v1.5 D-16 | "Closed Deal" milestone fires on ALL deals (student-logged, coach-logged, owner-logged) | Simplest + consistent with D-07 — coach wants to know student is closing regardless of who logged | 2026-04-13 |
 | v1.5 D-17 | Coach/owner edit of deals records `updated_at` + `updated_by` only (no per-edit change-log) | Standard audit columns sufficient for v1.5; full history deferred to v1.6+ | 2026-04-13 |
 
-## Current Milestone: v1.7 Student Referral Links (Rebrandly Integration)
+## Current Milestone: v1.8 Analytics Expansion, Notification Pruning & DIY Parity
 
-**Goal:** Students and student_diy users can generate and share a personal Rebrandly short link from their dashboard to refer friends for a $500 bonus — idempotent, cached forever after first generation.
+**Goal:** Six surgical improvements across student analytics, owner analytics, owner alerts, coach alerts config, and the owner's student detail view — touching SQL RPCs, config constants, server components, and client components but traceable to one of six feature blocks.
 
 **Target features:**
-- Migration `00031_referral_links.sql` — adds `referral_code` (varchar(12), UNIQUE where NOT NULL) and `referral_short_url` (text) to `public.users`; backfills `referral_code` for existing `student` and `student_diy` rows only (owner/coach untouched)
-- `POST /api/referral-link` — idempotent endpoint: `getSessionUser()` + role gate (student | student_diy, else 403), admin-client DB lookup, return cached `referral_short_url` if present, else generate/persist code + call Rebrandly API + persist + return `{ shortUrl, referralCode }`. 502 on Rebrandly failure, 500 on DB failure.
-- `src/components/student/ReferralCard.tsx` — "use client" card with "Get My Link" button → loading spinner → ready state with short URL + Copy (2s "Copied!" feedback) + Share (Web Share API; hidden when unavailable). $500 copy — professional, no hype, no emoji.
-- Dashboard integration — `<ReferralCard />` rendered at bottom of both `/student` and `/student_diy` pages (inside `mt-6` wrapper, below Deals Stat Cards)
-- Env: add `REBRANDLY_API_KEY=` to `.env.local.example`
+
+1. **Student Analytics — Outreach KPI relabel + re-split** — Fix mis-named `total_emails` (currently `SUM(brands + influencers)`); new migration replaces `get_student_analytics` with `total_brand_outreach` and `total_influencer_outreach` (breaking RPC change — all consumers updated in same milestone). KPI cards on `/student/analytics` and `/student_diy/analytics` relabeled "Total Brand Outreach" / "Total Influencer Outreach".
+2. **Owner Analytics — Coach Performance leaderboards** — Three new coach leaderboards (total revenue, avg brand outreach per student per day, total deals) added to `/owner/analytics` beneath existing student leaderboards. Active coaches only; exclude coaches with zero assigned students. Same tie-break pattern as Phase 54 (`metric DESC, LOWER(name) ASC, id::text ASC`). Owner homepage teaser stays student-only.
+3. **Owner Analytics — Per-leaderboard window selectors** — Weekly (7d) / Monthly (30d) / Yearly (365d) / All Time toggle on all 6 leaderboards (3 student + 3 coach). Single `get_owner_analytics` RPC pre-computes all 24 slots, cached 60s under existing `ownerAnalyticsTag()`. Toggles are pure client state (no re-fetch). Default "All Time". 44px touch targets, `<fieldset><legend>` or `role="radiogroup"` accessibility.
+4. **Owner Alerts — Prune to `deal_closed` only** — Remove `student_inactive`, `student_dropoff`, `unreviewed_reports`, `coach_underperforming` from `/owner/alerts`. Replace with one `deal_closed` alert per deal (title = student name, message = `Closed a $X,XXX deal`, severity `info`/`success`, key `deal_closed:${deal_id}`, links to `/owner/students/${student_id}`). Dismissals reuse `alert_dismissals` + `/api/alerts/dismiss` verbatim.
+5. **Coach Alerts — `tech_setup` activation as "Set Up Your Agency" (Step 4)** — `MILESTONE_CONFIG.techSetupStep: 4`, `MILESTONE_FEATURE_FLAGS.techSetupEnabled: true`, `MILESTONE_META["tech_setup"].label: "Set Up Your Agency"`. Internal type key `tech_setup` PRESERVED (do not rename — ripples through RPC, dismissal keys `milestone_tech_setup:%`, and any in-flight dismissals). Label change is UI-only.
+6. **student_diy Owner Detail Page** — Extend existing `/owner/students/[studentId]` (not a parallel route) to handle both `student` and `student_diy` roles via `.in("role", ["student","student_diy"])`. DIY detail view hides Reports tab; Calendar renders hours-worked badges only (no daily-report indicators). Owner student list page includes DIY rows with visible "DIY" badge. Coach route NOT touched (owner-only for this milestone; scope decision in Ambiguity §3).
 
 **Explicit non-goals (do NOT build):**
-- No payout tracking or $500 credit system
-- No referral analytics / click counting UI
-- No admin/owner/coach referral management pages
-- No changes to registration/onboarding flow
-- No landing page changes (external site, out of scope)
-- No custom Rebrandly domain (use default `rebrand.ly`)
+- No new permissions / role changes
+- No coach detail page (owner drills into a coach) — out of scope
+- No email / push notifications ("notified" means seen in owner alerts feed)
+- No changes to student analytics trend charts, hours chart, or deals table
+- No changes to `ROADMAP_STEPS` themselves — step 4 "Set Up Your Agency" already exists
+- No renaming of `tech_setup` internal keys / dismissal prefixes
+- No `alert_dismissals` table deletion (orphaned rows preserved for history)
+- No parallel `/owner/students_diy/...` route tree
+- No Nyquist v1.5 audit (carry-over)
+
+**Ambiguities to resolve in `/gsd-discuss-phase` (not execution):**
+1. **F2 metric #2** — "avg email count" interpreted as "avg brand outreach per student per day in window". Confirm or propose alternative.
+2. **F3 window semantics** — trailing 7/30/365 days vs calendar week/month/year. Trailing is recommended.
+3. **F6 coach route scope** — DIY students in owner detail view only. Confirm coach route stays excluded.
 
 **Constraints (apply to every phase):**
-- All Hard Rules from `CLAUDE.md` enforced (ima-* tokens, `min-h-[44px]`, `motion-safe:` on animations, aria-label/aria-hidden, admin client in API routes, `response.ok` checks, never-swallow errors, `import { z } from "zod"`)
-- Auth + role check + rate limiting on the new API route (reuse existing pattern)
-- Migration numbering: `00031` (continues after v1.6's `00030`)
-- Post-phase gate: `npm run lint && npx tsc --noEmit && npm run build`
+- All 8 Hard Rules from `CLAUDE.md` enforced (ima-* tokens, `min-h-[44px]`, `motion-safe:` animations, aria-label/aria-hidden, admin client in API routes, `response.ok` checks, never-swallow errors, `import { z } from "zod"`)
+- Auth + role check + rate limiting pattern reused on any new/modified mutation routes
+- Migration numbering: **00032** (continues after v1.7's `00031`)
+- Post-phase gate: `npm run lint && npx tsc --noEmit && npm run build` exits 0
+- Feature 1: bump `unstable_cache` key for student analytics — breaking RPC change will crash SSR on stale cache
+- Features 2 & 3: verify every deal mutation still calls `revalidateTag(ownerAnalyticsTag())` with expanded payload
+- Feature 4: deals POST route must invalidate whatever cache feeds `/owner/alerts` (or mark page dynamic)
 
 ## Current State
 
-**Shipped:** v1.7 (2026-04-16) — Student Referral Links (Rebrandly Integration). 3 phases (58-60), 4 plans, 19/19 requirements satisfied. Additive migration 00031 adds `referral_code` + `referral_short_url` to `public.users` with deterministic MD5 backfill for existing students + unique index; idempotent `POST /api/referral-link` (8-step pipeline + Rebrandly v1 integration, at-most-one call per user for life via compare-and-swap persist); polished `ReferralCard.tsx` client component rendered at the bottom of both `/student` and `/student_diy` dashboards with INITIAL/LOADING/READY state machine, 2s "Copied!" toggle, SSR-safe Web Share, and full CLAUDE.md Hard Rule compliance. See [milestones/v1.7-ROADMAP.md](milestones/v1.7-ROADMAP.md) and [milestones/v1.7-MILESTONE-AUDIT.md](milestones/v1.7-MILESTONE-AUDIT.md).
+**Active:** v1.8 Analytics Expansion, Notification Pruning & DIY Parity — defining requirements.
 
-**Previous:** v1.6 (2026-04-15) — Owner Analytics, Announcements & Roadmap Update. 4 phases (54-57), 14 plans, 35/35 requirements. See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md).
+**Previous:** v1.7 (2026-04-16) — Student Referral Links (Rebrandly Integration). 3 phases (58-60), 4 plans, 19/19 requirements satisfied. Additive migration 00031 adds `referral_code` + `referral_short_url` to `public.users` with deterministic MD5 backfill for existing students + unique index; idempotent `POST /api/referral-link` (8-step pipeline + Rebrandly v1 integration, at-most-one call per user for life via compare-and-swap persist); polished `ReferralCard.tsx` client component rendered at the bottom of both `/student` and `/student_diy` dashboards with INITIAL/LOADING/READY state machine, 2s "Copied!" toggle, SSR-safe Web Share, and full CLAUDE.md Hard Rule compliance. See [milestones/v1.7-ROADMAP.md](milestones/v1.7-ROADMAP.md) and [milestones/v1.7-MILESTONE-AUDIT.md](milestones/v1.7-MILESTONE-AUDIT.md).
 
-**Active:** Planning next milestone.
+**Prior:** v1.6 (2026-04-15) — Owner Analytics, Announcements & Roadmap Update. 4 phases (54-57), 14 plans, 35/35 requirements. See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md).
 
 ## Carry-overs (not next-milestone scope unless reprioritized)
 
@@ -258,7 +278,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
-Last updated: 2026-04-16 — v1.7 shipped (Student Referral Links)
+Last updated: 2026-04-16 — v1.8 opened (Analytics Expansion, Notification Pruning & DIY Parity)
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -274,4 +294,4 @@ Last updated: 2026-04-16 — v1.7 shipped (Student Referral Links)
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 — v1.7 shipped (Student Referral Links, Rebrandly).*
+*Last updated: 2026-04-16 — v1.8 opened (Analytics Expansion, Notification Pruning & DIY Parity).*

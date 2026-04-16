@@ -1,34 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Student Referral Links (Rebrandly Integration)
-status: executing
-stopped_at: Phase 60 UI-SPEC approved — ready for plan-phase
-last_updated: "2026-04-16T06:14:45.448Z"
+milestone: v1.8
+milestone_name: Analytics Expansion, Notification Pruning & DIY Parity
+status: defining_requirements
+stopped_at: Milestone v1.8 opened — defining requirements
+last_updated: "2026-04-16T00:00:00.000Z"
 last_activity: 2026-04-16
 progress:
-  total_phases: 26
-  completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-15)
+See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Students can track their daily work, follow the roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 60 — ReferralCard UI & Dashboard Integration
+**Current focus:** Milestone v1.8 — defining requirements
 
 ## Current Position
 
-Phase: 60
-Plan: Not started
-Status: Executing Phase 60
-Last activity: 2026-04-16
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-16 — Milestone v1.8 started
 
 ## Performance Metrics
 
@@ -39,11 +39,12 @@ Last activity: 2026-04-16
 **v1.4 completed:** 2026-04-07 | 14 phases (30-37, 40-43) | 30+ plans
 **v1.5 completed:** 2026-04-15 | 10 phases (44-53) | 16 plans | 93 commits | 151 files
 **v1.6 completed:** 2026-04-15 | 4 phases (54-57) | 14 plans | 35/35 reqs
-**v1.7 in progress:** Phase 58 closed 2026-04-16 (2 plans); Phase 59 executed 2026-04-16 (1 plan, 3 commits c9288b1 + 20053ec + bd918f4, ~5min, CFG-02 gate 26s, 9/9 requirements API-01..08 + CFG-02 coded)
+**v1.7 completed:** 2026-04-16 | 3 phases (58-60) | 4 plans | 19/19 reqs
+**v1.8 in progress:** opened 2026-04-16 — defining requirements
 
 ## Accumulated Context
 
-### Critical Constraints Carried Into v1.7
+### Critical Constraints Carried Into v1.8
 
 - **Hard Rules from CLAUDE.md** apply to every phase: `motion-safe:` on animations, `min-h-[44px]` touch targets, aria-label / htmlFor on inputs, admin client only in API routes, never-swallow errors, `response.ok` checks, `import { z } from "zod"` (not `"zod/v4"`), ima-* tokens only (never hardcoded hex/gray).
 - **Proxy not middleware** — Next.js 16 route guard lives in `src/proxy.ts`.
@@ -51,35 +52,46 @@ Last activity: 2026-04-16
 - **Auth pattern** — `getSessionUser()` + `requireRole()` from `src/lib/session.ts` on every protected route.
 - **Migration numbering** — next migration is `00032` (00031_referral_links applied 2026-04-16 in Phase 58).
 - **Filter by user ID** in queries, never rely on RLS alone (defense in depth).
+- **Post-phase build gate** — `npm run lint && npx tsc --noEmit && npm run build` exits 0 at every phase boundary.
 
-### v1.7-Specific Invariants
+### v1.8 Feature Map (6 feature blocks — phasing TBD by roadmapper)
 
-- **Idempotent API**: `POST /api/referral-link` must return the same `shortUrl` on every subsequent call — DB cache check before Rebrandly call is non-negotiable.
-- **Rebrandly-only scope**: no custom domain, no webhook, no click tracking ingestion.
-- **Role gate**: only `student` + `student_diy` can generate links. Owner/coach calling this endpoint returns 403.
-- **Fail-soft**: missing `REBRANDLY_API_KEY` must return 500 with clear `console.error`, never crash the dashboard.
-- **Post-phase build gate (CFG-02)**: `npm run lint && npx tsc --noEmit && npm run build` exits 0 at every phase boundary.
+- **Feature 1 — Student Analytics Outreach KPI rename + re-split** (breaking RPC change on `get_student_analytics`; migration 00032)
+- **Feature 2 — Owner Analytics Coach Performance leaderboards** (3 new coach leaderboards on `/owner/analytics`)
+- **Feature 3 — Per-leaderboard time-window selector** (Weekly/Monthly/Yearly/All Time on all 6 leaderboards; single RPC pre-computes 24 slots)
+- **Feature 4 — Owner Alerts prune to `deal_closed` only** (remove 4 alert types; reuse `alert_dismissals`)
+- **Feature 5 — Coach Alerts `tech_setup` activation** (label → "Set Up Your Agency", step 4, flag on; internal key preserved)
+- **Feature 6 — student_diy Owner Detail Page** (extend existing route; hide Reports tab; Calendar hours-only; owner-only scope)
 
-### v1.7 Phase Map (3 phases)
+### v1.8-Specific Invariants
 
-- **Phase 58 — Schema & Backfill**: DB-01, DB-02, DB-03, CFG-01, CFG-02
-- **Phase 59 — Referral API + Rebrandly**: API-01..08, CFG-02
-- **Phase 60 — ReferralCard UI & Dashboard Integration**: UI-01..06, INT-01, INT-02, CFG-02
+- **Feature 1 is a breaking RPC change**: all `total_emails` / `total_influencers` consumers must be updated in the same milestone; bump `unstable_cache` key or SSR will crash on first post-deploy render.
+- **Feature 3 caching**: a single `get_owner_analytics` call returns all 24 leaderboard slots (6 leaderboards × 4 windows); window selectors toggle client-side which slice renders — no re-fetch per selector change.
+- **Feature 5 key preservation**: do NOT rename `tech_setup` internal `CoachAlertFeedType`, `techSetupStep`/`techSetupEnabled` config keys, or `milestone_tech_setup:%` dismissal key prefix. Label change is UI-only via `MILESTONE_META["tech_setup"].label`.
+- **Feature 6 scope lock**: extend `/owner/students/[studentId]` to handle DIY via `.in("role", ["student","student_diy"])`. Do NOT create a parallel route tree. Coach route `(coach)/students/[studentId]` NOT touched (owner-only for this milestone).
+- **Cache invalidation**: deal mutations already call `revalidateTag(ownerAnalyticsTag())` — verify with expanded payload. Owner alerts page: deal creation must trigger cache invalidation OR page stays dynamic.
 
-### Open Blockers Carried Into v1.7
+### Open Ambiguities (resolve in `/gsd-discuss-phase`, not execution)
 
-- **D-06**: "Tech/Email Setup Finished" roadmap step pending stakeholder decision. NOTIF-01 stays behind `techSetupEnabled` feature flag. Not v1.7 scope.
+1. **F2 metric #2** — "avg email count" interpreted as "avg brand outreach per student per day in window". Confirm or propose alternative.
+2. **F3 window semantics** — trailing 7/30/365 days vs calendar week/month/year. Trailing recommended (matches existing `created_at` indexes).
+3. **F6 coach route scope** — DIY students appear in owner detail view only this milestone. Confirm coach route stays excluded.
+
+### Open Blockers Carried Into v1.8
+
+- **D-06**: NOTIF-01 Tech/Email Setup decision — Feature 5 supersedes this (activates with step 4, label "Set Up Your Agency").
 - **AI chat iframe URL** (v1.0 carry-over; non-blocking).
+- **IN-01 / IN-02** dashboard bugs (deferred from v1.7; not v1.8 scope).
 
-### Tech Debt Carried Into v1.7
+### Tech Debt Carried Into v1.8
 
-- No Nyquist VALIDATION.md for v1.5 phases 44-52.
+- No Nyquist VALIDATION.md for v1.5 phases 44-52 (carry-over).
 - `student_activity_status('active')` branch lacks direct test coverage.
 - Per-edit change-log for deal updates deferred (v1.5 D-17).
 - Full email notifications pipeline (Resend) still out-of-scope.
 
 ## Session Continuity
 
-Last session: 2026-04-16T05:38:17.448Z
-Stopped at: Phase 60 UI-SPEC approved — ready for plan-phase
-Resume: `/gsd-verify-work 59` or `/gsd-discuss-phase 60`
+Last session: 2026-04-16
+Stopped at: Milestone v1.8 opened — defining requirements
+Resume: `/gsd-plan-phase [N]` once roadmap is created
