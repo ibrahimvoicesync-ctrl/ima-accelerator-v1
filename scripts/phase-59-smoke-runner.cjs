@@ -57,10 +57,12 @@ if (!url || !key) {
 }
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
-const BASE_URL = process.env.SMOKE_BASE_URL || env.SMOKE_BASE_URL || "http://localhost:3000";
-const TEST_STUDENT_COOKIE = process.env.TEST_STUDENT_COOKIE || env.TEST_STUDENT_COOKIE || null;
-const TEST_STUDENT_EMAIL = process.env.TEST_STUDENT_EMAIL || env.TEST_STUDENT_EMAIL || null;
-const REBRANDLY_API_KEY = process.env.REBRANDLY_API_KEY || env.REBRANDLY_API_KEY || null;
+// Precedence: .env.local wins over process.env (consistent with url/key lookups above).
+// Conventional for dev tooling — CI should write values into .env.local, not a shell env.
+const BASE_URL = env.SMOKE_BASE_URL || process.env.SMOKE_BASE_URL || "http://localhost:3000";
+const TEST_STUDENT_COOKIE = env.TEST_STUDENT_COOKIE || process.env.TEST_STUDENT_COOKIE || null;
+const TEST_STUDENT_EMAIL = env.TEST_STUDENT_EMAIL || process.env.TEST_STUDENT_EMAIL || null;
+const REBRANDLY_API_KEY = env.REBRANDLY_API_KEY || process.env.REBRANDLY_API_KEY || null;
 
 const CODE_REGEX = /^[0-9A-F]{8}$/;
 
