@@ -35,7 +35,18 @@ const env = {};
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
     const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
-    if (m) env[m[1]] = m[2].replace(/^['"]|['"]$/g, "");
+    if (m) {
+      // Strip only a MATCHED surrounding quote pair (' or ") so that values
+      // like foo"bar (no surrounding quotes, internal quote) are preserved.
+      let value = m[2];
+      if (
+        (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
+        (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
+      ) {
+        value = value.slice(1, -1);
+      }
+      env[m[1]] = value;
+    }
   }
 }
 const url = env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
