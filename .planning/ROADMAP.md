@@ -511,7 +511,9 @@ Plans:
   4. With `REBRANDLY_API_KEY` unset, the endpoint returns HTTP 500 and the dashboard continues to load; with the key set but Rebrandly returning non-OK / throwing / timing out, the endpoint returns HTTP 502, logs the underlying cause via `console.error`, and leaves `referral_short_url` NULL (no partial persistence)
   5. The route enforces the standard pipeline — `getSessionUser()` + role gate run BEFORE any Zod `safeParse` of the request body, all DB access uses the admin client, `response.ok` is checked before parsing the Rebrandly JSON, and Zod is imported as `import { z } from "zod"`
   6. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 59-01-PLAN.md — POST /api/referral-link route + smoke runner + CFG-02 build gate
 
 ### Phase 60: ReferralCard UI & Dashboard Integration
 **Goal**: Students and student_diy users see a polished referral card at the bottom of their dashboard, can generate their link with one click, and can copy or share it from the same card — with all CLAUDE.md Hard Rules (touch targets, motion-safe animations, ima-* tokens, aria labels, response.ok, never-swallow errors) satisfied
@@ -586,6 +588,6 @@ Plans:
 | 55. Chat Removal + Announcements Migration | v1.6 | 2/4 | In Progress|  |
 | 56. Announcements CRUD & Pages | v1.6 | 3/3 | Complete    | 2026-04-15 |
 | 57. Roadmap Step 8 Insertion | v1.6 | 3/3 | Complete    | 2026-04-15 |
-| 58. Schema & Backfill | v1.7 | 2/2 | Complete   | 2026-04-16 |
-| 59. Referral API + Rebrandly | v1.7 | 0/TBD | Not started | — |
+| 58. Schema & Backfill | v1.7 | 2/2 | Complete    | 2026-04-16 |
+| 59. Referral API + Rebrandly | v1.7 | 0/1 | Not started | — |
 | 60. ReferralCard UI & Dashboard Integration | v1.7 | 0/TBD | Not started | — |
