@@ -266,55 +266,81 @@ function record(name, expected, observed, pass, extra) {
           { error: `TEST_STUDENT_EMAIL resolves to role=${studentRow.role} (not student/student_diy)` }
         );
       } else {
-        // Reset referral_short_url to NULL so we can exercise the fresh-create branch
-        const { error: resetErr } = await sb
-          .from("users")
-          .update({ referral_short_url: null })
-          .eq("id", studentRow.id);
-        if (resetErr) throw resetErr;
+        // Snapshot the original short URL so we can restore it on any failure path.
+        // Prevents leaving the test student with a NULL short_url if the runner dies
+        // between reset and POST #2 (which would force a NEW Rebrandly call on their
+        // next dashboard hit, breaking "at most one Rebrandly call per user for life"
+        // for that row). See REVIEW.md WR-02.
+        const originalShortUrl = studentRow.referral_short_url;
+        try {
+          // Reset referral_short_url to NULL so we can exercise the fresh-create branch
+          const { error: resetErr } = await sb
+            .from("users")
+            .update({ referral_short_url: null })
+            .eq("id", studentRow.id);
+          if (resetErr) throw resetErr;
 
-        // POST #1 (fresh-create)
-        const res1 = await fetch(`${BASE_URL}/api/referral-link`, {
-          method: "POST",
-          headers: {
-            Origin: BASE_URL,
-            "Content-Type": "application/json",
-            Cookie: TEST_STUDENT_COOKIE,
-          },
-        });
-        const body1 = await res1.json().catch(() => ({}));
+          // POST #1 (fresh-create)
+          const res1 = await fetch(`${BASE_URL}/api/referral-link`, {
+            method: "POST",
+            headers: {
+              Origin: BASE_URL,
+              "Content-Type": "application/json",
+              Cookie: TEST_STUDENT_COOKIE,
+            },
+          });
+          const body1 = await res1.json().catch(() => ({}));
 
-        // POST #2 (cache-hit, must match)
-        const res2 = await fetch(`${BASE_URL}/api/referral-link`, {
-          method: "POST",
-          headers: {
-            Origin: BASE_URL,
-            "Content-Type": "application/json",
-            Cookie: TEST_STUDENT_COOKIE,
-          },
-        });
-        const body2 = await res2.json().catch(() => ({}));
+          // POST #2 (cache-hit, must match)
+          const res2 = await fetch(`${BASE_URL}/api/referral-link`, {
+            method: "POST",
+            headers: {
+              Origin: BASE_URL,
+              "Content-Type": "application/json",
+              Cookie: TEST_STUDENT_COOKIE,
+            },
+          });
+          const body2 = await res2.json().catch(() => ({}));
 
-        const shortUrlValid =
-          typeof body1.shortUrl === "string" && body1.shortUrl.startsWith("https://");
-        const codeValid =
-          typeof body1.referralCode === "string" && CODE_REGEX.test(body1.referralCode);
-        const idempotent =
-          body2.shortUrl === body1.shortUrl && body2.referralCode === body1.referralCode;
-        const pass =
-          res1.status === 200 && res2.status === 200 && shortUrlValid && codeValid && idempotent;
-        record(
-          "SMOKE 6: happy path + idempotency",
-          "status === 200, shortUrl starts https://, referralCode /^[0-9A-F]{8}$/, POST #2 matches POST #1",
-          `status1=${res1.status} status2=${res2.status} shortUrlValid=${shortUrlValid} codeValid=${codeValid} idempotent=${idempotent}`,
-          pass,
-          {
-            post1_shortUrl: body1.shortUrl,
-            post1_referralCode: body1.referralCode,
-            post2_shortUrl: body2.shortUrl,
-            post2_referralCode: body2.referralCode,
+          const shortUrlValid =
+            typeof body1.shortUrl === "string" && body1.shortUrl.startsWith("https://");
+          const codeValid =
+            typeof body1.referralCode === "string" && CODE_REGEX.test(body1.referralCode);
+          const idempotent =
+            body2.shortUrl === body1.shortUrl && body2.referralCode === body1.referralCode;
+          const pass =
+            res1.status === 200 && res2.status === 200 && shortUrlValid && codeValid && idempotent;
+          record(
+            "SMOKE 6: happy path + idempotency",
+            "status === 200, shortUrl starts https://, referralCode /^[0-9A-F]{8}$/, POST #2 matches POST #1",
+            `status1=${res1.status} status2=${res2.status} shortUrlValid=${shortUrlValid} codeValid=${codeValid} idempotent=${idempotent}`,
+            pass,
+            {
+              post1_shortUrl: body1.shortUrl,
+              post1_referralCode: body1.referralCode,
+              post2_shortUrl: body2.shortUrl,
+              post2_referralCode: body2.referralCode,
+            }
+          );
+        } finally {
+          // Always restore the pre-reset value if there was one, so a mid-run crash
+          // does not leave the test student with a wiped short URL. If originalShortUrl
+          // was already NULL (first run for this student), leave the post-test value
+          // in place — it is the legitimate fresh-create result.
+          if (originalShortUrl !== null) {
+            const { error: restoreErr } = await sb
+              .from("users")
+              .update({ referral_short_url: originalShortUrl })
+              .eq("id", studentRow.id);
+            if (restoreErr) {
+              console.error(
+                "[SMOKE 6] Failed to restore original referral_short_url for user.id=",
+                studentRow.id,
+                restoreErr
+              );
+            }
           }
-        );
+        }
       }
     }
   } catch (e) {
