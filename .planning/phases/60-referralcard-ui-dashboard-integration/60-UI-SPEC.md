@@ -98,6 +98,8 @@ INITIAL  ──[click "Get My Link"]──►  LOADING  ──[fetch ok]──�
                                         └──[fetch error]──►  ERROR (re-enters INITIAL)
 ```
 
+Primary focal point: "Get My Link" CTA button in INITIAL state; URL display row in READY state.
+
 ### State: INITIAL
 
 Shell: `<div className="bg-ima-surface border border-ima-border rounded-xl p-6 mt-6">`
@@ -124,9 +126,10 @@ Contents:
 
 Replaces the CTA button area with:
 
-1. **URL display row** — `<div className="flex items-center gap-2 mt-4 bg-ima-surface-light rounded-lg px-3 py-2">`
+1. **URL display row** — `<div className="flex items-center gap-2 mt-4 bg-ima-surface-light rounded-lg px-2 py-2">`
    - `<span className="flex-1 text-sm text-ima-text truncate font-mono">{shortUrl}</span>`
    - **Copy button** (icon-only, toggles):
+     - Note: Copy resting state is icon-only by design (aria-label fallback); visible "Copied!" text appears only on successful copy. Share is permanently icon-only (aria-label fallback) — hidden entirely when `navigator.share` is unavailable.
      - Default: `<button className="shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-ima-surface-accent motion-safe:transition-colors" aria-label="Copy referral link">`
        - Icon: `<Copy className="h-4 w-4 text-ima-text-secondary" aria-hidden="true" />`
      - Copied (2-second toggle): label becomes `"Copied to clipboard"`, icon swaps to `<Check className="h-4 w-4 text-ima-success" aria-hidden="true" />`, button text `"Copied!"` appears beside icon (`text-xs text-ima-success font-semibold`)
