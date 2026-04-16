@@ -9,7 +9,7 @@
 - ✅ **v1.4 Roles, Chat, Resources & Student Deals** — Phases 30-37, 40-43 (shipped 2026-04-07)
 - ✅ **v1.5 Analytics Pages, Coach Dashboard & Deal Logging** — Phases 44-53 (shipped 2026-04-15)
 - ✅ **v1.6 Owner Analytics, Announcements & Roadmap Update** — Phases 54-57 (shipped 2026-04-15)
-- 🚧 **v1.7 Student Referral Links (Rebrandly Integration)** — Phases 58-60 (planning, started 2026-04-15)
+- ✅ **v1.7 Student Referral Links (Rebrandly Integration)** — Phases 58-60 (shipped 2026-04-16) — [archive](milestones/v1.7-ROADMAP.md)
 
 > Phases 38–39 were retired during v1.4 scope consolidation. v1.5 continues numbering from Phase 44.
 
@@ -116,8 +116,10 @@ See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md) for full phase deta
 
 </details>
 
-<details open>
-<summary>🚧 v1.7 Student Referral Links (Rebrandly Integration) (Phases 58-60) — IN PROGRESS</summary>
+<details>
+<summary>✅ v1.7 Student Referral Links (Rebrandly Integration) (Phases 58-60) — SHIPPED 2026-04-16</summary>
+
+See [milestones/v1.7-ROADMAP.md](milestones/v1.7-ROADMAP.md) for full phase details.
 
 - [x] **Phase 58: Schema & Backfill** — referral columns + per-student backfill on `public.users`; env example documented
 - [x] **Phase 59: Referral API + Rebrandly** — idempotent `POST /api/referral-link` end-to-end (completed 2026-04-16)

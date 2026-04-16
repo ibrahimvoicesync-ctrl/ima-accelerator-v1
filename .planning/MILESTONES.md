@@ -1,5 +1,17 @@
 # Milestones
 
+## v1.7 Student Referral Links (Rebrandly Integration) (Shipped: 2026-04-16)
+
+**Phases completed:** 3 phases, 4 plans, 8 tasks
+
+**Key accomplishments:**
+
+- Additive Postgres migration (00031) adds `referral_code varchar(12)` + `referral_short_url text` to `public.users`, backfills every existing student/student_diy row with a deterministic 8-char upper-hex code via `upper(substr(md5(id::text), 1, 8))`, enforces uniqueness via a partial UNIQUE index, and documents `REBRANDLY_API_KEY=` onboarding for Phase 59.
+- Migration 00031 applied to the linked remote Supabase project (uzfzoxfakxmsbttelhnr); all 7 in-DB ASSERTs passed, Q1/Q2/Q3 verification queries returned expected shape (5 student + 2 student_diy backfilled, 4 owner + 10 coach untouched, 7/7 unique codes), and the combined CFG-02 gate `npm run lint && npx tsc --noEmit && npm run build` exits 0 after a single Rule 3 auto-fix to the eslint ignore list.
+- Idempotent POST /api/referral-link route (8-step pipeline + Rebrandly v1 integration) + 9-case CommonJS smoke runner; CFG-02 combined build gate green with /api/referral-link registered as a dynamic App Router route handler. At-most-one Rebrandly call per user for life via referral_short_url cache-hit + compare-and-swap persist.
+
+---
+
 ## v1.5 Analytics Pages, Coach Dashboard & Deal Logging (Shipped: 2026-04-15)
 
 **Phases completed:** 10 phases (44-53), 16 plans

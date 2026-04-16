@@ -241,9 +241,11 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 ## Current State
 
-**Shipped:** v1.6 (2026-04-15) — Owner Analytics, Announcements & Roadmap Update. 4 phases (54-57), 14 plans, 35/35 requirements satisfied. Owner analytics page with 3 lifetime leaderboards and cache-tag invalidation; chat system retired and replaced with broadcast announcements (CRUD for owner/coach, read-only for students + student_diy, paginated 25/page); atomic roadmap Step 8 insertion with two-pass renumber, RPC rebind, and Step-7-completer auto-complete. Migrations 00028-00030 deployed. See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md) and [v1.6-MILESTONE-AUDIT.md](v1.6-MILESTONE-AUDIT.md).
+**Shipped:** v1.7 (2026-04-16) — Student Referral Links (Rebrandly Integration). 3 phases (58-60), 4 plans, 19/19 requirements satisfied. Additive migration 00031 adds `referral_code` + `referral_short_url` to `public.users` with deterministic MD5 backfill for existing students + unique index; idempotent `POST /api/referral-link` (8-step pipeline + Rebrandly v1 integration, at-most-one call per user for life via compare-and-swap persist); polished `ReferralCard.tsx` client component rendered at the bottom of both `/student` and `/student_diy` dashboards with INITIAL/LOADING/READY state machine, 2s "Copied!" toggle, SSR-safe Web Share, and full CLAUDE.md Hard Rule compliance. See [milestones/v1.7-ROADMAP.md](milestones/v1.7-ROADMAP.md) and [milestones/v1.7-MILESTONE-AUDIT.md](milestones/v1.7-MILESTONE-AUDIT.md).
 
-**Active:** v1.7 Student Referral Links (Rebrandly Integration) — defining requirements → roadmap.
+**Previous:** v1.6 (2026-04-15) — Owner Analytics, Announcements & Roadmap Update. 4 phases (54-57), 14 plans, 35/35 requirements. See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md).
+
+**Active:** Planning next milestone.
 
 ## Carry-overs (not next-milestone scope unless reprioritized)
 
@@ -256,7 +258,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
-Last updated: 2026-04-15 — v1.7 milestone started
+Last updated: 2026-04-16 — v1.7 shipped (Student Referral Links)
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -272,4 +274,4 @@ Last updated: 2026-04-15 — v1.7 milestone started
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-15 — v1.7 milestone started (Student Referral Links, Rebrandly).*
+*Last updated: 2026-04-16 — v1.7 shipped (Student Referral Links, Rebrandly).*
