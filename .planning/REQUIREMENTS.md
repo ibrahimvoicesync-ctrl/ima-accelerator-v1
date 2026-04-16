@@ -11,9 +11,9 @@
 
 ### Database (DB)
 
-- [ ] **DB-01**: Migration `supabase/migrations/00031_referral_links.sql` adds two nullable columns to `public.users`: `referral_code` (`varchar(12)`, UNIQUE where NOT NULL) and `referral_short_url` (`text`). Runs cleanly on top of `00030`.
-- [ ] **DB-02**: The same migration backfills `referral_code` for every existing `student` and `student_diy` row using `upper(substr(md5(id::text), 1, 8))`. Owner and coach rows are left untouched (still NULL).
-- [ ] **DB-03**: `referral_code` uniqueness is enforced by index (UNIQUE where NOT NULL) so collisions surface at write time, not silently.
+- [x] **DB-01**: Migration `supabase/migrations/00031_referral_links.sql` adds two nullable columns to `public.users`: `referral_code` (`varchar(12)`, UNIQUE where NOT NULL) and `referral_short_url` (`text`). Runs cleanly on top of `00030`.
+- [x] **DB-02**: The same migration backfills `referral_code` for every existing `student` and `student_diy` row using `upper(substr(md5(id::text), 1, 8))`. Owner and coach rows are left untouched (still NULL).
+- [x] **DB-03**: `referral_code` uniqueness is enforced by index (UNIQUE where NOT NULL) so collisions surface at write time, not silently.
 
 ### API (API)
 
@@ -42,7 +42,7 @@
 
 ### Config & Ops (CFG)
 
-- [ ] **CFG-01**: `.env.local.example` gets a commented section and `REBRANDLY_API_KEY=` (empty value) so onboarding devs know the key is required.
+- [x] **CFG-01**: `.env.local.example` gets a commented section and `REBRANDLY_API_KEY=` (empty value) so onboarding devs know the key is required.
 - [ ] **CFG-02**: Post-phase build gate (`npm run lint && npx tsc --noEmit && npm run build`) passes with zero errors for every phase in v1.7.
 
 ---
@@ -77,9 +77,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DB-01       | Phase 58 — Schema & Backfill | Pending |
-| DB-02       | Phase 58 — Schema & Backfill | Pending |
-| DB-03       | Phase 58 — Schema & Backfill | Pending |
+| DB-01       | Phase 58 — Schema & Backfill | Complete |
+| DB-02       | Phase 58 — Schema & Backfill | Complete |
+| DB-03       | Phase 58 — Schema & Backfill | Complete |
 | API-01      | Phase 59 — Referral API + Rebrandly | Pending |
 | API-02      | Phase 59 — Referral API + Rebrandly | Pending |
 | API-03      | Phase 59 — Referral API + Rebrandly | Pending |
@@ -96,7 +96,7 @@
 | UI-06       | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
 | INT-01      | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
 | INT-02      | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
-| CFG-01      | Phase 58 — Schema & Backfill | Pending |
+| CFG-01      | Phase 58 — Schema & Backfill | Complete |
 | CFG-02      | Phases 58, 59, 60 (cross-cutting build gate) | Pending |
 
 **Coverage:** 19/19 requirements mapped to exactly one phase (CFG-02 is a per-phase gate, applied to all three).

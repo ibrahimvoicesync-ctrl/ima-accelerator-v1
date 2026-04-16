@@ -497,7 +497,7 @@ Plans:
   5. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0 with no new errors or warnings
 **Plans**: 2 plans
 Plans:
-- [ ] 58-01-PLAN.md — Write migration 00031, hand-edit src/lib/types.ts users block, append REBRANDLY_API_KEY to .env.local.example
+- [x] 58-01-PLAN.md — Write migration 00031, hand-edit src/lib/types.ts users block, append REBRANDLY_API_KEY to .env.local.example
 - [ ] 58-02-PLAN.md — [BLOCKING] Apply migration via supabase db push + run CFG-02 post-phase build gate
 
 ### Phase 59: Referral API + Rebrandly
@@ -586,6 +586,6 @@ Plans:
 | 55. Chat Removal + Announcements Migration | v1.6 | 2/4 | In Progress|  |
 | 56. Announcements CRUD & Pages | v1.6 | 3/3 | Complete    | 2026-04-15 |
 | 57. Roadmap Step 8 Insertion | v1.6 | 3/3 | Complete    | 2026-04-15 |
-| 58. Schema & Backfill | v1.7 | 0/2 | Not started | — |
+| 58. Schema & Backfill | v1.7 | 1/2 | In Progress|  |
 | 59. Referral API + Rebrandly | v1.7 | 0/TBD | Not started | — |
 | 60. ReferralCard UI & Dashboard Integration | v1.7 | 0/TBD | Not started | — |
