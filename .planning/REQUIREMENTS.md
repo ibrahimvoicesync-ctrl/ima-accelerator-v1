@@ -43,7 +43,7 @@
 ### Config & Ops (CFG)
 
 - [x] **CFG-01**: `.env.local.example` gets a commented section and `REBRANDLY_API_KEY=` (empty value) so onboarding devs know the key is required.
-- [ ] **CFG-02**: Post-phase build gate (`npm run lint && npx tsc --noEmit && npm run build`) passes with zero errors for every phase in v1.7.
+- [x] **CFG-02**: Post-phase build gate (`npm run lint && npx tsc --noEmit && npm run build`) passes with zero errors for every phase in v1.7.
 
 ---
 
@@ -97,6 +97,6 @@
 | INT-01      | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
 | INT-02      | Phase 60 — ReferralCard UI & Dashboard Integration | Pending |
 | CFG-01      | Phase 58 — Schema & Backfill | Complete |
-| CFG-02      | Phases 58, 59, 60 (cross-cutting build gate) | Pending |
+| CFG-02      | Phases 58, 59, 60 (cross-cutting build gate) | Complete |
 
 **Coverage:** 19/19 requirements mapped to exactly one phase (CFG-02 is a per-phase gate, applied to all three).

@@ -119,7 +119,7 @@ See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md) for full phase deta
 <details open>
 <summary>🚧 v1.7 Student Referral Links (Rebrandly Integration) (Phases 58-60) — IN PROGRESS</summary>
 
-- [ ] **Phase 58: Schema & Backfill** — referral columns + per-student backfill on `public.users`; env example documented
+- [x] **Phase 58: Schema & Backfill** — referral columns + per-student backfill on `public.users`; env example documented
 - [ ] **Phase 59: Referral API + Rebrandly** — idempotent `POST /api/referral-link` end-to-end
 - [ ] **Phase 60: ReferralCard UI & Dashboard Integration** — student + student_diy dashboards render the referral card
 
@@ -498,7 +498,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 58-01-PLAN.md — Write migration 00031, hand-edit src/lib/types.ts users block, append REBRANDLY_API_KEY to .env.local.example
-- [ ] 58-02-PLAN.md — [BLOCKING] Apply migration via supabase db push + run CFG-02 post-phase build gate
+- [x] 58-02-PLAN.md — [BLOCKING] Apply migration via supabase db push + run CFG-02 post-phase build gate
 
 ### Phase 59: Referral API + Rebrandly
 **Goal**: Any authenticated student or student_diy user can `POST /api/referral-link` and receive an idempotent JSON `{ shortUrl, referralCode }` — Rebrandly is called at most once per user for life, and every documented failure mode (auth, role, missing key, Rebrandly outage, DB error) returns a stable HTTP status without corrupting state
@@ -586,6 +586,6 @@ Plans:
 | 55. Chat Removal + Announcements Migration | v1.6 | 2/4 | In Progress|  |
 | 56. Announcements CRUD & Pages | v1.6 | 3/3 | Complete    | 2026-04-15 |
 | 57. Roadmap Step 8 Insertion | v1.6 | 3/3 | Complete    | 2026-04-15 |
-| 58. Schema & Backfill | v1.7 | 1/2 | In Progress|  |
+| 58. Schema & Backfill | v1.7 | 2/2 | Complete   | 2026-04-16 |
 | 59. Referral API + Rebrandly | v1.7 | 0/TBD | Not started | — |
 | 60. ReferralCard UI & Dashboard Integration | v1.7 | 0/TBD | Not started | — |
