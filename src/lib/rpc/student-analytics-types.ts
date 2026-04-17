@@ -19,8 +19,8 @@ export const STUDENT_ANALYTICS_RANGES: readonly StudentAnalyticsRange[] = [
 
 export type StudentAnalyticsTotals = {
   total_hours: number;
-  total_emails: number;
-  total_influencers: number;
+  total_brand_outreach: number;
+  total_influencer_outreach: number;
   total_deals: number;
   total_revenue: number;
   total_profit: number;
