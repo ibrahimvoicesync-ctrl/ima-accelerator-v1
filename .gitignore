@@ -42,3 +42,12 @@ next-env.d.ts
 # Load test artifacts (Phase 24)
 load-tests/tokens/*.json
 load-tests/results/
+
+# Local artifacts and tooling dirs
+*.zip
+*.code-workspace
+reference-old/
+dogfood-output/
+.claude/
+supabase/.branches/
+supabase/.temp/
