@@ -11,6 +11,7 @@ import { studentAnalyticsTag } from "@/lib/rpc/student-analytics";
 import { coachDashboardTag } from "@/lib/rpc/coach-dashboard-types";
 import { coachAnalyticsTag } from "@/lib/rpc/coach-analytics-types";
 import { coachMilestonesTag } from "@/lib/rpc/coach-milestones-types";
+import { ownerAnalyticsTag } from "@/lib/rpc/owner-analytics-types";
 
 const postSchema = z.object({
   date: z.string().refine(isValidDateString, "Invalid date format (YYYY-MM-DD)"),
@@ -113,6 +114,13 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.error("[revalidate-tag]", e);
     }
+    // Phase 64: invalidate owner analytics (closes v1.6 audit defer — global
+    // tag, invalidates regardless of coach assignment).
+    try {
+      revalidateTag(ownerAnalyticsTag(), "default");
+    } catch (e) {
+      console.error("[revalidate-tag owner-analytics]", e);
+    }
     // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
     try {
       const { data: studentRow } = await admin
@@ -159,6 +167,13 @@ export async function POST(request: NextRequest) {
     revalidateTag(studentAnalyticsTag(profile.id), "default");
   } catch (e) {
     console.error("[revalidate-tag]", e);
+  }
+  // Phase 64: invalidate owner analytics (closes v1.6 audit defer — global
+  // tag, invalidates regardless of coach assignment).
+  try {
+    revalidateTag(ownerAnalyticsTag(), "default");
+  } catch (e) {
+    console.error("[revalidate-tag owner-analytics]", e);
   }
   // Phase 47: invalidate the coach's dashboard cache, if the student has a coach.
   try {
