@@ -13,13 +13,13 @@
 
 ### Student Analytics — Outreach KPI Re-split (Feature 1)
 
-- [ ] **SA-01**: Student analytics `/student/analytics` page shows a KPI card labeled "Total Brand Outreach" whose value equals `SUM(COALESCE(brands_contacted, 0))` across the student's `daily_reports` rows
-- [ ] **SA-02**: Student analytics page shows a KPI card labeled "Total Influencer Outreach" whose value equals `SUM(COALESCE(influencers_contacted, 0))` across the student's `daily_reports` rows
+- [x] **SA-01**: Student analytics `/student/analytics` page shows a KPI card labeled "Total Brand Outreach" whose value equals `SUM(COALESCE(brands_contacted, 0))` across the student's `daily_reports` rows
+- [x] **SA-02**: Student analytics page shows a KPI card labeled "Total Influencer Outreach" whose value equals `SUM(COALESCE(influencers_contacted, 0))` across the student's `daily_reports` rows
 - [x] **SA-03**: Migration `00033_fix_student_analytics_outreach_split.sql` drops + recreates `get_student_analytics` with `total_brand_outreach` and `total_influencer_outreach` in the `totals` payload and removes `total_emails` + `total_influencers` keys (breaking jsonb shape change); uses the defensive `DROP FUNCTION … (identity_args)` pattern to prevent PGRST203 overload collisions
 - [x] **SA-04**: `StudentAnalyticsTotals` type in `src/lib/rpc/student-analytics-types.ts` replaces `total_emails` / `total_influencers` with `total_brand_outreach` / `total_influencer_outreach`; `npx tsc --noEmit` catches every stale consumer
-- [ ] **SA-05**: `unstable_cache` key in `src/app/(dashboard)/student/analytics/page.tsx` is bumped from `["student-analytics"]` to `["student-analytics-v2"]` (or equivalent version suffix) in the SAME commit as the migration to prevent 60s TTL rollover SSR crashes on the new consumer
-- [ ] **SA-06**: `unstable_cache` key in `src/app/(dashboard)/student_diy/analytics/page.tsx` is bumped identically in the same commit
-- [ ] **SA-07**: DIY KPI-card visibility decision is resolved in `/gsd-discuss-phase` — `AnalyticsClient.tsx:198` currently hides brand/influencer KPIs for `viewerRole === "student_diy"`; v1.8 phase must explicitly confirm whether DIY now renders the new cards or keeps hiding (default: show)
+- [x] **SA-05**: `unstable_cache` key in `src/app/(dashboard)/student/analytics/page.tsx` is bumped from `["student-analytics"]` to `["student-analytics-v2"]` (or equivalent version suffix) in the SAME commit as the migration to prevent 60s TTL rollover SSR crashes on the new consumer
+- [x] **SA-06**: `unstable_cache` key in `src/app/(dashboard)/student_diy/analytics/page.tsx` is bumped identically in the same commit
+- [x] **SA-07**: DIY KPI-card visibility decision is resolved in `/gsd-discuss-phase` — `AnalyticsClient.tsx:198` currently hides brand/influencer KPIs for `viewerRole === "student_diy"`; v1.8 phase must explicitly confirm whether DIY now renders the new cards or keeps hiding (default: show)
 - [ ] **SA-08**: Outreach trend chart is NOT modified (already splits by brand/influencer)
 - [x] **SA-09**: Daily report form is NOT modified (still collects brands_contacted + influencers_contacted as separate integers)
 

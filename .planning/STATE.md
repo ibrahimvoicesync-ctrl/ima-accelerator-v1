@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Analytics Expansion, Notification Pruning & DIY Parity
 status: executing
-stopped_at: "Completed 61-02-typescript-totals-rename-PLAN.md — StudentAnalyticsTotals renamed in place; tsc intentionally fails at AnalyticsClient.tsx:203,208 for Plan 03 to resolve"
-last_updated: "2026-04-17T04:52:50.677Z"
+stopped_at: Completed 61-03-consumer-rewrite-cache-bump-PLAN.md — all consumers flipped to new RPC shape; npx tsc --noEmit exits 0. Plan 04 (build gate + psql shape assert) is next.
+last_updated: "2026-04-17T04:56:55.520Z"
 last_activity: 2026-04-17
 progress:
   total_phases: 31
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-16)
 ## Current Position
 
 Phase: 61 (Student Analytics Re-split (F1)) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-04-17
 
@@ -91,6 +91,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-04-17T04:52:50.673Z
-Stopped at: Completed 61-02-typescript-totals-rename-PLAN.md — StudentAnalyticsTotals renamed in place; tsc intentionally fails at AnalyticsClient.tsx:203,208 for Plan 03 to resolve
+Last session: 2026-04-17T04:56:55.517Z
+Stopped at: Completed 61-03-consumer-rewrite-cache-bump-PLAN.md — all consumers flipped to new RPC shape; npx tsc --noEmit exits 0. Plan 04 (build gate + psql shape assert) is next.
 Resume: `/gsd-plan-phase 61`
