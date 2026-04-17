@@ -1,11 +1,16 @@
 /**
- * Phase 54: Owner homepage analytics teaser (server component, per D-03).
+ * Phase 54 → Phase 64: Owner homepage analytics teaser (server component).
  *
  * Renders a single "Analytics" card with three compact top-1 rows (hours,
  * profit, deals) and a "View full analytics →" link to /owner/analytics.
  *
+ * Phase 64: Reads the "alltime" slice of the new 24-slot RPC payload to
+ * preserve Phase 54 teaser semantics (student-only, lifetime top-1). The
+ * teaser does NOT show coach leaderboards or windowed totals — those live
+ * only on /owner/analytics per OA-01.
+ *
  * Shares the getOwnerAnalyticsCached() call with the full /owner/analytics
- * page. Both surfaces use the identical cache key ["owner-analytics"], so
+ * page. Both surfaces use the identical cache key ["owner-analytics-v2"], so
  * within the 60s TTL only ONE Postgres RPC fires regardless of how many
  * surfaces render the data.
  *
@@ -22,10 +27,11 @@ import { getOwnerAnalyticsCached } from "@/lib/rpc/owner-analytics";
 export async function OwnerAnalyticsTeaser() {
   const payload = await getOwnerAnalyticsCached();
 
-  // Only show the #1 entry per leaderboard — the teaser is deliberately compact.
-  const topHours = payload.leaderboards.hours_alltime[0];
-  const topProfit = payload.leaderboards.profit_alltime[0];
-  const topDeals = payload.leaderboards.deals_alltime[0];
+  // Only show the #1 entry per lifetime leaderboard — the teaser is
+  // deliberately compact and student-only (OA-01 guardrail).
+  const topHours = payload.leaderboards.students.hours.alltime[0];
+  const topProfit = payload.leaderboards.students.profit.alltime[0];
+  const topDeals = payload.leaderboards.students.deals.alltime[0];
 
   const hasAnyTop = Boolean(topHours || topProfit || topDeals);
 

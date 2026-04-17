@@ -1,11 +1,18 @@
 /**
- * Phase 54: Owner Analytics RPC wrapper + cache layer (server-only).
+ * Phase 64: Owner Analytics RPC wrapper + cache layer (server-only).
  *
- * Calls public.get_owner_analytics (migration 00028) via the admin client and
- * wraps the result in next/cache unstable_cache (60s TTL, tag `owner-analytics`
- * — global, not per-user). Mutation route handlers in /api/deals and
- * /api/work-sessions call revalidateTag(OWNER_ANALYTICS_TAG, "default") to bust
- * the cache when the underlying lifetime totals change.
+ * Calls public.get_owner_analytics (migration 00035 — expanded from Phase 54's
+ * 00028) via the admin client and wraps the result in next/cache unstable_cache
+ * (60s TTL, tag `owner-analytics` — global, not per-user).
+ *
+ * Phase 64 changes:
+ *  - RPC returns 24 pre-computed slots (6 leaderboards x 4 windows) in one call.
+ *  - unstable_cache KEY bumps from ["owner-analytics"] to ["owner-analytics-v2"]
+ *    in the SAME atomic commit as migration 00035 so stale V1 shapes never
+ *    leak through the cache.
+ *  - Cache TAG (`owner-analytics`) is UNCHANGED so every existing
+ *    revalidateTag(ownerAnalyticsTag(), "default") call site keeps working.
+ *  - NEW invalidation: /api/reports (Plan 05, closes v1.6 audit defer).
  *
  * IMPORTANT: imports createAdminClient + next/cache — server-only. Client
  * components must import types from "@/lib/rpc/owner-analytics-types" instead,
@@ -13,7 +20,7 @@
  * the build loudly if a client component drags this module into its bundle.
  *
  * The RPC takes NO parameters. The owner is a single user with platform-wide
- * scope — no p_owner_id, no window, no pagination. Everything is top-3 lifetime.
+ * scope — no p_owner_id, no window, no pagination. All 24 slots per call.
  */
 
 import "server-only";
@@ -31,10 +38,14 @@ export {
   ownerAnalyticsTag,
 } from "@/lib/rpc/owner-analytics-types";
 export type {
-  OwnerLeaderboardHoursRow,
-  OwnerLeaderboardProfitRow,
-  OwnerLeaderboardDealsRow,
-  OwnerLeaderboards,
+  OwnerAnalyticsWindow,
+  OwnerStudentHoursRow,
+  OwnerStudentProfitRow,
+  OwnerStudentDealsRow,
+  OwnerCoachRevenueRow,
+  OwnerCoachAvgOutreachRow,
+  OwnerCoachDealsRow,
+  OwnerLeaderboardsV2,
   OwnerAnalyticsPayload,
 } from "@/lib/rpc/owner-analytics-types";
 
@@ -68,18 +79,23 @@ export async function fetchOwnerAnalytics(): Promise<OwnerAnalyticsPayload> {
 
 /**
  * Cached variant — wrapped in unstable_cache(60s) and tagged with
- * OWNER_ANALYTICS_TAG ("owner-analytics"). Plan 04 wires the four mutation
- * routes (POST /api/deals, PATCH /api/deals/[id], DELETE /api/deals/[id],
- * PATCH /api/work-sessions/[id] on completion) to call
- * revalidateTag(OWNER_ANALYTICS_TAG, "default") so leaderboards never go stale.
+ * OWNER_ANALYTICS_TAG ("owner-analytics"). Plan 04 + 05 wire the five mutation
+ * routes to call revalidateTag(OWNER_ANALYTICS_TAG, "default"):
+ *   - POST /api/deals
+ *   - PATCH /api/deals/[id]
+ *   - DELETE /api/deals/[id]
+ *   - PATCH /api/work-sessions/[id] (on completion)
+ *   - POST /api/reports (both update-existing and insert-new branches — NEW in Phase 64)
  *
- * Cache key is `["owner-analytics"]` — single key because the RPC takes no
- * params. All pages / surfaces share the single cache entry.
+ * Cache key is `["owner-analytics-v2"]` — single key because the RPC takes no
+ * params. The `v2` suffix forces a hard cache miss on deploy so the Phase 54
+ * shape (hours_alltime / profit_alltime / deals_alltime) is never served after
+ * the Phase 64 migration lands.
  */
 export async function getOwnerAnalyticsCached(): Promise<OwnerAnalyticsPayload> {
   const cached = unstable_cache(
     async () => fetchOwnerAnalytics(),
-    ["owner-analytics"],
+    ["owner-analytics-v2"],
     {
       revalidate: 60,
       tags: [ownerAnalyticsTag()],
