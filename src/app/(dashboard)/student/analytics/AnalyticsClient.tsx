@@ -182,7 +182,7 @@ export function AnalyticsClient({
         <KpiCard
           icon={<Clock className="h-5 w-5" aria-hidden="true" />}
           label="Total Hours"
-          value={formatHours(data.totals.total_hours)}
+          value={formatHours(data.totals.total_hours ?? 0)}
           suffix={
             data.streak > 0 ? (
               <span className="inline-flex items-center gap-1 text-xs text-ima-warning font-semibold mt-2">
@@ -195,27 +195,27 @@ export function AnalyticsClient({
         <KpiCard
           icon={<Mail className="h-5 w-5" aria-hidden="true" />}
           label="Total Brand Outreach"
-          value={data.totals.total_brand_outreach.toLocaleString()}
+          value={(data.totals.total_brand_outreach ?? 0).toLocaleString()}
         />
         <KpiCard
           icon={<Users className="h-5 w-5" aria-hidden="true" />}
           label="Total Influencer Outreach"
-          value={data.totals.total_influencer_outreach.toLocaleString()}
+          value={(data.totals.total_influencer_outreach ?? 0).toLocaleString()}
         />
         <KpiCard
           icon={<Handshake className="h-5 w-5" aria-hidden="true" />}
           label="Total Deals"
-          value={data.totals.total_deals.toLocaleString()}
+          value={(data.totals.total_deals ?? 0).toLocaleString()}
         />
         <KpiCard
           icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
           label="Total Revenue"
-          value={formatMoney(data.totals.total_revenue)}
+          value={formatMoney(data.totals.total_revenue ?? 0)}
         />
         <KpiCard
           icon={<TrendingUp className="h-5 w-5" aria-hidden="true" />}
           label="Total Profit"
-          value={formatMoney(data.totals.total_profit)}
+          value={formatMoney(data.totals.total_profit ?? 0)}
         />
       </section>
 
