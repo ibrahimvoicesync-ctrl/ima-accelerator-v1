@@ -1,9 +1,9 @@
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WORK_TRACKER, ROADMAP_STEPS } from "@/lib/config";
-import { getGreeting, getToday, cn, formatHoursMinutes } from "@/lib/utils";
+import { getToday, cn, formatHoursMinutes } from "@/lib/utils";
 import Link from "next/link";
-import { CheckCircle, Handshake, DollarSign, TrendingUp } from "lucide-react";
+import { Check, ArrowRight } from "lucide-react";
 import type { Database } from "@/lib/types";
 import { ReferralCard } from "@/components/student/ReferralCard";
 
@@ -15,12 +15,12 @@ function getNextAction(
   activeSession: WorkSession | undefined,
   pausedSession: WorkSession | undefined,
 ): { label: string; href: string } {
-  if (activeSession) return { label: "Continue Session", href: "/student_diy/work" };
-  if (pausedSession) return { label: "Resume Session", href: "/student_diy/work" };
+  if (activeSession) return { label: "Continue session", href: "/student_diy/work" };
+  if (pausedSession) return { label: "Resume session", href: "/student_diy/work" };
   if (totalMinutesWorked < WORK_TRACKER.dailyGoalHours * 60) {
-    return { label: `Start Session ${completedCount + 1}`, href: "/student_diy/work" };
+    return { label: `Begin session ${String(completedCount + 1).padStart(2, "0")}`, href: "/student_diy/work" };
   }
-  return { label: "View Work Tracker", href: "/student_diy/work" };
+  return { label: "Open Work Tracker", href: "/student_diy/work" };
 }
 
 export default async function StudentDiyDashboard() {
@@ -71,7 +71,9 @@ export default async function StudentDiyDashboard() {
   const activeSession = todaySessions.find(s => s.status === "in_progress");
   const pausedSession = todaySessions.find(s => s.status === "paused");
   const dailyGoalMinutes = WORK_TRACKER.dailyGoalHours * 60;
-  const progressPercent = Math.min(100, Math.round((totalMinutesWorked / dailyGoalMinutes) * 100));
+  const rawPercent = dailyGoalMinutes > 0 ? Math.round((totalMinutesWorked / dailyGoalMinutes) * 100) : 0;
+  const progressBarWidth = Math.min(100, rawPercent);
+  const goalMet = rawPercent >= 100;
   const firstName = user.name.split(" ")[0];
 
   const nextAction = getNextAction(completedCount, totalMinutesWorked, activeSession, pausedSession);
@@ -87,147 +89,167 @@ export default async function StudentDiyDashboard() {
       ? Math.round((roadmapCompleted / ROADMAP_STEPS.length) * 100)
       : 0;
 
+  const currencyFormat = (value: number) =>
+    `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
   return (
-    <div className="px-4">
-      {/* Greeting */}
-      <h1 className="text-2xl font-bold text-ima-text">
-        {getGreeting()}, {firstName}!
-      </h1>
-      <p className="mt-1 text-ima-text-secondary">Here&apos;s your progress for today</p>
+    <div className="max-w-6xl mx-auto px-4 md:px-6">
+      {/* Editorial greeting — neutral eyebrow, big title, no competing signal */}
+      <header className="mb-12">
+        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+          Today
+        </p>
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-ima-text leading-[0.95]">
+          Assalamu3leikum, {firstName}.
+        </h1>
+        <p className="mt-3 text-sm md:text-base text-ima-text-secondary max-w-2xl">
+          Here&apos;s your progress for today.
+        </p>
+      </header>
 
-      {/* Two-card grid: Work Progress + Roadmap Progress */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-        {/* Work Progress Card */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-ima-text">Today&apos;s Work</h2>
-            <span className="text-2xl font-bold text-ima-primary">
-              {formatHoursMinutes(totalMinutesWorked)} / {WORK_TRACKER.dailyGoalHours}h
+      {/* Hero metric — Hours today. Single focal point per view, stitch-blend scale. */}
+      <section className="mb-14">
+        <div className="flex items-baseline justify-between mb-3 gap-3">
+          <span className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
+            Hours today
+          </span>
+          {goalMet ? (
+            <span className="inline-flex items-center gap-1.5 bg-ima-success/10 text-ima-success rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] font-semibold tabular-nums">
+              <span className="h-1.5 w-1.5 rounded-full bg-ima-success" aria-hidden="true" />
+              Daily goal reached
             </span>
-          </div>
-          <p className="text-sm text-ima-text-secondary mt-1">
-            {completedCount} session{completedCount !== 1 ? "s" : ""} completed
-          </p>
-          <div
-            className="bg-ima-bg rounded-full h-3 mt-4 overflow-hidden"
-            role="progressbar"
-            aria-valuenow={totalMinutesWorked}
-            aria-valuemin={0}
-            aria-valuemax={dailyGoalMinutes}
-            aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
-          >
-            <div
-              className="bg-ima-primary h-full rounded-full motion-safe:transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <Link
-            href={nextAction.href}
-            className="mt-4 inline-flex items-center justify-center w-full bg-ima-primary text-white rounded-lg min-h-[44px] px-6 font-medium hover:bg-ima-primary-hover motion-safe:transition-colors"
-          >
-            {nextAction.label}
-          </Link>
-        </div>
-
-        {/* Roadmap Progress Card */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-6">
-          <div className="flex justify-between items-center">
-            <h3 className="font-semibold text-ima-text">Roadmap</h3>
-            <span className="text-lg font-bold text-ima-primary">
-              {roadmapCompleted}/{ROADMAP_STEPS.length}
-            </span>
-          </div>
-          {roadmapRows && roadmapRows.length > 0 ? (
-            <>
-              <p className="text-sm text-ima-text-secondary mt-1">
-                {allRoadmapDone
-                  ? "All steps completed!"
-                  : activeRoadmapStep
-                    ? `Current: Step ${activeRoadmapStep.step_number}`
-                    : "Start your journey"}
-              </p>
-              <div
-                className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
-                role="progressbar"
-                aria-valuenow={roadmapCompleted}
-                aria-valuemin={0}
-                aria-valuemax={ROADMAP_STEPS.length}
-                aria-label="Roadmap progress"
-              >
-                <div
-                  className="bg-ima-success h-full rounded-full motion-safe:transition-all duration-500"
-                  style={{ width: `${roadmapPercent}%` }}
-                />
-              </div>
-            </>
           ) : (
-            <p className="text-sm text-ima-text-secondary mt-1">
-              Track your {ROADMAP_STEPS.length}-step program journey
-            </p>
+            <span className="text-xs uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums">
+              {completedCount} session{completedCount !== 1 ? "s" : ""}
+            </span>
           )}
-          <Link
-            href="/student_diy/roadmap"
+        </div>
+
+        <div className="flex items-end gap-4 mb-6">
+          <span
             className={cn(
-              "mt-3 inline-flex items-center justify-center w-full rounded-lg min-h-[44px] px-6 font-medium motion-safe:transition-colors text-sm",
-              allRoadmapDone
-                ? "bg-ima-success text-white hover:bg-ima-success/90"
-                : "bg-ima-surface-light text-ima-primary hover:bg-ima-surface-accent"
+              "text-7xl md:text-8xl font-semibold tabular-nums tracking-tight leading-[0.95]",
+              goalMet ? "text-ima-success" : "text-ima-primary",
             )}
           >
-            {allRoadmapDone ? (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" aria-hidden="true" />
-                Roadmap Complete!
-              </>
-            ) : activeRoadmapStep ? (
-              `Continue Step ${activeRoadmapStep.step_number}`
-            ) : (
-              "View Roadmap"
+            {formatHoursMinutes(totalMinutesWorked)}
+          </span>
+          <span className="text-xl md:text-2xl font-medium text-ima-text-muted tabular-nums mb-1.5">
+            / {WORK_TRACKER.dailyGoalHours}h
+          </span>
+        </div>
+
+        <div
+          className="bg-ima-surface-light rounded-full h-2.5 overflow-hidden mb-6"
+          role="progressbar"
+          aria-valuenow={totalMinutesWorked}
+          aria-valuemin={0}
+          aria-valuemax={dailyGoalMinutes}
+          aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
+        >
+          <div
+            className={cn(
+              "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
+              goalMet ? "bg-ima-success" : "bg-ima-primary",
             )}
-          </Link>
-        </div>
-      </div>
-
-      {/* Deals Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-        {/* Deals Closed */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <Handshake className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Deals Closed</h3>
-          </div>
-          <p className="text-2xl font-bold mt-2 text-ima-primary">{dealsClosed}</p>
-          <p className="text-xs text-ima-text-muted mt-1">all time</p>
+            style={{ width: `${progressBarWidth}%` }}
+          />
         </div>
 
-        {/* Total Revenue */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Total Revenue</h3>
+        {/* Stitch-blend "stack of wins" — filled circles echo CycleCard in the Work Tracker */}
+        {completedCount > 0 && (
+          <div className="flex items-center gap-3 mb-7">
+            <span className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
+              Wins
+            </span>
+            <ul
+              className="flex items-center gap-1.5 flex-wrap"
+              aria-label={`${completedCount} session${completedCount !== 1 ? "s" : ""} completed today`}
+            >
+              {Array.from({ length: completedCount }).map((_, i) => (
+                <li
+                  key={i}
+                  className={cn(
+                    "h-5 w-5 rounded-full flex items-center justify-center shrink-0",
+                    goalMet ? "bg-ima-success" : "bg-ima-primary",
+                  )}
+                  aria-hidden="true"
+                >
+                  <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                </li>
+              ))}
+            </ul>
           </div>
-          <p className="text-2xl font-bold mt-2 text-ima-primary">
-            {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        )}
+
+        <Link
+          href={nextAction.href}
+          className="inline-flex items-center justify-center gap-2 bg-ima-primary text-white rounded-xl min-h-[52px] px-6 text-sm font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
+        >
+          {nextAction.label}
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </section>
+
+      {/* Support row — tabular KPI strip, all restrained neutrals. Roadmap is clickable. */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-12">
+        <Link
+          href="/student_diy/roadmap"
+          className="group block rounded-2xl border border-ima-border bg-ima-bg/60 p-5 md:p-6 hover:border-ima-primary/45 hover:bg-ima-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-colors"
+        >
+          <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+            Roadmap
           </p>
-          <p className="text-xs text-ima-text-muted mt-1">from {dealsClosed} deal{dealsClosed !== 1 ? "s" : ""}</p>
+          <p
+            className={cn(
+              "text-3xl md:text-4xl font-semibold tabular-nums tracking-tight leading-none",
+              allRoadmapDone ? "text-ima-success" : "text-ima-text",
+            )}
+          >
+            {roadmapPercent}
+            <span className="text-xl md:text-2xl text-ima-text-muted">%</span>
+          </p>
+          <p className="mt-2 text-xs text-ima-text-secondary tabular-nums">
+            {allRoadmapDone
+              ? `${ROADMAP_STEPS.length} / ${ROADMAP_STEPS.length} complete`
+              : activeRoadmapStep
+                ? `Step ${activeRoadmapStep.step_number} active`
+                : `${roadmapCompleted} / ${ROADMAP_STEPS.length} steps`}
+          </p>
+        </Link>
+
+        <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-5 md:p-6">
+          <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+            Deals closed
+          </p>
+          <p className="text-3xl md:text-4xl font-semibold tabular-nums tracking-tight text-ima-text leading-none">
+            {dealsClosed}
+          </p>
+          <p className="mt-2 text-xs text-ima-text-muted tabular-nums">All time</p>
         </div>
 
-        {/* Total Profit */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Total Profit</h3>
-          </div>
-          <p className="text-2xl font-bold mt-2 text-ima-primary">
-            {totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-5 md:p-6">
+          <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+            Revenue
           </p>
-          <p className="text-xs text-ima-text-muted mt-1">all time</p>
+          <p className="text-3xl md:text-4xl font-semibold tabular-nums tracking-tight text-ima-text leading-none">
+            {currencyFormat(totalRevenue)}
+          </p>
+          <p className="mt-2 text-xs text-ima-text-muted tabular-nums">All time</p>
         </div>
-      </div>
-      {/* Referral Card */}
-      <div className="mt-6">
-        <ReferralCard />
-      </div>
+
+        <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-5 md:p-6">
+          <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+            Profit
+          </p>
+          <p className="text-3xl md:text-4xl font-semibold tabular-nums tracking-tight text-ima-text leading-none">
+            {currencyFormat(totalProfit)}
+          </p>
+          <p className="mt-2 text-xs text-ima-text-muted tabular-nums">Net</p>
+        </div>
+      </section>
+
+      <ReferralCard />
     </div>
   );
 }

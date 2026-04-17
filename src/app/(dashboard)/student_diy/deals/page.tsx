@@ -46,13 +46,19 @@ export default async function StudentDiyDealsPage() {
   }
 
   return (
-    <div className="px-4 space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-ima-text">My Deals</h1>
-        <p className="text-sm text-ima-text-secondary mt-1">
-          Track your brand deal revenue and profit
+    <div className="px-4 py-2 max-w-7xl mx-auto">
+      {/* Editorial-restrained header — stitch-blend treatment */}
+      <header className="mb-10">
+        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+          Deals
         </p>
-      </div>
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-ima-text leading-[0.95]">
+          Brand deals.
+        </h1>
+        <p className="mt-3 text-sm md:text-base text-ima-text-secondary max-w-2xl">
+          Track revenue and profit from every deal you close.
+        </p>
+      </header>
       <DealsClient
         initialDeals={(deals ?? []) as Deal[]}
         viewerId={user.id}

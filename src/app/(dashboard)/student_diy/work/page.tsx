@@ -34,15 +34,19 @@ export default async function StudentDiyWorkPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4">
-      <div className="mb-8">
-        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-2">
+    <div className="max-w-3xl mx-auto px-4">
+      {/* Editorial-restrained header — lets WorkTrackerClient's hours-today metric own the focal point */}
+      <header className="mb-10">
+        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
           Work Tracker
         </p>
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text">
-          Today&apos;s focus
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-ima-text leading-[0.95]">
+          Today&apos;s focus.
         </h1>
-      </div>
+        <p className="mt-3 text-sm md:text-base text-ima-text-secondary max-w-2xl">
+          Plan it, run it, log it.
+        </p>
+      </header>
       <WorkTrackerClient
         initialSessions={(sessions ?? []) as WorkSession[]}
         initialPlan={(plan ?? null) as DailyPlan | null}

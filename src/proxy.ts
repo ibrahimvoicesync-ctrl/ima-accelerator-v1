@@ -112,6 +112,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Exclude static files, images, favicon, and API routes from the proxy guard
-    "/((?!_next/static|_next/image|favicon.ico|api/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)",
   ],
 };

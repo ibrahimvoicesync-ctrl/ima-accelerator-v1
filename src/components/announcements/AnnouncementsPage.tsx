@@ -93,23 +93,26 @@ export async function AnnouncementsPage({ role }: AnnouncementsPageProps) {
 
   const isAuthor = role === "owner" || role === "coach";
 
-  // 4. Render — H1 + subtitle + client feed.
+  // 4. Render — editorial header + client feed.
   return (
     <section
       aria-labelledby="announcements-h1"
       className="px-4 py-6 max-w-3xl mx-auto"
     >
-      <header className="mb-6">
+      <header className="mb-8">
+        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-2">
+          Announcements
+        </p>
         <h1
           id="announcements-h1"
-          className="text-2xl font-bold text-ima-text"
+          className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text"
         >
-          Announcements
+          {isAuthor ? "Signal to your students" : "Updates from your coach"}
         </h1>
-        <p className="mt-1 text-sm text-ima-text-secondary">
+        <p className="mt-2 text-sm text-ima-text-secondary leading-relaxed">
           {isAuthor
             ? "Post updates for your students. Everyone with access sees them immediately."
-            : "Updates from your coach and program owner."}
+            : "Announcements from your coach and program owner, newest first."}
         </p>
       </header>
 

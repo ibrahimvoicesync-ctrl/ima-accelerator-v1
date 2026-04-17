@@ -27,6 +27,17 @@ const config: Config = {
           "text-secondary": "#64748B",
           "text-muted": "#94A3B8",
           overlay: "rgba(0, 0, 0, 0.5)",
+          // Vibrant palette — scoped to student_diy surfaces (see CLAUDE.md).
+          // Pastels are surface tints; accents are signal hues used sparingly.
+          "pastel-rose": "#FFEEEE",
+          "pastel-butter": "#FFFDE7",
+          "pastel-lilac": "#EDE7F6",
+          "pastel-mint": "#E0F7E0",
+          "pastel-sky": "#E3F2FD",
+          "pastel-peach": "#FFE8D6",
+          magenta: "#EC4899",
+          teal: "#14B8A6",
+          violet: "#7C3AED",
         },
       },
       boxShadow: {

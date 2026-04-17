@@ -72,7 +72,20 @@ export function Modal({ open, onClose, title, description, children, size = "md"
     if (!open) return;
 
     previousActiveElement.current = document.activeElement;
+
+    // Compensate for the removed vertical scrollbar to prevent the page
+    // behind the modal from shifting when body overflow is locked.
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+
     document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      const existingPadding =
+        parseFloat(window.getComputedStyle(document.body).paddingRight) || 0;
+      document.body.style.paddingRight = `${existingPadding + scrollbarWidth}px`;
+    }
+
     document.addEventListener("keydown", handleEscape);
     setTimeout(() => closeButtonRef.current?.focus(), 0);
 
@@ -81,7 +94,8 @@ export function Modal({ open, onClose, title, description, children, size = "md"
     if (appRoot) appRoot.setAttribute("inert", "");
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
       document.removeEventListener("keydown", handleEscape);
       if (appRoot) appRoot.removeAttribute("inert");
       if (previousActiveElement.current instanceof HTMLElement) {

@@ -1,7 +1,6 @@
 "use client";
 
 import { MessageSquare } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
 
 export function DiscordEmbed() {
   const guildId = process.env.NEXT_PUBLIC_DISCORD_GUILD_ID;
@@ -9,15 +8,23 @@ export function DiscordEmbed() {
 
   if (!guildId || !channelId) {
     return (
-      <Card variant="warm">
-        <CardContent className="p-8 text-center">
-          <MessageSquare className="h-12 w-12 text-ima-text-muted mx-auto" aria-hidden="true" />
-          <h2 className="text-lg font-semibold text-ima-text mt-4">Discord Not Configured</h2>
-          <p className="text-sm text-ima-text-secondary mt-2">
-            The Discord community embed will be available once your admin configures the server connection.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center gap-4 text-center max-w-md mx-auto py-8 md:py-10">
+        <span
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-ima-surface-accent text-ima-primary"
+          aria-hidden="true"
+        >
+          <MessageSquare className="h-6 w-6" strokeWidth={2.25} />
+        </span>
+        <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
+          Not configured
+        </p>
+        <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-ima-text leading-tight">
+          Community channel pending
+        </h2>
+        <p className="text-sm text-ima-text-secondary leading-relaxed">
+          The Discord embed will appear here once your admin configures the server connection.
+        </p>
+      </div>
     );
   }
 
@@ -27,7 +34,7 @@ export function DiscordEmbed() {
       title="Discord Community"
       height="600"
       width="100%"
-      className="rounded-xl border border-ima-border"
+      className="block rounded-xl"
       aria-label="Discord community chat"
     />
   );

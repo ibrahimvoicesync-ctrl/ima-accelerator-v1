@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Link as LinkIcon } from "lucide-react";
+import { Link as LinkIcon, Plus, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Spinner } from "@/components/ui/Spinner";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { ResourceLinkCard } from "./ResourceLinkCard";
 import { AddResourceModal } from "./AddResourceModal";
@@ -151,51 +150,101 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
     }
   };
 
+  const tabMeta: Record<Tab, { label: string }> = {
+    links: { label: "Links" },
+    community: { label: "Community" },
+    glossary: { label: "Glossary" },
+  };
+
   return (
-    <div className="space-y-5">
-      {/* Tab bar */}
-      <div className="flex gap-1 border-b border-ima-border" role="tablist">
-        {(["links", "community", "glossary"] as Tab[]).map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={activeTab === tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "min-h-[44px] px-4 text-sm font-medium border-b-2 motion-safe:transition-colors",
-              activeTab === tab
-                ? "border-ima-primary text-ima-primary"
-                : "border-transparent text-ima-text-secondary hover:text-ima-text"
-            )}
-          >
-            {tab === "links" ? "Links" : tab === "community" ? "Community" : "Glossary"}
-          </button>
-        ))}
+    <div className="flex flex-col gap-6">
+      {/* Editorial tab bar */}
+      <div className="flex gap-1 border-b border-ima-border overflow-x-auto" role="tablist">
+        {(["links", "community", "glossary"] as Tab[]).map((tab) => {
+          const meta = tabMeta[tab];
+          const active = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "relative inline-flex items-center gap-2 min-h-[52px] px-5 text-xs uppercase tracking-[0.22em] font-semibold border-b-2 motion-safe:transition-colors whitespace-nowrap",
+                active
+                  ? "border-ima-primary text-ima-primary"
+                  : "border-transparent text-ima-text-muted hover:text-ima-text"
+              )}
+            >
+              {meta.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Links tab */}
       <div className={activeTab === "links" ? "block" : "hidden"}>
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-ima-text">Resource Links</h2>
+        <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
+          <div className="flex items-baseline gap-3">
+            <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
+              Resource links
+            </p>
+            {!loadingResources && resources.length > 0 && (
+              <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums">
+                {`${resources.length} saved`}
+              </p>
+            )}
+          </div>
           {canManage && (
-            <Button variant="primary" onClick={() => setShowAddResource(true)}>
-              Add Resource
-            </Button>
+            <button
+              type="button"
+              onClick={() => setShowAddResource(true)}
+              className="inline-flex items-center gap-2 bg-ima-primary text-white rounded-xl px-5 min-h-[44px] text-sm font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+              Add resource
+            </button>
           )}
         </div>
 
         {loadingResources ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-16">
             <Spinner />
           </div>
         ) : resources.length === 0 ? (
-          <EmptyState
-            icon={<LinkIcon className="h-6 w-6" aria-hidden="true" />}
-            title="No resources yet"
-            description={canManage ? "Add your first resource link." : "No resources have been shared yet."}
-          />
+          <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-8 md:p-10">
+            <div className="flex flex-col items-center gap-4 text-center max-w-md mx-auto">
+              <span
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-ima-surface-accent text-ima-primary"
+                aria-hidden="true"
+              >
+                <LinkIcon className="h-6 w-6" strokeWidth={2.25} />
+              </span>
+              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
+                Empty library
+              </p>
+              <h3 className="text-xl md:text-2xl font-semibold tracking-tight text-ima-text leading-tight">
+                No resources yet
+              </h3>
+              <p className="text-sm text-ima-text-secondary leading-relaxed">
+                {canManage
+                  ? "Drop the first link — templates, sheets, playbooks, anything your students should bookmark."
+                  : "When your coaches share links, they will appear here."}
+              </p>
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddResource(true)}
+                  className="mt-2 inline-flex items-center justify-center gap-2 bg-ima-primary text-white rounded-2xl px-6 min-h-[56px] text-base font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                  Add first resource
+                </button>
+              )}
+            </div>
+          </div>
         ) : (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             {resources.map((resource) => (
               <ResourceLinkCard
                 key={resource.id}
@@ -210,32 +259,75 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
 
       {/* Community tab — CSS hidden to avoid iframe remount */}
       <div className={activeTab === "community" ? "block" : "hidden"}>
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-ima-text">Community</h2>
+        <div className="mb-5">
+          <div className="flex items-baseline gap-3">
+            <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
+              Community
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted">
+              Discord · live
+            </p>
+          </div>
+          <p className="mt-2 text-sm text-ima-text-secondary leading-relaxed max-w-xl">
+            Step into the conversation — coaches, peers, and live Q&amp;A in one channel.
+          </p>
         </div>
-        <DiscordEmbed />
+        <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-3 md:p-4">
+          <DiscordEmbed />
+        </div>
       </div>
 
       {/* Glossary tab */}
       <div className={activeTab === "glossary" ? "block" : "hidden"}>
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-ima-text">Glossary</h2>
+        <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
+          <div className="flex items-baseline gap-3">
+            <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
+              Glossary
+            </p>
+            {!loadingGlossary && glossaryTerms.length > 0 && (
+              <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums">
+                {`${glossaryTerms.length} term${glossaryTerms.length !== 1 ? "s" : ""}`}
+              </p>
+            )}
+          </div>
           {canManage && (
-            <Button
-              variant="primary"
+            <button
+              type="button"
               onClick={() => {
                 setEditingTerm(null);
                 setShowAddGlossary(true);
               }}
+              className="inline-flex items-center gap-2 bg-ima-primary text-white rounded-xl px-5 min-h-[44px] text-sm font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
             >
-              Add Term
-            </Button>
+              <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+              Add term
+            </button>
           )}
         </div>
 
         {loadingGlossary ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-16">
             <Spinner />
+          </div>
+        ) : glossaryTerms.length === 0 && !canManage ? (
+          <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-8 md:p-10">
+            <div className="flex flex-col items-center gap-4 text-center max-w-md mx-auto">
+              <span
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-ima-surface-accent text-ima-primary"
+                aria-hidden="true"
+              >
+                <BookOpen className="h-6 w-6" strokeWidth={2.25} />
+              </span>
+              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
+                Coming soon
+              </p>
+              <h3 className="text-xl md:text-2xl font-semibold tracking-tight text-ima-text leading-tight">
+                No terms yet
+              </h3>
+              <p className="text-sm text-ima-text-secondary leading-relaxed">
+                Your coaches will add definitions here. Check back soon.
+              </p>
+            </div>
           </div>
         ) : (
           <GlossaryList

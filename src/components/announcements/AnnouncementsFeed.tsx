@@ -14,11 +14,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus, Megaphone } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
-import { Card, CardContent } from "@/components/ui/Card";
 import { AnnouncementCard } from "./AnnouncementCard";
 import { AnnouncementForm } from "./AnnouncementForm";
 import type {
@@ -116,77 +113,76 @@ export function AnnouncementsFeed({
   // ---------------- Empty state ----------------
   if (items.length === 0 && !showCreate) {
     return (
-      <>
-        {canAuthor && (
-          <div className="mb-4 flex justify-end">
-            <Button
+      <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-8 md:p-10">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md mx-auto">
+          <span
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-ima-surface-accent text-ima-primary"
+            aria-hidden="true"
+          >
+            <Megaphone className="h-6 w-6" strokeWidth={2.25} />
+          </span>
+          <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
+            Empty feed
+          </p>
+          <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-ima-text leading-tight">
+            {canAuthor ? "Nothing posted yet" : "No announcements yet"}
+          </h2>
+          <p className="text-sm text-ima-text-secondary leading-relaxed">
+            {canAuthor
+              ? "Post the first update — your students will see it the moment you send it."
+              : "When your coach posts an update, it will appear here."}
+          </p>
+          {canAuthor && (
+            <button
               type="button"
-              variant="primary"
-              size="md"
               onClick={() => setShowCreate(true)}
+              className="mt-2 inline-flex items-center justify-center gap-2 bg-ima-primary text-white rounded-2xl px-6 min-h-[56px] text-base font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
             >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              New Announcement
-            </Button>
-          </div>
-        )}
-        <Card>
-          <CardContent className="p-4 md:p-6">
-            <EmptyState
-              icon={<Megaphone className="h-6 w-6" aria-hidden="true" />}
-              title="No announcements yet"
-              description={
-                canAuthor
-                  ? "Post the first update — your students will see it the moment you send it."
-                  : "When your coach posts an update, it will appear here."
-              }
-              action={
-                canAuthor ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="md"
-                    onClick={() => setShowCreate(true)}
-                  >
-                    Create First Announcement
-                  </Button>
-                ) : undefined
-              }
-            />
-          </CardContent>
-        </Card>
-      </>
+              <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+              Post first announcement
+            </button>
+          )}
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {canAuthor && (
-        <div className="flex justify-end">
-          {!showCreate ? (
-            <Button
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-baseline gap-2">
+            <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
+              Feed
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums">
+              {`${items.length} post${items.length !== 1 ? "s" : ""}`}
+            </p>
+          </div>
+          {!showCreate && (
+            <button
               type="button"
-              variant="primary"
-              size="md"
               onClick={() => setShowCreate(true)}
+              className="inline-flex items-center gap-2 bg-ima-primary text-white rounded-xl px-5 min-h-[44px] text-sm font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
             >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              New Announcement
-            </Button>
-          ) : null}
+              <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+              New announcement
+            </button>
+          )}
         </div>
       )}
 
       {showCreate && canAuthor && (
-        <Card>
-          <CardContent className="p-4 md:p-6 motion-safe:animate-fadeIn">
-            <AnnouncementForm
-              mode="create"
-              onSuccess={handleCreateSuccess}
-              onCancel={() => setShowCreate(false)}
-            />
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-ima-primary/25 bg-ima-surface-accent p-5 md:p-6 motion-safe:animate-fadeIn">
+          <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-primary mb-3">
+            New announcement
+          </p>
+          <AnnouncementForm
+            mode="create"
+            onSuccess={handleCreateSuccess}
+            onCancel={() => setShowCreate(false)}
+          />
+        </div>
       )}
 
       <ul className="flex flex-col gap-4 list-none p-0">
@@ -204,14 +200,12 @@ export function AnnouncementsFeed({
 
       {hasMore && (
         <div className="flex justify-center mt-2">
-          <Button
+          <button
             type="button"
-            variant="primary"
-            size="md"
             onClick={handleLoadMore}
-            loading={loadingMore}
             disabled={loadingMore}
             aria-busy={loadingMore || undefined}
+            className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-lg text-xs uppercase tracking-[0.22em] font-semibold text-ima-primary hover:text-ima-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 disabled:opacity-60 motion-safe:transition-colors"
           >
             {loadingMore ? (
               <>
@@ -221,7 +215,7 @@ export function AnnouncementsFeed({
             ) : (
               "Load more announcements"
             )}
-          </Button>
+          </button>
         </div>
       )}
     </div>

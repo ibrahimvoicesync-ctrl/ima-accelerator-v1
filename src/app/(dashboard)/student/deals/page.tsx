@@ -46,13 +46,7 @@ export default async function StudentDealsPage() {
   }
 
   return (
-    <div className="px-4 space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-ima-text">My Deals</h1>
-        <p className="text-sm text-ima-text-secondary mt-1">
-          Track your brand deal revenue and profit
-        </p>
-      </div>
+    <div className="px-4 py-2">
       <DealsClient
         initialDeals={(deals ?? []) as Deal[]}
         viewerId={user.id}

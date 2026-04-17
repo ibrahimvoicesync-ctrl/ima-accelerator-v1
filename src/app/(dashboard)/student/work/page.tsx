@@ -35,7 +35,7 @@ export default async function WorkPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4">
+    <div className="max-w-3xl mx-auto px-4">
       <div className="mb-8">
         <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-2">
           Work Tracker

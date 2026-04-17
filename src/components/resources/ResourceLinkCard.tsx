@@ -1,8 +1,6 @@
 "use client";
 
-import { Pin, Trash2, ExternalLink } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Pin, Trash2, ArrowUpRight } from "lucide-react";
 
 interface ResourceLinkCardProps {
   resource: {
@@ -26,58 +24,102 @@ function formatRelativeDate(dateStr: string): string {
 
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-  return `${Math.floor(diffDays / 365)} years ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+  return `${Math.floor(diffDays / 365)}y ago`;
+}
+
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 export function ResourceLinkCard({ resource, canManage, onDelete }: ResourceLinkCardProps) {
+  const pinned = resource.is_pinned;
+  const host = hostnameOf(resource.url);
+
   return (
-    <Card variant="default">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-ima-text truncate">{resource.title}</h3>
-            {resource.is_pinned && (
-              <Pin className="h-4 w-4 text-ima-primary flex-shrink-0" aria-hidden="true" />
-            )}
-          </div>
-          {canManage && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDelete(resource.id)}
-              aria-label={"Delete " + resource.title}
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
-        </div>
-
-        <a
-          href={resource.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-ima-primary hover:underline truncate block max-w-xs mt-1 flex items-center gap-1"
+    <article
+      className={
+        pinned
+          ? "group rounded-2xl border border-ima-primary/25 bg-ima-surface-accent p-5 md:p-6 hover:border-ima-primary/55 hover:shadow-card-hover motion-safe:transition-all duration-200 ease-out"
+          : "group rounded-2xl border border-ima-border bg-ima-surface p-5 md:p-6 hover:shadow-card-hover motion-safe:transition-all duration-200 ease-out"
+      }
+    >
+      <div className="flex items-start gap-4">
+        <span
+          aria-hidden="true"
+          className={
+            pinned
+              ? "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-ima-primary text-white"
+              : "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-ima-surface-accent text-ima-primary"
+          }
         >
-          <ExternalLink className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
-          <span className="truncate">{resource.url}</span>
-        </a>
+          {pinned ? (
+            <Pin className="h-5 w-5" strokeWidth={2.5} fill="currentColor" />
+          ) : (
+            <ArrowUpRight
+              className="h-5 w-5 motion-safe:transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              strokeWidth={2.5}
+            />
+          )}
+        </span>
 
-        {resource.comment && (
-          <p className="text-sm text-ima-text-secondary mt-1">{resource.comment}</p>
-        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {pinned && (
+              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-primary leading-none">
+                Pinned
+              </p>
+            )}
+            <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums leading-none truncate">
+              {host}
+            </p>
+          </div>
 
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-ima-border">
-          <span className="text-xs text-ima-text-muted">
-            Posted by {resource.created_by_user?.name ?? "Unknown"}
-          </span>
-          <span className="text-xs text-ima-text-muted">
-            {formatRelativeDate(resource.created_at)}
-          </span>
+          <h3 className="mt-2 text-lg md:text-xl font-semibold tracking-tight leading-tight break-words">
+            <a
+              href={resource.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ima-text hover:text-ima-primary focus-visible:outline-none focus-visible:text-ima-primary focus-visible:underline underline-offset-4 motion-safe:transition-colors"
+            >
+              {resource.title}
+            </a>
+          </h3>
+
+          {resource.comment && (
+            <p className="mt-2 text-sm text-ima-text-secondary leading-relaxed">
+              {resource.comment}
+            </p>
+          )}
+
+          <div className="mt-3 flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted">
+            <span className="truncate">
+              {resource.created_by_user?.name ?? "Unknown"}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="tabular-nums flex-shrink-0">
+              {formatRelativeDate(resource.created_at)}
+            </span>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => onDelete(resource.id)}
+            aria-label={"Delete " + resource.title}
+            className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] flex-shrink-0 -mr-2 -mt-1 rounded-lg text-ima-text-muted hover:text-ima-error hover:bg-ima-error/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-error focus-visible:ring-offset-2 motion-safe:transition-colors"
+          >
+            <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    </article>
   );
 }

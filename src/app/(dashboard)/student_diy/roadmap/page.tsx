@@ -1,8 +1,9 @@
-import { PartyPopper, Map, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { RoadmapClient } from "@/components/student/RoadmapClient";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROADMAP_STEPS } from "@/lib/config";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/lib/types";
 
 type RoadmapProgress = Database["public"]["Tables"]["roadmap_progress"]["Row"];
@@ -115,69 +116,179 @@ export default async function StudentDiyRoadmapPage() {
   const completedCount = progress.filter((p) => p.status === "completed").length;
   const allComplete = completedCount === ROADMAP_STEPS.length;
   const percent = Math.round((completedCount / ROADMAP_STEPS.length) * 100);
+  const remaining = ROADMAP_STEPS.length - completedCount;
+  const firstName = user.name.split(" ")[0];
+
+  const activeRow = progress.find((p) => p.status === "active");
+  const activeStepConfig = activeRow
+    ? ROADMAP_STEPS.find((s) => s.step === activeRow.step_number)
+    : undefined;
+
+  const stageSummary = Array.from(
+    ROADMAP_STEPS.reduce((map, s) => {
+      const entry = map.get(s.stage) ?? { name: s.stageName, total: 0, done: 0 };
+      entry.total += 1;
+      const row = progress.find((p) => p.step_number === s.step);
+      if (row?.status === "completed") entry.done += 1;
+      map.set(s.stage, entry);
+      return map;
+    }, new Map<number, { name: string; total: number; done: number }>()).entries()
+  ).map(([stage, info]) => ({ stage, ...info }));
 
   return (
-    <div className="px-4 space-y-5">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-ima-text">Your Roadmap</h1>
-        <p className="mt-1 text-ima-text-secondary">{`${ROADMAP_STEPS.length} steps from beginner to closing your first brand deal`}</p>
-      </div>
+    <div className="max-w-6xl mx-auto px-4 md:px-6">
+      {/* Editorial-restrained header */}
+      <header className="mb-12">
+        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+          Roadmap
+        </p>
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-ima-text leading-[0.95]">
+          Your roadmap.
+        </h1>
+        <p className="mt-3 text-sm md:text-base text-ima-text-secondary max-w-2xl">
+          {ROADMAP_STEPS.length} steps from beginner to closing your first brand deal.
+        </p>
+      </header>
 
-      {/* Progress overview card */}
-      <div
-        className="bg-ima-surface border border-ima-border rounded-xl p-5 motion-safe:animate-slideUp"
-        style={{ animationDelay: "100ms", animationFillMode: "backwards" }}
-      >
-        <div className="flex items-center gap-5">
-          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-ima-success/10 shrink-0">
-            <Map className="h-7 w-7 text-ima-success" aria-hidden="true" />
-          </div>
-          <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-ima-text">{completedCount} of {ROADMAP_STEPS.length} steps completed</p>
-              <span className="text-sm font-bold text-ima-warning">{percent}%</span>
-            </div>
-            <div
-              className="h-3 bg-ima-border rounded-full overflow-hidden"
-              role="progressbar"
-              aria-valuenow={completedCount}
-              aria-valuemin={0}
-              aria-valuemax={ROADMAP_STEPS.length}
-              aria-label={`${completedCount} of ${ROADMAP_STEPS.length} steps completed`}
-            >
-              <div
-                className="h-full bg-ima-success rounded-full motion-safe:transition-all duration-500"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-            <div className="flex gap-3 text-xs text-ima-text-secondary">
-              <span className="flex items-center gap-1">
-                <CheckCircle className="h-3 w-3 text-ima-success" aria-hidden="true" />
-                {completedCount} done
+      {/* Hero row — overall progress (monumental) + current step (supporting). */}
+      <section className="grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-8 mb-10">
+        {/* Overall progress — this is the hero metric, single focal point */}
+        <div className="lg:col-span-3">
+          <div className="flex items-baseline justify-between mb-3 gap-3">
+            <span className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
+              Overall progress
+            </span>
+            {allComplete ? (
+              <span className="inline-flex items-center gap-1.5 bg-ima-success/10 text-ima-success rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] font-semibold tabular-nums">
+                <span className="h-1.5 w-1.5 rounded-full bg-ima-success" aria-hidden="true" />
+                Roadmap complete
               </span>
-              <span>{ROADMAP_STEPS.length - completedCount} remaining</span>
-            </div>
+            ) : (
+              <span className="text-xs uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums">
+                {remaining} remaining
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-end gap-3 mb-6">
+            <span
+              className={cn(
+                "text-7xl md:text-8xl font-semibold tabular-nums tracking-tight leading-[0.95]",
+                allComplete ? "text-ima-success" : "text-ima-primary",
+              )}
+            >
+              {percent}
+              <span className="text-3xl md:text-4xl text-ima-text-muted">%</span>
+            </span>
+            <span className="text-sm text-ima-text-muted tabular-nums mb-2">
+              {completedCount} / {ROADMAP_STEPS.length} steps
+            </span>
+          </div>
+
+          <div
+            className="bg-ima-surface-light rounded-full h-2.5 overflow-hidden mb-6"
+            role="progressbar"
+            aria-valuenow={completedCount}
+            aria-valuemin={0}
+            aria-valuemax={ROADMAP_STEPS.length}
+            aria-label={`${completedCount} of ${ROADMAP_STEPS.length} steps completed`}
+          >
+            <div
+              className={cn(
+                "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
+                allComplete ? "bg-ima-success" : "bg-ima-primary",
+              )}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+
+          {/* Stage ledger — restrained pills, monochrome, tabular */}
+          <div className="flex flex-wrap gap-1.5">
+            {stageSummary.map(({ stage, name, done, total }) => {
+              const stageDone = done === total;
+              const stageStarted = done > 0;
+              return (
+                <div
+                  key={stage}
+                  className={cn(
+                    "inline-flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-full text-[10px] font-semibold border",
+                    stageDone
+                      ? "bg-ima-success/10 text-ima-success border-ima-success/20"
+                      : stageStarted
+                        ? "bg-ima-surface-accent text-ima-primary border-ima-primary/20"
+                        : "bg-ima-bg/60 text-ima-text-muted border-ima-border",
+                  )}
+                >
+                  {stageDone ? (
+                    <CheckCircle className="h-3 w-3" aria-hidden="true" />
+                  ) : (
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        stageStarted ? "bg-ima-primary" : "bg-ima-text-muted/50",
+                      )}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="uppercase tracking-[0.18em]">{name}</span>
+                  <span className="tabular-nums opacity-80">{done}/{total}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
 
-      {/* All-complete celebration */}
-      {allComplete && (
-        <div className="bg-ima-surface border border-ima-border border-l-4 border-l-ima-success rounded-xl p-5 motion-safe:animate-scaleIn">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-ima-warning/10 shrink-0">
-              <PartyPopper className="h-6 w-6 text-ima-warning" aria-hidden="true" />
-            </div>
+        {/* Side panel — current step / completion / ready state. Bordered surface, no pastel. */}
+        <aside className="lg:col-span-2 rounded-2xl border border-ima-border bg-ima-bg/60 p-6 md:p-7">
+          {allComplete ? (
             <div>
-              <h2 className="text-lg font-semibold text-ima-text">Congratulations!</h2>
-              <p className="text-sm text-ima-text-secondary">You&apos;ve completed the entire roadmap!</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-success mb-4">
+                Status
+              </p>
+              <p className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text leading-tight mb-3">
+                Congratulations, {firstName}.
+              </p>
+              <p className="text-sm text-ima-text-secondary leading-relaxed">
+                You&apos;ve completed all {ROADMAP_STEPS.length} steps. Keep building on the roster you&apos;ve earned.
+              </p>
             </div>
-          </div>
-        </div>
-      )}
+          ) : activeStepConfig ? (
+            <div>
+              <div className="flex items-baseline justify-between mb-4 gap-3">
+                <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-primary">
+                  Current step
+                </p>
+                <span className="text-[10px] uppercase tracking-[0.18em] font-semibold tabular-nums text-ima-text-muted">
+                  {String(activeStepConfig.step).padStart(2, "0")} / {String(ROADMAP_STEPS.length).padStart(2, "0")}
+                </span>
+              </div>
+              <p className="text-[11px] uppercase tracking-[0.18em] font-medium text-ima-text-muted mb-2">
+                {activeStepConfig.stageName}
+              </p>
+              <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text leading-tight mb-3">
+                {activeStepConfig.title}
+              </h2>
+              <p className="text-sm text-ima-text-secondary line-clamp-3 leading-relaxed">
+                {activeStepConfig.description}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-primary mb-4">
+                Status
+              </p>
+              <p className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text leading-tight mb-3">
+                Ready to begin.
+              </p>
+              <p className="text-sm text-ima-text-secondary leading-relaxed">
+                Your roadmap is set up. Start with step 1 below when you&apos;re ready.
+              </p>
+            </div>
+          )}
+        </aside>
+      </section>
 
-      {/* Timeline + Confirm Modal (client component) */}
+      {/* Timeline + Confirm Modal (client component) — editorial-restrained internally, shared with student */}
       <RoadmapClient progress={progress} joinedAt={joinedAt} />
     </div>
   );

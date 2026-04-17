@@ -35,9 +35,25 @@ function LoginContent() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-ima-bg px-4">
       <div className="w-full max-w-md rounded-xl bg-ima-surface p-8 shadow-sm border border-ima-border">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-ima-text">IMA Accelerator</h1>
-          <p className="mt-2 text-ima-text-secondary">
+        <div className="flex flex-col items-center text-center">
+          <span
+            role="img"
+            aria-label="IMA Accelerator"
+            className="block bg-ima-primary"
+            style={{
+              width: 240,
+              height: 50,
+              WebkitMaskImage: "url(/ima-logo.png)",
+              maskImage: "url(/ima-logo.png)",
+              WebkitMaskSize: "contain",
+              maskSize: "contain",
+              WebkitMaskRepeat: "no-repeat",
+              maskRepeat: "no-repeat",
+              WebkitMaskPosition: "center",
+              maskPosition: "center",
+            }}
+          />
+          <p className="mt-3 text-ima-text-secondary">
             Student Performance &amp; Coaching Platform
           </p>
         </div>

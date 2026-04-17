@@ -39,13 +39,24 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size }), "relative", className)}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
         {...props}
       >
-        {loading && <Spinner size="sm" />}
-        {children}
+        {/* Children stay in the layout (via display:contents) so the button's
+            resting width is preserved when loading swaps in the spinner. When
+            loading, visibility:hidden is inherited to the children — they
+            reserve their box without rendering. */}
+        <span className={cn("contents", loading && "invisible")}>{children}</span>
+        {loading && (
+          <span
+            className="absolute inset-0 flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <Spinner size="sm" className="text-current" />
+          </span>
+        )}
       </button>
     );
   }

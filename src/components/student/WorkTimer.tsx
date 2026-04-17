@@ -121,7 +121,7 @@ export function WorkTimer({
 
         {/* Centered countdown text — editorial hero scale, tabular-nums */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[10px] md:text-xs uppercase tracking-[0.24em] font-semibold text-ima-text-muted mb-2">
+          <span className="text-[10px] md:text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-2">
             Session {cycleNumber}
           </span>
           <span className="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight text-ima-primary leading-none">

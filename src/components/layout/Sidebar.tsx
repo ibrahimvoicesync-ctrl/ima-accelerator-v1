@@ -19,7 +19,6 @@ import {
   LogOut,
   Menu,
   X,
-  GraduationCap,
   ChevronRight,
   DollarSign,
   Megaphone,
@@ -28,7 +27,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Role, NavItem } from "@/lib/config";
-import { NAVIGATION, APP_CONFIG, ROLE_LABELS } from "@/lib/config";
+import { NAVIGATION, ROLE_LABELS } from "@/lib/config";
 
 // V1 icon map — only icons used in V1 navigation
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -47,7 +46,6 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LogOut,
   Menu,
   X,
-  GraduationCap,
   ChevronRight,
   DollarSign,
   Megaphone,
@@ -138,12 +136,14 @@ export function Sidebar({
         Skip to main content
       </a>
 
-      {/* Mobile toggle */}
+      {/* Mobile toggle — notch-aware position */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed top-4 left-4 z-50 md:hidden bg-ima-surface border border-ima-border
-          rounded-xl p-3 min-h-[44px] min-w-[44px] flex items-center justify-center
-          shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary"
+        style={{ top: "calc(1rem + env(safe-area-inset-top))" }}
+        className="fixed left-4 z-50 md:hidden bg-ima-surface border border-ima-border
+          rounded-lg shadow-sm min-h-[44px] min-w-[44px] flex items-center justify-center
+          focus-visible:outline-none focus-visible:outline focus-visible:outline-2
+          focus-visible:outline-ima-primary focus-visible:outline-offset-2"
         aria-label="Open navigation"
       >
         <Menu className="h-5 w-5 text-ima-text" aria-hidden="true" />
@@ -179,18 +179,32 @@ export function Sidebar({
           "md:translate-x-0"
         )}
       >
-        {/* Logo area */}
-        <div className="flex items-center justify-between px-4 h-16 shrink-0">
+        {/* Brand lockup — logo indent matches nav icon indent (24px from sidebar edge) */}
+        <div className="flex items-center justify-between px-3 pt-7 shrink-0">
           <Link
             href={`/${role}`}
-            className="flex items-center gap-2.5 min-h-[44px] group"
+            aria-label="IMA Accelerator — go to dashboard"
+            className="flex items-center min-h-[44px] rounded-lg px-3
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary
+              focus-visible:ring-offset-1"
           >
-            <div className="h-8 w-8 rounded-lg bg-ima-primary flex items-center justify-center shrink-0">
-              <GraduationCap className="h-[18px] w-[18px] text-white" aria-hidden="true" />
-            </div>
-            <span className="text-sm font-bold text-ima-text tracking-tight group-hover:text-ima-primary motion-safe:transition-colors">
-              {APP_CONFIG.name}
-            </span>
+            <span
+              role="img"
+              aria-label="IMA Accelerator"
+              className="block bg-ima-primary shrink-0"
+              style={{
+                width: 216,
+                height: 45,
+                WebkitMaskImage: "url(/ima-logo.png)",
+                maskImage: "url(/ima-logo.png)",
+                WebkitMaskSize: "contain",
+                maskSize: "contain",
+                WebkitMaskRepeat: "no-repeat",
+                maskRepeat: "no-repeat",
+                WebkitMaskPosition: "left center",
+                maskPosition: "left center",
+              }}
+            />
           </Link>
           <button
             ref={closeButtonRef}
@@ -204,82 +218,84 @@ export function Sidebar({
           </button>
         </div>
 
-        {/* Divider below logo */}
-        <div className="mx-3 border-b border-ima-border" />
+        {/* Divider below brand */}
+        <div className="mx-3 mt-6 mb-4 border-t border-ima-border" aria-hidden="true" />
 
         {/* Main nav links */}
-        <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-4">
-          <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-ima-text-muted select-none">
-            Menu
-          </p>
+        <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 pb-4">
           <ul role="list" className="space-y-0.5">
             {links.map((item) => {
               const Icon = ICON_MAP[item.icon];
               const active = isActive(item.href);
+              const rawCount = item.badge ? badgeCounts[item.badge] ?? 0 : 0;
+              const hasBadge = Boolean(item.badge) && rawCount > 0;
+              const showNumber = hasBadge && rawCount >= 2;
+              const displayCount =
+                item.badge === "coach_milestone_alerts" && rawCount >= 10
+                  ? "9+"
+                  : String(rawCount);
               return (
                 <li key={item.href}>
                   {/* Render separator divider BEFORE items with separator: true */}
                   {item.separator && (
                     <div
-                      className="my-2 mx-3 border-t border-ima-border -mt-0.5 mb-2"
+                      className="my-3 mx-3 border-t border-ima-border"
                       aria-hidden="true"
                     />
                   )}
-                    <Link
-                      href={item.href}
-                      onClick={close}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "relative flex items-center gap-3 px-3 min-h-[44px] rounded-lg text-sm",
-                        "motion-safe:transition-all motion-safe:duration-150",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-1",
-                        active
-                          ? "bg-ima-surface-accent text-ima-primary font-semibold"
-                          : "text-ima-text-secondary hover:bg-ima-surface-light hover:text-ima-text font-medium"
-                      )}
-                    >
-                      {/* Animated active indicator bar */}
-                      {active && (
-                        <motion.div
-                          layoutId="sidebar-active"
-                          className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-ima-primary"
-                          transition={
-                            prefersReducedMotion
-                              ? { duration: 0 }
-                              : { type: "spring", stiffness: 350, damping: 30 }
-                          }
-                        />
-                      )}
-                      {Icon && (
-                        <Icon
-                          className={cn(
-                            "h-[18px] w-[18px] shrink-0",
-                            active ? "text-ima-primary" : "text-ima-text-muted"
-                          )}
+                  <Link
+                    href={item.href}
+                    onClick={close}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "group relative flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-lg text-sm",
+                      "motion-safe:transition-colors motion-safe:duration-150",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-1",
+                      active
+                        ? "bg-ima-surface-accent text-ima-primary font-medium"
+                        : "text-ima-text-secondary hover:bg-ima-surface-light hover:text-ima-text"
+                    )}
+                  >
+                    {/* Inset accent bar — tween between active rows (ease-out-quint, no overshoot) */}
+                    {active && (
+                      <motion.div
+                        layoutId="sidebar-active"
+                        className="absolute left-1.5 top-2 bottom-2 w-0.5 rounded-full bg-ima-primary"
+                        transition={
+                          prefersReducedMotion
+                            ? { duration: 0 }
+                            : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+                        }
+                      />
+                    )}
+                    {Icon && (
+                      <Icon
+                        className={cn(
+                          "h-4 w-4 shrink-0 motion-safe:transition-colors",
+                          active
+                            ? "text-ima-primary"
+                            : "text-ima-text-muted group-hover:text-ima-text"
+                        )}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span className="truncate">{item.label}</span>
+                    {hasBadge && showNumber && (
+                      <span className="ml-auto text-xs font-medium text-ima-primary tabular-nums shrink-0">
+                        {displayCount}
+                        <span className="sr-only"> unread</span>
+                      </span>
+                    )}
+                    {hasBadge && !showNumber && (
+                      <>
+                        <span
+                          className="ml-auto h-1.5 w-1.5 rounded-full bg-ima-primary shrink-0"
                           aria-hidden="true"
                         />
-                      )}
-                      <span className="truncate">{item.label}</span>
-                      {/* Badge — only rendered when count > 0; caps at "9+" for coach_milestone_alerts per NOTIF-09 */}
-                      {item.badge && (badgeCounts[item.badge] ?? 0) > 0 && (() => {
-                        const rawCount = badgeCounts[item.badge] ?? 0;
-                        const displayCount =
-                          item.badge === "coach_milestone_alerts" && rawCount >= 10
-                            ? "9+"
-                            : String(rawCount);
-                        return (
-                          <span className="ml-auto text-xs font-medium px-1.5 py-0.5 rounded-full bg-ima-primary/10 text-ima-primary shrink-0">
-                            {displayCount}
-                          </span>
-                        );
-                      })()}
-                      {active && !item.badge && (
-                        <ChevronRight
-                          className="ml-auto h-3.5 w-3.5 text-ima-primary/50 shrink-0"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </Link>
+                        <span className="sr-only">Unread</span>
+                      </>
+                    )}
+                  </Link>
                 </li>
               );
             })}
@@ -295,24 +311,29 @@ export function Sidebar({
               aria-label="User account"
             >
               <div
-                className="h-8 w-8 rounded-full bg-gradient-to-br from-ima-primary to-ima-secondary flex items-center justify-center text-xs font-bold text-white shrink-0"
+                className="h-8 w-8 rounded-full bg-ima-primary flex items-center justify-center text-xs font-semibold text-white shrink-0"
                 aria-hidden="true"
               >
                 {userName?.charAt(0)?.toUpperCase() ?? "?"}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ima-text truncate">{userName}</p>
-                <p className="text-xs text-ima-text-muted">{ROLE_LABELS[role]}</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-ima-text-muted font-medium">
+                  {ROLE_LABELS[role]}
+                </p>
               </div>
             </div>
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-3 w-full px-3 min-h-[44px] rounded-lg text-sm font-medium
+              className="group flex items-center gap-3 w-full px-3 py-2.5 min-h-[44px] rounded-lg text-sm
                 cursor-pointer text-ima-text-secondary hover:bg-ima-surface-light hover:text-ima-error
-                motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2
-                focus-visible:ring-ima-primary focus-visible:ring-offset-1"
+                motion-safe:transition-colors motion-safe:duration-150
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-1"
             >
-              <LogOut className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+              <LogOut
+                className="h-4 w-4 shrink-0 text-ima-text-muted group-hover:text-ima-error motion-safe:transition-colors"
+                aria-hidden="true"
+              />
               Sign Out
             </button>
           </div>

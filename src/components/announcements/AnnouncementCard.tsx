@@ -18,9 +18,6 @@
 
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { formatRelativeTime } from "@/lib/chat-utils";
 import type { Announcement, AnnouncementsPageRole } from "./announcement-types";
 import { AnnouncementForm } from "./AnnouncementForm";
@@ -54,77 +51,76 @@ export function AnnouncementCard({
   const canMutate = viewerRole === "owner" || viewerRole === "coach";
   const authorName = announcement.author?.name ?? "Unknown";
   const authorRole = announcement.author?.role ?? "coach";
-  const badgeVariant = authorRole === "owner" ? "info" : "success";
-  const badgeLabel = authorRole === "owner" ? "Owner" : "Coach";
+  const roleLabel = authorRole === "owner" ? "Owner" : "Coach";
 
   return (
-    <Card>
-      <CardContent className="p-4 md:p-6">
-        <header className="flex flex-wrap items-center gap-2 mb-3">
-          <span
-            aria-hidden="true"
-            className="w-8 h-8 rounded-full bg-ima-primary flex items-center justify-center text-xs font-semibold text-white shrink-0"
-          >
-            {getInitials(authorName)}
-          </span>
-          <span className="text-sm font-semibold text-ima-text">
-            {authorName}
-          </span>
-          <Badge variant={badgeVariant}>{badgeLabel}</Badge>
-          <span className="text-xs font-medium text-ima-text-secondary ml-auto flex items-center gap-1">
+    <article className="group rounded-2xl border border-ima-border bg-ima-surface p-5 md:p-6 hover:shadow-card-hover motion-safe:transition-shadow duration-200 ease-out">
+      <header className="flex items-start gap-3 mb-4">
+        <span
+          aria-hidden="true"
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-ima-primary text-white text-sm font-semibold tracking-tight"
+        >
+          {getInitials(authorName)}
+        </span>
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold tracking-tight text-ima-text truncate">
+              {authorName}
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-primary">
+              {roleLabel}
+            </span>
+          </div>
+          <span className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums flex items-center gap-1.5">
             <time dateTime={announcement.created_at}>
               {formatRelativeTime(new Date(announcement.created_at))}
             </time>
             {announcement.is_edited && (
               <>
-                <span aria-hidden="true"> · </span>
-                <span>(edited)</span>
+                <span aria-hidden="true">·</span>
+                <span>Edited</span>
               </>
             )}
           </span>
-          {canMutate && !editing && (
-            <div className="flex items-center gap-1 ml-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="min-h-[44px] min-w-[44px]"
-                aria-label="Edit announcement"
-                onClick={() => setEditing(true)}
-              >
-                <Pencil className="h-4 w-4" aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="min-h-[44px] min-w-[44px]"
-                aria-label="Delete announcement"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </div>
-          )}
-        </header>
-
-        {editing ? (
-          <AnnouncementForm
-            mode="edit"
-            announcementId={announcement.id}
-            initialContent={announcement.content}
-            onSuccess={(updated) => {
-              onUpdated(updated);
-              setEditing(false);
-            }}
-            onCancel={() => setEditing(false)}
-          />
-        ) : (
-          <p className="text-sm text-ima-text whitespace-pre-wrap leading-relaxed">
-            {announcement.content}
-          </p>
+        </div>
+        {canMutate && !editing && (
+          <div className="flex items-center gap-1 flex-shrink-0 -mr-2">
+            <button
+              type="button"
+              aria-label="Edit announcement"
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-ima-text-muted hover:text-ima-primary hover:bg-ima-surface-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-colors"
+            >
+              <Pencil className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label="Delete announcement"
+              onClick={() => setDeleteOpen(true)}
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-ima-text-muted hover:text-ima-error hover:bg-ima-error/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-error focus-visible:ring-offset-2 motion-safe:transition-colors"
+            >
+              <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+            </button>
+          </div>
         )}
-      </CardContent>
+      </header>
+
+      {editing ? (
+        <AnnouncementForm
+          mode="edit"
+          announcementId={announcement.id}
+          initialContent={announcement.content}
+          onSuccess={(updated) => {
+            onUpdated(updated);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      ) : (
+        <p className="text-base text-ima-text whitespace-pre-wrap leading-relaxed">
+          {announcement.content}
+        </p>
+      )}
 
       {canMutate && (
         <DeleteAnnouncementDialog
@@ -134,6 +130,6 @@ export function AnnouncementCard({
           onDeleted={() => onDeleted(announcement.id)}
         />
       )}
-    </Card>
+    </article>
   );
 }

@@ -6,9 +6,21 @@ import {
   useState,
   useRef,
   useCallback,
+  useMemo,
+  type ComponentType,
+  type SVGProps,
 } from "react";
 import { useRouter } from "next/navigation";
-import { DollarSign, Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  Briefcase,
+  Calendar,
+  CircleDollarSign,
+  DollarSign,
+  Pencil,
+  Plus,
+  TrendingUp,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
@@ -42,6 +54,21 @@ function formatCurrency(value: string | number): string {
   })}`;
 }
 
+function formatCompact(value: number): string {
+  return `$${value.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 interface DealsClientProps {
   initialDeals: Deal[];
   viewerId: string;
@@ -73,6 +100,16 @@ export function DealsClient({
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const totals = useMemo(() => {
+    let revenue = 0;
+    let profit = 0;
+    for (const d of optimisticDeals) {
+      revenue += Number(d.revenue);
+      profit += Number(d.profit);
+    }
+    return { count: optimisticDeals.length, revenue, profit };
+  }, [optimisticDeals]);
 
   const handleAdd = useCallback(
     async (payload: { revenue: number; profit: number }) => {
@@ -212,130 +249,322 @@ export function DealsClient({
     setModalOpen(true);
   }, []);
 
+  const hasDeals = optimisticDeals.length > 0;
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ima-text">My Deals</h2>
-        <Button variant="primary" onClick={openAddModal}>
+    <div className="space-y-8">
+      {/* Header: title + inline metrics + add button */}
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-4 min-w-0">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text">
+              My Deals
+            </h1>
+            <p className="text-sm text-ima-text-secondary mt-2">
+              Track your brand deal revenue and profit
+            </p>
+          </div>
+
+          {hasDeals && (
+            <div
+              className="flex flex-wrap items-center gap-2"
+              role="group"
+              aria-label="Deals summary"
+            >
+              <MetricPill
+                icon={Briefcase}
+                label={totals.count === 1 ? "deal logged" : "deals logged"}
+                value={String(totals.count)}
+                tone="primary"
+              />
+              <MetricPill
+                icon={TrendingUp}
+                label="revenue"
+                value={formatCompact(totals.revenue)}
+                tone="primary"
+              />
+              <MetricPill
+                icon={CircleDollarSign}
+                label="profit"
+                value={formatCompact(totals.profit)}
+                tone="success"
+              />
+            </div>
+          )}
+        </div>
+
+        <Button
+          variant="primary"
+          onClick={openAddModal}
+          className="rounded-lg shadow-sm shadow-ima-primary/20 shrink-0 self-start motion-safe:transition-all hover:shadow-md hover:shadow-ima-primary/30"
+        >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add Deal
         </Button>
       </div>
 
       {/* Empty state */}
-      {optimisticDeals.length === 0 && (
+      {!hasDeals && (
         <EmptyState
           icon={<DollarSign className="h-6 w-6" aria-hidden="true" />}
           title="No deals yet"
-          description="Add your first deal to start tracking revenue and profit"
-          action={
-            <Button onClick={openAddModal}>Add your first deal</Button>
-          }
+          description="Log your first closed deal to start tracking revenue and profit."
+          action={<Button onClick={openAddModal}>Add your first deal</Button>}
         />
       )}
 
       {/* Deal list */}
-      {optimisticDeals.length > 0 && (
-        <div className="bg-ima-surface border border-ima-border rounded-xl overflow-hidden">
-          {/* Column headers */}
-          <div className="hidden sm:flex items-center gap-4 px-4 py-2 bg-ima-surface-light border-b border-ima-border text-xs font-medium text-ima-text-secondary uppercase tracking-wider">
-            <span className="w-24">Deal</span>
-            <span className="flex-1">Revenue</span>
-            <span className="flex-1">Profit</span>
-            <span className="w-28">Logged By</span>
-            <span className="w-28 text-right">Date</span>
-            <span className="w-32 text-right">Actions</span>
-          </div>
-
-          {/* Rows */}
-          <div className="divide-y divide-ima-border">
-            {optimisticDeals.map((deal) => (
+      {hasDeals && (
+        <div>
+          {/* Desktop table */}
+          <div className="hidden md:block">
+            <div
+              role="table"
+              aria-label="Deals"
+              className="w-full overflow-hidden rounded-2xl border border-ima-border bg-ima-surface shadow-sm"
+            >
+              {/* Column headers */}
               <div
-                key={deal.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-3 px-4 min-h-[44px]"
+                role="row"
+                className="grid grid-cols-[140px_1fr_1fr_160px_140px_96px] items-center gap-4 px-6 py-3 bg-ima-surface-light border-b border-ima-border text-[11px] font-semibold uppercase tracking-[0.14em] text-ima-text-muted"
               >
-                {/* Deal number */}
-                <span className="text-sm font-medium text-ima-text w-24 shrink-0">
-                  Deal #{deal.deal_number}
+                <span role="columnheader">Deal</span>
+                <span role="columnheader">Revenue</span>
+                <span role="columnheader">Profit</span>
+                <span role="columnheader">Logged By</span>
+                <span role="columnheader">Date</span>
+                <span role="columnheader" className="text-right">
+                  <span className="sr-only">Actions</span>
                 </span>
-
-                {/* Revenue */}
-                <span className="text-sm text-ima-text flex-1">
-                  {formatCurrency(deal.revenue)}
-                </span>
-
-                {/* Profit */}
-                <span className="text-sm text-ima-text-secondary flex-1">
-                  {formatCurrency(deal.profit)}
-                </span>
-
-                {/* Logged by (attribution chip) */}
-                <span className="w-28 shrink-0">
-                  <DealAttributionChip
-                    deal={deal}
-                    viewerRole={viewerRole}
-                    viewerId={viewerId}
-                    userMap={userMap}
-                  />
-                </span>
-
-                {/* Date */}
-                <span className="text-xs text-ima-text-muted w-28 sm:text-right shrink-0">
-                  {new Date(deal.created_at).toLocaleDateString()}
-                </span>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 w-32 justify-end shrink-0">
-                  {confirmDeleteId === deal.id ? (
-                    <>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDelete(deal.id)}
-                        loading={deletingId === deal.id}
-                        aria-label="Confirm delete deal"
-                      >
-                        Confirm
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setConfirmDeleteId(null)}
-                        aria-label="Cancel delete"
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingDeal(deal);
-                          setModalOpen(true);
-                        }}
-                        aria-label={`Edit deal #${deal.deal_number}`}
-                        disabled={submitting || deletingId === deal.id}
-                      >
-                        <Pencil className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setConfirmDeleteId(deal.id)}
-                        aria-label={`Delete deal #${deal.deal_number}`}
-                        disabled={submitting || deletingId === deal.id}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    </>
-                  )}
-                </div>
               </div>
-            ))}
+
+              {/* Rows */}
+              <div>
+                {optimisticDeals.map((deal) => {
+                  const isConfirming = confirmDeleteId === deal.id;
+                  const isDeleting = deletingId === deal.id;
+                  const isBusy = submitting || isDeleting;
+
+                  return (
+                    <div
+                      key={deal.id}
+                      role="row"
+                      className="group grid grid-cols-[140px_1fr_1fr_160px_140px_96px] items-center gap-4 px-6 h-16 border-b border-ima-surface-light last:border-b-0 motion-safe:transition-colors hover:bg-ima-surface-accent/60 focus-within:bg-ima-surface-accent/60"
+                    >
+                      <div
+                        role="cell"
+                        className="flex items-center gap-2.5 min-w-0"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="h-2 w-2 rounded-full bg-ima-success shrink-0 ring-4 ring-ima-success/15"
+                        />
+                        <span className="text-sm font-semibold text-ima-primary tabular-nums truncate">
+                          Deal #{deal.deal_number}
+                        </span>
+                      </div>
+
+                      <span
+                        role="cell"
+                        className="text-sm font-medium text-ima-text tabular-nums"
+                      >
+                        {formatCurrency(deal.revenue)}
+                      </span>
+
+                      <span
+                        role="cell"
+                        className="text-sm font-semibold text-ima-success tabular-nums"
+                      >
+                        {formatCurrency(deal.profit)}
+                      </span>
+
+                      <span role="cell">
+                        <DealAttributionChip
+                          deal={deal}
+                          viewerRole={viewerRole}
+                          viewerId={viewerId}
+                          userMap={userMap}
+                        />
+                      </span>
+
+                      <span
+                        role="cell"
+                        className="flex items-center gap-2 text-xs text-ima-text-muted tabular-nums"
+                      >
+                        <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        {formatDate(deal.created_at)}
+                      </span>
+
+                      <div
+                        role="cell"
+                        className="flex items-center justify-end gap-1"
+                      >
+                        {isConfirming ? (
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDelete(deal.id)}
+                              loading={isDeleting}
+                              aria-label={`Confirm delete deal #${deal.deal_number}`}
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConfirmDeleteId(null)}
+                              aria-label="Cancel delete"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 motion-safe:transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingDeal(deal);
+                                setModalOpen(true);
+                              }}
+                              aria-label={`Edit deal #${deal.deal_number}`}
+                              disabled={isBusy}
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ima-text-muted motion-safe:transition-colors hover:text-ima-primary hover:bg-ima-surface-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ima-bg disabled:opacity-50 disabled:pointer-events-none"
+                            >
+                              <Pencil className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(deal.id)}
+                              aria-label={`Delete deal #${deal.deal_number}`}
+                              disabled={isBusy}
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ima-text-muted motion-safe:transition-colors hover:text-ima-error hover:bg-ima-error/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-error focus-visible:ring-offset-2 focus-visible:ring-offset-ima-bg disabled:opacity-50 disabled:pointer-events-none"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
+
+          {/* Mobile card list */}
+          <ul className="md:hidden space-y-3">
+            {optimisticDeals.map((deal) => {
+              const isConfirming = confirmDeleteId === deal.id;
+              const isDeleting = deletingId === deal.id;
+              const isBusy = submitting || isDeleting;
+
+              return (
+                <li
+                  key={deal.id}
+                  className="rounded-2xl border border-ima-border bg-ima-surface shadow-sm overflow-hidden"
+                >
+                  <div className="px-4 py-4 space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          aria-hidden="true"
+                          className="h-2 w-2 rounded-full bg-ima-success shrink-0 ring-4 ring-ima-success/15"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-ima-primary tabular-nums truncate">
+                            Deal #{deal.deal_number}
+                          </p>
+                          <p className="flex items-center gap-1.5 text-xs text-ima-text-muted tabular-nums mt-1">
+                            <Calendar
+                              className="h-3 w-3 shrink-0"
+                              aria-hidden="true"
+                            />
+                            {formatDate(deal.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                      <DealAttributionChip
+                        deal={deal}
+                        viewerRole={viewerRole}
+                        viewerId={viewerId}
+                        userMap={userMap}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-ima-surface-accent px-3 py-2.5 space-y-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ima-primary/70">
+                          Revenue
+                        </p>
+                        <p className="text-sm font-semibold text-ima-primary tabular-nums">
+                          {formatCurrency(deal.revenue)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-ima-success/10 px-3 py-2.5 space-y-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ima-success/80">
+                          Profit
+                        </p>
+                        <p className="text-sm font-semibold text-ima-success tabular-nums">
+                          {formatCurrency(deal.profit)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isConfirming ? (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDelete(deal.id)}
+                          loading={isDeleting}
+                          aria-label={`Confirm delete deal #${deal.deal_number}`}
+                          className="flex-1"
+                        >
+                          Confirm delete
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConfirmDeleteId(null)}
+                          aria-label="Cancel delete"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setEditingDeal(deal);
+                            setModalOpen(true);
+                          }}
+                          aria-label={`Edit deal #${deal.deal_number}`}
+                          disabled={isBusy}
+                          className="flex-1"
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConfirmDeleteId(deal.id)}
+                          aria-label={`Delete deal #${deal.deal_number}`}
+                          disabled={isBusy}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          Delete
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
@@ -348,12 +577,67 @@ export function DealsClient({
         }}
         deal={editingDeal}
         onSubmit={
-          editingDeal
-            ? (data) => handleEdit(editingDeal, data)
-            : handleAdd
+          editingDeal ? (data) => handleEdit(editingDeal, data) : handleAdd
         }
         loading={submitting}
       />
+    </div>
+  );
+}
+
+interface MetricPillProps {
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  label: string;
+  value: string;
+  tone: "primary" | "success";
+}
+
+const TONE_CLASSES: Record<
+  MetricPillProps["tone"],
+  { wrap: string; icon: string; value: string; label: string }
+> = {
+  primary: {
+    wrap: "bg-ima-surface-accent border-ima-primary/15",
+    icon: "text-ima-primary",
+    value: "text-ima-primary",
+    label: "text-ima-primary/70",
+  },
+  success: {
+    wrap: "bg-ima-success/10 border-ima-success/20",
+    icon: "text-ima-success",
+    value: "text-ima-success",
+    label: "text-ima-success/80",
+  },
+};
+
+function MetricPill({ icon: Icon, label, value, tone }: MetricPillProps) {
+  const t = TONE_CLASSES[tone];
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border pl-2.5 pr-3.5 py-1.5 ${t.wrap}`}
+      role="group"
+      aria-label={`${value} ${label}`}
+    >
+      <span
+        className={`inline-flex h-6 w-6 items-center justify-center rounded-full bg-ima-surface ${t.icon}`}
+        aria-hidden="true"
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <span className="flex items-baseline gap-1.5">
+        <span
+          aria-hidden="true"
+          className={`text-sm font-semibold tabular-nums tracking-tight ${t.value}`}
+        >
+          {value}
+        </span>
+        <span
+          aria-hidden="true"
+          className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${t.label}`}
+        >
+          {label}
+        </span>
+      </span>
     </div>
   );
 }
