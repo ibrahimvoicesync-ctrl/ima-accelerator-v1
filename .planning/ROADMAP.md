@@ -133,7 +133,7 @@ See [milestones/v1.7-ROADMAP.md](milestones/v1.7-ROADMAP.md) for full phase deta
 
 **Milestone Goal:** Six surgical improvements across student analytics (outreach KPI re-split), owner analytics (coach leaderboards + time-window selectors), owner alerts (prune to `deal_closed`), coach alerts (`tech_setup` activation), and the owner’s student detail view (DIY parity) — five phases (61-65), 53 requirements, four new migrations (00033-00036). F1, F5, F6 are each shipped as standalone phases for autonomous-mode resilience (failure isolation); F2+F3 bundled (co-modify the same RPC); F4 isolated.
 
-- [ ] **Phase 61: Student Analytics Re-split** — F1 standalone: breaking `get_student_analytics` RPC (outreach KPI re-split from combined `total_emails` to separate `total_brand_outreach` + `total_influencer_outreach`), migration 00033 with defensive DROP pattern, `unstable_cache` keys bumped in both `/student/analytics` and `/student_diy/analytics`
+- [x] **Phase 61: Student Analytics Re-split** — F1 standalone: breaking `get_student_analytics` RPC (outreach KPI re-split from combined `total_emails` to separate `total_brand_outreach` + `total_influencer_outreach`), migration 00033 with defensive DROP pattern, `unstable_cache` keys bumped in both `/student/analytics` and `/student_diy/analytics` (completed 2026-04-17)
 - [ ] **Phase 62: Coach Alert `tech_setup` Activation (Step 4 "Set Up Your Agency")** — F5 standalone: flip `techSetupEnabled` + `techSetupStep=4` + relabel to "Set Up Your Agency"; migration 00034 rewrites RPC CTE from placeholder `step_number=0` to `4` and backfills historical completions in `alert_dismissals`; internal type key `tech_setup` preserved
 - [ ] **Phase 63: DIY Owner Detail Page** — F6 standalone: extend `/owner/students/[studentId]` + list page to accept `student_diy` via role-filter broadening; hide daily-report indicators in CalendarTab + StudentKpiSummary for DIY; add "DIY" badge on list page; no migrations, no RPC changes
 - [ ] **Phase 64: Owner Analytics Expansion — Coach Leaderboards + Per-Leaderboard Window Selectors** — F2 + F3 MUST bundle: single `get_owner_analytics` RPC expanded to return 24 pre-computed slots (6 leaderboards × 4 windows), new `SegmentedControl` UI primitive, `/api/reports` gains `ownerAnalyticsTag()` invalidation
@@ -555,12 +555,12 @@ Plans:
   3. The outreach trend chart on `/student/analytics` is unchanged (still splits brand vs influencer series); the daily report form is unchanged (still collects `brands_contacted` and `influencers_contacted` as separate integer fields)
   4. Migration `00033_fix_student_analytics_outreach_split.sql` applies cleanly on top of 00032; uses the defensive `DO $drop$ … pg_get_function_identity_arguments …` pattern so `SELECT COUNT(*) FROM pg_proc … WHERE proname = 'get_student_analytics'` returns exactly 1 (no PGRST203 overload collision); `unstable_cache` keys for `/student/analytics/page.tsx` and `/student_diy/analytics/page.tsx` are bumped (e.g. `["student-analytics"]` → `["student-analytics-v2"]`) in the same commit as the migration
   5. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0 with zero errors and zero warnings
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 Plans:
 - [x] 61-01-migration-00033-rpc-split-PLAN.md — Migration 00033: defensive DROP + CREATE OR REPLACE `get_student_analytics` with renamed totals jsonb keys + post-assert
 - [x] 61-02-typescript-totals-rename-PLAN.md — Rename `StudentAnalyticsTotals` fields in `src/lib/rpc/student-analytics-types.ts` (`total_emails` → `total_brand_outreach`, `total_influencers` → `total_influencer_outreach`)
 - [x] 61-03-consumer-rewrite-cache-bump-PLAN.md — Bump `unstable_cache` keys on both analytics pages to `["student-analytics-v2"]`; rewrite AnalyticsClient KPI strip (renamed cards + DIY hide-guard removed + grid simplified to `lg:grid-cols-6`)
-- [ ] 61-04-build-gate-and-shape-assert-PLAN.md — Post-phase build gate (`npm run lint && npx tsc --noEmit && npm run build`) + human-verify SA-01/02/07/08/09 on running app
+- [x] 61-04-build-gate-and-shape-assert-PLAN.md — Post-phase build gate (`npm run lint && npx tsc --noEmit && npm run build`) + human-verify SA-01/02/07/08/09 on running app
 **UI hint**: yes
 
 ### Phase 62: Coach Alert `tech_setup` Activation — "Set Up Your Agency" at Step 4 (F5)
@@ -676,7 +676,7 @@ Plans:
 | 58. Schema & Backfill | v1.7 | 2/2 | Complete    | 2026-04-16 |
 | 59. Referral API + Rebrandly | v1.7 | 1/1 | Complete    | 2026-04-16 |
 | 60. ReferralCard UI & Dashboard Integration | v1.7 | 1/1 | Complete    | 2026-04-16 |
-| 61. Student Analytics Re-split (F1) | v1.8 | 3/4 | In Progress|  |
+| 61. Student Analytics Re-split (F1) | v1.8 | 4/4 | Complete   | 2026-04-17 |
 | 62. Coach Alert tech_setup Activation (F5) | v1.8 | 0/TBD | Not started | — |
 | 63. DIY Owner Detail Page (F6) | v1.8 | 0/TBD | Not started | — |
 | 64. Owner Analytics Expansion — Coach Leaderboards + Window Selectors (F2+F3) | v1.8 | 0/TBD | Not started | — |

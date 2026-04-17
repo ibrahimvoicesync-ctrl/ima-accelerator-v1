@@ -20,7 +20,7 @@
 - [x] **SA-05**: `unstable_cache` key in `src/app/(dashboard)/student/analytics/page.tsx` is bumped from `["student-analytics"]` to `["student-analytics-v2"]` (or equivalent version suffix) in the SAME commit as the migration to prevent 60s TTL rollover SSR crashes on the new consumer
 - [x] **SA-06**: `unstable_cache` key in `src/app/(dashboard)/student_diy/analytics/page.tsx` is bumped identically in the same commit
 - [x] **SA-07**: DIY KPI-card visibility decision is resolved in `/gsd-discuss-phase` — `AnalyticsClient.tsx:198` currently hides brand/influencer KPIs for `viewerRole === "student_diy"`; v1.8 phase must explicitly confirm whether DIY now renders the new cards or keeps hiding (default: show)
-- [ ] **SA-08**: Outreach trend chart is NOT modified (already splits by brand/influencer)
+- [x] **SA-08**: Outreach trend chart is NOT modified (already splits by brand/influencer)
 - [x] **SA-09**: Daily report form is NOT modified (still collects brands_contacted + influencers_contacted as separate integers)
 
 ### Owner Analytics — Coach Performance Leaderboards (Feature 2)
