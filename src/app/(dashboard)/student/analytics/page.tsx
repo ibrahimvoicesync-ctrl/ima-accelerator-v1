@@ -47,7 +47,7 @@ export default async function StudentAnalyticsPage({
   const fetchCached = unstable_cache(
     async (studentId: string, r: StudentAnalyticsRange, p: number) =>
       fetchStudentAnalytics(studentId, r, p),
-    ["student-analytics"],
+    ["student-analytics-v2"],
     {
       revalidate: 60,
       tags: [studentAnalyticsTag(user.id)],
