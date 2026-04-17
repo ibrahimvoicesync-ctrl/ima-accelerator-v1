@@ -74,6 +74,11 @@ export async function fetchCoachMilestones(
  *
  * Cache key embeds the today string so a date rollover automatically yields a
  * fresh entry — invalidating the tag busts ALL date variants at once.
+ *
+ * - v2 (Phase 62): cache key bumped when tech_setup CTE switched from step 0
+ *   placeholder to step 4. Bumping avoids the 60s TTL window in which stale
+ *   pre-migration payloads (count: 0 with placeholder step) would be served
+ *   after the RPC body shipped.
  */
 export async function getCoachMilestonesCached(
   coachId: string,
@@ -81,7 +86,7 @@ export async function getCoachMilestonesCached(
 ): Promise<CoachMilestonesPayload> {
   const cached = unstable_cache(
     async (id: string, t: string) => fetchCoachMilestones(id, t),
-    ["coach-milestones", coachId, today],
+    ["coach-milestones-v2", coachId, today],
     {
       revalidate: 60,
       tags: [coachMilestonesTag(coachId)],

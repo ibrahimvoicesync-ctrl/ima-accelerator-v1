@@ -116,8 +116,13 @@ export const MILESTONE_META: Record<
     iconBg: "bg-ima-success/10",
     badgeVariant: "success",
   },
+  // Phase 62 (v1.8 F5): Label renamed "Setup Complete" → "Set Up Your Agency"
+  // to match ROADMAP_STEPS[3].title. Internal type key `tech_setup` is PRESERVED
+  // across CoachAlertFeedType, dismissal-key prefix `milestone_tech_setup:%`,
+  // config keys (techSetupStep, techSetupEnabled), and the RPC's CTE name —
+  // renaming the key would invalidate in-flight dismissals.
   "tech_setup": {
-    label: "Setup Complete",
+    label: "Set Up Your Agency",
     Icon: CheckCircle,
     iconTint: "text-ima-primary",
     iconBg: "bg-ima-primary/10",

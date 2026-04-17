@@ -383,11 +383,12 @@ export type MilestoneType =
   | "closed_deal";
 
 export const MILESTONE_CONFIG = {
-  // D-06 placeholder — nullable until Abu Lahya confirms at Monday meeting.
-  // Current best-guess is step 4, 5, or 6 in "Setup & Preparation" stage.
-  // Paired with MILESTONE_FEATURE_FLAGS.techSetupEnabled = false; Phase 51 RPC
-  // MUST check the flag before dereferencing this field.
-  techSetupStep: null as number | null,
+  // D-06 resolved (v1.8 F5, Phase 62): Step 4 = "Set Up Your Agency" in
+  // ROADMAP_STEPS. SYNC: supabase/migrations/00034_activate_tech_setup.sql
+  // rewrites the tech_setup CTE to read rp.step_number = 4. Paired with
+  // MILESTONE_FEATURE_FLAGS.techSetupEnabled = true so the Phase 51 RPC
+  // emits tech_setup rows at runtime.
+  techSetupStep: 4 as number | null,
 
   // Locked: Roadmap step 12 = "Close 5 Influencers" (stage 2).
   // SYNC: ROADMAP_STEPS[11].step === 12. Shifted 11→12 in Phase 57 after
@@ -403,13 +404,12 @@ export const MILESTONE_CONFIG = {
 } as const;
 
 export const MILESTONE_FEATURE_FLAGS = {
-  // Disabled until D-06 resolves at the Monday stakeholder meeting. When
-  // `true`, the Phase 51 RPC's Tech/Email Setup branch evaluates
-  // MILESTONE_CONFIG.techSetupStep and fires alerts keyed via
-  // MILESTONES.techSetup(studentId). When `false` (default), that branch is
-  // skipped entirely — no notifications, no sidebar badge contribution, no
-  // alert_dismissals rows produced.
-  techSetupEnabled: false,
+  // Activated v1.8 F5 (Phase 62). When `true`, the Phase 51 RPC's Tech/Email
+  // Setup branch evaluates MILESTONE_CONFIG.techSetupStep and fires alerts
+  // keyed via MILESTONES.techSetup(studentId). Historical Step-4 completions
+  // are pre-dismissed by migration 00034 so flipping this flag does NOT
+  // produce a retroactive flood for existing students.
+  techSetupEnabled: true,
 } as const;
 
 // Alert-key namespace constants + composers.
