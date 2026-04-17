@@ -133,7 +133,7 @@ export function StudentDetailClient({
           comments={calendarComments}
           currentMonth={currentMonth}
           studentId={studentId}
-          role="coach"
+          viewerRole="coach"
         />
       )}
       {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} studentId={studentId} />}

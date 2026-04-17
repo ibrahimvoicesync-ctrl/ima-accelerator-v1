@@ -42,7 +42,8 @@ type CalendarTabProps = {
   comments: Record<string, CalendarComment>;
   currentMonth: string; // "YYYY-MM"
   studentId: string;
-  role: "coach" | "owner";
+  viewerRole: "coach" | "owner";
+  studentRole?: "student" | "student_diy";
 };
 
 const statusVariant: Record<string, "info" | "success" | "warning" | "error"> = {
@@ -57,13 +58,14 @@ function dateStrLocal(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function CalendarTab({ sessions, reports, comments, currentMonth, studentId, role }: CalendarTabProps) {
+export function CalendarTab({ sessions, reports, comments, currentMonth, studentId, viewerRole, studentRole = "student" }: CalendarTabProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [displaySessions, setDisplaySessions] = useState<CalendarSessionRow[]>(sessions);
   const [displayReports, setDisplayReports] = useState<CalendarReportRow[]>(reports);
   const [displayComments, setDisplayComments] = useState<Record<string, CalendarComment>>(comments);
   const [displayMonth, setDisplayMonth] = useState<string>(currentMonth);
   const [isLoadingMonth, setIsLoadingMonth] = useState(false);
+  const isDiy = studentRole === "student_diy";
 
   // Build lookup maps from display state (simple loop, <31 days of data)
   const sessionsByDate = new Map<string, CalendarSessionRow[]>();
@@ -77,7 +79,7 @@ export function CalendarTab({ sessions, reports, comments, currentMonth, student
 
   function getActivity(dateStr: string): DayActivity {
     const hasSessions = (sessionsByDate.get(dateStr)?.length ?? 0) > 0;
-    const hasReport = reportByDate.has(dateStr);
+    const hasReport = !isDiy && reportByDate.has(dateStr);
     if (hasSessions && hasReport) return "full";
     if (hasSessions || hasReport) return "partial";
     return "none";
@@ -110,7 +112,7 @@ export function CalendarTab({ sessions, reports, comments, currentMonth, student
     setDisplayMonth(mm);
 
     // Update URL without navigation
-    const basePath = role === "coach"
+    const basePath = viewerRole === "coach"
       ? `/coach/students/${studentId}`
       : `/owner/students/${studentId}`;
     window.history.replaceState(null, "", `${basePath}?tab=calendar&month=${mm}`);
@@ -180,7 +182,7 @@ export function CalendarTab({ sessions, reports, comments, currentMonth, student
       </div>
 
       {selectedDate && (
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className={isDiy ? "grid gap-4" : "grid md:grid-cols-2 gap-4"}>
           {/* Work Sessions card */}
           <Card>
             <CardContent className="p-4 space-y-3">
@@ -219,60 +221,62 @@ export function CalendarTab({ sessions, reports, comments, currentMonth, student
             </CardContent>
           </Card>
 
-          {/* Daily Report card */}
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-ima-text">Daily Report</h3>
-              {selectedReport === null ? (
-                <p className="text-sm text-ima-text-secondary">No report submitted.</p>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-ima-text-secondary">Review status</span>
-                    <Badge
-                      variant={selectedReport.reviewed_by ? "success" : "warning"}
-                      size="sm"
-                    >
-                      {selectedReport.reviewed_by ? "Reviewed" : "Pending"}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-ima-text-secondary">Hours:</span>
-                    <span className="text-ima-text">{selectedReport.hours_worked}h</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-ima-text-secondary">Brands contacted:</span>
-                    <span className="text-ima-text">{selectedReport.brands_contacted}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-ima-text-secondary">Influencers contacted:</span>
-                    <span className="text-ima-text">{selectedReport.influencers_contacted}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-ima-text-secondary">Calls joined:</span>
-                    <span className="text-ima-text">{selectedReport.calls_joined}</span>
-                  </div>
-                  {selectedReport.wins && (
-                    <div className="pt-1">
-                      <p className="text-xs text-ima-text-secondary">Wins</p>
-                      <p className="text-sm text-ima-text">{selectedReport.wins}</p>
+          {/* Daily Report card — suppressed for DIY students (Phase 63) */}
+          {!isDiy && (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-ima-text">Daily Report</h3>
+                {selectedReport === null ? (
+                  <p className="text-sm text-ima-text-secondary">No report submitted.</p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-ima-text-secondary">Review status</span>
+                      <Badge
+                        variant={selectedReport.reviewed_by ? "success" : "warning"}
+                        size="sm"
+                      >
+                        {selectedReport.reviewed_by ? "Reviewed" : "Pending"}
+                      </Badge>
                     </div>
-                  )}
-                  {selectedReport.improvements && (
-                    <div className="pt-1">
-                      <p className="text-xs text-ima-text-secondary">Improvements</p>
-                      <p className="text-sm text-ima-text">{selectedReport.improvements}</p>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-ima-text-secondary">Hours:</span>
+                      <span className="text-ima-text">{selectedReport.hours_worked}h</span>
                     </div>
-                  )}
-                  {/* Comment form for coach/owner */}
-                  <CommentForm
-                    reportId={selectedReport.id}
-                    initialComment={displayComments[selectedReport.id]?.comment ?? null}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-ima-text-secondary">Brands contacted:</span>
+                      <span className="text-ima-text">{selectedReport.brands_contacted}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-ima-text-secondary">Influencers contacted:</span>
+                      <span className="text-ima-text">{selectedReport.influencers_contacted}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-ima-text-secondary">Calls joined:</span>
+                      <span className="text-ima-text">{selectedReport.calls_joined}</span>
+                    </div>
+                    {selectedReport.wins && (
+                      <div className="pt-1">
+                        <p className="text-xs text-ima-text-secondary">Wins</p>
+                        <p className="text-sm text-ima-text">{selectedReport.wins}</p>
+                      </div>
+                    )}
+                    {selectedReport.improvements && (
+                      <div className="pt-1">
+                        <p className="text-xs text-ima-text-secondary">Improvements</p>
+                        <p className="text-sm text-ima-text">{selectedReport.improvements}</p>
+                      </div>
+                    )}
+                    {/* Comment form for coach/owner */}
+                    <CommentForm
+                      reportId={selectedReport.id}
+                      initialComment={displayComments[selectedReport.id]?.comment ?? null}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

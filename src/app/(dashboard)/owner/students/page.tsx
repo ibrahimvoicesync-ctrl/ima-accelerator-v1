@@ -26,8 +26,8 @@ export default async function OwnerStudentsPage({
 
   let query = admin
     .from("users")
-    .select("id, name, email, status, joined_at, coach_id", { count: "estimated" })
-    .eq("role", "student")
+    .select("id, name, email, role, status, joined_at, coach_id", { count: "estimated" })
+    .in("role", ["student", "student_diy"])
     .order("name")
     .range(from, to);
 
@@ -125,6 +125,9 @@ export default async function OwnerStudentsPage({
                         <p className="text-xs text-ima-text-secondary truncate">{s.email}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
+                        {s.role === "student_diy" && (
+                          <Badge variant="info" size="sm">DIY</Badge>
+                        )}
                         {(skipCountMap.get(s.id) ?? 0) > 0 && (
                           <Badge variant="warning" size="sm">
                             {skipCountMap.get(s.id)} skipped

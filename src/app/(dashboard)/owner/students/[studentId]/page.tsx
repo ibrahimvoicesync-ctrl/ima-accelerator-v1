@@ -27,12 +27,12 @@ export default async function OwnerStudentDetailPage({
   lastDayDate.setUTCMonth(lastDayDate.getUTCMonth() + 1, 0);
   const lastDay = lastDayDate.toISOString().split("T")[0];
 
-  // Owner sees any student — no coach_id filter
+  // Owner sees any student — no coach_id filter. DIY students included (Phase 63).
   const { data: student, error: studentError } = await admin
     .from("users")
-    .select("id, name, email, status, joined_at, coach_id")
+    .select("id, name, email, role, status, joined_at, coach_id")
     .eq("id", studentId)
-    .eq("role", "student")
+    .in("role", ["student", "student_diy"])
     .single();
 
   if (studentError) {
@@ -209,6 +209,7 @@ export default async function OwnerStudentDetailPage({
         joined_at: student.joined_at,
         status: student.status,
       }}
+      role={student.role as "student" | "student_diy"}
       isAtRisk={isAtRisk}
       atRiskReasons={reasons}
       calendarSessions={calendarSessions}

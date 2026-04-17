@@ -15,6 +15,7 @@ interface StudentKpiSummaryProps {
   dailyMinutesWorked: number;
   joinedAt: string;
   currentStepNumber: number | null; // null if no active step
+  role?: "student" | "student_diy";
 }
 
 function getStepDisplay(stepNumber: number | null): string {
@@ -30,8 +31,10 @@ export function StudentKpiSummary({
   dailyMinutesWorked,
   joinedAt,
   currentStepNumber,
+  role = "student",
 }: StudentKpiSummaryProps) {
   const days = computeDaysInProgram(joinedAt);
+  const isDiy = role === "student_diy";
 
   const lifetimeRag = lifetimeOutreachRag(lifetimeOutreach, days);
   const dailyRag = dailyOutreachRag(dailyOutreach, days);
@@ -44,21 +47,25 @@ export function StudentKpiSummary({
       <CardContent className="py-4">
         <div role="region" aria-label="Student KPI summary">
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            {/* Lifetime Outreach — RAG colored per D-03 */}
-            <KpiItem
-              label="Lifetime Outreach"
-              value={`${lifetimeOutreach.toLocaleString()} / ${KPI_TARGETS.lifetimeOutreach.toLocaleString()}`}
-              ragStatus={lifetimeRag}
-              ariaLabel={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
-            />
+            {/* Lifetime Outreach — RAG colored per D-03; suppressed for DIY (report-derived, Phase 63) */}
+            {!isDiy && (
+              <KpiItem
+                label="Lifetime Outreach"
+                value={`${lifetimeOutreach.toLocaleString()} / ${KPI_TARGETS.lifetimeOutreach.toLocaleString()}`}
+                ragStatus={lifetimeRag}
+                ariaLabel={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
+              />
+            )}
 
-            {/* Daily Outreach — RAG colored per D-03 */}
-            <KpiItem
-              label="Daily Outreach"
-              value={`${dailyOutreach} / ${KPI_TARGETS.dailyOutreach}`}
-              ragStatus={dailyRag}
-              ariaLabel={`Daily outreach: ${dailyOutreach} of ${KPI_TARGETS.dailyOutreach}`}
-            />
+            {/* Daily Outreach — RAG colored per D-03; suppressed for DIY (report-derived, Phase 63) */}
+            {!isDiy && (
+              <KpiItem
+                label="Daily Outreach"
+                value={`${dailyOutreach} / ${KPI_TARGETS.dailyOutreach}`}
+                ragStatus={dailyRag}
+                ariaLabel={`Daily outreach: ${dailyOutreach} of ${KPI_TARGETS.dailyOutreach}`}
+              />
+            )}
 
             {/* Hours Worked — RAG colored per D-03 */}
             <KpiItem

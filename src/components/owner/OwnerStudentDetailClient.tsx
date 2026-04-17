@@ -24,6 +24,7 @@ interface OwnerStudentDetailClientProps {
     joined_at: string;
     status: string;
   };
+  role: "student" | "student_diy";
   isAtRisk: boolean;
   atRiskReasons: string[];
   calendarSessions: {
@@ -73,6 +74,7 @@ interface OwnerStudentDetailClientProps {
 
 export function OwnerStudentDetailClient({
   student,
+  role,
   isAtRisk,
   atRiskReasons,
   calendarSessions,
@@ -244,6 +246,7 @@ export function OwnerStudentDetailClient({
         dailyMinutesWorked={kpiData.dailyMinutesWorked}
         joinedAt={kpiData.joinedAt}
         currentStepNumber={kpiData.currentStepNumber}
+        role={role}
       />
 
       <StudentDetailTabs
@@ -258,7 +261,8 @@ export function OwnerStudentDetailClient({
           comments={calendarComments}
           currentMonth={currentMonth}
           studentId={studentId}
-          role="owner"
+          viewerRole="owner"
+          studentRole={role}
         />
       )}
       {activeTab === "roadmap" && <RoadmapTab roadmap={roadmap} joinedAt={student.joined_at} studentId={studentId} />}
