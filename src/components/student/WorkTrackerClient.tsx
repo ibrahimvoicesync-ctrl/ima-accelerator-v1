@@ -11,7 +11,8 @@ import { PlannedSessionList } from "@/components/student/PlannedSessionList";
 import { MotivationalCard } from "@/components/student/MotivationalCard";
 import { planJsonSchema } from "@/lib/schemas/daily-plan";
 import type { PlanJson } from "@/lib/schemas/daily-plan";
-import { WORK_TRACKER, ROUTES } from "@/lib/config";
+import { WORK_TRACKER } from "@/lib/config";
+
 import { getToday, formatPausedRemaining, formatHoursMinutes } from "@/lib/utils";
 import type { Database } from "@/lib/types";
 
@@ -27,9 +28,10 @@ type TrackerPhase =
 interface WorkTrackerClientProps {
   initialSessions: WorkSession[];
   initialPlan: DailyPlan | null;
+  dailyReportHref?: string;
 }
 
-export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerClientProps) {
+export function WorkTrackerClient({ initialSessions, initialPlan, dailyReportHref }: WorkTrackerClientProps) {
   const routerRef = useRef(useRouter());
   const router = routerRef.current;
   const toastRef = useRef(useToast());
@@ -376,18 +378,50 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
 
   return (
     <div>
-      {/* Hours progress bar — per D-05, D-06, D-07, D-08 */}
-      <div className="mb-6">
-        <div className="flex justify-between items-baseline mb-1">
-          <span className="text-sm font-medium text-ima-text">
-            {formatHoursMinutes(totalMinutesWorked)} / {WORK_TRACKER.dailyGoalHours}h
+      {/* Hero — daily hours vs goal. Single focal point per view; compressed when a session is active. */}
+      <div className="mb-10">
+        <div className="flex items-baseline justify-between mb-3 gap-3">
+          <span className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
+            Hours today
           </span>
-          <span className="text-xs text-ima-text-secondary">
-            {completedCount} session{completedCount !== 1 ? "s" : ""} completed
-          </span>
+          {progressPercent >= 100 ? (
+            <span className="inline-flex items-center gap-1.5 bg-ima-success/10 text-ima-success rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] font-semibold tabular-nums">
+              <span className="h-1.5 w-1.5 rounded-full bg-ima-success" aria-hidden="true" />
+              Daily goal reached
+            </span>
+          ) : (
+            <span className="text-xs uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums">
+              {completedCount} session{completedCount !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
+
+        {!activeSession && !pausedSession && phase.kind !== "break" ? (
+          <div className="flex items-end gap-4 mb-6">
+            <span
+              className={`text-7xl md:text-8xl font-semibold tabular-nums tracking-tight leading-[0.95] ${
+                progressPercent >= 100 ? "text-ima-success" : "text-ima-primary"
+              }`}
+            >
+              {formatHoursMinutes(totalMinutesWorked)}
+            </span>
+            <span className="text-xl md:text-2xl font-medium text-ima-text-muted tabular-nums mb-1.5">
+              / {WORK_TRACKER.dailyGoalHours}h
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-baseline gap-2 mb-4">
+            <span className="text-2xl font-semibold tabular-nums tracking-tight text-ima-text">
+              {formatHoursMinutes(totalMinutesWorked)}
+            </span>
+            <span className="text-sm text-ima-text-muted tabular-nums">
+              / {WORK_TRACKER.dailyGoalHours}h
+            </span>
+          </div>
+        )}
+
         <div
-          className="bg-ima-bg rounded-full h-3 overflow-hidden"
+          className="bg-ima-surface-light rounded-full h-2.5 overflow-hidden"
           role="progressbar"
           aria-valuenow={totalMinutesWorked}
           aria-valuemin={0}
@@ -395,7 +429,9 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
           aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
         >
           <div
-            className="bg-ima-primary h-full rounded-full motion-safe:transition-all duration-500"
+            className={`h-full rounded-full motion-safe:transition-[width] duration-700 ease-out ${
+              progressPercent >= 100 ? "bg-ima-success" : "bg-ima-primary"
+            }`}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -403,47 +439,51 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
 
       {/* Break countdown — per WORK-04, WORK-05 */}
       {phase.kind === "break" && (
-        <div className="flex flex-col items-center gap-4 mb-6 text-center">
-          <p className="text-sm text-ima-text-secondary">Break Time</p>
+        <div className="flex flex-col items-center gap-5 mb-8 text-center">
+          <p className="text-[10px] uppercase tracking-[0.24em] font-semibold text-ima-text-muted">
+            Break
+          </p>
           <p
-            className="text-4xl font-mono font-bold text-ima-text"
+            className="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight text-ima-text leading-none"
             role="timer"
             aria-label={`Break: ${Math.floor(phase.secondsRemaining / 60)} minutes ${phase.secondsRemaining % 60} seconds remaining`}
           >
             {String(Math.floor(phase.secondsRemaining / 60)).padStart(2, "0")}:
             {String(phase.secondsRemaining % 60).padStart(2, "0")}
           </p>
-          <p className="text-sm text-ima-text-secondary">
-            Next session will be Session {nextCycleNumber}
+          <p className="text-xs text-ima-text-secondary tabular-nums">
+            {`Next up \u00B7 Session ${String(nextCycleNumber).padStart(2, "0")}`}
           </p>
           <button
             onClick={handleSkipBreak}
-            className="bg-ima-primary text-white rounded-lg px-6 min-h-[44px] font-medium hover:bg-ima-primary-hover motion-safe:transition-colors"
+            className="bg-ima-surface border border-ima-border text-ima-text rounded-xl px-6 min-h-[48px] text-sm font-medium hover:bg-ima-surface-light motion-safe:transition-colors"
           >
-            Skip Break
+            Skip break
           </button>
         </div>
       )}
 
       {/* Setup phase — duration picker and break selection — per WORK-01, WORK-02, WORK-03 */}
       {phase.kind === "setup" && (
-        <div className="flex flex-col items-center gap-6 mb-6">
+        <div className="flex flex-col items-center gap-7 mb-8">
           {/* Duration picker — per WORK-01 */}
-          <div className="text-center">
-            <p className="text-sm font-medium text-ima-text mb-3">Session Duration</p>
-            <div className="flex gap-2 justify-center">
+          <div className="text-center w-full">
+            <p className="text-[10px] uppercase tracking-[0.24em] font-semibold text-ima-text-muted mb-3">
+              Session duration
+            </p>
+            <div className="flex gap-2 justify-center flex-wrap">
               {WORK_TRACKER.sessionDurationOptions.map((min) => (
                 <button
                   key={min}
                   onClick={() => setSelectedMinutes(min)}
-                  className={`min-h-[44px] min-w-[44px] px-4 rounded-lg font-medium motion-safe:transition-colors ${
+                  className={`min-h-[44px] min-w-[60px] px-4 rounded-lg font-semibold tabular-nums motion-safe:transition-colors ${
                     selectedMinutes === min
                       ? "bg-ima-primary text-white"
-                      : "bg-ima-surface border border-ima-border text-ima-text hover:bg-ima-bg"
+                      : "bg-ima-surface border border-ima-border text-ima-text-secondary hover:bg-ima-surface-light hover:text-ima-text"
                   }`}
                   aria-pressed={selectedMinutes === min}
                 >
-                  {min} min
+                  {min}<span className="text-xs font-medium ml-0.5">m</span>
                 </button>
               ))}
             </div>
@@ -451,8 +491,10 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
 
           {/* Break selection — available for all sessions */}
           {(
-            <div className="text-center">
-              <p className="text-sm font-medium text-ima-text mb-3">Break Before Next Session</p>
+            <div className="text-center w-full">
+              <p className="text-[10px] uppercase tracking-[0.24em] font-semibold text-ima-text-muted mb-3">
+                Break before next session
+              </p>
               {/* Break type toggle */}
               <div className="flex gap-2 justify-center mb-3">
                 {(Object.keys(WORK_TRACKER.breakOptions) as Array<"short" | "long">).map((type) => (
@@ -462,10 +504,10 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
                       setBreakType(type);
                       setBreakMinutes(WORK_TRACKER.breakOptions[type].presets[0]);
                     }}
-                    className={`min-h-[44px] px-4 rounded-lg font-medium motion-safe:transition-colors ${
+                    className={`min-h-[44px] px-4 rounded-lg text-sm font-medium motion-safe:transition-colors ${
                       breakType === type
-                        ? "bg-ima-primary text-white"
-                        : "bg-ima-surface border border-ima-border text-ima-text hover:bg-ima-bg"
+                        ? "bg-ima-text text-white"
+                        : "bg-ima-surface border border-ima-border text-ima-text-secondary hover:bg-ima-surface-light hover:text-ima-text"
                     }`}
                     aria-pressed={breakType === type}
                   >
@@ -474,15 +516,15 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
                 ))}
               </div>
               {/* Break duration presets */}
-              <div className="flex gap-2 justify-center">
+              <div className="flex gap-2 justify-center flex-wrap">
                 {WORK_TRACKER.breakOptions[breakType].presets.map((min) => (
                   <button
                     key={min}
                     onClick={() => setBreakMinutes(min)}
-                    className={`min-h-[44px] min-w-[44px] px-3 rounded-lg text-sm font-medium motion-safe:transition-colors ${
+                    className={`min-h-[44px] min-w-[52px] px-3 rounded-lg text-sm font-semibold tabular-nums motion-safe:transition-colors ${
                       breakMinutes === min
-                        ? "bg-ima-primary/15 text-ima-primary border border-ima-primary"
-                        : "bg-ima-surface border border-ima-border text-ima-text-secondary hover:bg-ima-bg"
+                        ? "bg-ima-surface-accent text-ima-primary border border-ima-primary"
+                        : "bg-ima-surface border border-ima-border text-ima-text-muted hover:bg-ima-surface-light hover:text-ima-text"
                     }`}
                     aria-pressed={breakMinutes === min}
                   >
@@ -493,20 +535,29 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
             </div>
           )}
 
-          {/* Start button */}
+          {/* Start button — full-width CTA; committed ima-primary, shadow on hover only */}
           <button
             onClick={handleStart}
             disabled={isLoading}
-            className="bg-ima-primary text-white rounded-xl px-8 min-h-[56px] text-lg font-semibold hover:bg-ima-primary-hover disabled:opacity-50 motion-safe:transition-colors"
+            className="w-full max-w-md bg-ima-primary text-white rounded-xl px-8 min-h-[60px] text-base font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover disabled:opacity-50 motion-safe:transition-all duration-200 ease-out"
           >
-            {isLoading ? "Starting..." : `Start Session ${nextCycleNumber}`}
+            {isLoading ? "Starting\u2026" : `Begin session ${String(nextCycleNumber).padStart(2, "0")}`}
           </button>
         </div>
       )}
 
-      {/* Active timer */}
+      {/* Active timer — this becomes the single focal point; the day's total demotes to summary */}
       {activeSession && (
-        <div className="flex flex-col items-center gap-4 mb-6">
+        <div className="flex flex-col items-center gap-6 mb-8">
+          {/* Recording signal — motion-safe so reduced-motion users see a static dot */}
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.24em] font-semibold text-ima-primary">
+            <span className="relative flex h-2 w-2" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-ima-primary opacity-60 motion-safe:animate-ping" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-ima-primary" />
+            </span>
+            In progress
+          </div>
+
           <WorkTimer
             sessionId={activeSession.id}
             startedAt={activeSession.started_at}
@@ -515,26 +566,26 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
             onComplete={() => handleComplete(activeSession.id)}
           />
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-3 flex-wrap justify-center">
+          {/* Action buttons — Complete is the committed action, Pause/Abandon stay restrained */}
+          <div className="flex items-center gap-3 flex-wrap justify-center w-full max-w-md">
+            <button
+              onClick={() => handleComplete(activeSession.id)}
+              disabled={isLoading}
+              className="flex-1 basis-48 bg-ima-success text-white rounded-xl px-6 min-h-[56px] text-base font-semibold hover:bg-ima-success/90 hover:shadow-card-hover disabled:opacity-50 motion-safe:transition-all duration-200 ease-out"
+            >
+              Complete session
+            </button>
             <button
               onClick={() => handlePause(activeSession.id)}
               disabled={isLoading}
-              className="bg-ima-warning/15 text-ima-warning hover:bg-ima-warning/25 rounded-lg px-6 min-h-[44px] font-medium disabled:opacity-50 motion-safe:transition-colors"
+              className="flex-1 basis-32 bg-ima-surface border border-ima-border text-ima-text rounded-xl px-6 min-h-[56px] font-medium hover:bg-ima-surface-light disabled:opacity-50 motion-safe:transition-colors"
             >
               Pause
             </button>
             <button
-              onClick={() => handleComplete(activeSession.id)}
-              disabled={isLoading}
-              className="bg-ima-success text-white hover:bg-ima-success/90 rounded-lg px-6 min-h-[44px] font-medium disabled:opacity-50 motion-safe:transition-colors"
-            >
-              Complete
-            </button>
-            <button
               onClick={() => handleAbandon(activeSession.id)}
               disabled={isLoading}
-              className="text-ima-error hover:bg-ima-error/10 rounded-lg px-4 min-h-[44px] text-sm motion-safe:transition-colors"
+              className="text-ima-text-muted hover:text-ima-error hover:bg-ima-error/5 rounded-lg px-4 min-h-[44px] text-xs uppercase tracking-[0.16em] font-semibold motion-safe:transition-colors"
             >
               Abandon
             </button>
@@ -565,30 +616,34 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
 
       {/* Paused state */}
       {pausedSession && !activeSession && (
-        <div className="flex flex-col items-center gap-4 mb-6 text-center">
-          <p className="text-ima-text-secondary text-sm">
-            Session {pausedSession.cycle_number} paused &mdash; {pausedSession.session_minutes} min
-          </p>
-          <p className="text-3xl font-mono font-bold text-ima-text">
-            {formatPausedRemaining(
-              pausedSession.started_at,
-              pausedSession.paused_at!,
-              pausedSession.session_minutes ?? WORK_TRACKER.defaultSessionMinutes
-            )}{" "}
-            remaining
-          </p>
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center gap-5 mb-8 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-[10px] uppercase tracking-[0.24em] font-semibold text-ima-text-muted">
+              {`Session ${String(pausedSession.cycle_number).padStart(2, "0")} \u00B7 Paused`}
+            </p>
+            <p className="text-5xl md:text-6xl font-semibold tabular-nums tracking-tight text-ima-text leading-none">
+              {formatPausedRemaining(
+                pausedSession.started_at,
+                pausedSession.paused_at!,
+                pausedSession.session_minutes ?? WORK_TRACKER.defaultSessionMinutes
+              )}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.22em] font-medium text-ima-text-muted mt-1">
+              Remaining
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap justify-center w-full max-w-md">
             <button
               onClick={() => handleResume(pausedSession.id)}
               disabled={isLoading}
-              className="bg-ima-primary text-white rounded-lg px-6 min-h-[44px] font-medium hover:bg-ima-primary-hover disabled:opacity-50 motion-safe:transition-colors"
+              className="flex-1 basis-52 bg-ima-primary text-white rounded-xl px-6 min-h-[56px] text-base font-semibold hover:bg-ima-primary-hover hover:shadow-card-hover disabled:opacity-50 motion-safe:transition-all duration-200 ease-out"
             >
-              Resume Session {pausedSession.cycle_number}
+              Resume session
             </button>
             <button
               onClick={() => handleAbandon(pausedSession.id)}
               disabled={isLoading}
-              className="text-ima-error hover:bg-ima-error/10 rounded-lg px-4 min-h-[44px] text-sm motion-safe:transition-colors"
+              className="text-ima-text-muted hover:text-ima-error hover:bg-ima-error/5 rounded-lg px-4 min-h-[44px] text-xs uppercase tracking-[0.16em] font-semibold motion-safe:transition-colors"
             >
               Abandon
             </button>
@@ -644,31 +699,36 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
 
       {/* Ad-hoc mode: plan fulfilled, card already seen — show normal idle/setup (COMP-03) */}
       {mode === "adhoc" && hasSeenCard && phase.kind === "idle" && !activeSession && !pausedSession && (
-        <div className="flex flex-col items-center gap-3 mb-6 text-center">
-          <p className="text-lg font-semibold text-ima-text">
-            Ready for Session {nextCycleNumber}
-          </p>
-          <p className="text-sm text-ima-text-secondary mb-1">
-            Plan complete — ad-hoc session (no daily cap)
-          </p>
-          <button
-            onClick={() => setPhase({ kind: "setup" })}
-            disabled={isLoading}
-            className="bg-ima-primary text-white rounded-xl px-8 min-h-[56px] text-lg font-semibold hover:bg-ima-primary-hover disabled:opacity-50 motion-safe:transition-colors"
-          >
-            Set Up Session
-          </button>
+        <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-6 md:p-8 mb-8">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <p className="text-[10px] uppercase tracking-[0.24em] font-semibold text-ima-success">
+              Plan complete
+            </p>
+            <p className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text">
+              {`Ready for session ${String(nextCycleNumber).padStart(2, "0")}`}
+            </p>
+            <p className="text-sm text-ima-text-secondary mb-3">
+              Extra session &mdash; no daily cap
+            </p>
+            <button
+              onClick={() => setPhase({ kind: "setup" })}
+              disabled={isLoading}
+              className="w-full max-w-md bg-ima-primary text-white rounded-xl px-8 min-h-[60px] text-base font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover disabled:opacity-50 motion-safe:transition-all duration-200 ease-out"
+            >
+              Set up session
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Daily report link — shown when at least one session complete */}
-      {completedCount > 0 && !activeSession && !pausedSession && phase.kind !== "break" && (
+      {/* Daily report link — only where a report route exists (student, not student_diy) */}
+      {dailyReportHref && completedCount > 0 && !activeSession && !pausedSession && phase.kind !== "break" && (
         <div className="text-center mb-4">
           <Link
-            href={ROUTES.student.report}
-            className="inline-flex items-center justify-center text-sm text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
+            href={dailyReportHref}
+            className="inline-flex items-center justify-center text-xs uppercase tracking-[0.18em] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] px-3 motion-safe:transition-colors"
           >
-            Submit Daily Report
+            Submit daily report
           </Link>
         </div>
       )}
@@ -684,8 +744,24 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
 
         if (visibleSessions.length === 0) return null;
 
+        const completedOnly = visibleSessions.filter((s) => s.status === "completed").length;
         return (
-          <div className="mt-6">
+          <div className="mt-10 rounded-2xl border border-ima-border bg-ima-bg/60 p-5 md:p-6">
+            <div className="flex items-baseline justify-between mb-4 gap-3 flex-wrap">
+              <div className="flex items-baseline gap-2">
+                <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
+                  Today&apos;s sessions
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums">
+                  {`${visibleSessions.length} logged`}
+                </p>
+              </div>
+              {completedOnly > 0 && (
+                <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-ima-success tabular-nums">
+                  {`${completedOnly} win${completedOnly !== 1 ? "s" : ""}`}
+                </p>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {displayed.map((session) => {
                 let timeInfo: string;
@@ -722,15 +798,15 @@ export function WorkTrackerClient({ initialSessions, initialPlan }: WorkTrackerC
             {hiddenCount > 0 && !showAllSessions && (
               <button
                 onClick={() => setShowAllSessions(true)}
-                className="mt-3 text-sm text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
+                className="mt-4 text-xs uppercase tracking-[0.18em] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
               >
-                Show {hiddenCount} more session{hiddenCount !== 1 ? "s" : ""}
+                {`Show ${hiddenCount} more session${hiddenCount !== 1 ? "s" : ""}`}
               </button>
             )}
             {showAllSessions && hiddenCount > 0 && (
               <button
                 onClick={() => setShowAllSessions(false)}
-                className="mt-3 text-sm text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
+                className="mt-4 text-xs uppercase tracking-[0.18em] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] motion-safe:transition-colors"
               >
                 Show less
               </button>

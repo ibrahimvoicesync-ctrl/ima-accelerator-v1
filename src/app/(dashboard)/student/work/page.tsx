@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { WorkTrackerClient } from "@/components/student/WorkTrackerClient";
+import { ROUTES } from "@/lib/config";
 import type { Database } from "@/lib/types";
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
@@ -35,13 +36,18 @@ export default async function WorkPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4">
-      <h1 className="text-2xl font-bold text-ima-text mb-1">Work Tracker</h1>
-      <p className="text-sm text-ima-text-secondary mb-6">
-        Track your daily work sessions
-      </p>
+      <div className="mb-8">
+        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-2">
+          Work Tracker
+        </p>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text">
+          Today&apos;s focus
+        </h1>
+      </div>
       <WorkTrackerClient
         initialSessions={(sessions ?? []) as WorkSession[]}
         initialPlan={(plan ?? null) as DailyPlan | null}
+        dailyReportHref={ROUTES.student.report}
       />
     </div>
   );

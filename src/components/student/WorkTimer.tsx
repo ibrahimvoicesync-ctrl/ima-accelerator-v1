@@ -88,7 +88,7 @@ export function WorkTimer({
         {announceText}
       </div>
 
-      <div className="relative w-[200px] h-[200px] md:w-[280px] md:h-[280px]">
+      <div className="relative w-[240px] h-[240px] md:w-[320px] md:h-[320px]">
         <svg
           className="w-full h-full -rotate-90"
           viewBox={`0 0 ${size} ${size}`}
@@ -102,7 +102,7 @@ export function WorkTimer({
             fill="none"
             stroke="currentColor"
             strokeWidth={strokeWidth}
-            className="text-ima-border"
+            className="text-ima-surface-light"
           />
           {/* Progress ring */}
           <circle
@@ -119,13 +119,16 @@ export function WorkTimer({
           />
         </svg>
 
-        {/* Centered countdown text */}
+        {/* Centered countdown text — editorial hero scale, tabular-nums */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl md:text-5xl font-mono font-bold text-ima-text">
+          <span className="text-[10px] md:text-xs uppercase tracking-[0.24em] font-semibold text-ima-text-muted mb-2">
+            Session {cycleNumber}
+          </span>
+          <span className="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight text-ima-primary leading-none">
             {timeStr}
           </span>
-          <span className="text-sm text-ima-text-secondary mt-1">
-            Session {cycleNumber}
+          <span className="text-[10px] uppercase tracking-[0.22em] font-medium text-ima-text-muted mt-3">
+            Remaining
           </span>
         </div>
       </div>
