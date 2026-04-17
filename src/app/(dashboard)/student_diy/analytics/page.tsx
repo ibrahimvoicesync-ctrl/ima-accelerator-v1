@@ -92,6 +92,7 @@ export default async function StudentDiyAnalyticsPage({
         viewerId={user.id}
         viewerRole="student_diy"
         userMap={userMap}
+        showOutreach={false}
       />
     </div>
   );
