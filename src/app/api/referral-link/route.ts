@@ -39,9 +39,17 @@ export async function POST(request: Request) {
   }
 
   // STEP 3 — Env-var guard (API-07). Explicit narrowing; never `process.env.X!`.
+  // REBRANDLY_WORKSPACE_ID is required because none of the configured Rebrandly
+  // workspaces are marked default — without an explicit `workspace` header the
+  // upstream returns 404 {source: "workspace"}.
   const apiKey = process.env.REBRANDLY_API_KEY;
+  const workspaceId = process.env.REBRANDLY_WORKSPACE_ID;
   if (!apiKey) {
     console.error("[POST /api/referral-link] REBRANDLY_API_KEY not configured");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+  if (!workspaceId) {
+    console.error("[POST /api/referral-link] REBRANDLY_WORKSPACE_ID not configured");
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
@@ -93,7 +101,11 @@ export async function POST(request: Request) {
   try {
     const rbResponse = await fetch("https://api.rebrandly.com/v1/links", {
       method: "POST",
-      headers: { apikey: apiKey, "Content-Type": "application/json" },
+      headers: {
+        apikey: apiKey,
+        workspace: workspaceId,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         destination: `https://www.imaccelerator.com/?ref=${referralCode}`,
         title: `IMA Referral - ${profile.name ?? referralCode}`,
