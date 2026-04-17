@@ -3,13 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Bell,
-  AlertTriangle,
-  UserX,
-  UserMinus,
-  FileText,
-} from "lucide-react";
+import { Bell, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -20,8 +14,8 @@ import type { LucideIcon } from "lucide-react";
 
 export interface AlertItem {
   key: string;
-  type: "student_inactive" | "student_dropoff" | "unreviewed_reports" | "coach_underperforming";
-  severity: "warning" | "critical";
+  type: "deal_closed";
+  severity: "info" | "warning" | "critical";
   title: string;
   message: string;
   subjectId: string | null;
@@ -45,10 +39,7 @@ const EMPTY_MESSAGES: Record<FilterTab, string> = {
 };
 
 const TYPE_CONFIG: Record<string, { bg: string; text: string; Icon: LucideIcon; label: string }> = {
-  student_inactive: { bg: "bg-ima-warning/10", text: "text-ima-warning", Icon: UserX, label: "Inactive" },
-  student_dropoff: { bg: "bg-ima-error/10", text: "text-ima-error", Icon: UserMinus, label: "Drop-off" },
-  unreviewed_reports: { bg: "bg-ima-info/10", text: "text-ima-info", Icon: FileText, label: "Reports" },
-  coach_underperforming: { bg: "bg-ima-warning/10", text: "text-ima-warning", Icon: AlertTriangle, label: "Coach Alert" },
+  deal_closed: { bg: "bg-ima-success/10", text: "text-ima-success", Icon: DollarSign, label: "Deal" },
 };
 
 interface OwnerAlertsClientProps {
@@ -130,13 +121,9 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
   }
 
   function getDetailHref(alert: AlertItem): string | null {
-    if (alert.type === "coach_underperforming" && alert.subjectId) {
-      return `/owner/coaches/${alert.subjectId}`;
-    }
-    if ((alert.type === "student_inactive" || alert.type === "student_dropoff") && alert.subjectId) {
+    if (alert.type === "deal_closed" && alert.subjectId) {
       return `/owner/students/${alert.subjectId}`;
     }
-    // unreviewed_reports is a summary — no single detail page
     return null;
   }
 
@@ -189,7 +176,7 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
                 key={alert.key}
                 variant={!alert.dismissed ? "bordered-left" : "default"}
                 className={cn(
-                  !alert.dismissed && "border-l-ima-error"
+                  !alert.dismissed && "border-l-ima-success"
                 )}
               >
                 <CardContent className="p-5">
@@ -214,7 +201,13 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
                         <div className="flex items-center gap-2 min-w-0">
                           <h3 className="text-sm font-semibold text-ima-text truncate">{alert.title}</h3>
                           <Badge
-                            variant={alert.severity === "critical" ? "error" : "warning"}
+                            variant={
+                              alert.severity === "critical"
+                                ? "error"
+                                : alert.severity === "info"
+                                  ? "success"
+                                  : "warning"
+                            }
                             size="sm"
                           >
                             {config.label}
@@ -225,7 +218,7 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
                             {getTimeAgo(alert.triggeredAt)}
                           </span>
                           {!alert.dismissed && (
-                            <div className="w-2 h-2 rounded-full bg-ima-error shrink-0" aria-hidden="true" />
+                            <div className="w-2 h-2 rounded-full bg-ima-success shrink-0" aria-hidden="true" />
                           )}
                         </div>
                       </div>
