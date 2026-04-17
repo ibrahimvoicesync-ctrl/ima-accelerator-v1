@@ -194,13 +194,13 @@ export function AnalyticsClient({
         />
         <KpiCard
           icon={<Mail className="h-5 w-5" aria-hidden="true" />}
-          label="Total Emails"
-          value={data.totals.total_emails.toLocaleString()}
+          label="Total Brand Outreach"
+          value={data.totals.total_brand_outreach.toLocaleString()}
         />
         <KpiCard
           icon={<Users className="h-5 w-5" aria-hidden="true" />}
-          label="Total Influencers"
-          value={data.totals.total_influencers.toLocaleString()}
+          label="Total Influencer Outreach"
+          value={data.totals.total_influencer_outreach.toLocaleString()}
         />
         <KpiCard
           icon={<Handshake className="h-5 w-5" aria-hidden="true" />}
