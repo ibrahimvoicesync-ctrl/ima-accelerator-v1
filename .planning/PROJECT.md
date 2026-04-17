@@ -76,18 +76,23 @@ Students can track their daily work, follow the 10-step roadmap from joining the
 - ✓ `ReferralCard` client component — "Get My Link" → Copy + Web Share on `/student` + `/student_diy` dashboards — v1.7
 - ✓ `REBRANDLY_API_KEY` documented in `.env.local.example` — v1.7
 
+- ✓ Student Analytics outreach KPI re-split — "Total Brand Outreach" / "Total Influencer Outreach" KPI cards with `SUM(brands_contacted)` + `SUM(influencers_contacted)` independent aggregates; DIY hide-guard removed — v1.8 (Phase 61)
+- ✓ Migration 00033 — breaking `get_student_analytics` RPC shape change replacing `total_emails`/`total_influencers` with `total_brand_outreach`/`total_influencer_outreach`; `student-analytics-v2` cache key bump atomic — v1.8 (Phase 61)
+- ✓ Coach Alerts `tech_setup` activation at Step 4 "Set Up Your Agency" — `techSetupStep:4`, `techSetupEnabled:true`, UI label flipped; internal type key preserved; migration 00034 rewrites RPC CTE + historical backfill — v1.8 (Phase 62)
+- ✓ student_diy Owner Detail Page — `/owner/students/[studentId]` + list page accept `student_diy` role; DIY badge on list; CalendarTab hours-only for DIY; zero parallel route tree — v1.8 (Phase 63)
+- ✓ Owner Analytics Coach Performance — 3 coach leaderboards (revenue, avg total outreach/student/day, deals) beneath existing student leaderboards — v1.8 (Phase 64)
+- ✓ Owner Analytics per-leaderboard window selector — Weekly/Monthly/Yearly/All Time toggle on all 6 leaderboards; new `SegmentedControl` UI primitive; single RPC returns 24 pre-computed slots; zero client re-fetch on toggle — v1.8 (Phase 64)
+- ✓ Owner Alerts pruned to `deal_closed` only — 4 legacy alert types silently removed; one info alert per deal; migration 00036 rewrites OWNER branch of `get_sidebar_badges`; 30-day trailing window — v1.8 (Phase 65)
+- ✓ `ownerAnalyticsTag()` invalidation wired into `/api/reports` on both insert and update branches — closes v1.6 deferred invariant — v1.8 (Phase 64)
+
 ### Active
 
-<!-- Current scope. Building toward v1.8. -->
+<!-- Current scope. Next milestone TBD. -->
 
-- [ ] Student Analytics: rename "Total Emails"/"Total Influencers" KPI cards to "Total Brand Outreach"/"Total Influencer Outreach" AND re-split source data (brands-only / influencers-only, not combined sum)
-- [ ] New migration replacing `get_student_analytics` RPC — `total_brand_outreach = SUM(brands_contacted)`, `total_influencer_outreach = SUM(influencers_contacted)`, remove old `total_emails` / `total_influencers` keys (breaking change)
-- [ ] Owner Analytics: add Coach Performance section with 3 coach leaderboards (revenue, avg brand outreach per student per day, deals) beneath existing student leaderboards
-- [ ] Owner Analytics: per-leaderboard Weekly / Monthly / Yearly / All Time selector on all 6 leaderboards (independent client-side toggles, single cached RPC returns all 24 slots)
-- [ ] Owner Alerts: prune to `deal_closed` only — remove `student_inactive`, `student_dropoff`, `unreviewed_reports`, `coach_underperforming`; one info alert per closed deal, reuses `alert_dismissals`
-- [ ] Coach Alerts: `MILESTONE_META["tech_setup"].label` → "Set Up Your Agency", `techSetupStep: 4`, `techSetupEnabled: true` (internal type key `tech_setup` unchanged)
-- [ ] student_diy Owner Detail Page — extend `/owner/students/[studentId]` to handle DIY role; hide Reports tab; Calendar renders hours-only (no report markers); list page includes DIY with badge
-- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit (carry-over, not v1.8 scope)
+- [ ] Nyquist VALIDATION.md for v1.5 phases (44-52) — test-coverage audit (carry-over)
+- [ ] Nyquist VALIDATION.md for v1.8 phases 62, 63, 64, 65 (missing); phase 61 is draft (carry-over)
+- [ ] 13 batched live-environment UAT smoke checks from v1.8 (policy-accepted defers)
+- [ ] IN-01 / IN-02 dashboard bugs (carry-over from v1.7)
 
 ### Out of Scope
 
@@ -261,11 +266,18 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 
 ## Current State
 
-**Active:** v1.8 Analytics Expansion, Notification Pruning & DIY Parity — defining requirements.
+**Shipped:** v1.8 Analytics Expansion, Notification Pruning & DIY Parity (2026-04-17) — 5 phases (61-65), 14 plans, 53/53 requirements satisfied (audit status `tech_debt` — 13 UAT smoke items batched per policy). Migrations 00033-00036 applied. See [milestones/v1.8-ROADMAP.md](milestones/v1.8-ROADMAP.md), [milestones/v1.8-REQUIREMENTS.md](milestones/v1.8-REQUIREMENTS.md), [milestones/v1.8-MILESTONE-AUDIT.md](milestones/v1.8-MILESTONE-AUDIT.md).
 
-**Previous:** v1.7 (2026-04-16) — Student Referral Links (Rebrandly Integration). 3 phases (58-60), 4 plans, 19/19 requirements satisfied. Additive migration 00031 adds `referral_code` + `referral_short_url` to `public.users` with deterministic MD5 backfill for existing students + unique index; idempotent `POST /api/referral-link` (8-step pipeline + Rebrandly v1 integration, at-most-one call per user for life via compare-and-swap persist); polished `ReferralCard.tsx` client component rendered at the bottom of both `/student` and `/student_diy` dashboards with INITIAL/LOADING/READY state machine, 2s "Copied!" toggle, SSR-safe Web Share, and full CLAUDE.md Hard Rule compliance. See [milestones/v1.7-ROADMAP.md](milestones/v1.7-ROADMAP.md) and [milestones/v1.7-MILESTONE-AUDIT.md](milestones/v1.7-MILESTONE-AUDIT.md).
+**Active:** Planning next milestone (v1.9+).
 
-**Prior:** v1.6 (2026-04-15) — Owner Analytics, Announcements & Roadmap Update. 4 phases (54-57), 14 plans, 35/35 requirements. See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md).
+<details>
+<summary>Previous milestones</summary>
+
+**v1.7 (2026-04-16)** — Student Referral Links (Rebrandly Integration). 3 phases (58-60), 4 plans, 19/19 requirements satisfied. Additive migration 00031 adds `referral_code` + `referral_short_url` to `public.users` with deterministic MD5 backfill for existing students + unique index; idempotent `POST /api/referral-link` (8-step pipeline + Rebrandly v1 integration, at-most-one call per user for life via compare-and-swap persist); polished `ReferralCard.tsx` client component rendered at the bottom of both `/student` and `/student_diy` dashboards with INITIAL/LOADING/READY state machine, 2s "Copied!" toggle, SSR-safe Web Share, and full CLAUDE.md Hard Rule compliance. See [milestones/v1.7-ROADMAP.md](milestones/v1.7-ROADMAP.md) and [milestones/v1.7-MILESTONE-AUDIT.md](milestones/v1.7-MILESTONE-AUDIT.md).
+
+**v1.6 (2026-04-15)** — Owner Analytics, Announcements & Roadmap Update. 4 phases (54-57), 14 plans, 35/35 requirements. See [milestones/v1.6-ROADMAP.md](milestones/v1.6-ROADMAP.md).
+
+</details>
 
 ## Carry-overs (not next-milestone scope unless reprioritized)
 
@@ -278,7 +290,7 @@ Tech stack: Next.js 16 (App Router), Supabase (Auth + Postgres + RLS), Tailwind 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
-Last updated: 2026-04-16 — v1.8 opened (Analytics Expansion, Notification Pruning & DIY Parity)
+Last updated: 2026-04-17 — v1.8 shipped (Analytics Expansion, Notification Pruning & DIY Parity)
 
 **After each phase transition** (via `/gsd:transition`):
 1. Requirements invalidated? → Move to Out of Scope with reason
@@ -294,4 +306,4 @@ Last updated: 2026-04-16 — v1.8 opened (Analytics Expansion, Notification Prun
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 — v1.8 opened (Analytics Expansion, Notification Pruning & DIY Parity).*
+*Last updated: 2026-04-17 — v1.8 shipped (Analytics Expansion, Notification Pruning & DIY Parity).*

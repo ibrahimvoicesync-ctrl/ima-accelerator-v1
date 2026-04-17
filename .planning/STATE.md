@@ -2,33 +2,34 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Analytics Expansion, Notification Pruning & DIY Parity
-status: executing
-stopped_at: Completed 61-04-build-gate-and-shape-assert-PLAN.md — Phase 61 all 4 plans complete; build gate green; manual UAT deferred to end-of-milestone batch. Phase 61 ready for /gsd-verify-work.
-last_updated: "2026-04-17T05:22:41.117Z"
-last_activity: 2026-04-17 -- Phase 63 planning complete
+status: shipped
+stopped_at: v1.8 shipped 2026-04-17 — 5 phases (61-65), 14 plans, 53/53 reqs satisfied; tag v1.8 (local). Run /gsd-new-milestone to start v1.9.
+last_updated: "2026-04-17T06:30:00.000Z"
+last_activity: 2026-04-17 -- v1.8 milestone archived and tagged (local)
 progress:
-  total_phases: 31
-  completed_phases: 1
-  total_plans: 6
-  completed_plans: 4
-  percent: 67
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 14
+  completed_plans: 14
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-16)
+See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Students can track their daily work, follow the roadmap, and submit daily reports that coaches review — the core accountability loop.
-**Current focus:** Phase 61 — Student Analytics Re-split (F1)
+**Current focus:** Planning next milestone (v1.9+)
 
 ## Current Position
 
-Phase: 61 (Student Analytics Re-split (F1)) — READY FOR VERIFICATION
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-04-17 -- Phase 63 planning complete
+Milestone: v1.8 — SHIPPED 2026-04-17
+Phases: 5/5 complete (61-65)
+Plans: 14/14 complete
+Status: Archived; ready for next milestone
+Last activity: 2026-04-17 -- v1.8 milestone archived and tagged (local)
 
 Progress: [██████████] 100%
 
@@ -42,8 +43,7 @@ Progress: [██████████] 100%
 **v1.5 completed:** 2026-04-15 | 10 phases (44-53) | 16 plans | 93 commits | 151 files
 **v1.6 completed:** 2026-04-15 | 4 phases (54-57) | 14 plans | 35/35 reqs
 **v1.7 completed:** 2026-04-16 | 3 phases (58-60) | 4 plans | 19/19 reqs
-**v1.8 in progress:** opened 2026-04-16 — 5 phases (61-65) planned, 53 reqs, 4 migrations
-**v1.8 Phase 61 complete (2026-04-17):** 4 plans | 4 task commits (`65884b5`, `6b45966`, `a0d7bf6`, `8812854`) + 3 metadata commits | 5 files changed (1 new migration + 4 modified) | 9/9 reqs (SA-01..09) — Plan 04 duration 1m21s; build gate green; Task 2 human-verify deferred to end-of-milestone UAT batch.
+**v1.8 completed:** 2026-04-17 | 5 phases (61-65) | 14 plans | 39 commits | 70 files | +10,274/-2,322 LOC | 53/53 reqs satisfied | migrations 00033-00036 | tag v1.8 (local)
 
 ## Accumulated Context
 

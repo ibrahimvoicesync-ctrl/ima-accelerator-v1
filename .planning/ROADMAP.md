@@ -10,7 +10,7 @@
 - ✅ **v1.5 Analytics Pages, Coach Dashboard & Deal Logging** — Phases 44-53 (shipped 2026-04-15)
 - ✅ **v1.6 Owner Analytics, Announcements & Roadmap Update** — Phases 54-57 (shipped 2026-04-15)
 - ✅ **v1.7 Student Referral Links (Rebrandly Integration)** — Phases 58-60 (shipped 2026-04-16) — [archive](milestones/v1.7-ROADMAP.md)
-- 🚧 **v1.8 Analytics Expansion, Notification Pruning & DIY Parity** — Phases 61-63 (in progress, opened 2026-04-16)
+- ✅ **v1.8 Analytics Expansion, Notification Pruning & DIY Parity** — Phases 61-65 (shipped 2026-04-17) — [archive](milestones/v1.8-ROADMAP.md)
 
 > Phases 38–39 were retired during v1.4 scope consolidation. v1.5 continues numbering from Phase 44.
 
@@ -129,15 +129,18 @@ See [milestones/v1.7-ROADMAP.md](milestones/v1.7-ROADMAP.md) for full phase deta
 
 </details>
 
-### 🚧 v1.8 Analytics Expansion, Notification Pruning & DIY Parity (In Progress)
+<details>
+<summary>✅ v1.8 Analytics Expansion, Notification Pruning & DIY Parity (Phases 61-65) — SHIPPED 2026-04-17</summary>
 
-**Milestone Goal:** Six surgical improvements across student analytics (outreach KPI re-split), owner analytics (coach leaderboards + time-window selectors), owner alerts (prune to `deal_closed`), coach alerts (`tech_setup` activation), and the owner’s student detail view (DIY parity) — five phases (61-65), 53 requirements, four new migrations (00033-00036). F1, F5, F6 are each shipped as standalone phases for autonomous-mode resilience (failure isolation); F2+F3 bundled (co-modify the same RPC); F4 isolated.
+- [x] **Phase 61: Student Analytics Re-split (F1)** — completed 2026-04-17
+- [x] **Phase 62: Coach Alert `tech_setup` Activation (F5)** — completed 2026-04-17
+- [x] **Phase 63: DIY Owner Detail Page (F6)** — completed 2026-04-17
+- [x] **Phase 64: Owner Analytics Expansion — Coach Leaderboards + Window Selectors (F2+F3)** — completed 2026-04-17
+- [x] **Phase 65: Owner Alerts Prune to `deal_closed` Only (F4)** — completed 2026-04-17
 
-- [x] **Phase 61: Student Analytics Re-split** — F1 standalone: breaking `get_student_analytics` RPC (outreach KPI re-split from combined `total_emails` to separate `total_brand_outreach` + `total_influencer_outreach`), migration 00033 with defensive DROP pattern, `unstable_cache` keys bumped in both `/student/analytics` and `/student_diy/analytics` (completed 2026-04-17)
-- [ ] **Phase 62: Coach Alert `tech_setup` Activation (Step 4 "Set Up Your Agency")** — F5 standalone: flip `techSetupEnabled` + `techSetupStep=4` + relabel to "Set Up Your Agency"; migration 00034 rewrites RPC CTE from placeholder `step_number=0` to `4` and backfills historical completions in `alert_dismissals`; internal type key `tech_setup` preserved
-- [ ] **Phase 63: DIY Owner Detail Page** — F6 standalone: extend `/owner/students/[studentId]` + list page to accept `student_diy` via role-filter broadening; hide daily-report indicators in CalendarTab + StudentKpiSummary for DIY; add "DIY" badge on list page; no migrations, no RPC changes
-- [ ] **Phase 64: Owner Analytics Expansion — Coach Leaderboards + Per-Leaderboard Window Selectors** — F2 + F3 MUST bundle: single `get_owner_analytics` RPC expanded to return 24 pre-computed slots (6 leaderboards × 4 windows), new `SegmentedControl` UI primitive, `/api/reports` gains `ownerAnalyticsTag()` invalidation
-- [ ] **Phase 65: Owner Alerts Prune to `deal_closed` Only** — F4 isolated: `/owner/alerts` rewritten to emit one `deal_closed` alert per deal; `get_sidebar_badges` OWNER branch rewritten to match pruned feed; legacy 4 alert types silently removed
+See [milestones/v1.8-ROADMAP.md](milestones/v1.8-ROADMAP.md) for full phase details.
+
+</details>
 
 ## Phase Details
 
@@ -545,74 +548,7 @@ Plans:
 - [x] 60-01-PLAN.md — ReferralCard component + dashboard integration + CFG-02 build gate
 **UI hint**: yes
 
-### Phase 61: Student Analytics Re-split (F1)
-**Goal**: Student analytics KPI cards correctly labeled and re-split so brand outreach and influencer outreach are tracked as separate totals on `/student/analytics` (and `/student_diy/analytics`, pending SA-07 resolution), replacing the current combined `total_emails` = `SUM(brands + influencers)` bug with two independent aggregates delivered by a breaking `get_student_analytics` RPC change.
-**Depends on**: Phase 60 (v1.7 shipped; migration 00032 `get_sidebar_badges` legacy-4-arg drop is the last applied migration)
-**Requirements**: SA-01, SA-02, SA-03, SA-04, SA-05, SA-06, SA-07, SA-08, SA-09
-**Success Criteria** (what must be TRUE):
-  1. On `/student/analytics` the KPI strip shows a card labeled "Total Brand Outreach" whose value equals `SUM(brands_contacted)` across the student's daily reports, and a separate card labeled "Total Influencer Outreach" whose value equals `SUM(influencers_contacted)` — neither card sums brand + influencer outreach together; the same behavior is visible on `/student_diy/analytics` if SA-07 resolves as "show" (default), or the cards remain hidden for DIY if SA-07 resolves as "hide"
-  2. The `get_student_analytics` RPC returns a `totals` jsonb payload with `total_brand_outreach` and `total_influencer_outreach` keys and no `total_emails` / `total_influencers` keys; `StudentAnalyticsTotals` type mirrors this shape; `npx tsc --noEmit` catches every stale consumer (zero build errors, zero any-cast escape hatches added)
-  3. The outreach trend chart on `/student/analytics` is unchanged (still splits brand vs influencer series); the daily report form is unchanged (still collects `brands_contacted` and `influencers_contacted` as separate integer fields)
-  4. Migration `00033_fix_student_analytics_outreach_split.sql` applies cleanly on top of 00032; uses the defensive `DO $drop$ … pg_get_function_identity_arguments …` pattern so `SELECT COUNT(*) FROM pg_proc … WHERE proname = 'get_student_analytics'` returns exactly 1 (no PGRST203 overload collision); `unstable_cache` keys for `/student/analytics/page.tsx` and `/student_diy/analytics/page.tsx` are bumped (e.g. `["student-analytics"]` → `["student-analytics-v2"]`) in the same commit as the migration
-  5. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0 with zero errors and zero warnings
-**Plans:** 4/4 plans complete
-Plans:
-- [x] 61-01-migration-00033-rpc-split-PLAN.md — Migration 00033: defensive DROP + CREATE OR REPLACE `get_student_analytics` with renamed totals jsonb keys + post-assert
-- [x] 61-02-typescript-totals-rename-PLAN.md — Rename `StudentAnalyticsTotals` fields in `src/lib/rpc/student-analytics-types.ts` (`total_emails` → `total_brand_outreach`, `total_influencers` → `total_influencer_outreach`)
-- [x] 61-03-consumer-rewrite-cache-bump-PLAN.md — Bump `unstable_cache` keys on both analytics pages to `["student-analytics-v2"]`; rewrite AnalyticsClient KPI strip (renamed cards + DIY hide-guard removed + grid simplified to `lg:grid-cols-6`)
-- [x] 61-04-build-gate-and-shape-assert-PLAN.md — Post-phase build gate (`npm run lint && npx tsc --noEmit && npm run build`) + human-verify SA-01/02/07/08/09 on running app
-**UI hint**: yes
-
-### Phase 62: Coach Alert `tech_setup` Activation — "Set Up Your Agency" at Step 4 (F5)
-**Goal**: Coaches receive a "Set Up Your Agency" alert on their `/coach/alerts` feed whenever one of their assigned students completes roadmap Step 4 post-deploy, with zero retroactive flood for students who already completed Step 4 before the migration ran — achieved by flipping `techSetupEnabled=true` + `techSetupStep=4`, rewriting the RPC CTE's placeholder `step_number=0` to `4`, and backfilling `alert_dismissals` for every historical completion.
-**Depends on**: Phase 61 (breaking-RPC + cache-key-bump + defensive DROP discipline established and verified green)
-**Requirements**: CA-01, CA-02, CA-03, CA-04, CA-05, CA-06, CA-07
-**Success Criteria** (what must be TRUE):
-  1. `MILESTONE_CONFIG.techSetupStep === 4`, `MILESTONE_FEATURE_FLAGS.techSetupEnabled === true`, and `MILESTONE_META["tech_setup"].label === "Set Up Your Agency"` in `src/lib/config.ts` and `src/components/coach/alerts-types.ts`; the internal type key `tech_setup` is NOT renamed (verified: `rg "agency_setup"` returns no hits, `rg "milestone_tech_setup:"` hits remain as-is, `CoachAlertFeedType` union still contains `"tech_setup"`); a code comment at the `tech_setup` meta entry documents the "label changes, key preserved" decision
-  2. A coach whose assigned student completes roadmap Step 4 post-deploy sees exactly one new `/coach/alerts` card titled "Set Up Your Agency" keyed by `milestone_tech_setup:{student_id}`; that same coach sees zero retroactive `tech_setup` alerts for students who had Step 4 completed in `roadmap_progress` before the migration ran (verified by the in-migration ASSERT `SELECT count(*) FROM get_coach_milestones(c.id, true) WHERE type = 'tech_setup'` returns 0 for every active coach after backfill)
-  3. Dismissing a `tech_setup` alert via the existing `/api/alerts/dismiss` route uses the dismissal-key prefix `milestone_tech_setup:%` (unchanged); the dismissal persists across reloads; the icon remains `CheckCircle` (unchanged)
-  4. Migration `00034_activate_tech_setup.sql` applies cleanly on top of 00033; uses the defensive `DO $drop$ … pg_get_function_identity_arguments …` pattern so exactly one `get_coach_milestones` exists post-migration (no PGRST203 overload collision); rewrites the `tech_setup` CTE from `rp.step_number = 0` (placeholder in 00027:130) to `rp.step_number = 4`; inserts pre-dismissals into `alert_dismissals` for every `(coach_id, 'milestone_tech_setup:' || student_id)` combination where the student currently has `roadmap_progress.step_number = 4` with `status = 'completed'` (mirrors Phase 52 backfill pattern from migration 00027 lines 409-420); `unstable_cache` key for `getCoachMilestonesCached` is bumped in the same commit
-  5. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0 with zero errors and zero warnings
-**Plans**: TBD
-**UI hint**: no
-
-### Phase 63: DIY Owner Detail Page (F6)
-**Goal**: An owner navigating to `/owner/students/[studentId]` for a `student_diy` user lands on a working detail page instead of a 404 — achieved by role-filter broadening on the detail route and the owner student list, with daily-report-derived UI suppressed for DIY users (Calendar tab shows hours-only; no daily-report indicator dots or rows), all delivered via inline conditional rendering in the existing components (no parallel route tree, no per-role sub-components).
-**Depends on**: Phase 62 (independent of F5 at the code level but sequenced after it so the three standalone cleanup phases ship as a clean wave)
-**Requirements**: DIY-01, DIY-02, DIY-03, DIY-04, DIY-05, DIY-06, DIY-07, DIY-08, DIY-09, DIY-10
-**Success Criteria** (what must be TRUE):
-  1. An owner navigating to `/owner/students/{studentId}` for a `student_diy` user opens a working detail page (no 404, no 500); the Calendar tab renders only hours-worked activity (no daily-report indicator dots/markers) and `StudentKpiSummary` suppresses report-derived rows (final interpretation of "hide Reports tab" wording resolved in `/gsd-discuss-phase` per ambiguity DIY-05 — default: CalendarTab report-dot suppression + StudentKpiSummary report-row suppression for DIY)
-  2. `/owner/students` lists `student_diy` users alongside regular `student` users with a visible "DIY" `Badge` on DIY rows (ima-* token styling, no hardcoded gray); the existing column layout does not shift at 375px viewport; a regular `student` user's detail page is functionally identical to v1.7 with no regression (same tabs, same Calendar behavior, same KPI rows)
-  3. DIY branching lives inline in the existing `OwnerStudentDetailClient`, `StudentDetailTabs`, `CalendarTab`, and `StudentKpiSummary` components via a `role` prop threaded through (no parallel `/owner/students_diy/...` route tree is created; no `OwnerStudentDetailClientDIY.tsx` or equivalent per-role sub-component is added); the coach route `/coach/students/[studentId]` is unchanged (owner-only scope for this milestone, confirmed in `/gsd-discuss-phase` per ambiguity DIY-08)
-  4. The detail page's data-fetch filter on `src/app/(dashboard)/owner/students/[studentId]/page.tsx` uses `.in("role", ["student", "student_diy"])` (not `.eq("role", "student")`); the same filter broadening is applied to the owner list page; `get_student_detail` RPC (or equivalent) either already accepts DIY or is updated to do so (architecture research confirmed role-agnostic — verify no migration required, or ship one if audit shows otherwise); no crash when `dailyReports === undefined` (defensive empty-array handling)
-  5. Post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0 with zero errors and zero warnings; zero migrations applied (F6 is a pure routing + UI change)
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 64: Owner Analytics Expansion — Coach Leaderboards + Per-Leaderboard Window Selectors (F2 + F3)
-**Goal**: The owner analytics page gains three new coach leaderboards (total revenue, avg total outreach per student per day, total deals) beneath the existing three student leaderboards, and every one of the six leaderboards carries an independent Weekly / Monthly / Yearly / All Time toggle — powered by a single `get_owner_analytics` RPC that pre-computes all 24 slots in one call and delivered via SSR with zero client re-fetch on toggle.
-**Depends on**: Phase 63 (breaking-RPC + cache-key-bump discipline established across Phases 61-63; `/api/reports` invalidation gap addressed together with this phase)
-**Requirements**: OA-01, OA-02, OA-03, OA-04, OA-05, OA-06, OA-07, OA-08, WS-01, WS-02, WS-03, WS-04, WS-05, WS-06, WS-07, WS-08, WS-09, WS-10
-**Success Criteria** (what must be TRUE):
-  1. `/owner/analytics` renders exactly six leaderboards in two sections — three student leaderboards on top (hours, profit, deals) and three coach leaderboards below (revenue, avg total outreach per student per day, deals) — with coach rows rendered as non-linked `<li>` items, and the owner homepage `OwnerAnalyticsTeaser` stays unchanged (still student-only)
-  2. Each of the six leaderboards shows an independent 4-way toggle above its card (Weekly / Monthly / Yearly / All Time) that meets Hard Rule 2 (`min-h-[44px]`), uses `role="radiogroup"` + `role="radio"` + `aria-checked` with arrow-key navigation via the new `src/components/ui/SegmentedControl.tsx` primitive, defaults to "All Time" on initial load, and switches which slice renders from the SSR-delivered payload WITHOUT triggering any `fetch()` or `useEffect` re-fetch (verified by `rg -n "fetch\\(" src/app/\\(dashboard\\)/owner/analytics/` returning zero hits in the new client component)
-  3. Coach leaderboards exclude any coach with `status != 'active'` OR zero assigned active students (verified via `EXISTS (SELECT 1 FROM users s WHERE s.coach_id = c.id AND s.role IN ('student','student_diy') AND s.status='active')`); all 24 ranked CTEs use the Phase 54 three-tiebreaker pattern `ORDER BY metric DESC, LOWER(name) ASC, id::text ASC`; coaches with ≥1 assigned student but zero metric value appear with 0 rather than being filtered out; formula for avg-total-outreach-per-student-per-day = `SUM(COALESCE(brands_contacted,0) + COALESCE(influencers_contacted,0)) / (COUNT(distinct assigned students with role IN ('student','student_diy')) × window_days)` is documented in a SQL comment
-  4. Every deal mutation (`POST /api/deals`, `PATCH /api/deals/[id]`, `DELETE /api/deals/[id]`) AND every work-session completion (`PATCH /api/work-sessions/[id]`) AND — newly added in this phase — every daily-report mutation (`POST /api/reports` in both update-existing-row and insert-new-row branches) calls `revalidateTag(ownerAnalyticsTag(), "default")`, so coach leaderboard #2 (avg total outreach per student per day) never goes stale for more than the normal 60s TTL after a report is submitted or edited
-  5. Migration `00035_expand_owner_analytics_leaderboards.sql` applies cleanly; uses the defensive `DROP FUNCTION … (identity_args)` pattern (single post-migration `pg_proc` row for `get_owner_analytics`); returns all 24 pre-computed slots in one jsonb payload nested as `leaderboards.students.{hours,profit,deals}.{weekly,monthly,yearly,alltime}` and `leaderboards.coaches.{revenue,avg_total_outreach,deals}.{weekly,monthly,yearly,alltime}`; `unstable_cache` key for `get_owner_analytics` is bumped in the same commit; trailing-N-days window semantics (Weekly = last 7 days, Monthly = last 30, Yearly = last 365) match the migration 00023:71 precedent and are documented in a SQL comment (ambiguity WS-02 resolved in `/gsd-discuss-phase`); post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0
-**Plans**: TBD
-**UI hint**: yes
-
-### Phase 65: Owner Alerts Prune to `deal_closed` Only (F4)
-**Goal**: The `/owner/alerts` feed stops generating `student_inactive`, `student_dropoff`, `unreviewed_reports`, and `coach_underperforming` alerts entirely — silently, with no tombstone — and replaces them with one `deal_closed` alert per closed deal (title = student name, message = "Closed a $X,XXX deal", links to `/owner/students/{student_id}`, key `deal_closed:{deal_id}`, dismissible via the existing `/api/alerts/dismiss` route); the owner sidebar badge count matches the pruned feed via a rewritten `get_sidebar_badges` OWNER branch.
-**Depends on**: Phase 64 (F4 is subsystem-isolated but ships last so the rewrite can be UAT-tested against stabilized F1/F2/F3/F5/F6 data)
-**Requirements**: OAL-01, OAL-02, OAL-03, OAL-04, OAL-05, OAL-06, OAL-07, OAL-08, OAL-09
-**Success Criteria** (what must be TRUE):
-  1. `/owner/alerts` displays one alert per `deals` row (subject to the TTL decision locked in `/gsd-discuss-phase` — ambiguity OAL-09; default: unbounded feed, OR 30-day trailing filter) with title = the student’s name, message = `Closed a $X,XXX deal` (revenue formatted via `toLocaleString`), severity `info` (or `success` if `AlertItem` supports it), clicking the row navigates to `/owner/students/{student_id}`; zero alerts of type `student_inactive`, `student_dropoff`, `unreviewed_reports`, or `coach_underperforming` are ever rendered on the page, and no tombstone message is shown about the pruning
-  2. Creating a new deal via `POST /api/deals` (by any role) causes exactly one `deal_closed:{deal_id}` alert to appear on the owner feed on the next page render (alerts page stays SSR-dynamic with no `unstable_cache`); the existing `revalidateTag("badges")` on deal-create keeps the sidebar badge count in sync
-  3. Dismissing a `deal_closed` alert via `POST /api/alerts/dismiss` persists across reloads (reuses `alert_dismissals` verbatim, no table or route modification); orphaned rows for the four removed legacy alert types remain in `alert_dismissals` untouched for forensic history; dismissed alerts stay dismissed across the user’s subsequent visits
-  4. The owner sidebar `active_alerts` badge count equals the number of non-dismissed `deals` rows visible on the `/owner/alerts` page — verified at any given moment that pruned feed length matches the badge number (no divergence); the badge updates correctly when deals are created and when alerts are dismissed; the coach alerts feed is unaffected (coaches still see `100h_milestone`, `5_influencers`, `brand_response`, `closed_deal`, and the newly-activated `tech_setup` from Phase 62)
-  5. Migration `00036_prune_owner_alerts_to_deal_closed.sql` applies cleanly on top of 00035; uses the defensive `DROP FUNCTION … (identity_args)` pattern so exactly one `get_sidebar_badges` exists post-migration (no PGRST203 overload repeat); rewrites the OWNER branch (migration 00029 lines 115-183) from counting the four legacy alert types to `COUNT(deals) - COUNT(dismissed 'deal_closed:*' keys)`; the coach branch of the RPC is untouched; post-phase build gate passes: `npm run lint && npx tsc --noEmit && npm run build` exits 0
-**Plans**: TBD
+> Phase details for v1.8 (Phases 61-65) archived to [milestones/v1.8-ROADMAP.md](milestones/v1.8-ROADMAP.md).
 
 ## Progress
 
@@ -677,7 +613,7 @@ Plans:
 | 59. Referral API + Rebrandly | v1.7 | 1/1 | Complete    | 2026-04-16 |
 | 60. ReferralCard UI & Dashboard Integration | v1.7 | 1/1 | Complete    | 2026-04-16 |
 | 61. Student Analytics Re-split (F1) | v1.8 | 4/4 | Complete   | 2026-04-17 |
-| 62. Coach Alert tech_setup Activation (F5) | v1.8 | 0/TBD | Not started | — |
-| 63. DIY Owner Detail Page (F6) | v1.8 | 0/TBD | Not started | — |
-| 64. Owner Analytics Expansion — Coach Leaderboards + Window Selectors (F2+F3) | v1.8 | 0/TBD | Not started | — |
-| 65. Owner Alerts Prune to `deal_closed` Only (F4) | v1.8 | 0/TBD | Not started | — |
+| 62. Coach Alert tech_setup Activation (F5) | v1.8 | 1/1 | Complete   | 2026-04-17 |
+| 63. DIY Owner Detail Page (F6) | v1.8 | 1/1 | Complete   | 2026-04-17 |
+| 64. Owner Analytics Expansion — Coach Leaderboards + Window Selectors (F2+F3) | v1.8 | 6/6 | Complete   | 2026-04-17 |
+| 65. Owner Alerts Prune to deal_closed Only (F4) | v1.8 | 2/2 | Complete   | 2026-04-17 |

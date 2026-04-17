@@ -1,5 +1,37 @@
 # Milestones
 
+## v1.8 Analytics Expansion, Notification Pruning & DIY Parity (Shipped: 2026-04-17)
+
+**Phases completed:** 5 phases (61-65), 14 plans
+**Files modified:** 70 | **Commits:** 39 | **LOC Delta:** +10,274 / -2,322
+**Timeline:** 2 days (2026-04-16 → 2026-04-17)
+**Requirements:** 53/53 satisfied (audit status: `tech_debt` — 13 deferred UAT items batched per `feedback_batch_uat_end_of_milestone`)
+**Migrations:** 00033 - 00036
+
+**Key accomplishments:**
+
+1. Student analytics outreach KPI re-split — migration 00033 replaces buggy combined `total_emails = SUM(brands + influencers)` with two independent aggregates `total_brand_outreach` and `total_influencer_outreach`; KPI cards relabeled on both `/student/analytics` and `/student_diy/analytics`; DIY hide-guard removed so DIY students see the new cards; `student-analytics-v2` cache-key bump atomic with the breaking RPC change (Phase 61)
+2. Coach `tech_setup` alert activated at roadmap Step 4 "Set Up Your Agency" — migration 00034 rewrites `get_coach_milestones` CTE from placeholder `step_number=0` to `4`, backfills `alert_dismissals` for every historical Step-4 completion (zero retroactive flood, per-coach ASSERT verified), `techSetupEnabled=true` + `techSetupStep=4` + UI label flipped; internal type key `tech_setup` preserved across RPC, dismissal-key prefix, and config keys (Phase 62)
+3. DIY students viewable on owner detail page — `/owner/students/[studentId]` and `/owner/students` role filter broadened from `.eq("role","student")` to `.in("role",["student","student_diy"])`; DIY badge added to list page (ima-info variant, no layout shift); `role` prop threaded through detail client + tabs + CalendarTab; daily-report indicators and KpiSummary report rows suppressed for DIY via inline conditional rendering; zero parallel route tree, zero per-role sub-component, zero migrations (Phase 63)
+4. Owner analytics expansion — 3 new coach leaderboards (revenue, avg total outreach/student/day, deals) plus per-leaderboard Weekly/Monthly/Yearly/All Time window selectors on all 6 leaderboards (3 student + 3 coach); migration 00035 expands `get_owner_analytics` to 24 pre-computed slots in one jsonb payload; new `SegmentedControl` UI primitive (radiogroup + radio + arrow-key nav + 44px + ima-* tokens); `OwnerAnalyticsClient` swaps pre-computed slices on toggle with zero client re-fetch; `owner-analytics-v2` cache-key bump atomic with migration (Phase 64)
+5. Owner alerts pruned to `deal_closed` only — `/owner/alerts` rewritten to emit one info alert per deal (title=student name, message=`Closed a $X,XXX deal`, key=`deal_closed:{deal_id}`, 30-day trailing window, links to `/owner/students/{id}`); 4 legacy alert types (`student_inactive`, `student_dropoff`, `unreviewed_reports`, `coach_underperforming`) silently removed; migration 00036 rewrites OWNER branch of `get_sidebar_badges` so sidebar badge stays in sync; COACH + STUDENT branches preserved byte-for-byte; `sidebar-badges-v2` cache-key bump atomic with migration; `/api/alerts/dismiss` and `alert_dismissals` table reused verbatim (Phase 65)
+6. Closed v1.6 deferred `ownerAnalyticsTag()` invariant — `/api/reports` now calls `revalidateTag(ownerAnalyticsTag(), "default")` on both update-existing and insert-new branches (fixed the 60s-staleness on coach leaderboard #2 after report submission)
+
+**Tech Debt (non-blocking):**
+
+- 13 live-environment UAT smoke checks across phases 61, 62, 63, 65 — policy-accepted via `feedback_batch_uat_end_of_milestone`
+- Nyquist VALIDATION.md: 0 compliant, 1 partial (Phase 61 draft), 4 missing (62, 63, 64, 65); also backfill for v1.5 phases 44-52 still carry-over
+- Four pre-existing lint warnings remain across the codebase (not introduced in v1.8)
+- NOTIF-01 Tech/Email Setup activation is closed by Phase 62; other v1.7 carry-overs (IN-01/IN-02, AI chat iframe URL) remain
+
+**Archives:**
+
+- [v1.8 Roadmap](milestones/v1.8-ROADMAP.md)
+- [v1.8 Requirements](milestones/v1.8-REQUIREMENTS.md)
+- [v1.8 Audit](milestones/v1.8-MILESTONE-AUDIT.md)
+
+---
+
 ## v1.7 Student Referral Links (Rebrandly Integration) (Shipped: 2026-04-16)
 
 **Phases completed:** 3 phases, 4 plans, 8 tasks
