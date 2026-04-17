@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -43,31 +44,35 @@ export function WeeklyLeaderboardCard({ rows }: Props) {
           <ul className="space-y-1">
             {rows.map((r, i) => {
               const rank = i + 1;
+              const hoursLabel = formatHoursLabel(r.minutes);
               return (
-                <li
-                  key={r.student_id}
-                  className="flex items-center gap-3 p-3 rounded-lg min-h-[44px]"
-                >
-                  <div className="shrink-0 w-10 flex items-center justify-center">
-                    {rank === 1 ? (
-                      <span className="inline-flex items-center justify-center rounded-full bg-ima-primary text-white text-xs font-semibold px-2 py-0.5">
-                        #1
-                      </span>
-                    ) : (
-                      <span className="text-ima-text-muted font-semibold text-sm">
-                        #{rank}
-                      </span>
-                    )}
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-ima-primary flex items-center justify-center text-xs font-semibold text-white shrink-0">
-                    {initials(r.student_name)}
-                  </div>
-                  <p className="text-sm font-medium text-ima-text truncate flex-1">
-                    {r.student_name}
-                  </p>
-                  <p className="text-sm font-semibold text-ima-text tabular-nums shrink-0">
-                    {formatHoursLabel(r.minutes)}
-                  </p>
+                <li key={r.student_id}>
+                  <Link
+                    href={`/coach/students/${r.student_id}`}
+                    aria-label={`View ${r.student_name} — ${hoursLabel}`}
+                    className="flex items-center gap-3 p-3 rounded-lg motion-safe:transition-colors hover:bg-ima-surface-light min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2"
+                  >
+                    <div className="shrink-0 w-10 flex items-center justify-center">
+                      {rank === 1 ? (
+                        <span className="inline-flex items-center justify-center rounded-full bg-ima-primary text-white text-xs font-semibold px-2 py-0.5">
+                          #1
+                        </span>
+                      ) : (
+                        <span className="text-ima-text-muted font-semibold text-sm">
+                          #{rank}
+                        </span>
+                      )}
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-ima-primary flex items-center justify-center text-xs font-semibold text-white shrink-0">
+                      {initials(r.student_name)}
+                    </div>
+                    <p className="text-sm font-medium text-ima-text truncate flex-1">
+                      {r.student_name}
+                    </p>
+                    <p className="text-sm font-semibold text-ima-text tabular-nums shrink-0">
+                      {hoursLabel}
+                    </p>
+                  </Link>
                 </li>
               );
             })}

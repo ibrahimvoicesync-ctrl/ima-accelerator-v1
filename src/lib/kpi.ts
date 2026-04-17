@@ -10,11 +10,10 @@ export function getRagStatus(ratio: number, daysInProgram: number): RagStatus {
   return "red";
 }
 
-/** Per D-01: Lifetime outreach RAG uses pace-based ratio: actual / (days_in_program * dailyOutreach) */
+/** Lifetime outreach RAG: ratio of actual against the lifetime target (2500). Green at 100%, amber at 80%, red below. */
 export function lifetimeOutreachRag(actual: number, daysInProgram: number): RagStatus {
   if (daysInProgram < 1) return "neutral";
-  const target = daysInProgram * KPI_TARGETS.dailyOutreach;
-  return getRagStatus(actual / target, daysInProgram);
+  return getRagStatus(actual / KPI_TARGETS.lifetimeOutreach, daysInProgram);
 }
 
 /** Per D-02: Daily outreach RAG: green >= 50, amber >= 40, red < 40 */

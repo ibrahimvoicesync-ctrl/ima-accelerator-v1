@@ -11,8 +11,8 @@
  * Default window per leaderboard = "alltime" (WS requirement).
  *
  * Layout: two sections. Students first (3 cards) then Coaches (3 cards).
- * Student rows link to /owner/students/[id]. Coach rows are non-linked
- * (linkRows={false}) per OA-01 — no /owner/coaches/[id] detail page exists.
+ * Student rows link to /owner/students/[id]; coach rows link to
+ * /owner/coaches/[id].
  */
 
 "use client";
@@ -207,7 +207,7 @@ export function OwnerAnalyticsClient({ payload }: Props) {
             controlLabel="Coach revenue time range"
             emptyHeading="No coach revenue yet"
             emptyBody="Coaches appear here once their assigned students close deals."
-            linkRows={false}
+            hrefPrefix="/owner/coaches/"
           />
           <LeaderboardWithToggle
             headingId="owner-lb-coach-outreach"
@@ -219,7 +219,7 @@ export function OwnerAnalyticsClient({ payload }: Props) {
             controlLabel="Coach outreach time range"
             emptyHeading="No outreach data yet"
             emptyBody="Coaches appear here once their assigned students log reports."
-            linkRows={false}
+            hrefPrefix="/owner/coaches/"
           />
           <LeaderboardWithToggle
             headingId="owner-lb-coach-deals"
@@ -231,7 +231,7 @@ export function OwnerAnalyticsClient({ payload }: Props) {
             controlLabel="Coach deals time range"
             emptyHeading="No coach deals yet"
             emptyBody="Coaches appear here once their assigned students close deals."
-            linkRows={false}
+            hrefPrefix="/owner/coaches/"
           />
         </div>
       </section>

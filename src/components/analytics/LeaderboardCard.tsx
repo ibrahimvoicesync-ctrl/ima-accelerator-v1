@@ -12,9 +12,8 @@
  * the Phase 48 coach behavior. Owner passes "/owner/students/" for OA-06.
  *
  * Phase 64 addition: `linkRows?: boolean` prop (default true). When false,
- * rows render as a plain non-interactive `<div>` inside `<li>` — used by the
- * three new coach leaderboards because there is no /owner/coaches/[id] detail
- * page to link to (OA-01).
+ * rows render as a plain non-interactive `<div>` inside `<li>`. Retained
+ * for callers that have no detail route to link to.
  */
 
 import Link from "next/link";
@@ -48,9 +47,8 @@ type LeaderboardCardProps = {
   // `${hrefPrefix}${row.student_id}` without adding one.
   hrefPrefix?: string;
   // Phase 64: when false, render rows as non-interactive <div> inside <li>
-  // (no <Link>). Used by coach leaderboards on /owner/analytics since there
-  // is no coach detail page to link to. Default true preserves existing
-  // callers (Phase 48 coach analytics, Phase 54 owner student leaderboards).
+  // (no <Link>). Default true; retained for callers that have no detail
+  // route to link to.
   linkRows?: boolean;
 };
 
