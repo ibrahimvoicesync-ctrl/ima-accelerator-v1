@@ -1,19 +1,40 @@
+import { JetBrains_Mono } from "next/font/google";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Briefcase,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  FileText,
+  Mail,
+  Map as MapIcon,
+  Megaphone,
+  TrendingUp,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { WORK_TRACKER, ROADMAP_STEPS, KPI_TARGETS } from "@/lib/config";
-import { getGreeting, getToday, cn, formatHoursMinutes } from "@/lib/utils";
-import { ReferralCard } from "@/components/student/ReferralCard";
+import { KPI_TARGETS, ROADMAP_STEPS, WORK_TRACKER } from "@/lib/config";
+import { cn, formatHoursMinutes, getToday } from "@/lib/utils";
 import {
-  lifetimeOutreachRag,
-  dailyOutreachRag,
   dailyHoursRag,
-  ragToColorClass,
-  ragToBgClass,
+  dailyOutreachRag,
   daysInProgram as computeDaysInProgram,
+  lifetimeOutreachRag,
+  type RagStatus,
 } from "@/lib/kpi";
-import Link from "next/link";
-import { CheckCircle, Handshake, DollarSign, TrendingUp } from "lucide-react";
+import { ReferralCard } from "@/components/student/ReferralCard";
+import { ReferralNudge } from "@/components/student/ReferralNudge";
 import type { Database } from "@/lib/types";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
+
+const MONO: React.CSSProperties = { fontFamily: "var(--font-mono-bold)" };
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
 
@@ -22,13 +43,33 @@ function getNextAction(
   totalMinutesWorked: number,
   activeSession: WorkSession | undefined,
   pausedSession: WorkSession | undefined,
+  reportSubmitted: boolean,
 ): { label: string; href: string } {
-  if (activeSession) return { label: "Continue Session", href: "/student/work" };
-  if (pausedSession) return { label: "Resume Session", href: "/student/work" };
+  if (activeSession) return { label: "Continue session", href: "/student/work" };
+  if (pausedSession) return { label: "Resume session", href: "/student/work" };
   if (totalMinutesWorked < WORK_TRACKER.dailyGoalHours * 60) {
-    return { label: `Start Session ${completedCount + 1}`, href: "/student/work" };
+    return {
+      label: `Begin session ${String(completedCount + 1).padStart(2, "0")}`,
+      href: "/student/work",
+    };
   }
-  return { label: "Submit Report", href: "/student/report" };
+  return {
+    label: reportSubmitted ? "Update daily report" : "Submit daily report",
+    href: "/student/report",
+  };
+}
+
+function ragHex(status: RagStatus): string {
+  switch (status) {
+    case "green":
+      return "#16A34A";
+    case "amber":
+      return "#D97706";
+    case "red":
+      return "#DC2626";
+    default:
+      return "#8A8474";
+  }
 }
 
 export default async function StudentDashboard() {
@@ -44,322 +85,556 @@ export default async function StudentDashboard() {
     userResult,
     { data: deals, error: dealsError },
   ] = await Promise.all([
-    admin.from("work_sessions").select("*").eq("student_id", user.id).eq("date", today).order("cycle_number", { ascending: true }),
-    admin.from("roadmap_progress").select("step_number, status").eq("student_id", user.id).order("step_number", { ascending: true }),
-    admin.from("daily_reports").select("submitted_at, brands_contacted, influencers_contacted").eq("student_id", user.id).eq("date", today).maybeSingle(),
-    admin.from("daily_reports").select("brands_contacted, influencers_contacted").eq("student_id", user.id),
+    admin
+      .from("work_sessions")
+      .select("*")
+      .eq("student_id", user.id)
+      .eq("date", today)
+      .order("cycle_number", { ascending: true }),
+    admin
+      .from("roadmap_progress")
+      .select("step_number, status")
+      .eq("student_id", user.id)
+      .order("step_number", { ascending: true }),
+    admin
+      .from("daily_reports")
+      .select("submitted_at, brands_contacted, influencers_contacted")
+      .eq("student_id", user.id)
+      .eq("date", today)
+      .maybeSingle(),
+    admin
+      .from("daily_reports")
+      .select("brands_contacted, influencers_contacted")
+      .eq("student_id", user.id),
     admin.from("users").select("joined_at").eq("id", user.id).single(),
     admin.from("deals").select("revenue, profit").eq("student_id", user.id),
   ]);
 
-  if (sessionsError) {
-    console.error("[student dashboard] Failed to load sessions:", sessionsError);
-  }
-  if (roadmapError) {
-    console.error("[student dashboard] Failed to load roadmap:", roadmapError);
-  }
-  if (reportResult.error) {
-    console.error("[student dashboard] Failed to load report:", reportResult.error);
-  }
-  if (lifetimeResult.error) {
-    console.error("[student dashboard] Failed to load lifetime KPIs:", lifetimeResult.error);
-  }
-  if (userResult.error) {
-    console.error("[student dashboard] Failed to load user joined_at:", userResult.error);
-  }
-  if (dealsError) {
-    console.error("[student dashboard] Failed to load deals:", dealsError);
-  }
+  if (sessionsError) console.error("[student dashboard] Failed to load sessions:", sessionsError);
+  if (roadmapError) console.error("[student dashboard] Failed to load roadmap:", roadmapError);
+  if (reportResult.error) console.error("[student dashboard] Failed to load report:", reportResult.error);
+  if (lifetimeResult.error) console.error("[student dashboard] Failed to load lifetime KPIs:", lifetimeResult.error);
+  if (userResult.error) console.error("[student dashboard] Failed to load user joined_at:", userResult.error);
+  if (dealsError) console.error("[student dashboard] Failed to load deals:", dealsError);
 
   const todayReport = reportResult.data;
+  const reportSubmitted = Boolean(todayReport?.submitted_at);
 
   const dealsData = deals ?? [];
   const dealsClosed = dealsData.length;
   const totalRevenue = dealsData.reduce((sum, d) => sum + Number(d.revenue), 0);
   const totalProfit = dealsData.reduce((sum, d) => sum + Number(d.profit), 0);
+  const hasDeals = dealsClosed > 0;
 
   const todaySessions = (sessions ?? []) as WorkSession[];
-
-  const completedCount = todaySessions.filter(s => s.status === "completed").length;
+  const completedCount = todaySessions.filter((s) => s.status === "completed").length;
   const totalMinutesWorked = todaySessions
-    .filter(s => s.status === "completed")
+    .filter((s) => s.status === "completed")
     .reduce((sum, s) => sum + s.duration_minutes, 0);
-  const activeSession = todaySessions.find(s => s.status === "in_progress");
-  const pausedSession = todaySessions.find(s => s.status === "paused");
+  const activeSession = todaySessions.find((s) => s.status === "in_progress");
+  const pausedSession = todaySessions.find((s) => s.status === "paused");
   const dailyGoalMinutes = WORK_TRACKER.dailyGoalHours * 60;
-  const progressPercent = Math.min(100, Math.round((totalMinutesWorked / dailyGoalMinutes) * 100));
+  const rawPercent =
+    dailyGoalMinutes > 0 ? Math.round((totalMinutesWorked / dailyGoalMinutes) * 100) : 0;
+  const progressBarWidth = Math.min(100, rawPercent);
+  const goalMet = rawPercent >= 100;
   const firstName = user.name.split(" ")[0];
 
-  const nextAction = getNextAction(completedCount, totalMinutesWorked, activeSession, pausedSession);
+  const nextAction = getNextAction(
+    completedCount,
+    totalMinutesWorked,
+    activeSession,
+    pausedSession,
+    reportSubmitted,
+  );
 
-  // KPI values for breakdown cards
   const allReports = lifetimeResult.data ?? [];
   const lifetimeOutreach = allReports.reduce(
     (sum, r) => sum + (r.brands_contacted ?? 0) + (r.influencers_contacted ?? 0),
     0,
   );
   const days = computeDaysInProgram(userResult.data?.joined_at ?? new Date().toISOString());
-  const dailyOutreachTotal = (todayReport?.brands_contacted ?? 0) + (todayReport?.influencers_contacted ?? 0);
+  const dailyOutreachTotal =
+    (todayReport?.brands_contacted ?? 0) + (todayReport?.influencers_contacted ?? 0);
 
   const lifetimeRag = lifetimeOutreachRag(lifetimeOutreach, days);
   const dailyOutRag = dailyOutreachRag(dailyOutreachTotal, days);
   const hoursRag = dailyHoursRag(totalMinutesWorked, days);
 
-  const roadmapCompleted = (roadmapRows ?? []).filter(r => r.status === "completed").length;
-  const activeRoadmapStep = (roadmapRows ?? []).find(r => r.status === "active");
-  const allRoadmapDone = roadmapCompleted === ROADMAP_STEPS.length && roadmapRows != null && roadmapRows.length > 0;
-  const roadmapPercent = roadmapRows && roadmapRows.length > 0 ? Math.round((roadmapCompleted / ROADMAP_STEPS.length) * 100) : 0;
+  const lifetimePercent = Math.min(
+    100,
+    Math.round((lifetimeOutreach / KPI_TARGETS.lifetimeOutreach) * 100),
+  );
+  const dailyOutreachPercent = Math.min(
+    100,
+    Math.round((dailyOutreachTotal / KPI_TARGETS.dailyOutreach) * 100),
+  );
+
+  const roadmapCompleted = (roadmapRows ?? []).filter((r) => r.status === "completed").length;
+  const activeRoadmapStep = (roadmapRows ?? []).find((r) => r.status === "active");
+  const allRoadmapDone =
+    roadmapCompleted === ROADMAP_STEPS.length &&
+    roadmapRows != null &&
+    roadmapRows.length > 0;
+  const roadmapPercent =
+    roadmapRows && roadmapRows.length > 0
+      ? Math.round((roadmapCompleted / ROADMAP_STEPS.length) * 100)
+      : 0;
+
+  const currencyFormat = (value: number) =>
+    `$${value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   return (
-    <div className="px-4">
-      {/* Greeting */}
-      <h1 className="text-2xl font-bold text-ima-text">
-        {getGreeting()}, {firstName}!
-      </h1>
-      <p className="mt-1 text-ima-text-secondary">Here&apos;s your progress for today</p>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {/* Masthead */}
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={MONO}
+          >
+            Dashboard
+          </p>
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+            Assalamu3leikum, {firstName}.
+          </h1>
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+            Here&apos;s how today is tracking.
+          </p>
+        </header>
 
-      {/* Work Progress Card */}
-      <div className="bg-ima-surface border border-ima-border rounded-xl p-6 mt-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-ima-text">Today&apos;s Work</h2>
-          <span className="text-2xl font-bold text-ima-primary">
-            {formatHoursMinutes(totalMinutesWorked)} / {WORK_TRACKER.dailyGoalHours}h
-          </span>
-        </div>
-        <p className="text-sm text-ima-text-secondary mt-1">
-          {completedCount} session{completedCount !== 1 ? "s" : ""} completed
-        </p>
+        {/* Referral nudge (shared) */}
         <div
-          className="bg-ima-bg rounded-full h-3 mt-4 overflow-hidden"
-          role="progressbar"
-          aria-valuenow={totalMinutesWorked}
-          aria-valuemin={0}
-          aria-valuemax={dailyGoalMinutes}
-          aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
+          className="mt-9 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
         >
-          <div
-            className="bg-ima-primary h-full rounded-full motion-safe:transition-all duration-500"
-            style={{ width: `${progressPercent}%` }}
-          />
+          <ReferralNudge />
         </div>
-        <Link
-          href={nextAction.href}
-          className="mt-4 inline-flex items-center justify-center w-full bg-ima-primary text-white rounded-lg min-h-[44px] px-6 font-medium hover:bg-ima-primary-hover motion-safe:transition-colors"
+
+        {/* Hero — Today's Work */}
+        <section
+          aria-labelledby="todays-work-label"
+          className="motion-safe:animate-fadeIn"
+          style={{ animationDelay: "100ms" }}
         >
-          {nextAction.label}
-        </Link>
-      </div>
-
-      {/* KPI Outreach Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-        {/* Lifetime Outreach */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", ragToBgClass(lifetimeRag))} aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Lifetime Outreach</h3>
-          </div>
-          <p className={cn("text-2xl font-bold mt-2", ragToColorClass(lifetimeRag))}>
-            {lifetimeOutreach.toLocaleString()}
-          </p>
-          <p className="text-xs text-ima-text-muted mt-1">
-            Target: {KPI_TARGETS.lifetimeOutreach.toLocaleString()}
-          </p>
-          <div
-            className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
-            role="progressbar"
-            aria-valuenow={lifetimeOutreach}
-            aria-valuemin={0}
-            aria-valuemax={KPI_TARGETS.lifetimeOutreach}
-            aria-label={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
-          >
-            <div
-              className={cn("h-full rounded-full motion-safe:transition-all duration-500", ragToBgClass(lifetimeRag))}
-              style={{ width: `${Math.min(100, Math.round((lifetimeOutreach / KPI_TARGETS.lifetimeOutreach) * 100))}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Daily Outreach */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", ragToBgClass(dailyOutRag))} aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Daily Outreach</h3>
-          </div>
-          <p className={cn("text-2xl font-bold mt-2", ragToColorClass(dailyOutRag))}>
-            {dailyOutreachTotal}
-          </p>
-          <p className="text-xs text-ima-text-muted mt-1">
-            Target: {KPI_TARGETS.dailyOutreach}/day
-          </p>
-          <div
-            className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
-            role="progressbar"
-            aria-valuenow={dailyOutreachTotal}
-            aria-valuemin={0}
-            aria-valuemax={KPI_TARGETS.dailyOutreach}
-            aria-label={`Daily outreach: ${dailyOutreachTotal} of ${KPI_TARGETS.dailyOutreach}`}
-          >
-            <div
-              className={cn("h-full rounded-full motion-safe:transition-all duration-500", ragToBgClass(dailyOutRag))}
-              style={{ width: `${Math.min(100, Math.round((dailyOutreachTotal / KPI_TARGETS.dailyOutreach) * 100))}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Daily Hours */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", ragToBgClass(hoursRag))} aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Hours Worked</h3>
-          </div>
-          <p className={cn("text-2xl font-bold mt-2", ragToColorClass(hoursRag))}>
-            {formatHoursMinutes(totalMinutesWorked)}
-          </p>
-          <p className="text-xs text-ima-text-muted mt-1">
-            Target: {WORK_TRACKER.dailyGoalHours}h/day
-          </p>
-          <div
-            className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
-            role="progressbar"
-            aria-valuenow={totalMinutesWorked}
-            aria-valuemin={0}
-            aria-valuemax={WORK_TRACKER.dailyGoalHours * 60}
-            aria-label={`Hours worked: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
-          >
-            <div
-              className={cn("h-full rounded-full motion-safe:transition-all duration-500", ragToBgClass(hoursRag))}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Deals Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-        {/* Deals Closed */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <Handshake className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Deals Closed</h3>
-          </div>
-          <p className="text-2xl font-bold mt-2 text-ima-primary">{dealsClosed}</p>
-          <p className="text-xs text-ima-text-muted mt-1">all time</p>
-        </div>
-
-        {/* Total Revenue */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Total Revenue</h3>
-          </div>
-          <p className="text-2xl font-bold mt-2 text-ima-primary">
-            {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-          <p className="text-xs text-ima-text-muted mt-1">from {dealsClosed} deal{dealsClosed !== 1 ? "s" : ""}</p>
-        </div>
-
-        {/* Total Profit */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-ima-text-muted shrink-0" aria-hidden="true" />
-            <h3 className="text-sm font-medium text-ima-text-secondary">Total Profit</h3>
-          </div>
-          <p className="text-2xl font-bold mt-2 text-ima-primary">
-            {totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-          <p className="text-xs text-ima-text-muted mt-1">all time</p>
-        </div>
-      </div>
-
-      {/* Placeholder Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-        {/* Roadmap Progress Card */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-6">
-          <div className="flex justify-between items-center">
-            <h3 className="font-semibold text-ima-text">Roadmap</h3>
-            <span className="text-lg font-bold text-ima-primary">
-              {roadmapCompleted}/{ROADMAP_STEPS.length}
-            </span>
-          </div>
-          {roadmapRows && roadmapRows.length > 0 ? (
-            <>
-              <p className="text-sm text-ima-text-secondary mt-1">
-                {allRoadmapDone
-                  ? "All steps completed!"
-                  : activeRoadmapStep
-                    ? `Current: Step ${activeRoadmapStep.step_number}`
-                    : "Start your journey"}
+          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 md:p-8">
+            <div className="flex items-center justify-between gap-3">
+              <p
+                id="todays-work-label"
+                className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+                style={MONO}
+              >
+                Today&apos;s Work
               </p>
+              {goalMet ? (
+                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BBE5CA] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A]">
+                  <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                  Goal Reached
+                </span>
+              ) : (
+                <span
+                  className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase tabular-nums"
+                  style={MONO}
+                >
+                  {completedCount} Session{completedCount !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-5 flex items-end gap-2">
+              <span className="text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none text-[#4A6CF7]">
+                {formatHoursMinutes(totalMinutesWorked)}
+              </span>
+              <span className="pb-[6px] text-[15px] font-medium text-[#8A8474] tabular-nums">
+                / {WORK_TRACKER.dailyGoalHours}h
+              </span>
+            </div>
+
+            <div
+              className="mt-5 h-[6px] rounded-full bg-[#F1EEE6] overflow-hidden"
+              role="progressbar"
+              aria-valuenow={totalMinutesWorked}
+              aria-valuemin={0}
+              aria-valuemax={dailyGoalMinutes}
+              aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
+            >
               <div
-                className="bg-ima-bg rounded-full h-2 mt-3 overflow-hidden"
+                className={cn(
+                  "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
+                  goalMet ? "bg-[#16A34A]" : "bg-[#4A6CF7]",
+                )}
+                style={{ width: `${progressBarWidth}%` }}
+              />
+            </div>
+          </div>
+
+          <Link
+            href={nextAction.href}
+            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[10px] bg-[#4A6CF7] text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-[#3852D8] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 motion-safe:transition-colors"
+          >
+            {nextAction.label}
+            <ArrowRight
+              className="h-4 w-4 motion-safe:transition-transform group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </Link>
+        </section>
+
+        {/* KPI tracking */}
+        <section
+          aria-label="KPI tracking"
+          className="mt-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "150ms" }}
+        >
+          <div className="flex items-center gap-3">
+            <h2
+              className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+              style={MONO}
+            >
+              KPI Tracking
+            </h2>
+            <div className="flex-1 h-px bg-[#EDE9E0]" aria-hidden="true" />
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
+            <KpiCard
+              icon={Megaphone}
+              iconBg="bg-[#E8EEFF]"
+              iconColor="text-[#4A6CF7]"
+              label="Lifetime Outreach"
+              value={lifetimeOutreach.toLocaleString()}
+              target={`Target ${KPI_TARGETS.lifetimeOutreach.toLocaleString()}`}
+              percent={lifetimePercent}
+              rag={lifetimeRag}
+            />
+            <KpiCard
+              icon={Mail}
+              iconBg="bg-[#FDF3E0]"
+              iconColor="text-[#D97706]"
+              label="Daily Outreach"
+              value={String(dailyOutreachTotal)}
+              target={`Target ${KPI_TARGETS.dailyOutreach}/day`}
+              percent={dailyOutreachPercent}
+              rag={dailyOutRag}
+            />
+            <KpiCard
+              icon={Clock}
+              iconBg="bg-[#F1EEE6]"
+              iconColor="text-[#7A7466]"
+              label="Hours Today"
+              value={formatHoursMinutes(totalMinutesWorked)}
+              target={`Target ${WORK_TRACKER.dailyGoalHours}h/day`}
+              percent={progressBarWidth}
+              rag={hoursRag}
+            />
+          </div>
+        </section>
+
+        {/* Deals */}
+        <section
+          aria-label="Deals summary"
+          className="mt-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "200ms" }}
+        >
+          <div className="flex items-center gap-3">
+            <h2
+              className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+              style={MONO}
+            >
+              Deals
+            </h2>
+            <div className="flex-1 h-px bg-[#EDE9E0]" aria-hidden="true" />
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
+            <StatCard
+              icon={Briefcase}
+              iconBg="bg-[#FDF3E0]"
+              iconColor="text-[#D97706]"
+              label="Deals Closed"
+              value={String(dealsClosed)}
+              caption={hasDeals ? "All time" : "None yet"}
+            />
+            <StatCard
+              icon={DollarSign}
+              iconBg="bg-[#E8EEFF]"
+              iconColor="text-[#4A6CF7]"
+              label="Total Revenue"
+              value={currencyFormat(totalRevenue)}
+              caption={`From ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
+            />
+            <StatCard
+              icon={TrendingUp}
+              iconBg="bg-[#E2F5E9]"
+              iconColor="text-[#16A34A]"
+              label="Total Profit"
+              value={currencyFormat(totalProfit)}
+              caption={hasDeals ? "All time" : "None yet"}
+            />
+          </div>
+        </section>
+
+        {/* Roadmap + Daily Report */}
+        <section
+          aria-label="Roadmap and daily report"
+          className="mt-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "250ms" }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
+            {/* Roadmap */}
+            <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 flex flex-col">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-[8px] bg-[#E8EEFF] flex items-center justify-center shrink-0">
+                    <MapIcon className="h-[18px] w-[18px] text-[#4A6CF7]" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+                      Roadmap
+                    </p>
+                    <p className="mt-[3px] text-[12px] text-[#8A8474]">
+                      {allRoadmapDone
+                        ? "All steps completed"
+                        : activeRoadmapStep
+                          ? `Currently on step ${activeRoadmapStep.step_number}`
+                          : "Start your journey"}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className="text-[12px] font-semibold tabular-nums text-[#1A1A17] shrink-0"
+                  style={MONO}
+                >
+                  {roadmapCompleted}/{ROADMAP_STEPS.length}
+                </span>
+              </div>
+
+              <div
+                className="mt-5 h-[6px] rounded-full bg-[#F1EEE6] overflow-hidden"
                 role="progressbar"
                 aria-valuenow={roadmapCompleted}
                 aria-valuemin={0}
                 aria-valuemax={ROADMAP_STEPS.length}
-                aria-label="Roadmap progress"
+                aria-label={`Roadmap progress: ${roadmapCompleted} of ${ROADMAP_STEPS.length}`}
               >
                 <div
-                  className="bg-ima-success h-full rounded-full motion-safe:transition-all duration-500"
+                  className={cn(
+                    "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
+                    allRoadmapDone ? "bg-[#16A34A]" : "bg-[#4A6CF7]",
+                  )}
                   style={{ width: `${roadmapPercent}%` }}
                 />
               </div>
-            </>
-          ) : (
-            <p className="text-sm text-ima-text-secondary mt-1">
-              Track your {ROADMAP_STEPS.length}-step program journey
-            </p>
-          )}
-          <Link
-            href="/student/roadmap"
-            className={cn(
-              "mt-3 inline-flex items-center justify-center w-full rounded-lg min-h-[44px] px-6 font-medium motion-safe:transition-colors text-sm",
-              allRoadmapDone
-                ? "bg-ima-success text-white hover:bg-ima-success/90"
-                : "bg-ima-surface-light text-ima-primary hover:bg-ima-surface-accent"
-            )}
-          >
-            {allRoadmapDone
-              ? "Roadmap Complete!"
-              : activeRoadmapStep
-                ? `Continue Step ${activeRoadmapStep.step_number}`
-                : "View Roadmap"}
-          </Link>
-        </div>
 
-        {/* Daily Report */}
-        <div className="bg-ima-surface border border-ima-border rounded-xl p-6">
-          <div className="flex justify-between items-center">
-            <h3 className="font-semibold text-ima-text">Daily Report</h3>
-            {todayReport?.submitted_at ? (
-              <span className="flex items-center gap-1 text-xs font-medium text-ima-success">
-                <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                Submitted
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-xs font-medium text-ima-warning">
-                <span className="h-2 w-2 rounded-full bg-ima-warning" aria-hidden="true" />
-                Pending
-              </span>
-            )}
+              <Link
+                href="/student/roadmap"
+                aria-label={
+                  allRoadmapDone
+                    ? "View roadmap"
+                    : activeRoadmapStep
+                      ? `Continue step ${activeRoadmapStep.step_number}`
+                      : "View roadmap"
+                }
+                className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
+              >
+                {allRoadmapDone
+                  ? "View roadmap"
+                  : activeRoadmapStep
+                    ? `Continue step ${activeRoadmapStep.step_number}`
+                    : "View roadmap"}
+                <ArrowRight
+                  className="h-3.5 w-3.5 motion-safe:transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </Link>
+            </div>
+
+            {/* Daily Report */}
+            <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 flex flex-col">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-[8px] bg-[#F1EEE6] flex items-center justify-center shrink-0">
+                    <FileText className="h-[18px] w-[18px] text-[#7A7466]" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+                      Daily Report
+                    </p>
+                    <p className="mt-[3px] text-[12px] text-[#8A8474]">
+                      {reportSubmitted
+                        ? "Submitted — you can still update it."
+                        : "Close today's loop before 11 PM."}
+                    </p>
+                  </div>
+                </div>
+                {reportSubmitted ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BBE5CA] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A] shrink-0">
+                    <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                    Submitted
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-[#FDF3E0] border border-[#F0DFB3] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9A6B1F] shrink-0">
+                    <span
+                      className="inline-block h-[6px] w-[6px] rounded-full bg-[#D97706]"
+                      aria-hidden="true"
+                    />
+                    Pending
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-5 flex items-center gap-3">
+                <span
+                  className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+                  style={MONO}
+                >
+                  Due
+                </span>
+                <span className="text-[13px] font-semibold tabular-nums text-[#1A1A17]">
+                  11:00 PM
+                </span>
+              </div>
+
+              <Link
+                href="/student/report"
+                aria-label={reportSubmitted ? "Update report" : "Submit report"}
+                className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
+              >
+                {reportSubmitted ? "Update report" : "Submit report"}
+                <ArrowRight
+                  className="h-3.5 w-3.5 motion-safe:transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </Link>
+            </div>
           </div>
-          <p className="text-sm text-ima-text-secondary mt-1">
-            {todayReport?.submitted_at
-              ? "Your report is in. You can still update it."
-              : "Submit your daily progress report"}
-          </p>
-          <p className="text-xs text-ima-text-muted mt-1">Due by 11 PM</p>
-          <Link
-            href="/student/report"
-            className="mt-3 inline-flex items-center justify-center w-full bg-ima-surface-light text-ima-primary rounded-lg min-h-[44px] px-6 font-medium text-sm hover:bg-ima-surface-accent motion-safe:transition-colors"
-          >
-            {todayReport?.submitted_at ? "Update Report" : "Submit Report"}
-          </Link>
+        </section>
+
+        {/* Referral (shared) */}
+        <div
+          className="mt-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "300ms" }}
+        >
+          <ReferralCard />
         </div>
       </div>
-      {/* Referral Card */}
-      <div className="mt-6">
-        <ReferralCard />
+    </div>
+  );
+}
+
+function KpiCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  target,
+  percent,
+  rag,
+}: {
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: string;
+  target: string;
+  percent: number;
+  rag: RagStatus;
+}) {
+  const accent = ragHex(rag);
+  return (
+    <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${iconBg}`}
+          >
+            <Icon className={`h-[18px] w-[18px] ${iconColor}`} aria-hidden="true" />
+          </div>
+          <p
+            className="text-[11px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+            style={MONO}
+          >
+            {label}
+          </p>
+        </div>
+        <span
+          className="inline-block h-[8px] w-[8px] rounded-full shrink-0"
+          style={{ backgroundColor: accent }}
+          aria-hidden="true"
+        />
       </div>
+
+      <div className="mt-5 flex items-baseline justify-between gap-3">
+        <p className="text-[28px] md:text-[32px] font-bold tabular-nums text-[#1A1A17] leading-none">
+          {value}
+        </p>
+        <p
+          className="text-[11px] font-semibold tabular-nums text-[#7A7466]"
+          style={MONO}
+        >
+          {percent}%
+        </p>
+      </div>
+
+      <p className="mt-[10px] text-[12px] text-[#8A8474]">{target}</p>
+
+      <div
+        className="mt-4 h-[4px] rounded-full bg-[#F1EEE6] overflow-hidden"
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${label}: ${percent}%`}
+      >
+        <div
+          className="h-full rounded-full motion-safe:transition-[width] duration-700 ease-out"
+          style={{ width: `${percent}%`, backgroundColor: accent }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  caption,
+}: {
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: string;
+  caption: string;
+}) {
+  return (
+    <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+      <div className="flex items-center gap-3">
+        <div
+          className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${iconBg}`}
+        >
+          <Icon className={`h-[18px] w-[18px] ${iconColor}`} aria-hidden="true" />
+        </div>
+        <p
+          className="text-[11px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+          style={MONO}
+        >
+          {label}
+        </p>
+      </div>
+      <p className="mt-5 text-[28px] md:text-[32px] font-bold tabular-nums text-[#1A1A17] leading-none">
+        {value}
+      </p>
+      <p className="mt-[10px] text-[12px] text-[#8A8474]">{caption}</p>
     </div>
   );
 }
