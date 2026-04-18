@@ -1,8 +1,14 @@
-import { ArrowLeftRight } from "lucide-react";
+import { JetBrains_Mono } from "next/font/google";
+import { Users, UserCheck, UserX } from "lucide-react";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OwnerAssignmentsClient } from "@/components/owner/OwnerAssignmentsClient";
-import { Card, CardContent } from "@/components/ui/Card";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
 
 export default async function OwnerAssignmentsPage() {
   await requireRole("owner");
@@ -52,43 +58,88 @@ export default async function OwnerAssignmentsPage() {
   const assignedStudents = students.filter((s) => s.coach_id !== null).length;
   const unassignedStudents = totalStudents - assignedStudents;
 
+  const statCards = [
+    {
+      label: "Total Students",
+      value: String(totalStudents),
+      icon: Users,
+      iconBg: "bg-[#E8EEFF]",
+      iconColor: "text-[#4A6CF7]",
+    },
+    {
+      label: "Assigned",
+      value: String(assignedStudents),
+      icon: UserCheck,
+      iconBg: "bg-[#E2F5E9]",
+      iconColor: "text-[#16A34A]",
+    },
+    {
+      label: "Unassigned",
+      value: String(unassignedStudents),
+      icon: UserX,
+      iconBg: "bg-[#FDF3E0]",
+      iconColor: "text-[#D97706]",
+    },
+  ];
+
   return (
-    <div className="space-y-6 px-4">
-      {/* Page Header */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <ArrowLeftRight className="h-6 w-6 text-ima-primary" aria-hidden="true" />
-          <h1 className="text-2xl font-bold text-ima-text">Assignments</h1>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {/* Masthead */}
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            Assignments
+          </p>
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+            Match students to coaches
+          </h1>
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+            Manage coach-student assignments across the platform.
+          </p>
+        </header>
+
+        {/* Stats row */}
+        <section
+          aria-label="Assignment totals"
+          className="mt-9 grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
+        >
+          {statCards.map((s) => (
+            <div
+              key={s.label}
+              className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px]"
+            >
+              <div
+                className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${s.iconBg}`}
+              >
+                <s.icon
+                  className={`h-[18px] w-[18px] ${s.iconColor}`}
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[24px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                  {s.value}
+                </p>
+                <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Assignment manager */}
+        <div
+          className="mt-8 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "100ms" }}
+        >
+          <OwnerAssignmentsClient students={students} coaches={coachOptions} />
         </div>
-        <p className="text-sm text-ima-text-secondary">
-          Manage coach-student assignments across the platform.
-        </p>
       </div>
-
-      {/* Stat Row */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-2xl font-bold text-ima-text">{totalStudents}</p>
-            <p className="text-xs text-ima-text-secondary mt-0.5">Total Students</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-2xl font-bold text-ima-text">{assignedStudents}</p>
-            <p className="text-xs text-ima-text-secondary mt-0.5">Assigned</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-2xl font-bold text-ima-text">{unassignedStudents}</p>
-            <p className="text-xs text-ima-text-secondary mt-0.5">Unassigned</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Assignments Manager */}
-      <OwnerAssignmentsClient students={students} coaches={coachOptions} />
     </div>
   );
 }
