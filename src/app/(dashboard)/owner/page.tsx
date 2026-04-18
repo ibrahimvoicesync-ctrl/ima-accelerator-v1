@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GraduationCap, Shield, Users, FileText } from "lucide-react";
+import { Activity, Shield, Users, FileText } from "lucide-react";
 import Link from "next/link";
 import type { OwnerDashboardStats } from "@/lib/rpc/types";
 import { OwnerAnalyticsTeaser } from "@/components/owner/analytics/OwnerAnalyticsTeaser";
@@ -33,7 +33,7 @@ export default async function OwnerDashboard() {
     {
       label: "Total Students",
       value: String(stats.total_students),
-      icon: GraduationCap,
+      icon: Users,
       iconBg: "bg-[#E8EEFF]",
       iconColor: "text-[#4A6CF7]",
       href: "/owner/students" as const,
@@ -49,7 +49,7 @@ export default async function OwnerDashboard() {
     {
       label: "Active Today",
       value: String(stats.active_today_count),
-      icon: Users,
+      icon: Activity,
       iconBg: "bg-[#FDF3E0]",
       iconColor: "text-[#D97706]",
       href: null,

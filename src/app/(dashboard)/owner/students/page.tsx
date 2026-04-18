@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
-import { Users, Activity, GraduationCap, Search } from "lucide-react";
+import { Users, Activity, Compass, Search } from "lucide-react";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { getTodayUTC } from "@/lib/utils";
 
@@ -127,7 +127,7 @@ export default async function OwnerStudentsPage({
     {
       label: "Student DIY",
       value: String(diyStudents),
-      icon: GraduationCap,
+      icon: Compass,
       iconBg: "bg-[#FDF3E0]",
       iconColor: "text-[#D97706]",
     },
