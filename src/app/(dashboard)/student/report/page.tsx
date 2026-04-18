@@ -1,18 +1,33 @@
-import { Calendar, Clock } from "lucide-react";
-import { Card, CardContent } from "@/components/ui";
-import { ReportFormWrapper } from "@/components/student/ReportFormWrapper";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { JetBrains_Mono } from "next/font/google";
+import Link from "next/link";
+import { ReportForm } from "@/components/student/ReportForm";
+import { DueSoonIndicator } from "@/components/student/DueSoonIndicator";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getToday, formatHours } from "@/lib/utils";
-import Link from "next/link";
+import { cn, formatHoursMinutes, getToday } from "@/lib/utils";
 
-function formatDateDisplay(dateStr: string): string {
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
+
+const MONO: React.CSSProperties = { fontFamily: "var(--font-mono-bold)" };
+
+function formatHeroDate(dateStr: string): string {
   const date = new Date(dateStr + "T00:00:00");
   return date.toLocaleDateString("en-US", {
     weekday: "long",
-    year: "numeric",
     month: "long",
     day: "numeric",
+  });
+}
+
+function formatSubmittedTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -21,7 +36,6 @@ export default async function DailyReportPage() {
   const admin = createAdminClient();
   const today = getToday();
 
-  // Parallel fetch report + sessions
   const [reportResult, sessionsResult] = await Promise.all([
     admin
       .from("daily_reports")
@@ -37,7 +51,6 @@ export default async function DailyReportPage() {
       .eq("status", "completed"),
   ]);
 
-  // Log any query errors
   if (reportResult.error) console.error("[report] report:", reportResult.error);
   if (sessionsResult.error) console.error("[report] sessions:", sessionsResult.error);
 
@@ -47,75 +60,89 @@ export default async function DailyReportPage() {
     0
   );
 
+  const submitted = Boolean(report?.submitted_at);
+  const hasHours = autoMinutes > 0;
+
   return (
-    <div className="px-4 space-y-5 max-w-2xl mx-auto">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-ima-text">Daily Report</h1>
-        <p className="text-sm text-ima-text-secondary mt-1">
-          Reflect on your day and track your progress
-        </p>
-      </div>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+    >
+      <div className="mx-auto max-w-3xl px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {/* Masthead */}
+        <header className="motion-safe:animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <p
+              className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+              style={MONO}
+            >
+              Daily Report
+            </p>
+            <span className="h-px flex-1 bg-ima-border" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "h-[6px] w-[6px] rounded-full shrink-0",
+                  hasHours ? "bg-ima-warning" : "bg-ima-text-muted/40",
+                )}
+                aria-hidden="true"
+              />
+              <span
+                className="text-[11px] font-semibold tabular-nums text-ima-text"
+                style={MONO}
+              >
+                {formatHoursMinutes(autoMinutes)}
+              </span>
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ima-text-muted"
+                style={MONO}
+              >
+                Tracked
+              </span>
+            </span>
+          </div>
 
-      {/* Date + Stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Date card */}
-        <Card variant="warm" className="sm:col-span-2">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-ima-primary/10 shrink-0">
-                <Calendar
-                  className="h-6 w-6 text-ima-primary"
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-ima-text-secondary uppercase tracking-wide">
-                  Today
-                </p>
-                <p className="text-base font-semibold text-ima-text mt-0.5">
-                  {formatDateDisplay(today)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          <h1 className="mt-4 text-[44px] md:text-[56px] font-bold tracking-[-0.025em] text-ima-text leading-[1.0]">
+            {formatHeroDate(today)}
+          </h1>
 
-        {/* Hours card */}
+          <div className="mt-4 min-h-[24px]">
+            {submitted && report?.submitted_at ? (
+              <p className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-ima-success">
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                Submitted at {formatSubmittedTime(report.submitted_at)} · you can still edit it.
+              </p>
+            ) : (
+              <DueSoonIndicator />
+            )}
+          </div>
+        </header>
+
+        {/* Form (shared) */}
         <div
-          className="rounded-xl p-4 bg-ima-surface border border-ima-border shadow-sm"
-          role="status"
-          aria-label={`Hours tracked: ${formatHours(autoMinutes)}`}
+          className="mt-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "100ms" }}
         >
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-ima-warning/10 mb-2">
-            <Clock
-              className="w-4 h-4 text-ima-warning"
+          <ReportForm
+            date={today}
+            existingReport={report ?? null}
+            autoMinutes={autoMinutes}
+          />
+        </div>
+
+        {/* History link */}
+        <div className="mt-10">
+          <Link
+            href="/student/report/history"
+            className="group inline-flex items-center gap-1.5 text-[13px] font-semibold text-ima-text-secondary hover:text-ima-text min-h-[44px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded-md"
+          >
+            View past reports
+            <ArrowRight
+              className="h-3.5 w-3.5 motion-safe:transition-transform duration-200 ease-out group-hover:translate-x-0.5"
               aria-hidden="true"
             />
-          </div>
-          <div className="text-2xl font-bold text-ima-text">
-            {formatHours(autoMinutes)}
-          </div>
-          <div className="text-xs text-ima-text-secondary uppercase tracking-wide">
-            Hours Tracked
-          </div>
+          </Link>
         </div>
       </div>
-
-      {/* Report form -- banners managed by ReportFormWrapper via useOptimistic */}
-      <ReportFormWrapper
-        date={today}
-        existingReport={report ?? null}
-        autoMinutes={autoMinutes}
-      />
-
-      {/* Link to history */}
-      <Link
-        href="/student/report/history"
-        className="text-sm text-ima-primary hover:underline min-h-[44px] inline-flex items-center"
-      >
-        View Past Reports
-      </Link>
     </div>
   );
 }
