@@ -136,7 +136,7 @@ export function ReportForm({ date, existingReport, autoMinutes }: ReportFormProp
         <div className="grid grid-cols-3 gap-6 md:gap-10">
           {numericFields.map(field => (
             <label key={field.id} htmlFor={field.id} className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+              <span className="block text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3 leading-[1.3] min-h-[2.6em]">
                 {field.label}
               </span>
               <input
