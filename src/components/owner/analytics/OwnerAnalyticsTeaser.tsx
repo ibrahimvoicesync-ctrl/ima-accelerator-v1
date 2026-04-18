@@ -1,8 +1,9 @@
 /**
  * Phase 54 → Phase 64: Owner homepage analytics teaser (server component).
  *
- * Renders a single "Analytics" card with three compact top-1 rows (hours,
- * profit, deals) and a "View full analytics →" link to /owner/analytics.
+ * Renders a single "Top Performers" card with three compact top-1 rows
+ * (hours, profit, deals) and a "View full analytics →" link to
+ * /owner/analytics.
  *
  * Phase 64: Reads the "alltime" slice of the new 24-slot RPC payload to
  * preserve Phase 54 teaser semantics (student-only, lifetime top-1). The
@@ -14,13 +15,15 @@
  * within the 60s TTL only ONE Postgres RPC fires regardless of how many
  * surfaces render the data.
  *
- * Empty state: when no leaderboard has a #1 entry, render a reassuring compact
- * EmptyState inside the same card instead of three empty rows.
+ * Visual shell: editorial-restrained "coach chrome" (bg-white, #EDE9E0
+ * border, rounded-[14px], mono eyebrow treatment) — matches /owner dashboard.
+ *
+ * Empty state: when no leaderboard has a #1 entry, render a reassuring
+ * compact EmptyState inside the same card instead of three empty rows.
  */
 
 import Link from "next/link";
-import { Clock, DollarSign, TrendingUp, ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Clock, DollarSign, TrendingUp, ChevronRight } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getOwnerAnalyticsCached } from "@/lib/rpc/owner-analytics";
 
@@ -36,58 +39,70 @@ export async function OwnerAnalyticsTeaser() {
   const hasAnyTop = Boolean(topHours || topProfit || topDeals);
 
   return (
-    <Card aria-labelledby="owner-analytics-teaser-h2">
-      <CardContent className="p-4">
-        <div className="mb-3">
+    <div
+      className="bg-white border border-[#EDE9E0] rounded-[14px] p-6"
+      aria-labelledby="owner-analytics-teaser-h2"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h2
             id="owner-analytics-teaser-h2"
-            className="text-base font-semibold text-ima-text"
+            className="text-[15px] font-semibold text-[#1A1A17] leading-tight"
           >
-            Analytics
+            Top Performers
           </h2>
-          <p className="text-xs text-ima-text-secondary mt-1">
-            Top performer in each category (lifetime)
+          <p className="mt-1 text-[12px] text-[#8A8474]">
+            Top student in each category (lifetime)
           </p>
         </div>
+        <Link
+          href="/owner/analytics"
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] shrink-0 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md px-1"
+          aria-label="View full owner analytics"
+        >
+          View full analytics
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        </Link>
+      </div>
+      <div className="h-px bg-[#EDE9E0] mt-4" aria-hidden="true" />
 
-        {!hasAnyTop ? (
+      {!hasAnyTop ? (
+        <div className="mt-4">
           <EmptyState
             variant="compact"
             title="No activity yet"
             description="Top performers will appear once students start logging hours and deals."
           />
-        ) : (
-          <ul className="space-y-1">
-            <TeaserRow
-              icon={<Clock className="h-4 w-4" aria-hidden="true" />}
-              label="Hours"
-              row={topHours}
-            />
-            <TeaserRow
-              icon={<DollarSign className="h-4 w-4" aria-hidden="true" />}
-              label="Profit"
-              row={topProfit}
-            />
-            <TeaserRow
-              icon={<TrendingUp className="h-4 w-4" aria-hidden="true" />}
-              label="Deals"
-              row={topDeals}
-            />
-          </ul>
-        )}
-
-        <div className="mt-4 pt-3 border-t border-ima-border">
-          <Link
-            href="/owner/analytics"
-            className="inline-flex items-center gap-1 text-sm font-medium text-ima-primary hover:underline min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded"
-            aria-label="View full owner analytics"
-          >
-            View full analytics
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
         </div>
-      </CardContent>
-    </Card>
+      ) : (
+        <ul className="mt-1" role="list">
+          <TeaserRow
+            icon={<Clock className="h-[14px] w-[14px]" aria-hidden="true" />}
+            label="Hours"
+            row={topHours}
+            iconBg="bg-[#E8EEFF]"
+            iconColor="text-[#4A6CF7]"
+            isLast={false}
+          />
+          <TeaserRow
+            icon={<DollarSign className="h-[14px] w-[14px]" aria-hidden="true" />}
+            label="Profit"
+            row={topProfit}
+            iconBg="bg-[#E2F5E9]"
+            iconColor="text-[#16A34A]"
+            isLast={false}
+          />
+          <TeaserRow
+            icon={<TrendingUp className="h-[14px] w-[14px]" aria-hidden="true" />}
+            label="Deals"
+            row={topDeals}
+            iconBg="bg-[#FDF3E0]"
+            iconColor="text-[#D97706]"
+            isLast={true}
+          />
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -101,45 +116,73 @@ function TeaserRow({
   icon,
   label,
   row,
+  iconBg,
+  iconColor,
+  isLast,
 }: {
   icon: React.ReactNode;
   label: string;
   row: TeaserRowInput | undefined;
+  iconBg: string;
+  iconColor: string;
+  isLast: boolean;
 }) {
+  const borderCls = isLast ? "" : "border-b border-[#F3EFE4]";
+
   if (!row) {
     return (
-      <li>
-        <div className="flex items-center gap-3 p-2 text-sm text-ima-text-muted">
-          <span className="text-ima-text-muted shrink-0" aria-hidden="true">
+      <li className={borderCls}>
+        <div className="flex items-center gap-3 py-3 min-h-[52px] -mx-2 px-2">
+          <span
+            className={`w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0 ${iconBg} ${iconColor}`}
+          >
             {icon}
           </span>
-          <span className="flex-1">{label}</span>
-          <span className="text-xs italic shrink-0">No data yet</span>
+          <span
+            className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8A8474] w-14 shrink-0"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            {label}
+          </span>
+          <span className="text-[13px] italic text-[#8A8474] flex-1">
+            No data yet
+          </span>
         </div>
       </li>
     );
   }
 
   return (
-    <li>
+    <li className={borderCls}>
       <Link
         href={`/owner/students/${row.student_id}`}
         aria-label={`${label}: #1 ${row.student_name} — ${row.metric_display}`}
-        className="flex items-center gap-3 p-2 rounded-md motion-safe:transition-colors hover:bg-ima-surface-light min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2"
+        className="flex items-center gap-3 py-3 min-h-[52px] -mx-2 px-2 rounded-md motion-safe:transition-colors hover:bg-[#FAFAF7] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2"
       >
-        <span className="text-ima-primary shrink-0" aria-hidden="true">
+        <span
+          className={`w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0 ${iconBg} ${iconColor}`}
+        >
           {icon}
         </span>
-        <span className="text-xs font-semibold text-ima-text-secondary shrink-0 w-12">
+        <span
+          className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8A8474] w-14 shrink-0"
+          style={{ fontFamily: "var(--font-mono-bold)" }}
+        >
           {label}
         </span>
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-ima-primary text-white text-[10px] font-semibold tabular-nums shrink-0">
+        <span
+          className="inline-flex items-center px-[7px] py-[3px] rounded-[6px] bg-[#4A6CF7] text-white text-[10px] font-semibold tabular-nums shrink-0"
+          style={{ fontFamily: "var(--font-mono-bold)" }}
+        >
           #1
         </span>
-        <span className="flex-1 text-sm font-medium text-ima-text truncate">
+        <span className="flex-1 text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
           {row.student_name}
         </span>
-        <span className="text-sm font-semibold text-ima-text tabular-nums shrink-0">
+        <span
+          className="text-[13px] font-semibold text-[#1A1A17] tabular-nums shrink-0"
+          style={{ fontFamily: "var(--font-mono-bold)" }}
+        >
           {row.metric_display}
         </span>
       </Link>
