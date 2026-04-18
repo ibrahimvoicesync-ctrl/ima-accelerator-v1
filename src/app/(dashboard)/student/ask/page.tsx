@@ -1,49 +1,78 @@
 import { Bot, MessageSquare } from "lucide-react";
-import { Card, CardContent } from "@/components/ui";
+import { JetBrains_Mono } from "next/font/google";
 import { AskIframe } from "@/components/student/AskIframe";
 import { requireRole } from "@/lib/session";
 import { AI_CONFIG } from "@/lib/config";
 
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
+
+const MONO: React.CSSProperties = { fontFamily: "var(--font-mono-bold)" };
+
 export default async function AskAbuLahyaPage() {
   await requireRole("student");
 
-  if (!AI_CONFIG.iframeUrl) {
-    return (
-      <div className="px-4 space-y-5">
-        <div>
-          <h1 className="text-2xl font-bold text-ima-text">{AI_CONFIG.title}</h1>
-          <p className="text-sm text-ima-text-secondary mt-1">{AI_CONFIG.subtitle}</p>
-        </div>
-        <Card variant="warm">
-          <CardContent className="p-8 text-center">
-            <Bot className="h-12 w-12 text-ima-text-muted mx-auto" aria-hidden="true" />
-            <h2 className="text-lg font-semibold text-ima-text mt-4">Coming Soon</h2>
-            <p className="text-sm text-ima-text-secondary mt-2">
-              The AI assistant will be available soon. Your coach Abu Lahya is setting it up.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const iframeReady = Boolean(AI_CONFIG.iframeUrl);
 
   return (
-    <div className="px-4 space-y-5">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-ima-text">{AI_CONFIG.title}</h1>
-          <p className="text-sm text-ima-text-secondary mt-1">{AI_CONFIG.subtitle}</p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-ima-text-secondary">
-          <MessageSquare className="h-4 w-4 text-ima-warning" aria-hidden="true" />
-          <span>24/7 Available</span>
-        </div>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        <header className="motion-safe:animate-fadeIn">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <p
+                className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+                style={MONO}
+              >
+                Ask
+              </p>
+              <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
+                {AI_CONFIG.title}
+              </h1>
+              <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
+                {AI_CONFIG.subtitle}
+              </p>
+            </div>
+            {iframeReady && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-full bg-ima-warning/10 border border-ima-warning/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-warning shrink-0">
+                <MessageSquare className="h-3 w-3" aria-hidden="true" />
+                24/7 Available
+              </span>
+            )}
+          </div>
+        </header>
+
+        {iframeReady ? (
+          <section
+            aria-label="Assistant chat"
+            className="mt-9 bg-ima-surface border border-ima-border rounded-[14px] overflow-hidden motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
+            <AskIframe />
+          </section>
+        ) : (
+          <section
+            aria-label="Assistant unavailable"
+            className="mt-9 bg-ima-surface border border-ima-border rounded-[14px] p-10 text-center motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
+            <div className="mx-auto w-12 h-12 rounded-[12px] bg-ima-surface-light border border-ima-border flex items-center justify-center">
+              <Bot className="h-6 w-6 text-ima-text-muted" aria-hidden="true" />
+            </div>
+            <h2 className="mt-5 text-[20px] font-semibold text-ima-text tracking-[-0.01em]">
+              Coming soon
+            </h2>
+            <p className="mt-2 text-[14px] text-ima-text-secondary leading-relaxed max-w-md mx-auto">
+              The AI assistant will be available soon. Your coach Abu Lahya is setting it up.
+            </p>
+          </section>
+        )}
       </div>
-      <Card variant="warm" className="overflow-hidden">
-        <CardContent className="p-0">
-          <AskIframe />
-        </CardContent>
-      </Card>
     </div>
   );
 }
