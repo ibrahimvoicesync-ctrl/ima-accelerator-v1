@@ -5,7 +5,7 @@
  * The server page fetches the full 24-slot payload once (see page.tsx) and
  * hands it to this component. State here is six useState hooks (one per
  * leaderboard), each holding the currently displayed window. Toggling a
- * SegmentedControl calls setState, React re-renders from the already-delivered
+ * window pill calls setState, React re-renders from the already-delivered
  * payload — no fetch(), no useEffect, no network round-trip.
  *
  * Default window per leaderboard = "alltime" (WS requirement).
@@ -13,19 +13,23 @@
  * Layout: two sections. Students first (3 cards) then Coaches (3 cards).
  * Student rows link to /owner/students/[id]; coach rows link to
  * /owner/coaches/[id].
+ *
+ * Window pills follow the coach editorial chrome: a min-h-[44px] pill
+ * toolbar per card (bg-[#4A6CF7] active / bg-white #EDE9E0 border idle)
+ * instead of the shared SegmentedControl primitive — presentation-only
+ * swap so the page matches the owner chrome refactor.
  */
 
 "use client";
 
 import { useState } from "react";
 import { BarChart3 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   LeaderboardCard,
   type LeaderboardRow,
 } from "@/components/analytics/LeaderboardCard";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { cn } from "@/lib/utils";
 import type {
   OwnerAnalyticsPayload,
   OwnerAnalyticsWindow,
@@ -124,31 +128,35 @@ export function OwnerAnalyticsClient({ payload }: Props) {
 
   if (!anyData) {
     return (
-      <div className="mt-6">
-        <Card>
-          <CardContent className="p-6">
-            <EmptyState
-              icon={<BarChart3 className="h-6 w-6" aria-hidden="true" />}
-              title="No activity yet"
-              description="Leaderboards will appear once students log hours, close deals, or earn profit."
-            />
-          </CardContent>
-        </Card>
+      <div
+        className="mt-10 bg-white border border-[#EDE9E0] rounded-[14px] p-6 motion-safe:animate-fadeIn"
+        style={{ animationDelay: "100ms" }}
+      >
+        <EmptyState
+          icon={<BarChart3 className="h-6 w-6" aria-hidden="true" />}
+          title="No activity yet"
+          description="Leaderboards will appear once students log hours, close deals, or earn profit."
+        />
       </div>
     );
   }
 
   return (
-    <div className="mt-6 space-y-8">
+    <div className="mt-10 space-y-10">
       {/* Students section */}
-      <section aria-labelledby="owner-lb-students-h2">
+      <section
+        aria-labelledby="owner-lb-students-h2"
+        className="motion-safe:animate-fadeIn"
+        style={{ animationDelay: "50ms" }}
+      >
         <h2
           id="owner-lb-students-h2"
-          className="text-lg font-semibold text-ima-text mb-3"
+          className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+          style={{ fontFamily: "var(--font-mono-bold)" }}
         >
           Students
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-[14px]">
           <LeaderboardWithToggle
             headingId="owner-lb-hours"
             heading="Top 3 Students by Hours Worked"
@@ -189,14 +197,19 @@ export function OwnerAnalyticsClient({ payload }: Props) {
       </section>
 
       {/* Coaches section */}
-      <section aria-labelledby="owner-lb-coaches-h2">
+      <section
+        aria-labelledby="owner-lb-coaches-h2"
+        className="motion-safe:animate-fadeIn"
+        style={{ animationDelay: "100ms" }}
+      >
         <h2
           id="owner-lb-coaches-h2"
-          className="text-lg font-semibold text-ima-text mb-3"
+          className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+          style={{ fontFamily: "var(--font-mono-bold)" }}
         >
           Coaches
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-[14px]">
           <LeaderboardWithToggle
             headingId="owner-lb-coach-revenue"
             heading="Top 3 Coaches by Revenue"
@@ -267,13 +280,8 @@ function LeaderboardWithToggle({
   linkRows,
 }: LeaderboardWithToggleProps) {
   return (
-    <div className="space-y-2">
-      <SegmentedControl<OwnerAnalyticsWindow>
-        options={WINDOW_OPTIONS}
-        value={value}
-        onChange={onChange}
-        ariaLabel={controlLabel}
-      />
+    <div className="space-y-3">
+      <WindowPills value={value} onChange={onChange} ariaLabel={controlLabel} />
       <LeaderboardCard
         headingId={headingId}
         heading={heading}
@@ -284,6 +292,43 @@ function LeaderboardWithToggle({
         hrefPrefix={hrefPrefix}
         linkRows={linkRows}
       />
+    </div>
+  );
+}
+
+interface WindowPillsProps {
+  value: OwnerAnalyticsWindow;
+  onChange: (next: OwnerAnalyticsWindow) => void;
+  ariaLabel: string;
+}
+
+function WindowPills({ value, onChange, ariaLabel }: WindowPillsProps) {
+  return (
+    <div
+      className="flex gap-[6px] flex-wrap"
+      role="tablist"
+      aria-label={ariaLabel}
+    >
+      {WINDOW_OPTIONS.map(({ value: v, label }) => {
+        const isActive = value === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(v)}
+            className={cn(
+              "min-h-[44px] px-[14px] rounded-[10px] text-[12px] font-medium motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+              isActive
+                ? "bg-[#4A6CF7] text-white"
+                : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]",
+            )}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }

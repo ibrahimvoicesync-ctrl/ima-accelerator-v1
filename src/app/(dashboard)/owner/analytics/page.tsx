@@ -9,16 +9,20 @@
  *
  * Cache: unstable_cache(60s, key=["owner-analytics-v2"], tag=ownerAnalyticsTag())
  * invalidated from /api/deals, /api/deals/[id], /api/work-sessions/[id], and
- * (new in Phase 64) /api/reports.
- *
- * Per CLAUDE.md Hard Rules: ima-* tokens only, admin client on the server only
- * (via getOwnerAnalyticsCached → owner-analytics.ts which imports "server-only"),
- * never swallow errors (error.tsx handles RPC failures).
+ * (new in Phase 64) /api/reports. The editorial chrome refactor is
+ * presentation-only — cache key, TTL, and tag are untouched.
  */
 
+import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { getOwnerAnalyticsCached } from "@/lib/rpc/owner-analytics";
 import { OwnerAnalyticsClient } from "./OwnerAnalyticsClient";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
 
 // Align route-level revalidation with the RPC cache TTL.
 export const revalidate = 60;
@@ -29,19 +33,32 @@ export default async function OwnerAnalyticsPage() {
   const payload = await getOwnerAnalyticsCached();
 
   return (
-    <section
-      aria-labelledby="owner-analytics-h1"
-      className="px-4 py-6 max-w-7xl mx-auto"
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
     >
-      <h1 id="owner-analytics-h1" className="text-2xl font-bold text-ima-text">
-        Owner Analytics
-      </h1>
-      <p className="mt-1 text-sm text-ima-text-secondary">
-        Leaderboards across students and coaches — toggle each card
-        independently.
-      </p>
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {/* Masthead */}
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            Analytics
+          </p>
+          <h1
+            id="owner-analytics-h1"
+            className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]"
+          >
+            Leaderboards
+          </h1>
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+            Top performers across students and coaches — toggle each card
+            independently.
+          </p>
+        </header>
 
-      <OwnerAnalyticsClient payload={payload} />
-    </section>
+        <OwnerAnalyticsClient payload={payload} />
+      </div>
+    </div>
   );
 }
