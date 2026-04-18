@@ -1,14 +1,20 @@
+import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
 import { getToday } from "@/lib/utils";
-import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
-import { Users } from "lucide-react";
+import { Users, Shield, UserSquare2 } from "lucide-react";
 import Link from "next/link";
 import { CoachCard } from "@/components/owner/CoachCard";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
 
 const PAGE_SIZE = 25;
 
@@ -32,20 +38,36 @@ export default async function OwnerCoachesPage({
     .toISOString()
     .split("T")[0];
 
-  // Paginated coaches query
-  const { data: coaches, count, error: coachesError } = await admin
-    .from("users")
-    .select("id, name, email, status, joined_at", { count: "estimated" })
-    .eq("role", "coach")
-    .order("name")
-    .range(from, to);
+  // Paginated coaches + global active-student count in parallel
+  const [coachesResult, studentCountResult] = await Promise.all([
+    admin
+      .from("users")
+      .select("id, name, email, status, joined_at", { count: "estimated" })
+      .eq("role", "coach")
+      .order("name")
+      .range(from, to),
+    admin
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "student")
+      .eq("status", "active"),
+  ]);
 
-  if (coachesError) {
-    console.error("[owner coaches] Failed to load coaches:", coachesError);
+  if (coachesResult.error) {
+    console.error("[owner coaches] Failed to load coaches:", coachesResult.error);
+  }
+  if (studentCountResult.error) {
+    console.error(
+      "[owner coaches] Failed to load student count:",
+      studentCountResult.error,
+    );
   }
 
+  const { data: coaches, count } = coachesResult;
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
   const coachList = coaches ?? [];
+  const totalStudents = studentCountResult.count ?? 0;
+  const totalCoaches = count ?? 0;
 
   // Only fetch enrichment data if we have coaches on this page
   let enrichedCoaches: Array<{
@@ -117,42 +139,118 @@ export default async function OwnerCoachesPage({
     }));
   }
 
-  return (
-    <div className="px-4">
-      <h1 className="text-2xl font-bold text-ima-text">Coaches</h1>
-      <p className="mt-1 text-ima-text-secondary">
-        ~{count ?? 0} coach{(count ?? 0) !== 1 ? "es" : ""} on the platform
-      </p>
+  const statCards = [
+    {
+      label: "Total Coaches",
+      value: String(totalCoaches),
+      icon: Shield,
+      iconBg: "bg-[#E8EEFF]",
+      iconColor: "text-[#4A6CF7]",
+    },
+    {
+      label: "Active Students",
+      value: String(totalStudents),
+      icon: Users,
+      iconBg: "bg-[#E2F5E9]",
+      iconColor: "text-[#16A34A]",
+    },
+    {
+      label: "Max Per Coach",
+      value: String(COACH_CONFIG.maxStudentsPerCoach),
+      icon: UserSquare2,
+      iconBg: "bg-[#F1EEE6]",
+      iconColor: "text-[#7A7466]",
+    },
+  ];
 
-      {enrichedCoaches.length === 0 ? (
-        <div className="mt-6">
-          <Card>
+  return (
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {/* Masthead */}
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            Coaches
+          </p>
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+            The team on the ground
+          </h1>
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+            ~{totalCoaches} coach{totalCoaches !== 1 ? "es" : ""} on the platform
+          </p>
+        </header>
+
+        {/* Stats row */}
+        <section
+          aria-label="Coach overview"
+          className="mt-9 grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
+        >
+          {statCards.map((s) => (
+            <div
+              key={s.label}
+              className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px]"
+            >
+              <div
+                className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${s.iconBg}`}
+              >
+                <s.icon
+                  className={`h-[18px] w-[18px] ${s.iconColor}`}
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[24px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                  {s.value}
+                </p>
+                <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Coach list */}
+        {enrichedCoaches.length === 0 ? (
+          <div
+            className="mt-8 bg-white border border-[#EDE9E0] rounded-[14px] p-6 motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
             <EmptyState
               icon={<Users className="h-6 w-6" aria-hidden="true" />}
               title="No coaches yet"
               description="Coaches will appear here once invited and registered."
               action={
-                <Link href="/owner/invites" className={buttonVariants({ variant: "primary" })}>
+                <Link
+                  href="/owner/invites"
+                  className={buttonVariants({ variant: "primary" })}
+                >
                   Invite Coaches
                 </Link>
               }
             />
-          </Card>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-            {enrichedCoaches.map((coach) => (
-              <CoachCard key={coach.id} coach={coach} />
-            ))}
           </div>
-          <PaginationControls
-            page={page}
-            totalPages={totalPages}
-            basePath="/owner/coaches"
-          />
-        </>
-      )}
+        ) : (
+          <div
+            className="motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-[14px]">
+              {enrichedCoaches.map((coach) => (
+                <CoachCard key={coach.id} coach={coach} />
+              ))}
+            </div>
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              basePath="/owner/coaches"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
