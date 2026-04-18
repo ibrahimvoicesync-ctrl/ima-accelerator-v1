@@ -1,12 +1,21 @@
 import { JetBrains_Mono } from "next/font/google";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Briefcase,
+  CheckCircle2,
+  DollarSign,
+  Map as MapIcon,
+  TrendingUp,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { WORK_TRACKER, ROADMAP_STEPS } from "@/lib/config";
-import { getToday, cn, formatHoursMinutes } from "@/lib/utils";
-import Link from "next/link";
-import { ArrowRight, Check, CheckCircle2 } from "lucide-react";
-import type { Database } from "@/lib/types";
+import { ROADMAP_STEPS, WORK_TRACKER } from "@/lib/config";
+import { cn, formatHoursMinutes, getToday } from "@/lib/utils";
 import { ReferralCard } from "@/components/student/ReferralCard";
+import { ReferralNudge } from "@/components/student/ReferralNudge";
+import type { Database } from "@/lib/types";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -67,6 +76,7 @@ export default async function StudentDiyDashboard() {
   const dealsClosed = dealsData.length;
   const totalRevenue = dealsData.reduce((sum, d) => sum + Number(d.revenue), 0);
   const totalProfit = dealsData.reduce((sum, d) => sum + Number(d.profit), 0);
+  const hasDeals = dealsClosed > 0;
 
   const todaySessions = (sessions ?? []) as WorkSession[];
   const completedCount = todaySessions.filter((s) => s.status === "completed").length;
@@ -102,8 +112,8 @@ export default async function StudentDiyDashboard() {
 
   const currencyFormat = (value: number) =>
     `$${value.toLocaleString(undefined, {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     })}`;
 
   return (
@@ -111,114 +121,95 @@ export default async function StudentDiyDashboard() {
       className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
     >
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
-        {/* Masthead — amplified scale for student_diy */}
+        {/* Masthead */}
         <header className="motion-safe:animate-fadeIn">
           <p
             className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
             style={MONO}
           >
-            Today
+            Dashboard
           </p>
-          <h1 className="mt-3 text-4xl md:text-6xl font-bold leading-[1.0] text-ima-text tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
             Assalamu3leikum, {firstName}.
           </h1>
-          <p className="mt-3 text-[15px] md:text-base text-ima-text-secondary leading-[1.5] max-w-2xl">
-            Here&apos;s your progress for today.
+          <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
+            Here&apos;s how today is tracking.
           </p>
         </header>
 
-        {/* Hero — monumental hours metric, stitch-blend "stack of wins", CTA */}
+        {/* Referral nudge (shared) */}
+        <div
+          className="mt-9 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
+        >
+          <ReferralNudge />
+        </div>
+
+        {/* Hero — Today's Work */}
         <section
-          aria-labelledby="hours-today-label"
-          className="mt-10 bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8 motion-safe:animate-fadeIn"
+          aria-labelledby="todays-work-label"
+          className="motion-safe:animate-fadeIn"
           style={{ animationDelay: "100ms" }}
         >
-          <div className="flex items-center justify-between gap-3">
-            <p
-              id="hours-today-label"
-              className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
-              style={MONO}
-            >
-              Hours Today
-            </p>
-            {goalMet ? (
-              <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-success/10 border border-ima-success/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-success">
-                <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-                Daily Goal Reached
-              </span>
-            ) : (
-              <span
-                className="text-[10px] font-semibold tracking-[0.14em] text-ima-text-muted uppercase tabular-nums"
+          <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8">
+            <div className="flex items-center justify-between gap-3">
+              <p
+                id="todays-work-label"
+                className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
                 style={MONO}
               >
-                {completedCount} Session{completedCount !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-6 flex items-end gap-4 flex-wrap">
-            <span
-              className={cn(
-                "text-7xl md:text-8xl font-bold tabular-nums tracking-[-0.02em] leading-[0.95]",
-                goalMet ? "text-ima-success" : "text-ima-primary",
+                Today&apos;s Work
+              </p>
+              {goalMet ? (
+                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-success/10 border border-ima-success/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-success">
+                  <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                  Goal Reached
+                </span>
+              ) : (
+                <span
+                  className="text-[10px] font-semibold tracking-[0.14em] text-ima-text-muted uppercase tabular-nums"
+                  style={MONO}
+                >
+                  {completedCount} Session{completedCount !== 1 ? "s" : ""}
+                </span>
               )}
-            >
-              {formatHoursMinutes(totalMinutesWorked)}
-            </span>
-            <span className="text-xl md:text-2xl font-medium text-ima-text-muted tabular-nums mb-2">
-              / {WORK_TRACKER.dailyGoalHours}h
-            </span>
-          </div>
-
-          <div
-            className="mt-6 h-[8px] rounded-full bg-ima-surface-light overflow-hidden"
-            role="progressbar"
-            aria-valuenow={totalMinutesWorked}
-            aria-valuemin={0}
-            aria-valuemax={dailyGoalMinutes}
-            aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
-          >
-            <div
-              className={cn(
-                "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
-                goalMet ? "bg-ima-success" : "bg-ima-primary",
-              )}
-              style={{ width: `${progressBarWidth}%` }}
-            />
-          </div>
-
-          {/* Stitch-blend stack of wins — filled circles echo CycleCard */}
-          {completedCount > 0 && (
-            <div className="mt-6 flex items-center gap-3">
-              <span
-                className="text-[10px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
-                style={MONO}
-              >
-                Wins
-              </span>
-              <ul
-                className="flex items-center gap-1.5 flex-wrap"
-                aria-label={`${completedCount} session${completedCount !== 1 ? "s" : ""} completed today`}
-              >
-                {Array.from({ length: completedCount }).map((_, i) => (
-                  <li
-                    key={i}
-                    className={cn(
-                      "h-5 w-5 rounded-full flex items-center justify-center shrink-0",
-                      goalMet ? "bg-ima-success" : "bg-ima-primary",
-                    )}
-                    aria-hidden="true"
-                  >
-                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                  </li>
-                ))}
-              </ul>
             </div>
-          )}
+
+            <div className="mt-5 flex items-end gap-2">
+              <span
+                className={cn(
+                  "text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none",
+                  goalMet ? "text-ima-success" : "text-ima-primary",
+                )}
+              >
+                {formatHoursMinutes(totalMinutesWorked)}
+              </span>
+              <span className="pb-[6px] text-[15px] font-medium text-ima-text-muted tabular-nums">
+                / {WORK_TRACKER.dailyGoalHours}h
+              </span>
+            </div>
+
+            <div
+              className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
+              role="progressbar"
+              aria-valuenow={totalMinutesWorked}
+              aria-valuemin={0}
+              aria-valuemax={dailyGoalMinutes}
+              aria-label={`Daily hours progress: ${formatHoursMinutes(totalMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours}h`}
+            >
+              <div
+                className={cn(
+                  "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
+                  goalMet ? "bg-ima-success" : "bg-ima-primary",
+                )}
+                style={{ width: `${progressBarWidth}%` }}
+              />
+            </div>
+          </div>
 
           <Link
             href={nextAction.href}
-            className="group mt-6 inline-flex items-center justify-center gap-2 w-full md:w-auto rounded-[10px] bg-ima-primary text-white text-[14px] font-semibold min-h-[48px] px-6 hover:bg-ima-primary-hover focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 motion-safe:transition-colors"
+            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[10px] bg-ima-primary text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-ima-primary-hover focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 motion-safe:transition-colors"
           >
             {nextAction.label}
             <ArrowRight
@@ -228,9 +219,9 @@ export default async function StudentDiyDashboard() {
           </Link>
         </section>
 
-        {/* Support KPIs */}
+        {/* Deals */}
         <section
-          aria-label="Supporting metrics"
+          aria-label="Deals summary"
           className="mt-10 motion-safe:animate-fadeIn"
           style={{ animationDelay: "150ms" }}
         >
@@ -239,90 +230,172 @@ export default async function StudentDiyDashboard() {
               className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
               style={MONO}
             >
-              Progress
+              Deals
             </h2>
             <div className="flex-1 h-px bg-ima-border" aria-hidden="true" />
           </div>
 
-          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-[14px]">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
+            <StatCard
+              icon={Briefcase}
+              iconBg="bg-ima-warning/10"
+              iconColor="text-ima-warning"
+              label="Deals Closed"
+              value={String(dealsClosed)}
+              valueColor="text-ima-warning"
+              caption={hasDeals ? "All time" : "None yet"}
+            />
+            <StatCard
+              icon={DollarSign}
+              iconBg="bg-ima-primary/10"
+              iconColor="text-ima-primary"
+              label="Total Revenue"
+              value={currencyFormat(totalRevenue)}
+              valueColor="text-ima-primary"
+              caption={`From ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
+            />
+            <StatCard
+              icon={TrendingUp}
+              iconBg="bg-ima-success/10"
+              iconColor="text-ima-success"
+              label="Total Profit"
+              value={currencyFormat(totalProfit)}
+              valueColor="text-ima-success"
+              caption={hasDeals ? "All time" : "None yet"}
+            />
+          </div>
+        </section>
+
+        {/* Roadmap */}
+        <section
+          aria-label="Roadmap"
+          className="mt-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "200ms" }}
+        >
+          <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 flex flex-col">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-[8px] bg-ima-primary/10 flex items-center justify-center shrink-0">
+                  <MapIcon className="h-[18px] w-[18px] text-ima-primary" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-ima-text leading-tight">
+                    Roadmap
+                  </p>
+                  <p className="mt-[3px] text-[12px] text-ima-text-muted">
+                    {allRoadmapDone
+                      ? "All steps completed"
+                      : activeRoadmapStep
+                        ? `Currently on step ${activeRoadmapStep.step_number}`
+                        : "Start your journey"}
+                  </p>
+                </div>
+              </div>
+              <span
+                className="text-[12px] font-semibold tabular-nums text-ima-text shrink-0"
+                style={MONO}
+              >
+                {roadmapCompleted}/{ROADMAP_STEPS.length}
+              </span>
+            </div>
+
+            <div
+              className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
+              role="progressbar"
+              aria-valuenow={roadmapCompleted}
+              aria-valuemin={0}
+              aria-valuemax={ROADMAP_STEPS.length}
+              aria-label={`Roadmap progress: ${roadmapCompleted} of ${ROADMAP_STEPS.length}`}
+            >
+              <div
+                className={cn(
+                  "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
+                  allRoadmapDone ? "bg-ima-success" : "bg-ima-primary",
+                )}
+                style={{ width: `${roadmapPercent}%` }}
+              />
+            </div>
+
             <Link
               href="/student_diy/roadmap"
-              aria-label={`Roadmap: ${roadmapPercent}% complete`}
-              className="group block bg-ima-surface border border-ima-border rounded-[14px] p-6 hover:border-ima-primary/40 focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 motion-safe:transition-colors"
-            >
-              <p
-                className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
-                style={MONO}
-              >
-                Roadmap
-              </p>
-              <p
-                className={cn(
-                  "mt-4 text-[28px] md:text-[32px] font-bold tabular-nums tracking-[-0.01em] leading-none",
-                  allRoadmapDone ? "text-ima-success" : "text-ima-text",
-                )}
-              >
-                {roadmapPercent}
-                <span className="text-xl md:text-2xl text-ima-text-muted font-semibold">%</span>
-              </p>
-              <p className="mt-[10px] text-[12px] text-ima-text-muted tabular-nums">
-                {allRoadmapDone
-                  ? `${ROADMAP_STEPS.length} / ${ROADMAP_STEPS.length} complete`
+              aria-label={
+                allRoadmapDone
+                  ? "View roadmap"
                   : activeRoadmapStep
-                    ? `Step ${activeRoadmapStep.step_number} active`
-                    : `${roadmapCompleted} / ${ROADMAP_STEPS.length} steps`}
-              </p>
+                    ? `Continue step ${activeRoadmapStep.step_number}`
+                    : "View roadmap"
+              }
+              className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded-md"
+            >
+              {allRoadmapDone
+                ? "View roadmap"
+                : activeRoadmapStep
+                  ? `Continue step ${activeRoadmapStep.step_number}`
+                  : "View roadmap"}
+              <ArrowRight
+                className="h-3.5 w-3.5 motion-safe:transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
             </Link>
-
-            <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
-              <p
-                className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
-                style={MONO}
-              >
-                Deals Closed
-              </p>
-              <p className="mt-4 text-[28px] md:text-[32px] font-bold tabular-nums tracking-[-0.01em] text-ima-text leading-none">
-                {dealsClosed}
-              </p>
-              <p className="mt-[10px] text-[12px] text-ima-text-muted">All time</p>
-            </div>
-
-            <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
-              <p
-                className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
-                style={MONO}
-              >
-                Revenue
-              </p>
-              <p className="mt-4 text-[28px] md:text-[32px] font-bold tabular-nums tracking-[-0.01em] text-ima-text leading-none">
-                {currencyFormat(totalRevenue)}
-              </p>
-              <p className="mt-[10px] text-[12px] text-ima-text-muted">All time</p>
-            </div>
-
-            <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
-              <p
-                className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
-                style={MONO}
-              >
-                Profit
-              </p>
-              <p className="mt-4 text-[28px] md:text-[32px] font-bold tabular-nums tracking-[-0.01em] text-ima-text leading-none">
-                {currencyFormat(totalProfit)}
-              </p>
-              <p className="mt-[10px] text-[12px] text-ima-text-muted">Net</p>
-            </div>
           </div>
         </section>
 
         {/* Referral (shared) */}
         <div
           className="mt-10 motion-safe:animate-fadeIn"
-          style={{ animationDelay: "200ms" }}
+          style={{ animationDelay: "250ms" }}
         >
           <ReferralCard />
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  value,
+  valueColor,
+  caption,
+}: {
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: string;
+  valueColor: string;
+  caption: string;
+}) {
+  return (
+    <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
+            iconBg,
+          )}
+        >
+          <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
+        </div>
+        <p
+          className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
+          style={MONO}
+        >
+          {label}
+        </p>
+      </div>
+      <p
+        className={cn(
+          "mt-5 text-[28px] md:text-[32px] font-bold tabular-nums leading-none",
+          valueColor,
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-[10px] text-[12px] text-ima-text-muted">{caption}</p>
     </div>
   );
 }
