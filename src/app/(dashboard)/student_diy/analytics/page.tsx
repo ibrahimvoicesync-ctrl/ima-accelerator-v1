@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
+import { JetBrains_Mono } from "next/font/google";
 import { z } from "zod";
 import { requireRole } from "@/lib/session";
-import { createAdminClient } from "@/lib/supabase/admin";
 import {
   fetchStudentAnalytics,
   studentAnalyticsTag,
@@ -9,14 +9,17 @@ import {
   type StudentAnalyticsRange,
 } from "@/lib/rpc/student-analytics";
 import { AnalyticsClient } from "@/app/(dashboard)/student/analytics/AnalyticsClient";
-import type { LoggedByUser } from "@/lib/deals-attribution";
 
-const RangeSchema = z.enum(STUDENT_ANALYTICS_RANGES).catch("30d");
-const PageSchema = z.coerce.number().int().min(1).catch(1);
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
+
+const RangeSchema = z.enum(STUDENT_ANALYTICS_RANGES).catch("daily");
 
 type SearchParams = {
   range?: string;
-  page?: string;
 };
 
 export default async function StudentDiyAnalyticsPage({
@@ -25,75 +28,37 @@ export default async function StudentDiyAnalyticsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const user = await requireRole("student_diy");
-  const admin = createAdminClient();
 
   const resolved = await searchParams;
-  const range: StudentAnalyticsRange = RangeSchema.parse(resolved.range ?? "30d");
-  const page: number = PageSchema.parse(resolved.page ?? "1");
-
-  const { data: profile, error: profileError } = await admin
-    .from("users")
-    .select("joined_at")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError) {
-    console.error("[student_diy-analytics] Failed to load profile:", profileError);
-    throw new Error("Failed to load profile");
-  }
-
-  const joinedAt = profile?.joined_at ?? new Date().toISOString();
+  const range: StudentAnalyticsRange = RangeSchema.parse(resolved.range ?? "daily");
 
   const fetchCached = unstable_cache(
-    async (studentId: string, r: StudentAnalyticsRange, p: number) =>
-      fetchStudentAnalytics(studentId, r, p),
-    ["student-analytics-v3"],
+    async (studentId: string, r: StudentAnalyticsRange) =>
+      fetchStudentAnalytics(studentId, r, 1),
+    ["student-analytics-v4"],
     {
       revalidate: 60,
       tags: [studentAnalyticsTag(user.id)],
     },
   );
 
-  const data = await fetchCached(user.id, range, page);
-
-  // Phase 49: build userMap for logged_by ids in the current deal page.
-  const loggedByIds = Array.from(
-    new Set(
-      data.deals
-        .map((d) => d.logged_by)
-        .filter((id): id is string => typeof id === "string")
-    )
-  );
-  const { data: loggedByUsers } =
-    loggedByIds.length > 0
-      ? await admin
-          .from("users")
-          .select("id, name, role")
-          .in("id", loggedByIds)
-      : { data: [] as { id: string; name: string; role: string }[] };
-  const userMap: Record<string, LoggedByUser> = {};
-  for (const u of loggedByUsers ?? []) {
-    userMap[u.id] = {
-      id: u.id,
-      name: u.name,
-      role: u.role as LoggedByUser["role"],
-    };
-  }
+  const data = await fetchCached(user.id, range);
 
   return (
-    <div className="px-4 md:px-6 py-8 md:py-12 max-w-7xl mx-auto">
-      <AnalyticsClient
-        initialData={data}
-        studentId={user.id}
-        joinedAt={joinedAt}
-        initialRange={range}
-        initialPage={page}
-        basePath="/student_diy/analytics"
-        viewerId={user.id}
-        viewerRole="student_diy"
-        userMap={userMap}
-        showOutreach={false}
-      />
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+    >
+      <section
+        aria-labelledby="student-analytics-h1"
+        className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20"
+      >
+        <AnalyticsClient
+          initialData={data}
+          initialRange={range}
+          basePath="/student_diy/analytics"
+          showOutreach={false}
+        />
+      </section>
     </div>
   );
 }
