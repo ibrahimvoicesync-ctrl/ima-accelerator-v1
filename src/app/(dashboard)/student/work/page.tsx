@@ -43,20 +43,20 @@ export default async function WorkPage() {
 
   return (
     <div
-      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
     >
-      <div className="mx-auto max-w-3xl px-6 md:px-14 pt-10 md:pt-14 pb-20">
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
         <header className="motion-safe:animate-fadeIn">
           <p
-            className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
             style={{ fontFamily: "var(--font-mono-bold)" }}
           >
             Work Tracker
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
             Today&apos;s focus.
           </h1>
-          <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
             Plan it, run it, log it.
           </p>
         </header>

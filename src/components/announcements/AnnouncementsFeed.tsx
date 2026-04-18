@@ -130,13 +130,13 @@ export function AnnouncementsFeed({
           <p className="text-sm text-ima-text-secondary leading-relaxed">
             {canAuthor
               ? "Post the first update — your students will see it the moment you send it."
-              : "When your coach posts an update, it will appear here."}
+              : "When the team posts an update, it will appear here."}
           </p>
           {canAuthor && (
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="mt-2 inline-flex items-center justify-center gap-2 bg-ima-primary text-white rounded-2xl px-6 min-h-[56px] text-base font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
+              className="mt-2 inline-flex items-center justify-center gap-2 bg-ima-primary text-white rounded-xl px-6 min-h-[56px] text-base font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
               Post first announcement
@@ -148,32 +148,22 @@ export function AnnouncementsFeed({
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      {canAuthor && (
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-2">
-            <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
-              Feed
-            </p>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums">
-              {`${items.length} post${items.length !== 1 ? "s" : ""}`}
-            </p>
-          </div>
-          {!showCreate && (
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 bg-ima-primary text-white rounded-xl px-5 min-h-[44px] text-sm font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-              New announcement
-            </button>
-          )}
+    <div className="flex flex-col">
+      {canAuthor && !showCreate && (
+        <div className="flex justify-end mb-6 -mt-2">
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center gap-2 bg-ima-primary text-white rounded-xl px-5 min-h-[44px] text-sm font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+            New announcement
+          </button>
         </div>
       )}
 
       {showCreate && canAuthor && (
-        <div className="rounded-2xl border border-ima-primary/25 bg-ima-surface-accent p-5 md:p-6 motion-safe:animate-fadeIn">
+        <div className="rounded-2xl border border-ima-primary/25 bg-ima-surface-accent p-5 md:p-6 mb-8 motion-safe:animate-fadeIn">
           <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-primary mb-3">
             New announcement
           </p>
@@ -199,7 +189,7 @@ export function AnnouncementsFeed({
       </ul>
 
       {hasMore && (
-        <div className="flex justify-center mt-2">
+        <div className="flex justify-center mt-10">
           <button
             type="button"
             onClick={handleLoadMore}

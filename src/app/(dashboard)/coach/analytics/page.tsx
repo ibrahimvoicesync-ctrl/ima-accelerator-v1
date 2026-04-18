@@ -1,22 +1,9 @@
-/**
- * Phase 48: Full Coach Analytics Page (server component).
- *
- * Single batch RPC `get_coach_analytics` (migration 00025) wrapped in
- * unstable_cache(60s) drives 5 KPIs, 3 top-5 leaderboards, a 12-week deals
- * trend chart, an Active/Inactive header chip, and a paginated/searchable/
- * sortable student list with CSV export.
- *
- * Per CLAUDE.md hard rules: ima-* tokens only (no hex except chartColors in
- * the chart component), motion-safe: on every animation, min-h-[44px] on every
- * interactive element, admin client only on the server, never swallow errors.
- */
-
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
+import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { getTodayUTC } from "@/lib/utils";
-import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
 import {
@@ -26,7 +13,12 @@ import {
 import { parseCoachAnalyticsSearchParams } from "@/lib/schemas/coach-analytics-params";
 import { CoachAnalyticsClient } from "@/components/coach/analytics/CoachAnalyticsClient";
 
-// Align the route-level revalidation with the RPC cache TTL.
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
+
 export const revalidate = 60;
 
 export default async function CoachAnalyticsPage({
@@ -54,10 +46,6 @@ export default async function CoachAnalyticsPage({
     leaderboardLimit: 5,
   });
 
-  // Detect zero-assigned-students state. The RPC returns total=0 with empty
-  // arrays AND zero active+inactive only when no students exist for the coach.
-  // (A search yielding zero results still has active+inactive > 0 if any
-  // students are assigned.)
   const hasNoAssignedStudents =
     !parsed.value.search &&
     payload.pagination.total === 0 &&
@@ -66,41 +54,61 @@ export default async function CoachAnalyticsPage({
 
   if (hasNoAssignedStudents) {
     return (
-      <div className="px-4 py-6 max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-ima-text">Coach Analytics</h1>
-        <p className="mt-1 text-sm text-ima-text-secondary">
-          Aggregate stats across your assigned students.
-        </p>
-        <div className="mt-6">
-          <Card>
+      <div
+        className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+      >
+        <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+          <header className="motion-safe:animate-fadeIn">
+            <p
+              className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+              style={{ fontFamily: "var(--font-mono-bold)" }}
+            >
+              Analytics
+            </p>
+            <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+              Coach Analytics
+            </h1>
+            <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+              Aggregate stats across your assigned students.
+            </p>
+          </header>
+          <div
+            className="mt-10 bg-white border border-[#EDE9E0] rounded-[14px] p-6 motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
             <EmptyState
-              icon={<BarChart3 className="h-6 w-6" aria-hidden="true" />}
+              variant="compact"
+              icon={<BarChart3 className="h-5 w-5" aria-hidden="true" />}
               title="No students assigned"
               description="Analytics will appear once students join your cohort."
               action={
                 <Link
                   href="/coach/invites"
-                  className={buttonVariants({ variant: "primary" })}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
                   Invite Students
                 </Link>
               }
             />
-          </Card>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <section
-      aria-labelledby="coach-analytics-h1"
-      className="px-4 py-6 max-w-7xl mx-auto"
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
     >
-      <CoachAnalyticsClient
-        payload={payload}
-        initialParams={parsed.value}
-      />
-    </section>
+      <section
+        aria-labelledby="coach-analytics-h1"
+        className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20"
+      >
+        <CoachAnalyticsClient
+          payload={payload}
+          initialParams={parsed.value}
+        />
+      </section>
+    </div>
   );
 }

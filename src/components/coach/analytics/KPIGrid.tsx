@@ -1,13 +1,3 @@
-/**
- * Phase 48: 5-card KPI grid for /coach/analytics.
- *
- * Stateless presentational component. All values are pre-formatted strings
- * (currency / decimal / count) — formatting is server-side in the page
- * component to avoid hydration drift. Each card mirrors the geometry of the
- * Phase 47 coach dashboard KPI cards exactly (icon box w-10 h-10 rounded-lg
- * with bg-{tint}/10 + text-{tint}, value text-2xl font-bold tabular-nums).
- */
-
 import {
   Trophy,
   DollarSign,
@@ -16,7 +6,6 @@ import {
   Send,
   type LucideIcon,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
 import type { CoachAnalyticsStats } from "@/lib/rpc/coach-analytics-types";
 
 type KpiTint = "primary" | "success" | "info" | "warning" | "accent";
@@ -30,14 +19,12 @@ type KpiCardData = {
   ariaLabel: string;
 };
 
-// Tailwind cannot tree-shake dynamic class concatenation, so each tint maps
-// to a fully-resolved class string. Centralized here so a single rg can audit.
 const TINT_CLASSES: Record<KpiTint, { bg: string; text: string }> = {
-  primary: { bg: "bg-ima-primary/10", text: "text-ima-primary" },
-  success: { bg: "bg-ima-success/10", text: "text-ima-success" },
-  info: { bg: "bg-ima-info/10", text: "text-ima-info" },
-  warning: { bg: "bg-ima-warning/10", text: "text-ima-warning" },
-  accent: { bg: "bg-ima-accent/10", text: "text-ima-accent" },
+  primary: { bg: "bg-[#E8EEFF]", text: "text-[#4A6CF7]" },
+  success: { bg: "bg-[#E2F5E9]", text: "text-[#16A34A]" },
+  info: { bg: "bg-[#E8EEFF]", text: "text-[#4A6CF7]" },
+  warning: { bg: "bg-[#FDF3E0]", text: "text-[#D97706]" },
+  accent: { bg: "bg-[#F1EEE6]", text: "text-[#7A7466]" },
 };
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -47,7 +34,7 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 });
 const integerFormatter = new Intl.NumberFormat("en-US");
 
-function formatTopStudent(name: string | null, count: number, suffix: string) {
+function formatTopStudent(_name: string | null, count: number, suffix: string) {
   return `${integerFormatter.format(count)} ${suffix}`;
 }
 
@@ -109,31 +96,33 @@ export function KPIGrid({ stats }: { stats: CoachAnalyticsStats }) {
   const cards = buildCards(stats);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-[14px] mt-9">
       {cards.map((card) => {
         const Icon = card.icon;
         const tint = TINT_CLASSES[card.tint];
         return (
-          <Card key={card.label} aria-label={card.ariaLabel}>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div
-                className={`w-10 h-10 rounded-lg ${tint.bg} flex items-center justify-center shrink-0`}
-              >
-                <Icon className={`h-5 w-5 ${tint.text}`} aria-hidden="true" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-2xl font-bold text-ima-text tabular-nums">
-                  {card.value}
+          <div
+            key={card.label}
+            aria-label={card.ariaLabel}
+            className="flex items-start gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px]"
+          >
+            <div
+              className={`w-9 h-9 rounded-[8px] ${tint.bg} flex items-center justify-center shrink-0`}
+            >
+              <Icon className={`h-[18px] w-[18px] ${tint.text}`} aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[22px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                {card.value}
+              </p>
+              {card.subLabel ? (
+                <p className="mt-[6px] text-[13px] font-semibold text-[#1A1A17] truncate">
+                  {card.subLabel}
                 </p>
-                {card.subLabel ? (
-                  <p className="text-base font-semibold text-ima-text truncate">
-                    {card.subLabel}
-                  </p>
-                ) : null}
-                <p className="text-xs text-ima-text-secondary">{card.label}</p>
-              </div>
-            </CardContent>
-          </Card>
+              ) : null}
+              <p className="mt-[6px] text-[12px] text-[#8A8474]">{card.label}</p>
+            </div>
+          </div>
         );
       })}
     </div>

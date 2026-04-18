@@ -1,17 +1,13 @@
 import { unstable_cache } from "next/cache";
+import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
-import { getGreeting, getToday, getTodayUTC } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { StudentCard } from "@/components/coach/StudentCard";
+import { getToday, getTodayUTC } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
-import { KPICard } from "@/components/coach/KPICard";
-import { RecentSubmissionsCard } from "@/components/coach/RecentSubmissionsCard";
-import { WeeklyLeaderboardCard } from "@/components/coach/WeeklyLeaderboardCard";
 import { fetchCoachDashboard, coachDashboardTag } from "@/lib/rpc/coach-dashboard";
+import { ROADMAP_STEPS } from "@/lib/config";
 import {
   Users,
   AlertTriangle,
@@ -21,8 +17,18 @@ import {
   DollarSign,
   Map as MapIcon,
   Mail,
+  Star,
+  Trophy,
+  CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
 
 type EnrichedStudent = {
   id: string;
@@ -35,6 +41,41 @@ type EnrichedStudent = {
   currentRoadmapStep: number;
   skippedDays?: number;
 };
+
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function formatRelative(iso: string, nowMs: number): string {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "";
+  const diffMs = nowMs - t;
+  if (diffMs < 60_000) return "JUST NOW";
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 60) return `${minutes}M AGO`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}H AGO`;
+  if (hours < 48) return "YESTERDAY";
+  return new Date(iso)
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    })
+    .toUpperCase();
+}
+
+function formatHoursLabel(minutes: number): string {
+  const safe = Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : 0;
+  const h = Math.floor(safe / 60);
+  const m = safe % 60;
+  return `${h}h ${m}m`;
+}
 
 export default async function CoachDashboard() {
   // Step 1 — Auth + fetch assigned students
@@ -56,9 +97,6 @@ export default async function CoachDashboard() {
   const studentList = students ?? [];
   const studentIds = studentList.map((s) => s.id);
 
-  // Step 1.5 — Phase 47: batch RPC for KPIs + recent submissions + weekly hours.
-  // Wrapped in unstable_cache (60s TTL) keyed per-coach; tag is invalidated by
-  // assigned-student deal/report/work-session mutations from API routes.
   const getCachedCoachDashboard = unstable_cache(
     async (coachId: string, t: string) => fetchCoachDashboard(coachId, t),
     ["coach-dashboard", user.id],
@@ -66,7 +104,6 @@ export default async function CoachDashboard() {
   );
   const dashboard = await getCachedCoachDashboard(user.id, today);
 
-  // Server-format KPI values once — never format on the client (avoid hydration drift).
   const intFormat = new Intl.NumberFormat("en-US");
   const currencyFormat = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -78,11 +115,8 @@ export default async function CoachDashboard() {
   const avgStepLabel = Number(dashboard.stats.avg_roadmap_step ?? 0).toFixed(1);
   const emailsSentLabel = intFormat.format(dashboard.stats.emails_sent ?? 0);
 
-  // Server-derived "now" timestamp for relative-time formatting in client components.
-  // Hoisted from the enrichment block below so RecentSubmissionsCard can consume it.
   const dashboardNowMs = new Date(today + "T23:59:59Z").getTime();
 
-  // Step 2 — If no students, skip enrichment. Otherwise parallel fetch.
   const [sessionsResult, reportsResult, roadmapResult, skipResult] =
     studentIds.length > 0
       ? await Promise.all([
@@ -126,11 +160,10 @@ export default async function CoachDashboard() {
     console.error("[coach dashboard] Failed to load skip counts:", skipResult.error);
   }
 
-  // Step 3 — Build lookup maps
   const latestSessionMap = new Map<string, string>();
   for (const s of sessionsResult.data ?? []) {
     if (!latestSessionMap.has(s.student_id)) {
-      latestSessionMap.set(s.student_id, s.date); // sorted desc, first = latest
+      latestSessionMap.set(s.student_id, s.date);
     }
   }
 
@@ -146,7 +179,6 @@ export default async function CoachDashboard() {
   }
 
   const recentRatings = new Map<string, number[]>();
-  // Derive nowMs from the server-generated today string to avoid impure Date.now()
   const nowMs = new Date(today + "T23:59:59Z").getTime();
   const sevenDaysAgo = new Date(
     nowMs - COACH_CONFIG.reportInboxDays * 24 * 60 * 60 * 1000
@@ -185,8 +217,6 @@ export default async function CoachDashboard() {
     }
   }
 
-  // Step 4 — Compute enriched student objects with at-risk detection
-
   const enrichedStudents: EnrichedStudent[] = studentList.map((student) => {
     const latestSession = latestSessionMap.get(student.id) ?? null;
     const latestReport = latestReportMap.get(student.id) ?? null;
@@ -197,7 +227,6 @@ export default async function CoachDashboard() {
       (nowMs - new Date(student.joined_at).getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    // "New" badge: zero activity AND joined < 3 days ago
     if (!hasActivity && joinedDaysAgo < COACH_CONFIG.atRiskInactiveDays) {
       return {
         id: student.id,
@@ -214,20 +243,18 @@ export default async function CoachDashboard() {
 
     const reasons: string[] = [];
 
-    // Inactive check
     if (lastActiveDateStr) {
       const daysInactive = Math.floor(
         (nowMs - new Date(lastActiveDateStr + "T00:00:00Z").getTime()) /
           (1000 * 60 * 60 * 24)
       );
       if (daysInactive >= COACH_CONFIG.atRiskInactiveDays) {
-        reasons.push(`Inactive ${daysInactive}d`);
+        reasons.push(`Kaslan ${daysInactive}d`);
       }
     } else if (joinedDaysAgo >= COACH_CONFIG.atRiskInactiveDays) {
-      reasons.push(`Inactive ${joinedDaysAgo}d`);
+      reasons.push(`Kaslan ${joinedDaysAgo}d`);
     }
 
-    // Rating check
     const ratings = recentRatings.get(student.id);
     if (ratings && ratings.length > 0) {
       const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
@@ -236,7 +263,6 @@ export default async function CoachDashboard() {
       }
     }
 
-    // Last active label
     let lastActiveLabel = "Never";
     if (lastActiveDateStr) {
       lastActiveLabel = new Date(
@@ -261,7 +287,6 @@ export default async function CoachDashboard() {
     };
   });
 
-  // Sort: at-risk first, then alphabetical by name
   enrichedStudents.sort((a, b) => {
     if (a.isAtRisk && !b.isAtRisk) return -1;
     if (!a.isAtRisk && b.isAtRisk) return 1;
@@ -270,215 +295,494 @@ export default async function CoachDashboard() {
 
   const atRiskStudents = enrichedStudents.filter((s) => s.isAtRisk);
   const firstName = user.name.split(" ")[0];
+  const greeting = "Assalamu3leikum";
+  const eyebrow = "Dashboard";
+
+  const statA = [
+    {
+      label: "Total Students",
+      value: String(studentList.length),
+      icon: Users,
+      iconBg: "bg-[#E8EEFF]",
+      iconColor: "text-[#4A6CF7]",
+      valueColor: "text-[#1A1A17]",
+    },
+    {
+      label: "At Risk",
+      value: String(atRiskStudents.length),
+      icon: AlertTriangle,
+      iconBg: "bg-[#FDF3E0]",
+      iconColor: "text-[#D97706]",
+      valueColor: atRiskStudents.length > 0 ? "text-[#DC2626]" : "text-[#1A1A17]",
+    },
+    {
+      label: "Reports Pending",
+      value: String(pendingReviewCount),
+      icon: FileText,
+      iconBg: "bg-[#F1EEE6]",
+      iconColor: "text-[#7A7466]",
+      valueColor: "text-[#1A1A17]",
+    },
+  ];
+
+  const statB = [
+    {
+      label: "Deals Closed",
+      value: dealsClosedLabel,
+      icon: Briefcase,
+      iconBg: "bg-[#E8EEFF]",
+      iconColor: "text-[#4A6CF7]",
+      href: "/coach/analytics#deals",
+    },
+    {
+      label: "Revenue Generated",
+      value: revenueLabel,
+      icon: DollarSign,
+      iconBg: "bg-[#E2F5E9]",
+      iconColor: "text-[#16A34A]",
+      href: "/coach/analytics#revenue",
+    },
+    {
+      label: "Avg Roadmap Step",
+      value: avgStepLabel,
+      icon: MapIcon,
+      iconBg: "bg-[#E8EEFF]",
+      iconColor: "text-[#4A6CF7]",
+      href: "/coach/analytics#roadmap",
+    },
+    {
+      label: "Emails Sent",
+      value: emailsSentLabel,
+      icon: Mail,
+      iconBg: "bg-[#FDF3E0]",
+      iconColor: "text-[#D97706]",
+      href: "/coach/analytics#emails",
+    },
+  ];
 
   return (
-    <div className="px-4">
-      {/* Greeting */}
-      <h1 className="text-2xl font-bold text-ima-text">
-        {getGreeting()}, {firstName}!
-      </h1>
-      <p className="mt-1 text-ima-text-secondary">
-        Here&apos;s how your students are doing
-      </p>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {/* Greeting */}
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            {eyebrow.toUpperCase()}
+          </p>
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+            {greeting}, {firstName}!
+          </h1>
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+            Here&apos;s how your students are doing
+          </p>
+        </header>
 
-      {/* 3 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-        {/* Total Students */}
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-ima-primary/10 flex items-center justify-center shrink-0">
-              <Users
-                className="h-5 w-5 text-ima-primary"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-ima-text">
-                {studentList.length}
-              </p>
-              <p className="text-xs text-ima-text-secondary">Total Students</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* At-Risk */}
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-ima-warning/10 flex items-center justify-center shrink-0">
-              <AlertTriangle
-                className="h-5 w-5 text-ima-warning"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <p
-                className={
-                  atRiskStudents.length > 0
-                    ? "text-2xl font-bold text-ima-error"
-                    : "text-2xl font-bold text-ima-text"
-                }
+        {/* Stats Row A — 3 compact cards */}
+        <section
+          aria-label="Student overview"
+          className="mt-9 grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
+        >
+          {statA.map((s) => (
+            <div
+              key={s.label}
+              className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px]"
+            >
+              <div
+                className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${s.iconBg}`}
               >
-                {atRiskStudents.length}
-              </p>
-              <p className="text-xs text-ima-text-secondary">At-Risk</p>
+                <s.icon className={`h-[18px] w-[18px] ${s.iconColor}`} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p
+                  className={`text-[24px] font-bold leading-none tabular-nums ${s.valueColor}`}
+                >
+                  {s.value}
+                </p>
+                <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </section>
 
-        {/* Reports Pending */}
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-ima-info/10 flex items-center justify-center shrink-0">
-              <FileText
-                className="h-5 w-5 text-ima-info"
-                aria-hidden="true"
-              />
+        {/* Stats Row B — 4 compact cards */}
+        <section
+          aria-label="Performance metrics"
+          className="mt-[14px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[14px] motion-safe:animate-fadeIn"
+          style={{ animationDelay: "100ms" }}
+        >
+          {statB.map((s) => (
+            <Link
+              key={s.label}
+              href={s.href}
+              aria-label={`${s.label}: ${s.value}. View in analytics.`}
+              className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px] motion-safe:transition-[transform,border-color] hover:-translate-y-[1px] hover:border-[#D8D2C4] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2"
+            >
+              <div
+                className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${s.iconBg}`}
+              >
+                <s.icon className={`h-[18px] w-[18px] ${s.iconColor}`} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[24px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                  {s.value}
+                </p>
+                <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+              </div>
+            </Link>
+          ))}
+        </section>
+
+        {/* Feed row — Recent Submissions (1.15fr) + Top 3 (1fr) */}
+        <section
+          aria-label="Activity feed"
+          className="mt-10 grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-[14px] motion-safe:animate-fadeIn"
+          style={{ animationDelay: "150ms" }}
+        >
+          {/* Recent Submissions */}
+          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+                  Recent Submissions
+                </h2>
+                <p className="mt-1 text-[12px] text-[#8A8474]">
+                  3 most recent reports from your students
+                </p>
+              </div>
+              <Link
+                href="/coach/reports"
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] shrink-0 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md px-1"
+              >
+                See all reports
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </Link>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-ima-text">
-                {pendingReviewCount}
-              </p>
-              <p className="text-xs text-ima-text-secondary">
-                Reports Pending
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="h-px bg-[#EDE9E0] mt-4" aria-hidden="true" />
 
-      {/* Phase 47: 4 KPI cards (Deals Closed, Revenue, Avg Roadmap Step, Emails Sent) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        <KPICard
-          label="Deals Closed"
-          value={dealsClosedLabel}
-          icon={Briefcase}
-          tint="primary"
-          href="/coach/analytics#deals"
-          ariaLabel={`Deals Closed: ${dealsClosedLabel}. View in analytics.`}
-        />
-        <KPICard
-          label="Revenue Generated"
-          value={revenueLabel}
-          icon={DollarSign}
-          tint="success"
-          href="/coach/analytics#revenue"
-          ariaLabel={`Revenue Generated: ${revenueLabel}. View in analytics.`}
-        />
-        <KPICard
-          label="Avg Roadmap Step"
-          value={avgStepLabel}
-          icon={MapIcon}
-          tint="info"
-          href="/coach/analytics#roadmap"
-          ariaLabel={`Average Roadmap Step: ${avgStepLabel}. View in analytics.`}
-        />
-        <KPICard
-          label="Emails Sent"
-          value={emailsSentLabel}
-          icon={Mail}
-          tint="warning"
-          href="/coach/analytics#emails"
-          ariaLabel={`Emails Sent: ${emailsSentLabel}. View in analytics.`}
-        />
-      </div>
+            {dashboard.recent_reports.length === 0 ? (
+              <div className="mt-4">
+                <EmptyState
+                  variant="compact"
+                  icon={<FileText className="h-5 w-5" aria-hidden="true" />}
+                  title="No submissions yet"
+                  description="Reports from your students will appear here as soon as they log their day."
+                />
+              </div>
+            ) : (
+              <ul className="mt-1" role="list">
+                {dashboard.recent_reports.map((r, i, arr) => {
+                  const rating = r.star_rating ?? 0;
+                  const rel = formatRelative(r.submitted_at, dashboardNowMs);
+                  const isLast = i === arr.length - 1;
+                  return (
+                    <li key={r.id} className={!isLast ? "border-b border-[#F3EFE4]" : ""}>
+                      <Link
+                        href={`/coach/reports#${r.id}`}
+                        aria-label={`${r.student_name} submitted a report, rated ${rating} of 5 stars, ${rel.toLowerCase()}`}
+                        className="flex items-center gap-3 py-3 min-h-[52px] motion-safe:transition-colors hover:bg-[#FAFAF7] -mx-2 px-2 rounded-md focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-[#F1EEE6] border border-[#EDE9E0] flex items-center justify-center text-[11px] font-semibold text-[#5A5648] shrink-0">
+                          {initials(r.student_name)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                            {r.student_name}
+                          </p>
+                          <p
+                            className="mt-[3px] text-[10px] font-medium text-[#8A8474] tracking-[0.12em] uppercase"
+                            style={{ fontFamily: "var(--font-mono-bold)" }}
+                          >
+                            {rel}
+                          </p>
+                        </div>
+                        <div
+                          className="flex items-center gap-[2px] shrink-0"
+                          aria-hidden="true"
+                        >
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star
+                              key={n}
+                              className={
+                                n <= rating
+                                  ? "h-[13px] w-[13px] text-[#F59E0B] fill-[#F59E0B]"
+                                  : "h-[13px] w-[13px] text-[#EDE9E0]"
+                              }
+                              aria-hidden="true"
+                            />
+                          ))}
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
 
-      {/* Phase 47: Recent Submissions + Weekly Top-3 Hours leaderboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-        <RecentSubmissionsCard
-          reports={dashboard.recent_reports}
-          nowMs={dashboardNowMs}
-        />
-        <WeeklyLeaderboardCard rows={dashboard.top_hours_week} />
-      </div>
+          {/* Top 3 This Week */}
+          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+            <h2 className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+              Top 3 This Week
+            </h2>
+            <p className="mt-1 text-[12px] text-[#8A8474]">Hours worked since Monday</p>
+            <div className="h-px bg-[#EDE9E0] mt-4" aria-hidden="true" />
 
-      {/* At-risk banner */}
-      {atRiskStudents.length > 0 && (
-        <section role="alert" className="mt-6">
-          <Card variant="warm">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-ima-warning/10 shrink-0">
+            {dashboard.top_hours_week.length === 0 ? (
+              <div className="mt-4">
+                <EmptyState
+                  variant="compact"
+                  icon={<Trophy className="h-5 w-5" aria-hidden="true" />}
+                  title="No hours logged this week"
+                  description="Once your students start work sessions, the weekly leader will appear here."
+                />
+              </div>
+            ) : (
+              <ul className="mt-2" role="list">
+                {dashboard.top_hours_week.map((r, i) => {
+                  const rank = i + 1;
+                  const hoursLabel = formatHoursLabel(r.minutes);
+                  return (
+                    <li key={r.student_id}>
+                      <Link
+                        href={`/coach/students/${r.student_id}`}
+                        aria-label={`View ${r.student_name} — ${hoursLabel}`}
+                        className="flex items-center gap-3 py-3 min-h-[52px] -mx-2 px-2 rounded-md motion-safe:transition-colors hover:bg-[#FAFAF7] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2"
+                      >
+                        <span
+                          className="inline-flex items-center justify-center rounded-[6px] bg-[#4A6CF7] text-white text-[10px] font-semibold tracking-[0.08em] px-[7px] py-[3px] shrink-0 tabular-nums"
+                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                        >
+                          #{rank}
+                        </span>
+                        <div className="w-8 h-8 rounded-full bg-[#F1EEE6] border border-[#EDE9E0] flex items-center justify-center text-[11px] font-semibold text-[#5A5648] shrink-0">
+                          {initials(r.student_name)}
+                        </div>
+                        <p className="text-[14px] font-semibold text-[#1A1A17] truncate flex-1 leading-tight">
+                          {r.student_name}
+                        </p>
+                        <p
+                          className="text-[13px] font-semibold text-[#1A1A17] tabular-nums shrink-0"
+                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                        >
+                          {hoursLabel}
+                        </p>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        {/* Needs Attention Banner */}
+        {atRiskStudents.length > 0 && (
+          <section
+            role="alert"
+            aria-label="Students needing attention"
+            className="mt-8 motion-safe:animate-fadeIn"
+            style={{ animationDelay: "200ms" }}
+          >
+            <div className="bg-white border border-[#EDE9E0] border-l-[3px] border-l-[#F59E0B] rounded-[14px] p-6">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-[8px] bg-[#FDF3E0] flex items-center justify-center shrink-0">
                   <AlertTriangle
-                    className="h-5 w-5 text-ima-warning"
+                    className="h-[18px] w-[18px] text-[#D97706]"
                     aria-hidden="true"
                   />
                 </div>
-                <div>
-                  <h2 className="text-base font-semibold text-ima-text">
+                <div className="min-w-0">
+                  <h2 className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
                     {atRiskStudents.length} Student
                     {atRiskStudents.length !== 1 ? "s" : ""} Needing Attention
                   </h2>
-                  <p className="text-xs text-ima-text-secondary">
+                  <p className="mt-1 text-[12px] text-[#8A8474]">
                     Review and reach out before they fall behind
                   </p>
                 </div>
               </div>
-              <div className="space-y-2">
+
+              <ul className="mt-5 space-y-2" role="list">
                 {atRiskStudents.map((student) => (
+                  <li key={student.id}>
+                    <Link
+                      href={`/coach/students/${student.id}`}
+                      className="group flex items-center gap-3 bg-[#FDF9F0] border border-[#F5ECD6] rounded-[10px] px-4 py-3 min-h-[56px] motion-safe:transition-[transform,background-color,border-color] hover:translate-x-[2px] hover:bg-[#FBF3E0] hover:border-[#EAD9A8] focus-visible:outline-2 focus-visible:outline-[#D97706] focus-visible:outline-offset-2"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white border border-[#EAD9A8] flex items-center justify-center text-[12px] font-semibold text-[#5A4A1F] shrink-0">
+                        {initials(student.name)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                          {student.name}
+                        </p>
+                        <p
+                          className="mt-[3px] text-[10px] font-medium text-[#9A6B1F] tracking-[0.14em] uppercase"
+                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                        >
+                          {student.atRiskReasons.join(" · ")}
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center px-2 py-[3px] rounded-full bg-[#FDEAEA] border border-[#F5C6C6] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#DC2626] shrink-0">
+                        At Risk
+                      </span>
+                      <ArrowRight
+                        className="h-[16px] w-[16px] text-[#9A6B1F] shrink-0 motion-safe:transition-transform group-hover:translate-x-[2px]"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
+
+        {/* My Students */}
+        <section
+          aria-label="My students"
+          className="mt-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "250ms" }}
+        >
+          <h2
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            My Students
+          </h2>
+          {enrichedStudents.length === 0 ? (
+            <div className="mt-4 bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+              <EmptyState
+                variant="compact"
+                icon={<Users className="h-5 w-5" />}
+                title="No students assigned yet"
+                description="Students will appear here once the owner assigns them to you."
+                action={
+                  <Link href="/coach/invites" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                    Invite Students
+                  </Link>
+                }
+              />
+            </div>
+          ) : (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-[14px]">
+              {enrichedStudents.map((student) => {
+                const atRisk = student.isAtRisk;
+                return (
                   <Link
                     key={student.id}
                     href={`/coach/students/${student.id}`}
-                    className="flex items-center justify-between gap-3 p-3 rounded-lg bg-ima-surface border border-ima-border hover:shadow-md motion-safe:transition-shadow min-h-[44px]"
+                    aria-label={`${student.name} — ${atRisk ? "at risk, " : ""}roadmap step ${student.currentRoadmapStep} of ${ROADMAP_STEPS.length}`}
+                    className={[
+                      "block rounded-[14px] border p-6 min-h-[160px] motion-safe:transition-[transform,border-color,background-color] hover:-translate-y-[1px] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                      atRisk
+                        ? "bg-[#FDFAF3] border-[#F0E0B8] hover:border-[#E5CE90]"
+                        : "bg-white border-[#EDE9E0] hover:border-[#D8D2C4]",
+                    ].join(" ")}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-ima-primary flex items-center justify-center text-xs font-semibold text-white shrink-0">
-                        {student.name
-                          .split(" ")
-                          .map((n) => n[0] ?? "")
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ima-text truncate">
+                    {/* Header row */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={[
+                            "w-10 h-10 rounded-full flex items-center justify-center text-[12.5px] font-semibold shrink-0 border",
+                            atRisk
+                              ? "bg-white border-[#EAD9A8] text-[#5A4A1F]"
+                              : "bg-[#F1EEE6] border-[#EDE9E0] text-[#5A5648]",
+                          ].join(" ")}
+                        >
+                          {initials(student.name)}
+                        </div>
+                        <p className="text-[14px] font-semibold text-[#1A1A17] truncate">
                           {student.name}
                         </p>
-                        <p className="text-xs text-ima-text-secondary truncate">
-                          {student.atRiskReasons.join(", ")}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        {(student.skippedDays ?? 0) > 0 && (
+                          <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#FDF3E0] border border-[#F0DFB3] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9A6B1F]">
+                            {student.skippedDays} skipped
+                          </span>
+                        )}
+                        {student.isNew ? (
+                          <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#E8EEFF] border border-[#C9D5FF] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#4A6CF7]">
+                            New
+                          </span>
+                        ) : atRisk ? (
+                          <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#FDEAEA] border border-[#F5C6C6] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#DC2626]">
+                            At Risk
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div
+                      className={`h-px mt-5 ${atRisk ? "bg-[#F0E0B8]" : "bg-[#EDE9E0]"}`}
+                      aria-hidden="true"
+                    />
+
+                    {/* Mini-stats grid */}
+                    <div className="mt-5 grid grid-cols-3 gap-4">
+                      <div>
+                        <p
+                          className="text-[9px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                        >
+                          Last Active
+                        </p>
+                        <p className="mt-[6px] text-[13px] font-semibold text-[#1A1A17] tabular-nums">
+                          {student.lastActiveLabel}
+                        </p>
+                      </div>
+                      <div>
+                        <p
+                          className="text-[9px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                        >
+                          Today&apos;s Report
+                        </p>
+                        {student.todayReportSubmitted ? (
+                          <p className="mt-[6px] flex items-center gap-[5px] text-[13px] font-semibold text-[#16A34A]">
+                            <CheckCircle2
+                              className="h-[13px] w-[13px]"
+                              aria-hidden="true"
+                            />
+                            Submitted
+                          </p>
+                        ) : (
+                          <p className="mt-[6px] flex items-center gap-[6px] text-[13px] font-semibold text-[#D97706]">
+                            <span
+                              className="inline-block h-[7px] w-[7px] rounded-full bg-[#D97706]"
+                              aria-hidden="true"
+                            />
+                            Pending
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p
+                          className="text-[9px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                        >
+                          Roadmap
+                        </p>
+                        <p className="mt-[6px] text-[13px] font-semibold text-[#1A1A17] tabular-nums">
+                          Step {student.currentRoadmapStep}
+                          <span className="text-[#8A8474]">/{ROADMAP_STEPS.length}</span>
                         </p>
                       </div>
                     </div>
-                    <Badge variant="error" size="sm">
-                      {student.atRiskReasons.join(", ")}
-                    </Badge>
-                    <ArrowRight
-                      className="h-4 w-4 text-ima-text-secondary shrink-0"
-                      aria-hidden="true"
-                    />
                   </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                );
+              })}
+            </div>
+          )}
         </section>
-      )}
-
-      {/* Student card grid */}
-      <div className="mt-6">
-        <h2 className="text-base font-semibold text-ima-text mb-4">
-          My Students
-        </h2>
-        {enrichedStudents.length === 0 ? (
-          <Card>
-            <EmptyState
-              variant="compact"
-              icon={<Users className="h-5 w-5" />}
-              title="No students assigned yet"
-              description="Students will appear here once the owner assigns them to you."
-              action={
-                <Link href="/coach/invites" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Invite Students
-                </Link>
-              }
-            />
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {enrichedStudents.map((student) => (
-              <StudentCard key={student.id} student={student} />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

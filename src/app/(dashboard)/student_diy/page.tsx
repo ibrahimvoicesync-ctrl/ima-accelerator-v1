@@ -118,21 +118,21 @@ export default async function StudentDiyDashboard() {
 
   return (
     <div
-      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
     >
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
         {/* Masthead */}
         <header className="motion-safe:animate-fadeIn">
           <p
-            className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
             style={MONO}
           >
             Dashboard
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
             Assalamu3leikum, {firstName}.
           </h1>
-          <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
             Here&apos;s how today is tracking.
           </p>
         </header>
@@ -148,26 +148,26 @@ export default async function StudentDiyDashboard() {
         {/* Hero — Today's Work */}
         <section
           aria-labelledby="todays-work-label"
-          className="motion-safe:animate-fadeIn"
+          className="mt-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "100ms" }}
         >
-          <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8">
+          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 md:p-8">
             <div className="flex items-center justify-between gap-3">
               <p
                 id="todays-work-label"
-                className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+                className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
                 style={MONO}
               >
                 Today&apos;s Work
               </p>
               {goalMet ? (
-                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-success/10 border border-ima-success/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-success">
+                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#C8E6D2] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A]">
                   <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                   Goal Reached
                 </span>
               ) : (
                 <span
-                  className="text-[10px] font-semibold tracking-[0.14em] text-ima-text-muted uppercase tabular-nums"
+                  className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase tabular-nums"
                   style={MONO}
                 >
                   {completedCount} Session{completedCount !== 1 ? "s" : ""}
@@ -179,18 +179,18 @@ export default async function StudentDiyDashboard() {
               <span
                 className={cn(
                   "text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none",
-                  goalMet ? "text-ima-success" : "text-ima-primary",
+                  goalMet ? "text-[#16A34A]" : "text-[#4A6CF7]",
                 )}
               >
                 {formatHoursMinutes(totalMinutesWorked)}
               </span>
-              <span className="pb-[6px] text-[15px] font-medium text-ima-text-muted tabular-nums">
+              <span className="pb-[6px] text-[15px] font-medium text-[#8A8474] tabular-nums">
                 / {WORK_TRACKER.dailyGoalHours}h
               </span>
             </div>
 
             <div
-              className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
+              className="mt-5 h-[6px] rounded-full bg-[#F1EEE6] overflow-hidden"
               role="progressbar"
               aria-valuenow={totalMinutesWorked}
               aria-valuemin={0}
@@ -200,7 +200,7 @@ export default async function StudentDiyDashboard() {
               <div
                 className={cn(
                   "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
-                  goalMet ? "bg-ima-success" : "bg-ima-primary",
+                  goalMet ? "bg-[#16A34A]" : "bg-[#4A6CF7]",
                 )}
                 style={{ width: `${progressBarWidth}%` }}
               />
@@ -209,7 +209,7 @@ export default async function StudentDiyDashboard() {
 
           <Link
             href={nextAction.href}
-            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[10px] bg-ima-primary text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-ima-primary-hover focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 motion-safe:transition-colors"
+            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[12px] bg-[#4A6CF7] text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-[#3852D8] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 motion-safe:transition-colors"
           >
             {nextAction.label}
             <ArrowRight
@@ -219,51 +219,33 @@ export default async function StudentDiyDashboard() {
           </Link>
         </section>
 
-        {/* Deals */}
+        {/* Deals — compact horizontal stat cards (matches coach Row A) */}
         <section
           aria-label="Deals summary"
-          className="mt-10 motion-safe:animate-fadeIn"
+          className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "150ms" }}
         >
-          <div className="flex items-center gap-3">
-            <h2
-              className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
-              style={MONO}
-            >
-              Deals
-            </h2>
-            <div className="flex-1 h-px bg-ima-border" aria-hidden="true" />
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
-            <StatCard
-              icon={Briefcase}
-              iconBg="bg-ima-warning/10"
-              iconColor="text-ima-warning"
-              label="Deals Closed"
-              value={String(dealsClosed)}
-              valueColor="text-ima-warning"
-              caption={hasDeals ? "All time" : "None yet"}
-            />
-            <StatCard
-              icon={DollarSign}
-              iconBg="bg-ima-primary/10"
-              iconColor="text-ima-primary"
-              label="Total Revenue"
-              value={currencyFormat(totalRevenue)}
-              valueColor="text-ima-primary"
-              caption={`From ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
-            />
-            <StatCard
-              icon={TrendingUp}
-              iconBg="bg-ima-success/10"
-              iconColor="text-ima-success"
-              label="Total Profit"
-              value={currencyFormat(totalProfit)}
-              valueColor="text-ima-success"
-              caption={hasDeals ? "All time" : "None yet"}
-            />
-          </div>
+          <CompactStat
+            icon={Briefcase}
+            iconBg="bg-[#FDF3E0]"
+            iconColor="text-[#D97706]"
+            value={String(dealsClosed)}
+            label={hasDeals ? "Deals Closed — all time" : "Deals Closed — none yet"}
+          />
+          <CompactStat
+            icon={DollarSign}
+            iconBg="bg-[#E8EEFF]"
+            iconColor="text-[#4A6CF7]"
+            value={currencyFormat(totalRevenue)}
+            label={`Revenue — ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
+          />
+          <CompactStat
+            icon={TrendingUp}
+            iconBg="bg-[#E2F5E9]"
+            iconColor="text-[#16A34A]"
+            value={currencyFormat(totalProfit)}
+            label={hasDeals ? "Profit — all time" : "Profit — none yet"}
+          />
         </section>
 
         {/* Roadmap */}
@@ -272,17 +254,17 @@ export default async function StudentDiyDashboard() {
           className="mt-10 motion-safe:animate-fadeIn"
           style={{ animationDelay: "200ms" }}
         >
-          <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 flex flex-col">
+          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 flex flex-col">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-[8px] bg-ima-primary/10 flex items-center justify-center shrink-0">
-                  <MapIcon className="h-[18px] w-[18px] text-ima-primary" aria-hidden="true" />
+                <div className="w-9 h-9 rounded-[8px] bg-[#E8EEFF] flex items-center justify-center shrink-0">
+                  <MapIcon className="h-[18px] w-[18px] text-[#4A6CF7]" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[15px] font-semibold text-ima-text leading-tight">
+                  <p className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
                     Roadmap
                   </p>
-                  <p className="mt-[3px] text-[12px] text-ima-text-muted">
+                  <p className="mt-[3px] text-[12px] text-[#8A8474]">
                     {allRoadmapDone
                       ? "All steps completed"
                       : activeRoadmapStep
@@ -292,7 +274,7 @@ export default async function StudentDiyDashboard() {
                 </div>
               </div>
               <span
-                className="text-[12px] font-semibold tabular-nums text-ima-text shrink-0"
+                className="text-[12px] font-semibold tabular-nums text-[#1A1A17] shrink-0"
                 style={MONO}
               >
                 {roadmapCompleted}/{ROADMAP_STEPS.length}
@@ -300,7 +282,7 @@ export default async function StudentDiyDashboard() {
             </div>
 
             <div
-              className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
+              className="mt-5 h-[6px] rounded-full bg-[#F1EEE6] overflow-hidden"
               role="progressbar"
               aria-valuenow={roadmapCompleted}
               aria-valuemin={0}
@@ -310,7 +292,7 @@ export default async function StudentDiyDashboard() {
               <div
                 className={cn(
                   "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
-                  allRoadmapDone ? "bg-ima-success" : "bg-ima-primary",
+                  allRoadmapDone ? "bg-[#16A34A]" : "bg-[#4A6CF7]",
                 )}
                 style={{ width: `${roadmapPercent}%` }}
               />
@@ -325,7 +307,7 @@ export default async function StudentDiyDashboard() {
                     ? `Continue step ${activeRoadmapStep.step_number}`
                     : "View roadmap"
               }
-              className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded-md"
+              className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
             >
               {allRoadmapDone
                 ? "View roadmap"
@@ -352,50 +334,35 @@ export default async function StudentDiyDashboard() {
   );
 }
 
-function StatCard({
+function CompactStat({
   icon: Icon,
   iconBg,
   iconColor,
-  label,
   value,
-  valueColor,
-  caption,
+  label,
 }: {
   icon: LucideIcon;
   iconBg: string;
   iconColor: string;
-  label: string;
   value: string;
-  valueColor: string;
-  caption: string;
+  label: string;
 }) {
   return (
-    <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
-      <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
-            iconBg,
-          )}
-        >
-          <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
-        </div>
-        <p
-          className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
-          style={MONO}
-        >
-          {label}
-        </p>
-      </div>
-      <p
+    <div className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px]">
+      <div
         className={cn(
-          "mt-5 text-[28px] md:text-[32px] font-bold tabular-nums leading-none",
-          valueColor,
+          "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
+          iconBg,
         )}
       >
-        {value}
-      </p>
-      <p className="mt-[10px] text-[12px] text-ima-text-muted">{caption}</p>
+        <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[24px] font-bold leading-none tabular-nums text-[#1A1A17]">
+          {value}
+        </p>
+        <p className="mt-[6px] text-[12px] text-[#8A8474]">{label}</p>
+      </div>
     </div>
   );
 }

@@ -1,8 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
-
 export type TabKey = "calendar" | "roadmap" | "deals";
 
 interface StudentDetailTabsProps {
@@ -19,27 +16,35 @@ const tabs: { key: TabKey; label: string }[] = [
 export function StudentDetailTabs({ activeTab, onTabChange }: StudentDetailTabsProps) {
   return (
     <div
-      className="flex gap-1 overflow-x-auto border-b border-ima-border pb-1"
+      className="flex gap-0 overflow-x-auto border-b border-[#EDE9E0]"
       role="tablist"
     >
-      {tabs.map((tab) => (
-        <Button
-          key={tab.key}
-          id={`tab-${tab.key}`}
-          role="tab"
-          aria-selected={activeTab === tab.key}
-          aria-controls={`tabpanel-${tab.key}`}
-          variant={activeTab === tab.key ? "secondary" : "ghost"}
-          size="sm"
-          className={cn(
-            "shrink-0",
-            activeTab === tab.key && "border-b-2 border-ima-primary"
-          )}
-          onClick={() => onTabChange(tab.key)}
-        >
-          {tab.label}
-        </Button>
-      ))}
+      {tabs.map((tab) => {
+        const active = activeTab === tab.key;
+        return (
+          <button
+            key={tab.key}
+            id={`tab-${tab.key}`}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            aria-controls={`tabpanel-${tab.key}`}
+            onClick={() => onTabChange(tab.key)}
+            className={[
+              "shrink-0 relative min-h-[44px] px-5 py-3 inline-flex items-center text-[14px] font-semibold motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+              active ? "text-[#1A1A17]" : "text-[#8A8474] hover:text-[#1A1A17]",
+            ].join(" ")}
+          >
+            {tab.label}
+            {active && (
+              <span
+                aria-hidden="true"
+                className="absolute left-0 right-0 -bottom-px h-[3px] bg-[#4A6CF7]"
+              />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

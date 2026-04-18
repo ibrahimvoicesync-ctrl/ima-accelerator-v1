@@ -66,8 +66,6 @@ export default async function StudentDIYAnnouncementsPage() {
 
   const total = count ?? 0;
   const initialHasMore = initialItems.length < total;
-  const totalLabel = String(total);
-  const latestAuthor = initialItems[0]?.author?.name ?? "—";
 
   return (
     <div
@@ -90,50 +88,9 @@ export default async function StudentDIYAnnouncementsPage() {
         </header>
 
         <section
-          aria-label="Announcements totals"
-          className="mt-9 grid grid-cols-1 sm:grid-cols-2 gap-[14px] motion-safe:animate-fadeIn"
-          style={{ animationDelay: "50ms" }}
-        >
-          <div className="flex items-center gap-4 bg-ima-surface border border-ima-border rounded-[12px] px-[18px] py-[16px] min-h-[72px]">
-            <div className="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 bg-ima-primary/10">
-              <span
-                className="text-[13px] font-bold text-ima-primary tabular-nums"
-                style={MONO}
-                aria-hidden="true"
-              >
-                #
-              </span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-[24px] font-bold leading-none tabular-nums text-ima-text">
-                {totalLabel}
-              </p>
-              <p className="mt-[6px] text-[12px] text-ima-text-muted">Total posts</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 bg-ima-surface border border-ima-border rounded-[12px] px-[18px] py-[16px] min-h-[72px]">
-            <div className="w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 bg-ima-success/10">
-              <span
-                className="text-[13px] font-bold text-ima-success tabular-nums"
-                style={MONO}
-                aria-hidden="true"
-              >
-                •
-              </span>
-            </div>
-            <div className="min-w-0">
-              <p className="text-[14px] font-semibold leading-tight text-ima-text truncate">
-                {latestAuthor}
-              </p>
-              <p className="mt-[6px] text-[12px] text-ima-text-muted">Latest author</p>
-            </div>
-          </div>
-        </section>
-
-        <section
           aria-label="Announcements feed"
-          className="mt-8 bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8 motion-safe:animate-fadeIn"
-          style={{ animationDelay: "100ms" }}
+          className="mt-9 bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
         >
           <AnnouncementsFeed
             role="student_diy"

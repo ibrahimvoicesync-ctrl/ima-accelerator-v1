@@ -8,7 +8,7 @@
  * window pill calls setState, React re-renders from the already-delivered
  * payload — no fetch(), no useEffect, no network round-trip.
  *
- * Default window per leaderboard = "alltime" (WS requirement).
+ * Default window per leaderboard = "monthly".
  *
  * Layout: two sections. Students first (3 cards) then Coaches (3 cards).
  * Student rows link to /owner/students/[id]; coach rows link to
@@ -81,19 +81,19 @@ interface Props {
 }
 
 export function OwnerAnalyticsClient({ payload }: Props) {
-  // Six independent window states — one per leaderboard. Default "alltime".
+  // Six independent window states — one per leaderboard. Default "monthly".
   const [studentHoursWin, setStudentHoursWin] =
-    useState<OwnerAnalyticsWindow>("alltime");
+    useState<OwnerAnalyticsWindow>("monthly");
   const [studentProfitWin, setStudentProfitWin] =
-    useState<OwnerAnalyticsWindow>("alltime");
+    useState<OwnerAnalyticsWindow>("monthly");
   const [studentDealsWin, setStudentDealsWin] =
-    useState<OwnerAnalyticsWindow>("alltime");
+    useState<OwnerAnalyticsWindow>("monthly");
   const [coachRevenueWin, setCoachRevenueWin] =
-    useState<OwnerAnalyticsWindow>("alltime");
+    useState<OwnerAnalyticsWindow>("monthly");
   const [coachOutreachWin, setCoachOutreachWin] =
-    useState<OwnerAnalyticsWindow>("alltime");
+    useState<OwnerAnalyticsWindow>("monthly");
   const [coachDealsWin, setCoachDealsWin] =
-    useState<OwnerAnalyticsWindow>("alltime");
+    useState<OwnerAnalyticsWindow>("monthly");
 
   const studentHours = mapStudentRows(
     payload.leaderboards.students.hours[studentHoursWin],

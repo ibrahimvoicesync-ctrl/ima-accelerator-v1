@@ -53,7 +53,6 @@ src/proxy.ts          # Route guard — NOT middleware.ts
 5. **Never swallow errors** — every `catch` block must toast or `console.error`, never empty
 6. **Check response.ok** — every `fetch()` must check `response.ok` before parsing JSON
 7. **Zod import** — `import { z } from "zod"`, never `"zod/v4"`
-8. **ima-* tokens only** — all colors use ima-* design tokens, never hardcoded hex/gray
 
 ## Code Quality
 

@@ -1,52 +1,38 @@
-import { Skeleton } from "@/components/ui/Skeleton";
-
 export default function Loading() {
   return (
-    <div className="px-4">
-      {/* Heading */}
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-4 w-56 mt-2" />
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]">
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        <div className="h-[14px] w-16 rounded bg-[#EDE9E0] motion-safe:animate-pulse" />
+        <div className="mt-3 h-10 w-56 rounded bg-[#EDE9E0] motion-safe:animate-pulse" />
+        <div className="mt-2 h-4 w-80 rounded bg-[#EDE9E0] motion-safe:animate-pulse" />
 
-      {/* 4 stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-ima-surface border border-ima-border rounded-xl p-4 flex items-center gap-4"
-          >
-            <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
-            <div className="space-y-1">
-              <Skeleton className="h-7 w-12" />
-              <Skeleton className="h-3 w-20" />
-            </div>
-          </div>
-        ))}
-      </div>
+        <div className="mt-9 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[72px] bg-white border border-[#EDE9E0] rounded-[12px] motion-safe:animate-pulse"
+            />
+          ))}
+        </div>
 
-      {/* Tab buttons */}
-      <div className="flex gap-2 mt-6">
-        <Skeleton className="h-11 w-32 rounded-lg" />
-        <Skeleton className="h-11 w-32 rounded-lg" />
-      </div>
+        <div className="mt-10 h-11 w-56 rounded-[10px] bg-white border border-[#EDE9E0] motion-safe:animate-pulse" />
 
-      {/* Form area */}
-      <div className="bg-ima-surface border border-ima-border rounded-xl p-6 mt-4 space-y-3">
-        <Skeleton className="h-11 w-full" />
-        <Skeleton className="h-11 w-32" />
-      </div>
+        <div className="mt-8 flex gap-1 border-b border-[#EDE9E0]">
+          <div className="h-11 w-32 bg-[#EDE9E0] rounded-t-md motion-safe:animate-pulse" />
+          <div className="h-11 w-32 bg-[#F1EEE6] rounded-t-md motion-safe:animate-pulse" />
+        </div>
 
-      {/* Invite list */}
-      <div className="mt-4 space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-ima-surface border border-ima-border rounded-xl p-4 flex items-center gap-4"
-          >
-            <Skeleton className="h-4 w-40 flex-1" />
-            <Skeleton className="h-6 w-16 rounded-full" />
-            <Skeleton className="h-11 w-20" />
-          </div>
-        ))}
+        <div className="mt-6 h-[160px] bg-white border border-[#EDE9E0] rounded-[14px] motion-safe:animate-pulse" />
+
+        <div className="mt-8 h-[14px] w-32 rounded bg-[#EDE9E0] motion-safe:animate-pulse" />
+        <div className="mt-4 space-y-[10px]">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[74px] bg-white border border-[#EDE9E0] rounded-[14px] motion-safe:animate-pulse"
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

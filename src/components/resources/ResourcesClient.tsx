@@ -28,9 +28,10 @@ type Tab = "links" | "community" | "glossary";
 
 interface ResourcesClientProps {
   role: "owner" | "coach" | "student" | "student_diy";
+  coachEditorial?: boolean;
 }
 
-export function ResourcesClient({ role }: ResourcesClientProps) {
+export function ResourcesClient({ role, coachEditorial = false }: ResourcesClientProps) {
   const [activeTab, setActiveTab] = useState<Tab>("links");
   const [resources, setResources] = useState<Resource[]>([]);
   const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>([]);
@@ -159,28 +160,53 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
   return (
     <div className="flex flex-col gap-6">
       {/* Editorial tab bar */}
-      <div className="flex gap-1 border-b border-ima-border overflow-x-auto" role="tablist">
-        {(["links", "community", "glossary"] as Tab[]).map((tab) => {
-          const meta = tabMeta[tab];
-          const active = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              role="tab"
-              aria-selected={active}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "relative inline-flex items-center gap-2 min-h-[52px] px-5 text-xs uppercase tracking-[0.22em] font-semibold border-b-2 motion-safe:transition-colors whitespace-nowrap",
-                active
-                  ? "border-ima-primary text-ima-primary"
-                  : "border-transparent text-ima-text-muted hover:text-ima-text"
-              )}
-            >
-              {meta.label}
-            </button>
-          );
-        })}
-      </div>
+      {coachEditorial ? (
+        <div className="flex gap-[6px] flex-wrap" role="tablist">
+          {(["links", "community", "glossary"] as Tab[]).map((tab) => {
+            const meta = tabMeta[tab];
+            const active = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "min-h-[44px] px-4 text-[13px] font-semibold rounded-[10px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 whitespace-nowrap",
+                  active
+                    ? "bg-[#4A6CF7] text-white"
+                    : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]"
+                )}
+              >
+                {meta.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex gap-1 border-b border-ima-border overflow-x-auto" role="tablist">
+          {(["links", "community", "glossary"] as Tab[]).map((tab) => {
+            const meta = tabMeta[tab];
+            const active = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "relative inline-flex items-center gap-2 min-h-[52px] px-5 text-xs uppercase tracking-[0.22em] font-semibold border-b-2 motion-safe:transition-colors whitespace-nowrap",
+                  active
+                    ? "border-ima-primary text-ima-primary"
+                    : "border-transparent text-ima-text-muted hover:text-ima-text"
+                )}
+              >
+                {meta.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Links tab */}
       <div className={activeTab === "links" ? "block" : "hidden"}>
@@ -199,7 +225,12 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
             <button
               type="button"
               onClick={() => setShowAddResource(true)}
-              className="inline-flex items-center gap-2 bg-ima-primary text-white rounded-xl px-5 min-h-[44px] text-sm font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
+              className={cn(
+                "inline-flex items-center gap-2 text-sm font-semibold tracking-tight px-5 min-h-[44px] motion-safe:transition-all duration-200 ease-out focus-visible:outline-none",
+                coachEditorial
+                  ? "bg-[#4A6CF7] text-white rounded-[10px] hover:bg-[#3852D8] focus-visible:ring-2 focus-visible:ring-[#4A6CF7] focus-visible:ring-offset-2"
+                  : "bg-ima-primary text-white rounded-xl hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2"
+              )}
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
               Add resource
@@ -212,7 +243,14 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
             <Spinner />
           </div>
         ) : resources.length === 0 ? (
-          <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-8 md:p-10">
+          <div
+            className={cn(
+              "p-8 md:p-10",
+              coachEditorial
+                ? "rounded-[14px] border border-[#EDE9E0] bg-white"
+                : "rounded-2xl border border-ima-border bg-ima-bg/60"
+            )}
+          >
             <div className="flex flex-col items-center gap-4 text-center max-w-md mx-auto">
               <span
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-ima-surface-accent text-ima-primary"
@@ -235,7 +273,12 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
                 <button
                   type="button"
                   onClick={() => setShowAddResource(true)}
-                  className="mt-2 inline-flex items-center justify-center gap-2 bg-ima-primary text-white rounded-2xl px-6 min-h-[56px] text-base font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
+                  className={cn(
+                    "mt-2 inline-flex items-center justify-center gap-2 text-base font-semibold tracking-tight px-6 min-h-[56px] motion-safe:transition-all duration-200 ease-out focus-visible:outline-none",
+                    coachEditorial
+                      ? "bg-[#4A6CF7] text-white rounded-[12px] hover:bg-[#3852D8] focus-visible:ring-2 focus-visible:ring-[#4A6CF7] focus-visible:ring-offset-2"
+                      : "bg-ima-primary text-white rounded-2xl hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2"
+                  )}
                 >
                   <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
                   Add first resource
@@ -272,7 +315,14 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
             Step into the conversation — coaches, peers, and live Q&amp;A in one channel.
           </p>
         </div>
-        <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-3 md:p-4">
+        <div
+          className={cn(
+            "p-3 md:p-4",
+            coachEditorial
+              ? "rounded-[14px] border border-[#EDE9E0] bg-white"
+              : "rounded-2xl border border-ima-border bg-ima-bg/60"
+          )}
+        >
           <DiscordEmbed />
         </div>
       </div>
@@ -297,7 +347,12 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
                 setEditingTerm(null);
                 setShowAddGlossary(true);
               }}
-              className="inline-flex items-center gap-2 bg-ima-primary text-white rounded-xl px-5 min-h-[44px] text-sm font-semibold tracking-tight hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-all duration-200 ease-out"
+              className={cn(
+                "inline-flex items-center gap-2 text-sm font-semibold tracking-tight px-5 min-h-[44px] motion-safe:transition-all duration-200 ease-out focus-visible:outline-none",
+                coachEditorial
+                  ? "bg-[#4A6CF7] text-white rounded-[10px] hover:bg-[#3852D8] focus-visible:ring-2 focus-visible:ring-[#4A6CF7] focus-visible:ring-offset-2"
+                  : "bg-ima-primary text-white rounded-xl hover:bg-ima-primary-hover hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2"
+              )}
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
               Add term
@@ -310,7 +365,14 @@ export function ResourcesClient({ role }: ResourcesClientProps) {
             <Spinner />
           </div>
         ) : glossaryTerms.length === 0 && !canManage ? (
-          <div className="rounded-2xl border border-ima-border bg-ima-bg/60 p-8 md:p-10">
+          <div
+            className={cn(
+              "p-8 md:p-10",
+              coachEditorial
+                ? "rounded-[14px] border border-[#EDE9E0] bg-white"
+                : "rounded-2xl border border-ima-border bg-ima-bg/60"
+            )}
+          >
             <div className="flex flex-col items-center gap-4 text-center max-w-md mx-auto">
               <span
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-ima-surface-accent text-ima-primary"

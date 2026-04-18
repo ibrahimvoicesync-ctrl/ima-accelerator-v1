@@ -398,6 +398,7 @@ export type Database = {
           invited_by: string
           role: string
           used: boolean
+          used_at: string | null
         }
         Insert: {
           coach_id?: string | null
@@ -409,6 +410,7 @@ export type Database = {
           invited_by: string
           role: string
           used?: boolean
+          used_at?: string | null
         }
         Update: {
           coach_id?: string | null
@@ -420,6 +422,7 @@ export type Database = {
           invited_by?: string
           role?: string
           used?: boolean
+          used_at?: string | null
         }
         Relationships: [
           {

@@ -93,28 +93,30 @@ export async function AnnouncementsPage({ role }: AnnouncementsPageProps) {
 
   const isAuthor = role === "owner" || role === "coach";
 
-  // 4. Render — editorial header + client feed.
+  // 4. Render — editorial masthead + horizontal rule + client feed.
   return (
     <section
       aria-labelledby="announcements-h1"
-      className="px-4 py-6 max-w-3xl mx-auto"
+      className="px-4 pt-16 md:pt-20 pb-24 max-w-[760px] mx-auto"
     >
-      <header className="mb-8">
-        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-2">
+      <header className="mb-6 md:mb-8">
+        <p className="text-[11px] uppercase tracking-[0.28em] font-semibold text-ima-text-muted mb-5">
           Announcements
         </p>
         <h1
           id="announcements-h1"
-          className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text"
+          className="text-[44px] md:text-[52px] font-normal italic tracking-[-0.02em] text-ima-text leading-[1.05]"
         >
-          {isAuthor ? "Signal to your students" : "Updates from your coach"}
+          {isAuthor ? "Signal to your students." : "Dispatches from the team."}
         </h1>
-        <p className="mt-2 text-sm text-ima-text-secondary leading-relaxed">
+        <p className="mt-5 text-base text-ima-text-secondary italic leading-relaxed max-w-[520px]">
           {isAuthor
             ? "Post updates for your students. Everyone with access sees them immediately."
-            : "Announcements from your coach and program owner, newest first."}
+            : "A running record of what the team wants you to know — newest first."}
         </p>
       </header>
+
+      <div className="h-px w-full bg-ima-border mb-8 md:mb-10" aria-hidden="true" />
 
       <AnnouncementsFeed
         role={role}

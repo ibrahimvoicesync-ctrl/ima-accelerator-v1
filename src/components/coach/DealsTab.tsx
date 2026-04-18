@@ -1,16 +1,5 @@
 "use client";
 
-/**
- * Phase 49: Coach + Owner student-detail Deals tab.
- *
- * Accepts `viewerRole` so a single component powers both the coach student
- * detail page and the owner student detail page. Reuses the shared
- * DealFormModal (src/components/student/DealFormModal.tsx) verbatim — zero
- * UI duplication. Add Deal POSTs to /api/deals with explicit student_id; the
- * Phase 45 route handler enforces dual-layer authorization (assignment check
- * + RLS WITH CHECK) so a coach cannot log for an unassigned student.
- */
-
 import {
   useCallback,
   useOptimistic,
@@ -20,7 +9,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { DollarSign, Plus } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { DealFormModal } from "@/components/student/DealFormModal";
@@ -48,11 +36,21 @@ interface DealsTabProps {
   userMap: Record<string, LoggedByUser>;
 }
 
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const currencyCompact = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
 function formatCurrency(value: string | number): string {
-  return `$${Number(value).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return currencyFormatter.format(Number(value));
 }
 
 function formatMargin(revenue: string | number, profit: string | number): string {
@@ -84,6 +82,8 @@ export function DealsTab({
 
   const totalRevenue = optimisticDeals.reduce((sum, d) => sum + Number(d.revenue), 0);
   const totalProfit = optimisticDeals.reduce((sum, d) => sum + Number(d.profit), 0);
+  const dealCount = optimisticDeals.length;
+  const avgDeal = dealCount > 0 ? totalRevenue / dealCount : 0;
 
   const openAddModal = useCallback(() => {
     setModalOpen(true);
@@ -145,87 +145,222 @@ export function DealsTab({
       role="tabpanel"
       id="tabpanel-deals"
       aria-labelledby="tab-deals"
-      className="space-y-4"
+      className="space-y-6"
     >
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ima-text">Deals</h2>
-        <Button
-          variant="primary"
-          onClick={openAddModal}
-          disabled={submitting}
-          className="min-h-[44px]"
-          aria-label={`Add deal for ${studentName}`}
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Add Deal
-        </Button>
-      </div>
-
-      {optimisticDeals.length === 0 ? (
-        <EmptyState
-          variant="compact"
-          icon={<DollarSign className="h-6 w-6" aria-hidden="true" />}
-          title="No deals yet"
-          description="This student hasn't recorded any deals yet. Use Add Deal to log one on their behalf."
-        />
-      ) : (
-        <div className="bg-ima-surface border border-ima-border rounded-xl overflow-hidden">
-          {/* Column headers — hidden on mobile */}
-          <div className="hidden sm:flex items-center gap-4 px-4 py-2 bg-ima-surface-light border-b border-ima-border text-xs font-medium text-ima-text-secondary uppercase tracking-wider">
-            <span className="w-24">Deal</span>
-            <span className="flex-1">Revenue</span>
-            <span className="flex-1">Profit</span>
-            <span className="w-20">Margin</span>
-            <span className="w-28">Logged By</span>
-            <span className="w-28 text-right">Date</span>
+      {/* Revenue hero card */}
+      <section
+        aria-label="Deals summary"
+        className="bg-white border border-[#EDE9E0] rounded-[14px] p-5 md:p-6"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
+          <div className="min-w-0">
+            <p
+              className="text-[10px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+              style={{ fontFamily: "var(--font-mono-bold)" }}
+            >
+              Total Revenue
+            </p>
+            <p className="mt-3 text-[40px] md:text-[52px] font-bold leading-none tabular-nums tracking-[-0.02em] text-[#4A6CF7]">
+              {currencyCompact.format(totalRevenue)}
+            </p>
+            <p
+              className="mt-3 text-[11px] font-semibold tracking-[0.14em] uppercase text-[#8A8474]"
+              style={{ fontFamily: "var(--font-mono-bold)" }}
+            >
+              <span className="text-[13px] tabular-nums text-[#1A1A17] normal-case tracking-normal mr-[6px]">
+                {dealCount}
+              </span>
+              Deal{dealCount !== 1 ? "s" : ""} Logged
+            </p>
           </div>
 
-          {/* Rows */}
-          <div className="divide-y divide-ima-border">
-            {optimisticDeals.map((deal) => (
+          <button
+            type="button"
+            onClick={openAddModal}
+            disabled={submitting}
+            aria-label={`Add deal for ${studentName}`}
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-[10px] bg-[#4A6CF7] text-white text-[13px] font-semibold hover:bg-[#3852D8] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 disabled:opacity-60 shrink-0"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add Deal
+          </button>
+        </div>
+
+        {dealCount > 0 && (
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-[14px]">
+            {[
+              {
+                label: "Total Profit",
+                value: currencyCompact.format(totalProfit),
+              },
+              {
+                label: "Blended Margin",
+                value: formatMargin(totalRevenue, totalProfit),
+              },
+              {
+                label: "Avg Deal",
+                value: currencyCompact.format(avgDeal),
+              },
+            ].map((m) => (
               <div
-                key={deal.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-3 px-4 min-h-[44px]"
+                key={m.label}
+                className="rounded-[10px] border border-[#EDE9E0] bg-[#FAFAF7] px-4 py-3"
               >
-                <span className="text-sm font-medium text-ima-text w-24 shrink-0">
-                  Deal #{deal.deal_number}
-                </span>
-                <span className="text-sm text-ima-text flex-1">
-                  {formatCurrency(deal.revenue)}
-                </span>
-                <span className="text-sm text-ima-text-secondary flex-1">
-                  {formatCurrency(deal.profit)}
-                </span>
-                <span className="text-sm text-ima-text-secondary w-20 shrink-0">
-                  {formatMargin(deal.revenue, deal.profit)}
-                </span>
-                <span className="w-28 shrink-0">
-                  <DealAttributionChip
-                    deal={deal}
-                    viewerRole={viewerRole}
-                    viewerId={viewerId}
-                    userMap={userMap}
-                  />
-                </span>
-                <span className="text-xs text-ima-text-muted w-28 sm:text-right shrink-0">
-                  {new Date(deal.created_at).toLocaleDateString()}
-                </span>
+                <p className="text-[20px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                  {m.value}
+                </p>
+                <p
+                  className="mt-[6px] text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
+                  style={{ fontFamily: "var(--font-mono-bold)" }}
+                >
+                  {m.label}
+                </p>
               </div>
             ))}
           </div>
+        )}
+      </section>
 
-          {/* Summary row */}
-          <div className="flex items-center gap-4 px-4 py-3 bg-ima-surface-light border-t border-ima-border text-sm font-medium">
-            <span className="w-24 text-ima-text">Total</span>
-            <span className="flex-1 text-ima-text">{formatCurrency(totalRevenue)}</span>
-            <span className="flex-1 text-ima-text-secondary">{formatCurrency(totalProfit)}</span>
-            <span className="w-20 text-ima-text-secondary">
-              {formatMargin(totalRevenue, totalProfit)}
-            </span>
-            <span className="w-28"></span>
-            <span className="w-28"></span>
-          </div>
+      {/* Deals ledger */}
+      {dealCount === 0 ? (
+        <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+          <EmptyState
+            variant="compact"
+            icon={<DollarSign className="h-6 w-6" aria-hidden="true" />}
+            title="No deals yet"
+            description="This student hasn't recorded any deals yet. Use Add Deal to log one on their behalf."
+          />
         </div>
+      ) : (
+        <section aria-label="Deals ledger">
+          <div className="flex items-baseline justify-between gap-3">
+            <p
+              className="text-[10px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+              style={{ fontFamily: "var(--font-mono-bold)" }}
+            >
+              Ledger
+            </p>
+            <span
+              className="text-[11px] font-semibold tabular-nums text-[#8A8474]"
+              style={{ fontFamily: "var(--font-mono-bold)" }}
+            >
+              {dealCount} entr{dealCount !== 1 ? "ies" : "y"}
+            </span>
+          </div>
+
+          <div className="mt-3 bg-white border border-[#EDE9E0] rounded-[14px] overflow-hidden">
+            {/* Column headers — hidden on mobile */}
+            <div
+              className="hidden sm:grid grid-cols-[110px_1fr_1fr_90px_130px_110px] items-center gap-4 px-5 py-3 border-b border-[#EDE9E0] text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A8474]"
+              style={{ fontFamily: "var(--font-mono-bold)" }}
+            >
+              <span>Deal</span>
+              <span>Revenue</span>
+              <span>Profit</span>
+              <span>Margin</span>
+              <span>Logged By</span>
+              <span className="text-right">Date</span>
+            </div>
+
+            {/* Rows */}
+            <ul className="divide-y divide-[#F3EFE4]" role="list">
+              {optimisticDeals.map((deal) => (
+                <li
+                  key={deal.id}
+                  className="grid grid-cols-2 sm:grid-cols-[110px_1fr_1fr_90px_130px_110px] items-center gap-x-4 gap-y-2 px-5 py-4 min-h-[52px] motion-safe:transition-colors hover:bg-[#FAFAF7]"
+                >
+                  <span className="col-span-2 sm:col-span-1 flex items-baseline gap-2">
+                    <span
+                      className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
+                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                    >
+                      Deal
+                    </span>
+                    <span
+                      className="text-[15px] font-bold tabular-nums text-[#1A1A17]"
+                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                    >
+                      #{String(deal.deal_number).padStart(2, "0")}
+                    </span>
+                  </span>
+
+                  <span className="text-[14px] font-semibold tabular-nums text-[#1A1A17]">
+                    <span
+                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A8474] mr-2"
+                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                    >
+                      Revenue
+                    </span>
+                    {formatCurrency(deal.revenue)}
+                  </span>
+
+                  <span className="text-[14px] tabular-nums text-[#5A5648]">
+                    <span
+                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A8474] mr-2"
+                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                    >
+                      Profit
+                    </span>
+                    {formatCurrency(deal.profit)}
+                  </span>
+
+                  <span className="text-[13px] tabular-nums text-[#5A5648]">
+                    <span
+                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A8474] mr-2"
+                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                    >
+                      Margin
+                    </span>
+                    {formatMargin(deal.revenue, deal.profit)}
+                  </span>
+
+                  <span className="shrink-0">
+                    <DealAttributionChip
+                      deal={deal}
+                      viewerRole={viewerRole}
+                      viewerId={viewerId}
+                      userMap={userMap}
+                    />
+                  </span>
+
+                  <span
+                    className="text-[11px] tabular-nums uppercase tracking-[0.08em] text-[#8A8474] sm:text-right"
+                    style={{ fontFamily: "var(--font-mono-bold)" }}
+                  >
+                    {new Date(deal.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "2-digit",
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            {/* Totals footer */}
+            <div
+              className="hidden sm:grid grid-cols-[110px_1fr_1fr_90px_130px_110px] items-center gap-4 px-5 py-3 border-t border-[#EDE9E0] bg-[#FAFAF7]"
+            >
+              <span
+                className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
+                style={{ fontFamily: "var(--font-mono-bold)" }}
+              >
+                Total
+              </span>
+              <span className="text-[14px] font-bold tabular-nums text-[#1A1A17]">
+                {formatCurrency(totalRevenue)}
+              </span>
+              <span className="text-[14px] font-semibold tabular-nums text-[#5A5648]">
+                {formatCurrency(totalProfit)}
+              </span>
+              <span className="text-[13px] font-semibold tabular-nums text-[#5A5648]">
+                {formatMargin(totalRevenue, totalProfit)}
+              </span>
+              <span />
+              <span />
+            </div>
+          </div>
+        </section>
       )}
 
       <DealFormModal

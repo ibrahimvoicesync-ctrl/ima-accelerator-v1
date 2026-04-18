@@ -285,21 +285,23 @@ export default async function OwnerStudentsPage({
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
-                          {s.role === "student_diy" && (
-                            <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#E8EEFF] border border-[#C9D5FF] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#4A6CF7]">
-                              DIY
-                            </span>
-                          )}
                           {skipped > 0 && (
                             <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#FDF3E0] border border-[#F0DFB3] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9A6B1F]">
                               {skipped} skipped
                             </span>
                           )}
-                          <span
-                            className={`inline-flex items-center px-2 py-[2px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] ${statusPillCls(s.status)}`}
-                          >
-                            {s.status}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {s.role === "student_diy" && (
+                              <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#E8EEFF] border border-[#C9D5FF] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#4A6CF7]">
+                                DIY
+                              </span>
+                            )}
+                            <span
+                              className={`inline-flex items-center px-2 py-[2px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] ${statusPillCls(s.status)}`}
+                            >
+                              {s.status}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </Link>

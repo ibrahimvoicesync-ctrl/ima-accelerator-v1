@@ -51,7 +51,7 @@ function rowToCsv(row: CoachStudentRow): string {
     String(row.deals_alltime),
     String(row.roadmap_step),
     csvEscape(row.last_active_date ?? ""),
-    row.activity_status === "active" ? "Active" : "Inactive",
+    row.activity_status === "active" ? "Active" : "Kaslan",
   ].join(",");
 }
 
@@ -110,11 +110,20 @@ export async function GET(request: NextRequest) {
     const body = lines.join("\r\n") + "\r\n";
 
     // 6. Return as attachment.
+    const nameSlug =
+      user.name
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-") || "coach";
+    const filename = `ima-coach-analytics-${nameSlug}-${today}.csv`;
     return new NextResponse(body, {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="coach-analytics-${user.id}-${today}.csv"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
         "Cache-Control": "no-store",
       },
     });

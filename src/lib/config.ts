@@ -197,7 +197,7 @@ export const DAILY_REPORT = {
 export const COACH_CONFIG = {
   atRiskInactiveDays: 3,
   atRiskRatingThreshold: 2,
-  maxStudentsPerCoach: 50,
+  maxStudentsPerCoach: 100,
   reportInboxDays: 7,
   milestoneMinutesThreshold: 6000,  // 100 hours in minutes
   milestoneDaysWindow: 45,          // days since joined_at

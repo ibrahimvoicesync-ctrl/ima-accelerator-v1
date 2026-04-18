@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
+import { cn } from "@/lib/utils";
 import { DealFormModal } from "./DealFormModal";
 import { DealAttributionChip } from "@/components/shared/DealAttributionChip";
 import type { LoggedByUser, ViewerRole } from "@/lib/deals-attribution";
@@ -35,6 +36,8 @@ type OptimisticAction =
   | { type: "add"; deal: Deal }
   | { type: "edit"; deal: Deal }
   | { type: "delete"; id: string };
+
+const MONO: React.CSSProperties = { fontFamily: "var(--font-mono-bold)" };
 
 function dealsReducer(state: Deal[], action: OptimisticAction): Deal[] {
   switch (action.type) {
@@ -92,7 +95,7 @@ export function DealsClient({
 
   const [optimisticDeals, dispatchOptimistic] = useOptimistic(
     initialDeals,
-    dealsReducer
+    dealsReducer,
   );
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -160,7 +163,7 @@ export function DealsClient({
         setSubmitting(false);
       }
     },
-    [optimisticDeals.length, dispatchOptimistic, viewerId]
+    [optimisticDeals.length, dispatchOptimistic, viewerId],
   );
 
   const handleEdit = useCallback(
@@ -207,7 +210,7 @@ export function DealsClient({
         setSubmitting(false);
       }
     },
-    [dispatchOptimistic]
+    [dispatchOptimistic],
   );
 
   const handleDelete = useCallback(
@@ -241,7 +244,7 @@ export function DealsClient({
         setDeletingId(null);
       }
     },
-    [dispatchOptimistic]
+    [dispatchOptimistic],
   );
 
   const openAddModal = useCallback(() => {
@@ -252,320 +255,382 @@ export function DealsClient({
   const hasDeals = optimisticDeals.length > 0;
 
   return (
-    <div className="space-y-8">
-      {/* Header: title + inline metrics + add button */}
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-4 min-w-0">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ima-text">
-              My Deals
-            </h1>
-            <p className="text-sm text-ima-text-secondary mt-2">
-              Track your brand deal revenue and profit
-            </p>
-          </div>
-
-          {hasDeals && (
-            <div
-              className="flex flex-wrap items-center gap-2"
-              role="group"
-              aria-label="Deals summary"
-            >
-              <MetricPill
-                icon={Briefcase}
-                label={totals.count === 1 ? "deal logged" : "deals logged"}
-                value={String(totals.count)}
-                tone="primary"
-              />
-              <MetricPill
-                icon={TrendingUp}
-                label="revenue"
-                value={formatCompact(totals.revenue)}
-                tone="primary"
-              />
-              <MetricPill
-                icon={CircleDollarSign}
-                label="profit"
-                value={formatCompact(totals.profit)}
-                tone="success"
-              />
-            </div>
-          )}
-        </div>
-
-        <Button
-          variant="primary"
-          onClick={openAddModal}
-          className="rounded-lg shadow-sm shadow-ima-primary/20 shrink-0 self-start motion-safe:transition-all hover:shadow-md hover:shadow-ima-primary/30"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Add Deal
-        </Button>
-      </div>
-
-      {/* Empty state */}
+    <div className="space-y-10">
+      {/* Empty state — no hero; lead the user straight to the CTA. */}
       {!hasDeals && (
-        <EmptyState
-          icon={<DollarSign className="h-6 w-6" aria-hidden="true" />}
-          title="No deals yet"
-          description="Log your first closed deal to start tracking revenue and profit."
-          action={<Button onClick={openAddModal}>Add your first deal</Button>}
-        />
+        <div
+          className="bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
+        >
+          <EmptyState
+            icon={<DollarSign className="h-6 w-6" aria-hidden="true" />}
+            title="No deals yet"
+            description="Log your first closed deal to start tracking revenue and profit."
+            action={
+              <Button
+                onClick={openAddModal}
+                className="rounded-[10px] min-h-[44px]"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add your first deal
+              </Button>
+            }
+          />
+        </div>
       )}
 
-      {/* Deal list */}
       {hasDeals && (
-        <div>
-          {/* Desktop table */}
-          <div className="hidden md:block">
-            <div
-              role="table"
-              aria-label="Deals"
-              className="w-full overflow-hidden rounded-2xl border border-ima-border bg-ima-surface shadow-sm"
-            >
-              {/* Column headers */}
-              <div
-                role="row"
-                className="grid grid-cols-[140px_1fr_1fr_160px_140px_96px] items-center gap-4 px-6 py-3 bg-ima-surface-light border-b border-ima-border text-[11px] font-semibold uppercase tracking-[0.14em] text-ima-text-muted"
-              >
-                <span role="columnheader">Deal</span>
-                <span role="columnheader">Revenue</span>
-                <span role="columnheader">Profit</span>
-                <span role="columnheader">Logged By</span>
-                <span role="columnheader">Date</span>
-                <span role="columnheader" className="text-right">
-                  <span className="sr-only">Actions</span>
+        <>
+          {/* Hero — single focal point: total revenue. */}
+          <section
+            aria-labelledby="deals-hero-label"
+            className="motion-safe:animate-fadeIn"
+            style={{ animationDelay: "50ms" }}
+          >
+            <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p
+                  id="deals-hero-label"
+                  className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+                  style={MONO}
+                >
+                  Total Revenue
+                </p>
+                <span
+                  className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-surface-accent border border-ima-primary/15 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-primary tabular-nums"
+                  style={MONO}
+                >
+                  <Briefcase className="h-3 w-3" aria-hidden="true" />
+                  {totals.count} {totals.count === 1 ? "deal" : "deals"} closed
                 </span>
               </div>
 
-              {/* Rows */}
-              <div>
-                {optimisticDeals.map((deal) => {
-                  const isConfirming = confirmDeleteId === deal.id;
-                  const isDeleting = deletingId === deal.id;
-                  const isBusy = submitting || isDeleting;
+              <div className="mt-6 flex items-end gap-3 flex-wrap">
+                <span className="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight leading-[0.95] text-ima-primary">
+                  {formatCompact(totals.revenue)}
+                </span>
+                <span className="pb-2 text-[15px] font-medium text-ima-text-muted tabular-nums">
+                  {formatCompact(totals.profit)} profit · all time
+                </span>
+              </div>
+            </div>
+          </section>
 
-                  return (
-                    <div
-                      key={deal.id}
-                      role="row"
-                      className="group grid grid-cols-[140px_1fr_1fr_160px_140px_96px] items-center gap-4 px-6 h-16 border-b border-ima-surface-light last:border-b-0 motion-safe:transition-colors hover:bg-ima-surface-accent/60 focus-within:bg-ima-surface-accent/60"
-                    >
+          {/* KPI strip — compact stats mirroring the student dashboard Row A. */}
+          <section
+            aria-label="Deals summary"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
+            <CompactStat
+              icon={Briefcase}
+              tint="accent"
+              value={String(totals.count)}
+              label={totals.count === 1 ? "Deal logged" : "Deals logged"}
+            />
+            <CompactStat
+              icon={TrendingUp}
+              tint="primary"
+              value={formatCompact(totals.revenue)}
+              label="Revenue · all time"
+            />
+            <CompactStat
+              icon={CircleDollarSign}
+              tint="success"
+              value={formatCompact(totals.profit)}
+              label="Profit · all time"
+            />
+          </section>
+
+          {/* Ledger — mono-bold kicker + primary CTA, then table/cards. */}
+          <section
+            aria-labelledby="deals-ledger-label"
+            className="motion-safe:animate-fadeIn"
+            style={{ animationDelay: "150ms" }}
+          >
+            <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+              <p
+                id="deals-ledger-label"
+                className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+                style={MONO}
+              >
+                Ledger
+              </p>
+              <Button
+                variant="primary"
+                onClick={openAddModal}
+                className="rounded-[10px] min-h-[44px]"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add Deal
+              </Button>
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <div
+                role="table"
+                aria-label="Deals"
+                className="w-full overflow-hidden rounded-[14px] border border-ima-border bg-ima-surface"
+              >
+                <div
+                  role="row"
+                  className="grid grid-cols-[140px_1fr_1fr_160px_140px_96px] items-center gap-4 px-6 py-3 bg-ima-surface-light border-b border-ima-border"
+                >
+                  {["Deal", "Revenue", "Profit", "Logged By", "Date"].map(
+                    (h) => (
+                      <span
+                        key={h}
+                        role="columnheader"
+                        className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ima-text-muted"
+                        style={MONO}
+                      >
+                        {h}
+                      </span>
+                    ),
+                  )}
+                  <span role="columnheader" className="text-right">
+                    <span className="sr-only">Actions</span>
+                  </span>
+                </div>
+
+                <div>
+                  {optimisticDeals.map((deal) => {
+                    const isConfirming = confirmDeleteId === deal.id;
+                    const isDeleting = deletingId === deal.id;
+                    const isBusy = submitting || isDeleting;
+
+                    return (
                       <div
-                        role="cell"
-                        className="flex items-center gap-2.5 min-w-0"
+                        key={deal.id}
+                        role="row"
+                        className="group grid grid-cols-[140px_1fr_1fr_160px_140px_96px] items-center gap-4 px-6 h-16 border-b border-ima-border/60 last:border-b-0 motion-safe:transition-colors hover:bg-ima-surface-accent/40 focus-within:bg-ima-surface-accent/40"
                       >
+                        <div
+                          role="cell"
+                          className="flex items-center gap-2.5 min-w-0"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="h-[6px] w-[6px] rounded-full bg-ima-success shrink-0"
+                          />
+                          <span
+                            className="text-[13px] font-semibold text-ima-primary tabular-nums truncate"
+                            style={MONO}
+                          >
+                            #{String(deal.deal_number).padStart(2, "0")}
+                          </span>
+                        </div>
+
                         <span
-                          aria-hidden="true"
-                          className="h-2 w-2 rounded-full bg-ima-success shrink-0 ring-4 ring-ima-success/15"
-                        />
-                        <span className="text-sm font-semibold text-ima-primary tabular-nums truncate">
-                          Deal #{deal.deal_number}
+                          role="cell"
+                          className="text-[14px] font-semibold text-ima-text tabular-nums"
+                        >
+                          {formatCurrency(deal.revenue)}
                         </span>
+
+                        <span
+                          role="cell"
+                          className="text-[14px] font-semibold text-ima-success tabular-nums"
+                        >
+                          {formatCurrency(deal.profit)}
+                        </span>
+
+                        <span role="cell">
+                          <DealAttributionChip
+                            deal={deal}
+                            viewerRole={viewerRole}
+                            viewerId={viewerId}
+                            userMap={userMap}
+                          />
+                        </span>
+
+                        <span
+                          role="cell"
+                          className="flex items-center gap-2 text-[12px] text-ima-text-muted tabular-nums"
+                        >
+                          <Calendar
+                            className="h-3.5 w-3.5 shrink-0"
+                            aria-hidden="true"
+                          />
+                          {formatDate(deal.created_at)}
+                        </span>
+
+                        <div
+                          role="cell"
+                          className="flex items-center justify-end gap-1"
+                        >
+                          {isConfirming ? (
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => handleDelete(deal.id)}
+                                loading={isDeleting}
+                                aria-label={`Confirm delete deal #${deal.deal_number}`}
+                              >
+                                Confirm
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setConfirmDeleteId(null)}
+                                aria-label="Cancel delete"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 motion-safe:transition-opacity">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingDeal(deal);
+                                  setModalOpen(true);
+                                }}
+                                aria-label={`Edit deal #${deal.deal_number}`}
+                                disabled={isBusy}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ima-text-muted motion-safe:transition-colors hover:text-ima-primary hover:bg-ima-surface-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ima-bg disabled:opacity-50 disabled:pointer-events-none"
+                              >
+                                <Pencil
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(deal.id)}
+                                aria-label={`Delete deal #${deal.deal_number}`}
+                                disabled={isBusy}
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ima-text-muted motion-safe:transition-colors hover:text-ima-error hover:bg-ima-error/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-error focus-visible:ring-offset-2 focus-visible:ring-offset-ima-bg disabled:opacity-50 disabled:pointer-events-none"
+                              >
+                                <Trash2
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
-                      <span
-                        role="cell"
-                        className="text-sm font-medium text-ima-text tabular-nums"
-                      >
-                        {formatCurrency(deal.revenue)}
-                      </span>
+            {/* Mobile card list */}
+            <ul className="md:hidden space-y-3">
+              {optimisticDeals.map((deal) => {
+                const isConfirming = confirmDeleteId === deal.id;
+                const isDeleting = deletingId === deal.id;
+                const isBusy = submitting || isDeleting;
 
-                      <span
-                        role="cell"
-                        className="text-sm font-semibold text-ima-success tabular-nums"
-                      >
-                        {formatCurrency(deal.profit)}
-                      </span>
-
-                      <span role="cell">
+                return (
+                  <li
+                    key={deal.id}
+                    className="rounded-[14px] border border-ima-border bg-ima-surface overflow-hidden"
+                  >
+                    <div className="px-5 py-5 space-y-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            aria-hidden="true"
+                            className="h-[6px] w-[6px] rounded-full bg-ima-success shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p
+                              className="text-[13px] font-semibold text-ima-primary tabular-nums truncate"
+                              style={MONO}
+                            >
+                              Deal #{String(deal.deal_number).padStart(2, "0")}
+                            </p>
+                            <p className="flex items-center gap-1.5 text-[11px] text-ima-text-muted tabular-nums mt-1">
+                              <Calendar
+                                className="h-3 w-3 shrink-0"
+                                aria-hidden="true"
+                              />
+                              {formatDate(deal.created_at)}
+                            </p>
+                          </div>
+                        </div>
                         <DealAttributionChip
                           deal={deal}
                           viewerRole={viewerRole}
                           viewerId={viewerId}
                           userMap={userMap}
                         />
-                      </span>
-
-                      <span
-                        role="cell"
-                        className="flex items-center gap-2 text-xs text-ima-text-muted tabular-nums"
-                      >
-                        <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        {formatDate(deal.created_at)}
-                      </span>
-
-                      <div
-                        role="cell"
-                        className="flex items-center justify-end gap-1"
-                      >
-                        {isConfirming ? (
-                          <div className="flex items-center gap-1.5">
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => handleDelete(deal.id)}
-                              loading={isDeleting}
-                              aria-label={`Confirm delete deal #${deal.deal_number}`}
-                            >
-                              Confirm
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setConfirmDeleteId(null)}
-                              aria-label="Cancel delete"
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 motion-safe:transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingDeal(deal);
-                                setModalOpen(true);
-                              }}
-                              aria-label={`Edit deal #${deal.deal_number}`}
-                              disabled={isBusy}
-                              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ima-text-muted motion-safe:transition-colors hover:text-ima-primary hover:bg-ima-surface-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 focus-visible:ring-offset-ima-bg disabled:opacity-50 disabled:pointer-events-none"
-                            >
-                              <Pencil className="h-4 w-4" aria-hidden="true" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmDeleteId(deal.id)}
-                              aria-label={`Delete deal #${deal.deal_number}`}
-                              disabled={isBusy}
-                              className="inline-flex h-11 w-11 items-center justify-center rounded-md text-ima-text-muted motion-safe:transition-colors hover:text-ima-error hover:bg-ima-error/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-error focus-visible:ring-offset-2 focus-visible:ring-offset-ima-bg disabled:opacity-50 disabled:pointer-events-none"
-                            >
-                              <Trash2 className="h-4 w-4" aria-hidden="true" />
-                            </button>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
 
-          {/* Mobile card list */}
-          <ul className="md:hidden space-y-3">
-            {optimisticDeals.map((deal) => {
-              const isConfirming = confirmDeleteId === deal.id;
-              const isDeleting = deletingId === deal.id;
-              const isBusy = submitting || isDeleting;
-
-              return (
-                <li
-                  key={deal.id}
-                  className="rounded-2xl border border-ima-border bg-ima-surface shadow-sm overflow-hidden"
-                >
-                  <div className="px-4 py-4 space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span
-                          aria-hidden="true"
-                          className="h-2 w-2 rounded-full bg-ima-success shrink-0 ring-4 ring-ima-success/15"
+                      <div className="grid grid-cols-2 gap-3">
+                        <MobileMoneyCell
+                          label="Revenue"
+                          value={formatCurrency(deal.revenue)}
+                          tone="text"
                         />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-ima-primary tabular-nums truncate">
-                            Deal #{deal.deal_number}
-                          </p>
-                          <p className="flex items-center gap-1.5 text-xs text-ima-text-muted tabular-nums mt-1">
-                            <Calendar
-                              className="h-3 w-3 shrink-0"
-                              aria-hidden="true"
-                            />
-                            {formatDate(deal.created_at)}
-                          </p>
+                        <MobileMoneyCell
+                          label="Profit"
+                          value={formatCurrency(deal.profit)}
+                          tone="success"
+                        />
+                      </div>
+
+                      {isConfirming ? (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDelete(deal.id)}
+                            loading={isDeleting}
+                            aria-label={`Confirm delete deal #${deal.deal_number}`}
+                            className="flex-1"
+                          >
+                            Confirm delete
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirmDeleteId(null)}
+                            aria-label="Cancel delete"
+                          >
+                            Cancel
+                          </Button>
                         </div>
-                      </div>
-                      <DealAttributionChip
-                        deal={deal}
-                        viewerRole={viewerRole}
-                        viewerId={viewerId}
-                        userMap={userMap}
-                      />
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setEditingDeal(deal);
+                              setModalOpen(true);
+                            }}
+                            aria-label={`Edit deal #${deal.deal_number}`}
+                            disabled={isBusy}
+                            className="flex-1"
+                          >
+                            <Pencil className="h-4 w-4" aria-hidden="true" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfirmDeleteId(deal.id)}
+                            aria-label={`Delete deal #${deal.deal_number}`}
+                            disabled={isBusy}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            Delete
+                          </Button>
+                        </div>
+                      )}
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg bg-ima-surface-accent px-3 py-2.5 space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ima-primary/70">
-                          Revenue
-                        </p>
-                        <p className="text-sm font-semibold text-ima-primary tabular-nums">
-                          {formatCurrency(deal.revenue)}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-ima-success/10 px-3 py-2.5 space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ima-success/80">
-                          Profit
-                        </p>
-                        <p className="text-sm font-semibold text-ima-success tabular-nums">
-                          {formatCurrency(deal.profit)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {isConfirming ? (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleDelete(deal.id)}
-                          loading={isDeleting}
-                          aria-label={`Confirm delete deal #${deal.deal_number}`}
-                          className="flex-1"
-                        >
-                          Confirm delete
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setConfirmDeleteId(null)}
-                          aria-label="Cancel delete"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setEditingDeal(deal);
-                            setModalOpen(true);
-                          }}
-                          aria-label={`Edit deal #${deal.deal_number}`}
-                          disabled={isBusy}
-                          className="flex-1"
-                        >
-                          <Pencil className="h-4 w-4" aria-hidden="true" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setConfirmDeleteId(deal.id)}
-                          aria-label={`Delete deal #${deal.deal_number}`}
-                          disabled={isBusy}
-                        >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          Delete
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </>
       )}
 
       {/* Deal form modal */}
@@ -585,59 +650,80 @@ export function DealsClient({
   );
 }
 
-interface MetricPillProps {
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
-  label: string;
-  value: string;
-  tone: "primary" | "success";
-}
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
 
-const TONE_CLASSES: Record<
-  MetricPillProps["tone"],
-  { wrap: string; icon: string; value: string; label: string }
-> = {
-  primary: {
-    wrap: "bg-ima-surface-accent border-ima-primary/15",
-    icon: "text-ima-primary",
-    value: "text-ima-primary",
-    label: "text-ima-primary/70",
-  },
-  success: {
-    wrap: "bg-ima-success/10 border-ima-success/20",
-    icon: "text-ima-success",
-    value: "text-ima-success",
-    label: "text-ima-success/80",
-  },
+type StatTint = "primary" | "success" | "accent";
+
+const STAT_TINTS: Record<StatTint, { bg: string; fg: string }> = {
+  primary: { bg: "bg-ima-surface-accent", fg: "text-ima-primary" },
+  success: { bg: "bg-ima-success/10", fg: "text-ima-success" },
+  accent: { bg: "bg-ima-surface-light", fg: "text-ima-text-secondary" },
 };
 
-function MetricPill({ icon: Icon, label, value, tone }: MetricPillProps) {
-  const t = TONE_CLASSES[tone];
+function CompactStat({
+  icon: Icon,
+  tint,
+  value,
+  label,
+}: {
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  tint: StatTint;
+  value: string;
+  label: string;
+}) {
+  const t = STAT_TINTS[tint];
   return (
-    <div
-      className={`inline-flex items-center gap-2 rounded-full border pl-2.5 pr-3.5 py-1.5 ${t.wrap}`}
-      role="group"
-      aria-label={`${value} ${label}`}
-    >
-      <span
-        className={`inline-flex h-6 w-6 items-center justify-center rounded-full bg-ima-surface ${t.icon}`}
-        aria-hidden="true"
+    <div className="flex items-start gap-4 bg-ima-surface border border-ima-border rounded-[12px] px-[18px] py-[16px] min-h-[72px]">
+      <div
+        className={cn(
+          "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
+          t.bg,
+        )}
       >
-        <Icon className="h-3.5 w-3.5" />
-      </span>
-      <span className="flex items-baseline gap-1.5">
-        <span
-          aria-hidden="true"
-          className={`text-sm font-semibold tabular-nums tracking-tight ${t.value}`}
-        >
+        <Icon className={cn("h-[18px] w-[18px]", t.fg)} aria-hidden="true" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[24px] md:text-[28px] font-bold leading-none tabular-nums tracking-tight text-ima-text">
           {value}
-        </span>
-        <span
-          aria-hidden="true"
-          className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${t.label}`}
+        </p>
+        <p
+          className="mt-[8px] text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
+          style={MONO}
         >
           {label}
-        </span>
-      </span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MobileMoneyCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "text" | "success";
+}) {
+  return (
+    <div className="rounded-[10px] border border-ima-border bg-ima-surface px-3 py-2.5 space-y-1">
+      <p
+        className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ima-text-muted"
+        style={MONO}
+      >
+        {label}
+      </p>
+      <p
+        className={cn(
+          "text-[15px] font-semibold tabular-nums tracking-tight",
+          tone === "success" ? "text-ima-success" : "text-ima-text",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }

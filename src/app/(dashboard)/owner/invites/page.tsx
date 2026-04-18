@@ -17,7 +17,7 @@ export default async function OwnerInvitesPage() {
   const [invitesResult, magicLinksResult] = await Promise.all([
     admin
       .from("invites")
-      .select("id, email, code, role, used, expires_at, created_at")
+      .select("id, email, code, role, used, used_at, expires_at, created_at")
       .eq("invited_by", user.id)
       .order("created_at", { ascending: false }),
     admin
@@ -35,11 +35,19 @@ export default async function OwnerInvitesPage() {
   }
 
   const now = new Date();
+  const HISTORY_VISIBLE_MS = 24 * 60 * 60 * 1000;
 
-  // Hide expired unused emails; keep used emails as history
-  const invitesList = (invitesResult.data ?? []).filter(
-    (i) => i.used || new Date(i.expires_at) >= now,
-  );
+  // Active invites always show. Once they turn Used or Expired, keep them
+  // visible for 24h from the moment the status changed, then drop them.
+  const invitesList = (invitesResult.data ?? []).filter((i) => {
+    if (i.used) {
+      if (!i.used_at) return false;
+      return now.getTime() - new Date(i.used_at).getTime() < HISTORY_VISIBLE_MS;
+    }
+    const expiresAt = new Date(i.expires_at);
+    if (expiresAt >= now) return true;
+    return now.getTime() - expiresAt.getTime() < HISTORY_VISIBLE_MS;
+  });
 
   // Hide deactivated and exhausted magic links
   const magicLinksList = (magicLinksResult.data ?? []).filter(

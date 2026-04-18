@@ -22,8 +22,6 @@ import {
   dailyOutreachRag,
   daysInProgram as computeDaysInProgram,
   lifetimeOutreachRag,
-  ragToBgClass,
-  ragToColorClass,
   type RagStatus,
 } from "@/lib/kpi";
 import { ReferralCard } from "@/components/student/ReferralCard";
@@ -39,6 +37,32 @@ const jetbrainsMono = JetBrains_Mono({
 const MONO: React.CSSProperties = { fontFamily: "var(--font-mono-bold)" };
 
 type WorkSession = Database["public"]["Tables"]["work_sessions"]["Row"];
+
+function ragText(r: RagStatus): string {
+  switch (r) {
+    case "green":
+      return "text-[#16A34A]";
+    case "amber":
+      return "text-[#D97706]";
+    case "red":
+      return "text-[#DC2626]";
+    default:
+      return "text-[#1A1A17]";
+  }
+}
+
+function ragBg(r: RagStatus): string {
+  switch (r) {
+    case "green":
+      return "bg-[#16A34A]";
+    case "amber":
+      return "bg-[#D97706]";
+    case "red":
+      return "bg-[#DC2626]";
+    default:
+      return "bg-[#8A8474]";
+  }
+}
 
 function getNextAction(
   completedCount: number,
@@ -178,21 +202,21 @@ export default async function StudentDashboard() {
 
   return (
     <div
-      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
     >
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
         {/* Masthead */}
         <header className="motion-safe:animate-fadeIn">
           <p
-            className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
             style={MONO}
           >
             Dashboard
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
             Assalamu3leikum, {firstName}.
           </h1>
-          <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
             Here&apos;s how today is tracking.
           </p>
         </header>
@@ -208,26 +232,26 @@ export default async function StudentDashboard() {
         {/* Hero — Today's Work */}
         <section
           aria-labelledby="todays-work-label"
-          className="motion-safe:animate-fadeIn"
+          className="mt-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "100ms" }}
         >
-          <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8">
+          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 md:p-8">
             <div className="flex items-center justify-between gap-3">
               <p
                 id="todays-work-label"
-                className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+                className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
                 style={MONO}
               >
                 Today&apos;s Work
               </p>
               {goalMet ? (
-                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-success/10 border border-ima-success/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-success">
+                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#C8E6D2] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A]">
                   <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                   Goal Reached
                 </span>
               ) : (
                 <span
-                  className="text-[10px] font-semibold tracking-[0.14em] text-ima-text-muted uppercase tabular-nums"
+                  className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase tabular-nums"
                   style={MONO}
                 >
                   {completedCount} Session{completedCount !== 1 ? "s" : ""}
@@ -239,18 +263,18 @@ export default async function StudentDashboard() {
               <span
                 className={cn(
                   "text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none",
-                  goalMet ? "text-ima-success" : "text-ima-primary",
+                  goalMet ? "text-[#16A34A]" : "text-[#4A6CF7]",
                 )}
               >
                 {formatHoursMinutes(totalMinutesWorked)}
               </span>
-              <span className="pb-[6px] text-[15px] font-medium text-ima-text-muted tabular-nums">
+              <span className="pb-[6px] text-[15px] font-medium text-[#8A8474] tabular-nums">
                 / {WORK_TRACKER.dailyGoalHours}h
               </span>
             </div>
 
             <div
-              className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
+              className="mt-5 h-[6px] rounded-full bg-[#F1EEE6] overflow-hidden"
               role="progressbar"
               aria-valuenow={totalMinutesWorked}
               aria-valuemin={0}
@@ -260,7 +284,7 @@ export default async function StudentDashboard() {
               <div
                 className={cn(
                   "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
-                  goalMet ? "bg-ima-success" : "bg-ima-primary",
+                  goalMet ? "bg-[#16A34A]" : "bg-[#4A6CF7]",
                 )}
                 style={{ width: `${progressBarWidth}%` }}
               />
@@ -269,7 +293,7 @@ export default async function StudentDashboard() {
 
           <Link
             href={nextAction.href}
-            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[10px] bg-ima-primary text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-ima-primary-hover focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 motion-safe:transition-colors"
+            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[12px] bg-[#4A6CF7] text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-[#3852D8] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 motion-safe:transition-colors"
           >
             {nextAction.label}
             <ArrowRight
@@ -279,236 +303,204 @@ export default async function StudentDashboard() {
           </Link>
         </section>
 
-        {/* KPI tracking */}
+        {/* KPI tracking — compact cards with progress bars */}
         <section
           aria-label="KPI tracking"
-          className="mt-10 motion-safe:animate-fadeIn"
+          className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "150ms" }}
         >
-          <div className="flex items-center gap-3">
-            <h2
-              className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
-              style={MONO}
-            >
-              KPI Tracking
-            </h2>
-            <div className="flex-1 h-px bg-ima-border" aria-hidden="true" />
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
-            <KpiCard
-              icon={Megaphone}
-              iconBg="bg-ima-primary/10"
-              iconColor="text-ima-primary"
-              label="Lifetime Outreach"
-              value={lifetimeOutreach.toLocaleString()}
-              target={`Target ${KPI_TARGETS.lifetimeOutreach.toLocaleString()}`}
-              percent={lifetimePercent}
-              rag={lifetimeRag}
-            />
-            <KpiCard
-              icon={Mail}
-              iconBg="bg-ima-warning/10"
-              iconColor="text-ima-warning"
-              label="Daily Outreach"
-              value={String(dailyOutreachTotal)}
-              target={`Target ${KPI_TARGETS.dailyOutreach}/day`}
-              percent={dailyOutreachPercent}
-              rag={dailyOutRag}
-            />
-            <KpiCard
-              icon={Clock}
-              iconBg="bg-ima-surface-light"
-              iconColor="text-ima-text-secondary"
-              label="Hours Today"
-              value={formatHoursMinutes(totalMinutesWorked)}
-              target={`Target ${WORK_TRACKER.dailyGoalHours}h/day`}
-              percent={progressBarWidth}
-              rag={hoursRag}
-            />
-          </div>
+          <KpiCard
+            icon={Megaphone}
+            iconBg="bg-[#E8EEFF]"
+            iconColor="text-[#4A6CF7]"
+            label="Lifetime Outreach"
+            value={lifetimeOutreach.toLocaleString()}
+            target={`Target ${KPI_TARGETS.lifetimeOutreach.toLocaleString()}`}
+            percent={lifetimePercent}
+            rag={lifetimeRag}
+          />
+          <KpiCard
+            icon={Mail}
+            iconBg="bg-[#FDF3E0]"
+            iconColor="text-[#D97706]"
+            label="Daily Outreach"
+            value={String(dailyOutreachTotal)}
+            target={`Target ${KPI_TARGETS.dailyOutreach}/day`}
+            percent={dailyOutreachPercent}
+            rag={dailyOutRag}
+          />
+          <KpiCard
+            icon={Clock}
+            iconBg="bg-[#F1EEE6]"
+            iconColor="text-[#7A7466]"
+            label="Hours Today"
+            value={formatHoursMinutes(totalMinutesWorked)}
+            target={`Target ${WORK_TRACKER.dailyGoalHours}h/day`}
+            percent={progressBarWidth}
+            rag={hoursRag}
+          />
         </section>
 
-        {/* Deals */}
+        {/* Deals — compact horizontal stat cards (matches coach Row A) */}
         <section
           aria-label="Deals summary"
-          className="mt-10 motion-safe:animate-fadeIn"
+          className="mt-[14px] grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "200ms" }}
         >
-          <div className="flex items-center gap-3">
-            <h2
-              className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
-              style={MONO}
-            >
-              Deals
-            </h2>
-            <div className="flex-1 h-px bg-ima-border" aria-hidden="true" />
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
-            <StatCard
-              icon={Briefcase}
-              iconBg="bg-ima-warning/10"
-              iconColor="text-ima-warning"
-              label="Deals Closed"
-              value={String(dealsClosed)}
-              valueColor="text-ima-warning"
-              caption={hasDeals ? "All time" : "None yet"}
-            />
-            <StatCard
-              icon={DollarSign}
-              iconBg="bg-ima-primary/10"
-              iconColor="text-ima-primary"
-              label="Total Revenue"
-              value={currencyFormat(totalRevenue)}
-              valueColor="text-ima-primary"
-              caption={`From ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
-            />
-            <StatCard
-              icon={TrendingUp}
-              iconBg="bg-ima-success/10"
-              iconColor="text-ima-success"
-              label="Total Profit"
-              value={currencyFormat(totalProfit)}
-              valueColor="text-ima-success"
-              caption={hasDeals ? "All time" : "None yet"}
-            />
-          </div>
+          <CompactStat
+            icon={Briefcase}
+            iconBg="bg-[#FDF3E0]"
+            iconColor="text-[#D97706]"
+            value={String(dealsClosed)}
+            label={hasDeals ? "Deals Closed — all time" : "Deals Closed — none yet"}
+          />
+          <CompactStat
+            icon={DollarSign}
+            iconBg="bg-[#E8EEFF]"
+            iconColor="text-[#4A6CF7]"
+            value={currencyFormat(totalRevenue)}
+            label={`Revenue — ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
+          />
+          <CompactStat
+            icon={TrendingUp}
+            iconBg="bg-[#E2F5E9]"
+            iconColor="text-[#16A34A]"
+            value={currencyFormat(totalProfit)}
+            label={hasDeals ? "Profit — all time" : "Profit — none yet"}
+          />
         </section>
 
         {/* Roadmap + Daily Report */}
         <section
           aria-label="Roadmap and daily report"
-          className="mt-10 motion-safe:animate-fadeIn"
+          className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "250ms" }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
-            {/* Roadmap */}
-            <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 flex flex-col">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-[8px] bg-ima-primary/10 flex items-center justify-center shrink-0">
-                    <MapIcon className="h-[18px] w-[18px] text-ima-primary" aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[15px] font-semibold text-ima-text leading-tight">
-                      Roadmap
-                    </p>
-                    <p className="mt-[3px] text-[12px] text-ima-text-muted">
-                      {allRoadmapDone
-                        ? "All steps completed"
-                        : activeRoadmapStep
-                          ? `Currently on step ${activeRoadmapStep.step_number}`
-                          : "Start your journey"}
-                    </p>
-                  </div>
+          {/* Roadmap */}
+          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 flex flex-col">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-[8px] bg-[#E8EEFF] flex items-center justify-center shrink-0">
+                  <MapIcon className="h-[18px] w-[18px] text-[#4A6CF7]" aria-hidden="true" />
                 </div>
-                <span
-                  className="text-[12px] font-semibold tabular-nums text-ima-text shrink-0"
-                  style={MONO}
-                >
-                  {roadmapCompleted}/{ROADMAP_STEPS.length}
-                </span>
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+                    Roadmap
+                  </p>
+                  <p className="mt-[3px] text-[12px] text-[#8A8474]">
+                    {allRoadmapDone
+                      ? "All steps completed"
+                      : activeRoadmapStep
+                        ? `Currently on step ${activeRoadmapStep.step_number}`
+                        : "Start your journey"}
+                  </p>
+                </div>
               </div>
+              <span
+                className="text-[12px] font-semibold tabular-nums text-[#1A1A17] shrink-0"
+                style={MONO}
+              >
+                {roadmapCompleted}/{ROADMAP_STEPS.length}
+              </span>
+            </div>
 
+            <div
+              className="mt-5 h-[6px] rounded-full bg-[#F1EEE6] overflow-hidden"
+              role="progressbar"
+              aria-valuenow={roadmapCompleted}
+              aria-valuemin={0}
+              aria-valuemax={ROADMAP_STEPS.length}
+              aria-label={`Roadmap progress: ${roadmapCompleted} of ${ROADMAP_STEPS.length}`}
+            >
               <div
-                className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
-                role="progressbar"
-                aria-valuenow={roadmapCompleted}
-                aria-valuemin={0}
-                aria-valuemax={ROADMAP_STEPS.length}
-                aria-label={`Roadmap progress: ${roadmapCompleted} of ${ROADMAP_STEPS.length}`}
-              >
-                <div
-                  className={cn(
-                    "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
-                    allRoadmapDone ? "bg-ima-success" : "bg-ima-primary",
-                  )}
-                  style={{ width: `${roadmapPercent}%` }}
-                />
-              </div>
+                className={cn(
+                  "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
+                  allRoadmapDone ? "bg-[#16A34A]" : "bg-[#4A6CF7]",
+                )}
+                style={{ width: `${roadmapPercent}%` }}
+              />
+            </div>
 
-              <Link
-                href="/student/roadmap"
-                aria-label={
-                  allRoadmapDone
-                    ? "View roadmap"
-                    : activeRoadmapStep
-                      ? `Continue step ${activeRoadmapStep.step_number}`
-                      : "View roadmap"
-                }
-                className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded-md"
-              >
-                {allRoadmapDone
+            <Link
+              href="/student/roadmap"
+              aria-label={
+                allRoadmapDone
                   ? "View roadmap"
                   : activeRoadmapStep
                     ? `Continue step ${activeRoadmapStep.step_number}`
-                    : "View roadmap"}
-                <ArrowRight
-                  className="h-3.5 w-3.5 motion-safe:transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </Link>
-            </div>
+                    : "View roadmap"
+              }
+              className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
+            >
+              {allRoadmapDone
+                ? "View roadmap"
+                : activeRoadmapStep
+                  ? `Continue step ${activeRoadmapStep.step_number}`
+                  : "View roadmap"}
+              <ArrowRight
+                className="h-3.5 w-3.5 motion-safe:transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </Link>
+          </div>
 
-            {/* Daily Report */}
-            <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 flex flex-col">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-[8px] bg-ima-surface-light flex items-center justify-center shrink-0">
-                    <FileText className="h-[18px] w-[18px] text-ima-text-secondary" aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[15px] font-semibold text-ima-text leading-tight">
-                      Daily Report
-                    </p>
-                    <p className="mt-[3px] text-[12px] text-ima-text-muted">
-                      {reportSubmitted
-                        ? "Submitted — you can still update it."
-                        : "Close today's loop before 11 PM."}
-                    </p>
-                  </div>
+          {/* Daily Report */}
+          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 flex flex-col">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-[8px] bg-[#F1EEE6] flex items-center justify-center shrink-0">
+                  <FileText className="h-[18px] w-[18px] text-[#7A7466]" aria-hidden="true" />
                 </div>
-                {reportSubmitted ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-ima-success/10 border border-ima-success/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-success shrink-0">
-                    <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-                    Submitted
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-warning/10 border border-ima-warning/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-warning shrink-0">
-                    <span
-                      className="inline-block h-[6px] w-[6px] rounded-full bg-ima-warning"
-                      aria-hidden="true"
-                    />
-                    Pending
-                  </span>
-                )}
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+                    Daily Report
+                  </p>
+                  <p className="mt-[3px] text-[12px] text-[#8A8474]">
+                    {reportSubmitted
+                      ? "Submitted — you can still update it."
+                      : "Close today's loop before 11 PM."}
+                  </p>
+                </div>
               </div>
-
-              <div className="mt-5 flex items-center gap-3">
-                <span
-                  className="text-[10px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
-                  style={MONO}
-                >
-                  Due
+              {reportSubmitted ? (
+                <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#C8E6D2] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A] shrink-0">
+                  <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                  Submitted
                 </span>
-                <span className="text-[13px] font-semibold tabular-nums text-ima-text">
-                  11:00 PM
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-[#FDF3E0] border border-[#F0DFB3] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#D97706] shrink-0">
+                  <span
+                    className="inline-block h-[6px] w-[6px] rounded-full bg-[#D97706]"
+                    aria-hidden="true"
+                  />
+                  Pending
                 </span>
-              </div>
-
-              <Link
-                href="/student/report"
-                aria-label={reportSubmitted ? "Update report" : "Submit report"}
-                className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded-md"
-              >
-                {reportSubmitted ? "Update report" : "Submit report"}
-                <ArrowRight
-                  className="h-3.5 w-3.5 motion-safe:transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </Link>
+              )}
             </div>
+
+            <div className="mt-5 flex items-center gap-3">
+              <span
+                className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+                style={MONO}
+              >
+                Due
+              </span>
+              <span className="text-[13px] font-semibold tabular-nums text-[#1A1A17]">
+                11:00 PM
+              </span>
+            </div>
+
+            <Link
+              href="/student/report"
+              aria-label={reportSubmitted ? "Update report" : "Submit report"}
+              className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
+            >
+              {reportSubmitted ? "Update report" : "Submit report"}
+              <ArrowRight
+                className="h-3.5 w-3.5 motion-safe:transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </Link>
           </div>
         </section>
 
@@ -544,7 +536,7 @@ function KpiCard({
   rag: RagStatus;
 }) {
   return (
-    <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
+    <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
@@ -556,14 +548,14 @@ function KpiCard({
             <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
           </div>
           <p
-            className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
+            className="text-[11px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
             style={MONO}
           >
             {label}
           </p>
         </div>
         <span
-          className={cn("inline-block h-[8px] w-[8px] rounded-full shrink-0", ragToBgClass(rag))}
+          className={cn("inline-block h-[8px] w-[8px] rounded-full shrink-0", ragBg(rag))}
           aria-hidden="true"
         />
       </div>
@@ -571,24 +563,24 @@ function KpiCard({
       <div className="mt-5 flex items-baseline justify-between gap-3">
         <p
           className={cn(
-            "text-[28px] md:text-[32px] font-bold tabular-nums leading-none",
-            ragToColorClass(rag),
+            "text-[28px] font-bold tabular-nums leading-none",
+            ragText(rag),
           )}
         >
           {value}
         </p>
         <p
-          className="text-[11px] font-semibold tabular-nums text-ima-text-muted"
+          className="text-[11px] font-semibold tabular-nums text-[#8A8474]"
           style={MONO}
         >
           {percent}%
         </p>
       </div>
 
-      <p className="mt-[10px] text-[12px] text-ima-text-muted">{target}</p>
+      <p className="mt-[10px] text-[12px] text-[#8A8474]">{target}</p>
 
       <div
-        className="mt-4 h-[4px] rounded-full bg-ima-surface-light overflow-hidden"
+        className="mt-4 h-[4px] rounded-full bg-[#F1EEE6] overflow-hidden"
         role="progressbar"
         aria-valuenow={percent}
         aria-valuemin={0}
@@ -598,7 +590,7 @@ function KpiCard({
         <div
           className={cn(
             "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
-            ragToBgClass(rag),
+            ragBg(rag),
           )}
           style={{ width: `${percent}%` }}
         />
@@ -607,50 +599,35 @@ function KpiCard({
   );
 }
 
-function StatCard({
+function CompactStat({
   icon: Icon,
   iconBg,
   iconColor,
-  label,
   value,
-  valueColor,
-  caption,
+  label,
 }: {
   icon: LucideIcon;
   iconBg: string;
   iconColor: string;
-  label: string;
   value: string;
-  valueColor: string;
-  caption: string;
+  label: string;
 }) {
   return (
-    <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
-      <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
-            iconBg,
-          )}
-        >
-          <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
-        </div>
-        <p
-          className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
-          style={MONO}
-        >
-          {label}
-        </p>
-      </div>
-      <p
+    <div className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px]">
+      <div
         className={cn(
-          "mt-5 text-[28px] md:text-[32px] font-bold tabular-nums leading-none",
-          valueColor,
+          "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
+          iconBg,
         )}
       >
-        {value}
-      </p>
-      <p className="mt-[10px] text-[12px] text-ima-text-muted">{caption}</p>
+        <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[24px] font-bold leading-none tabular-nums text-[#1A1A17]">
+          {value}
+        </p>
+        <p className="mt-[6px] text-[12px] text-[#8A8474]">{label}</p>
+      </div>
     </div>
   );
 }

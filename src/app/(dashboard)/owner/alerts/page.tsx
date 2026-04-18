@@ -2,7 +2,7 @@ import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OwnerAlertsClient, type AlertItem } from "@/components/owner/OwnerAlertsClient";
-import { Bell, CheckCircle2, DollarSign, TrendingUp } from "lucide-react";
+import { DollarSign, TrendingUp } from "lucide-react";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -71,8 +71,6 @@ export default async function OwnerAlertsPage() {
   });
 
   const totalCount = alerts.length;
-  const activeCount = alerts.filter((a) => !a.dismissed).length;
-  const dismissedCount = alerts.filter((a) => a.dismissed).length;
   const totalRevenue = deals.reduce((sum, d) => sum + Number(d.revenue), 0);
   const revenueLabel = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -94,20 +92,6 @@ export default async function OwnerAlertsPage() {
       icon: TrendingUp,
       iconBg: "bg-[#E8EEFF]",
       iconColor: "text-[#4A6CF7]",
-    },
-    {
-      label: "Active",
-      value: String(activeCount),
-      icon: Bell,
-      iconBg: "bg-[#FDF3E0]",
-      iconColor: "text-[#D97706]",
-    },
-    {
-      label: "Dismissed",
-      value: String(dismissedCount),
-      icon: CheckCircle2,
-      iconBg: "bg-[#F1EEE6]",
-      iconColor: "text-[#7A7466]",
     },
   ];
 
@@ -135,7 +119,7 @@ export default async function OwnerAlertsPage() {
         {/* Stats row — 4 cards */}
         <section
           aria-label="Alert totals"
-          className="mt-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[14px] motion-safe:animate-fadeIn"
+          className="mt-9 grid grid-cols-1 sm:grid-cols-2 gap-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "50ms" }}
         >
           {statCards.map((s) => (

@@ -49,7 +49,7 @@ export default async function OwnerCoachesPage({
     admin
       .from("users")
       .select("id", { count: "exact", head: true })
-      .eq("role", "student")
+      .in("role", ["student", "student_diy"])
       .eq("status", "active"),
   ]);
 

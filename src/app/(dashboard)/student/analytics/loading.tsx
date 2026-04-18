@@ -42,27 +42,6 @@ export default function AnalyticsLoading() {
         ))}
       </section>
 
-      <Card aria-busy="true" aria-label="Loading roadmap progress">
-        <CardHeader>
-          <Skeleton className="h-6 w-40" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card aria-busy="true" aria-label="Loading deal history">
-        <CardHeader>
-          <Skeleton className="h-6 w-40" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </CardContent>
-      </Card>
     </div>
   );
 }

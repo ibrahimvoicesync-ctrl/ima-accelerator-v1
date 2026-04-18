@@ -31,10 +31,10 @@ export default async function StudentDiyResourcesPage() {
         </header>
 
         <div
-          className="mt-9 motion-safe:animate-fadeIn"
-          style={{ animationDelay: "100ms" }}
+          className="mt-9 bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
         >
-          <ResourcesClient role="student_diy" />
+          <ResourcesClient role="student_diy" coachEditorial />
         </div>
       </div>
     </div>

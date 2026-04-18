@@ -100,9 +100,8 @@ export function WorkTimer({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="currentColor"
+            stroke="#F1EEE6"
             strokeWidth={strokeWidth}
-            className="text-ima-surface-light"
           />
           {/* Progress ring */}
           <circle
@@ -110,24 +109,30 @@ export function WorkTimer({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="currentColor"
+            stroke="#4A6CF7"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
-            className="text-ima-primary motion-safe:transition-[stroke-dashoffset] duration-1000 ease-linear"
+            className="motion-safe:transition-[stroke-dashoffset] duration-1000 ease-linear"
           />
         </svg>
 
-        {/* Centered countdown text — editorial hero scale, tabular-nums */}
+        {/* Centered countdown text — editorial scale, tabular-nums */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[10px] md:text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-2">
+          <span
+            className="text-[10px] md:text-[11px] uppercase tracking-[0.22em] font-semibold text-[#8A8474] mb-2"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
             Session {cycleNumber}
           </span>
-          <span className="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight text-ima-primary leading-none">
+          <span className="text-[56px] md:text-[72px] font-bold tabular-nums tracking-[-0.02em] text-[#4A6CF7] leading-none">
             {timeStr}
           </span>
-          <span className="text-[10px] uppercase tracking-[0.22em] font-medium text-ima-text-muted mt-3">
+          <span
+            className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#8A8474] mt-3"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
             Remaining
           </span>
         </div>

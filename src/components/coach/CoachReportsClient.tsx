@@ -2,11 +2,10 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FileText } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
-import { Card } from "@/components/ui/Card";
 import { ReportRow } from "@/components/coach/ReportRow";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { FileText } from "lucide-react";
 
 export type ReportItem = {
   id: string;
@@ -130,23 +129,24 @@ export function CoachReportsClient({
   ];
 
   return (
-    <div className="mt-6">
+    <div className="mt-10">
       {/* Filter controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        {/* Tab buttons */}
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
+        <div className="flex gap-[6px] flex-wrap">
           {tabs.map((tab) => {
             const isActive = currentFilter === tab.value;
             return (
               <button
                 key={tab.value}
+                type="button"
                 onClick={() => handleFilterTab(tab.value)}
-                className={`min-h-[44px] px-4 text-sm font-medium rounded-lg motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary ${
-                  isActive
-                    ? "bg-ima-primary text-white"
-                    : "bg-ima-surface-light text-ima-text-secondary hover:text-ima-text"
-                }`}
                 aria-pressed={isActive}
+                className={[
+                  "min-h-[44px] px-4 text-[13px] font-semibold rounded-[10px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                  isActive
+                    ? "bg-[#4A6CF7] text-white"
+                    : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]",
+                ].join(" ")}
               >
                 {tab.label}
               </button>
@@ -154,12 +154,11 @@ export function CoachReportsClient({
           })}
         </div>
 
-        {/* Student dropdown */}
         <select
           aria-label="Filter by student"
           value={currentStudentId}
           onChange={(e) => handleStudentFilter(e.target.value)}
-          className="min-h-[44px] px-3 text-sm rounded-lg border border-ima-border bg-ima-surface text-ima-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary"
+          className="min-h-[44px] px-3 text-[13px] rounded-[10px] border border-[#EDE9E0] bg-white text-[#1A1A17] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 hover:border-[#D8D2C4] motion-safe:transition-colors"
         >
           <option value="">All Students</option>
           {students.map((s) => (
@@ -172,15 +171,16 @@ export function CoachReportsClient({
 
       {/* Report list */}
       {localReports.length === 0 ? (
-        <Card>
+        <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
           <EmptyState
-            icon={<FileText className="h-6 w-6" />}
+            variant="compact"
+            icon={<FileText className="h-5 w-5" aria-hidden="true" />}
             title="No reports found"
             description="Reports matching your filters will appear here."
           />
-        </Card>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-[10px]">
           {localReports.map((report) => (
             <ReportRow
               key={report.id}

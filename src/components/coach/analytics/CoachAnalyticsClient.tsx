@@ -114,18 +114,24 @@ export function CoachAnalyticsClient({ payload, initialParams }: Props) {
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-4">
+      <header className="flex flex-wrap items-start justify-between gap-4 motion-safe:animate-fadeIn">
         <div>
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            Analytics
+          </p>
           <h1
             id="coach-analytics-h1"
-            className="text-2xl font-bold text-ima-text"
+            className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]"
           >
             Coach Analytics
           </h1>
-          <p className="mt-1 text-sm text-ima-text-secondary">
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
             Aggregate stats across your assigned students.
           </p>
-          <div className="mt-2">
+          <div className="mt-4">
             <ActiveInactiveChip
               activeCount={payload.active_inactive.active}
               inactiveCount={payload.active_inactive.inactive}
@@ -138,9 +144,17 @@ export function CoachAnalyticsClient({ payload, initialParams }: Props) {
         />
       </header>
 
-      <KPIGrid stats={payload.stats} />
+      <div
+        className="motion-safe:animate-fadeIn"
+        style={{ animationDelay: "50ms" }}
+      >
+        <KPIGrid stats={payload.stats} />
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+      <div
+        className="grid grid-cols-1 lg:grid-cols-3 gap-[14px] mt-8 motion-safe:animate-fadeIn"
+        style={{ animationDelay: "100ms" }}
+      >
         <LeaderboardCard
           headingId="leaderboard-hours-heading"
           heading="Top 5 — Hours This Week"
@@ -167,11 +181,17 @@ export function CoachAnalyticsClient({ payload, initialParams }: Props) {
         />
       </div>
 
-      <div className="mt-6">
+      <div
+        className="mt-8 motion-safe:animate-fadeIn"
+        style={{ animationDelay: "150ms" }}
+      >
         <DealsTrendChart buckets={payload.deals_trend} />
       </div>
 
-      <div className="mt-6">
+      <div
+        className="mt-8 motion-safe:animate-fadeIn"
+        style={{ animationDelay: "200ms" }}
+      >
         <StudentListTable
           rows={payload.students}
           pagination={payload.pagination}

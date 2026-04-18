@@ -214,10 +214,10 @@ export default async function CoachDetailPage({
           (1000 * 60 * 60 * 24)
       );
       if (daysInactive >= COACH_CONFIG.atRiskInactiveDays) {
-        reasons.push(`Inactive ${daysInactive}d`);
+        reasons.push(`Kaslan ${daysInactive}d`);
       }
     } else if (joinedDaysAgo >= COACH_CONFIG.atRiskInactiveDays) {
-      reasons.push(`Inactive ${joinedDaysAgo}d`);
+      reasons.push(`Kaslan ${joinedDaysAgo}d`);
     }
 
     const ratings = recentRatings.get(student.id);

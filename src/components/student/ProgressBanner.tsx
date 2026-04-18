@@ -21,6 +21,10 @@ interface ProgressBannerProps {
   outreachStarted: boolean;
 }
 
+/**
+ * Legacy inline KPI row — retained because StudentKpiSummary (non-sticky card) still renders it.
+ * New sticky bar uses GoalKpi / CounterKpi below.
+ */
 export function KpiItem({
   label,
   value,
@@ -46,6 +50,152 @@ export function KpiItem({
   );
 }
 
+// Ring geometry — 22px outer, 2.5px stroke → center radius 9.75, circumference ~61.26
+const RING_SIZE = 22;
+const RING_STROKE = 2.5;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRC = 2 * Math.PI * RING_RADIUS;
+
+function ringStrokeClass(status: RagStatus): string {
+  switch (status) {
+    case "green":
+      return "stroke-ima-success";
+    case "amber":
+      return "stroke-ima-warning";
+    case "red":
+      return "stroke-ima-error";
+    default:
+      return "stroke-ima-text-muted";
+  }
+}
+
+function valueTextClass(status: RagStatus, complete: boolean): string {
+  if (complete) return "text-ima-success";
+  switch (status) {
+    case "amber":
+      return "text-ima-warning";
+    case "red":
+      return "text-ima-error";
+    default:
+      return "text-ima-text";
+  }
+}
+
+function GoalKpi({
+  label,
+  current,
+  target,
+  currentDisplay,
+  targetDisplay,
+  ragStatus,
+  ariaLabel,
+}: {
+  label: string;
+  current: number;
+  target: number;
+  currentDisplay: string;
+  targetDisplay: string;
+  ragStatus: RagStatus;
+  ariaLabel: string;
+}) {
+  const ratio = target > 0 ? Math.min(Math.max(current / target, 0), 1) : 0;
+  const complete = ratio >= 1;
+  const dashOffset = RING_CIRC * (1 - ratio);
+
+  return (
+    <div
+      className="flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-1.5 motion-safe:transition-colors hover:bg-ima-surface-light/60"
+      aria-label={ariaLabel}
+    >
+      <div
+        className="relative shrink-0"
+        style={{ width: RING_SIZE, height: RING_SIZE }}
+        aria-hidden="true"
+      >
+        <svg
+          width={RING_SIZE}
+          height={RING_SIZE}
+          viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+          className="-rotate-90"
+        >
+          <circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RING_RADIUS}
+            fill="none"
+            strokeWidth={RING_STROKE}
+            className="stroke-ima-border"
+          />
+          <circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RING_RADIUS}
+            fill="none"
+            strokeWidth={RING_STROKE}
+            strokeLinecap="round"
+            strokeDasharray={RING_CIRC}
+            strokeDashoffset={dashOffset}
+            className={cn(
+              ringStrokeClass(ragStatus),
+              "motion-safe:transition-[stroke-dashoffset] motion-safe:duration-500 motion-safe:ease-out",
+            )}
+          />
+        </svg>
+        {complete && (
+          <svg
+            className="pointer-events-none absolute inset-0 m-auto text-ima-success"
+            width={10}
+            height={10}
+            viewBox="0 0 10 10"
+            fill="none"
+          >
+            <path
+              d="M2 5.4l2 2 4-4.6"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </div>
+      <div className="flex flex-col">
+        <span className="font-mono text-[9.5px] uppercase leading-[1] tracking-[0.16em] text-ima-text-secondary">
+          {label}
+        </span>
+        <span className="mt-1 text-[13px] font-semibold leading-[1.1] tabular-nums">
+          <span className={valueTextClass(ragStatus, complete)}>{currentDisplay}</span>
+          <span className="text-ima-text-secondary"> / {targetDisplay}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CounterKpi({
+  label,
+  value,
+  ariaLabel,
+}: {
+  label: string;
+  value: string;
+  ariaLabel: string;
+}) {
+  return (
+    <div
+      className="flex items-baseline gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 motion-safe:transition-colors hover:bg-ima-surface-light/60"
+      aria-label={ariaLabel}
+    >
+      <span className="font-mono text-[9.5px] uppercase leading-[1] tracking-[0.16em] text-ima-text-secondary">
+        {label}
+      </span>
+      <span className="text-[13px] font-semibold leading-[1] tabular-nums text-ima-text">
+        {value}
+      </span>
+    </div>
+  );
+}
+
 export function ProgressBanner({
   lifetimeOutreach,
   dailyOutreach,
@@ -63,57 +213,67 @@ export function ProgressBanner({
   const dailyRag = dailyOutreachRag(dailyOutreach, days);
   const hoursRag = dailyHoursRag(dailyMinutesWorked, days);
 
+  const hoursTargetMinutes = WORK_TRACKER.dailyGoalHours * 60;
+
   return (
     <div
-      className="sticky top-0 z-10 bg-ima-surface border-b border-ima-border px-4 py-3"
+      className="sticky top-0 z-10 border-b border-ima-border bg-ima-surface/75 px-4 backdrop-blur-[20px] backdrop-saturate-[1.4] supports-[backdrop-filter]:bg-ima-surface/70"
       role="region"
       aria-label="KPI summary"
     >
-      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        {/* Lifetime Outreach — RAG colored per D-01 */}
-        <KpiItem
-          label="Lifetime Outreach"
-          value={`${lifetimeOutreach.toLocaleString()} / ${KPI_TARGETS.lifetimeOutreach.toLocaleString()}`}
-          ragStatus={lifetimeRag}
-          ariaLabel={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
-        />
+      <div className="flex min-h-12 flex-wrap items-center gap-y-1 md:h-12 md:flex-nowrap">
+        {/* Goal group — progress-bearing stats */}
+        <div className="flex items-center gap-0.5">
+          <GoalKpi
+            label="Lifetime Outreach"
+            current={lifetimeOutreach}
+            target={KPI_TARGETS.lifetimeOutreach}
+            currentDisplay={lifetimeOutreach.toLocaleString()}
+            targetDisplay={KPI_TARGETS.lifetimeOutreach.toLocaleString()}
+            ragStatus={lifetimeRag}
+            ariaLabel={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
+          />
+          <GoalKpi
+            label="Daily Outreach"
+            current={dailyOutreach}
+            target={KPI_TARGETS.dailyOutreach}
+            currentDisplay={String(dailyOutreach)}
+            targetDisplay={String(KPI_TARGETS.dailyOutreach)}
+            ragStatus={dailyRag}
+            ariaLabel={`Daily outreach: ${dailyOutreach} of ${KPI_TARGETS.dailyOutreach}`}
+          />
+          <GoalKpi
+            label="Hours Worked"
+            current={dailyMinutesWorked}
+            target={hoursTargetMinutes}
+            currentDisplay={formatHoursMinutes(dailyMinutesWorked)}
+            targetDisplay={`${WORK_TRACKER.dailyGoalHours}h`}
+            ragStatus={hoursRag}
+            ariaLabel={`Hours worked today: ${formatHoursMinutes(dailyMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours} hours`}
+          />
+        </div>
 
-        {/* Daily Outreach — RAG colored per D-02 */}
-        <KpiItem
-          label="Daily Outreach"
-          value={`${dailyOutreach} / ${KPI_TARGETS.dailyOutreach}`}
-          ragStatus={dailyRag}
-          ariaLabel={`Daily outreach: ${dailyOutreach} of ${KPI_TARGETS.dailyOutreach}`}
-        />
+        {/* Divider between goal- and counter-groups, pushed flush-right-of-center by the counter group's ml-auto */}
+        <div className="ml-auto mr-3 hidden h-6 w-px bg-ima-border md:block" aria-hidden="true" />
 
-        {/* Daily Hours — RAG colored per D-03 */}
-        <KpiItem
-          label="Hours Worked"
-          value={`${formatHoursMinutes(dailyMinutesWorked)} / ${WORK_TRACKER.dailyGoalHours}h`}
-          ragStatus={hoursRag}
-          ariaLabel={`Hours worked today: ${formatHoursMinutes(dailyMinutesWorked)} of ${WORK_TRACKER.dailyGoalHours} hours`}
-        />
-
-        {/* Calls Joined — no RAG per D-06 */}
-        <KpiItem
-          label="Calls Joined"
-          value={String(callsJoined)}
-          ariaLabel={`Calls joined today: ${callsJoined}`}
-        />
-
-        {/* Brands Outreach — no RAG per D-06 */}
-        <KpiItem
-          label="Brands Outreach"
-          value={String(brandsContacted)}
-          ariaLabel={`Brands outreach today: ${brandsContacted}`}
-        />
-
-        {/* Influencers Outreach — no RAG per D-06 */}
-        <KpiItem
-          label="Influencers Outreach"
-          value={String(influencersContacted)}
-          ariaLabel={`Influencers outreach today: ${influencersContacted}`}
-        />
+        {/* Counter group — contextless raw counts */}
+        <div className="flex items-center gap-0.5">
+          <CounterKpi
+            label="Calls Joined"
+            value={String(callsJoined)}
+            ariaLabel={`Calls joined today: ${callsJoined}`}
+          />
+          <CounterKpi
+            label="Brands Outreach"
+            value={String(brandsContacted)}
+            ariaLabel={`Brands outreach today: ${brandsContacted}`}
+          />
+          <CounterKpi
+            label="Influencers Outreach"
+            value={String(influencersContacted)}
+            ariaLabel={`Influencers outreach today: ${influencersContacted}`}
+          />
+        </div>
       </div>
     </div>
   );

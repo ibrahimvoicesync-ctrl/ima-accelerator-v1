@@ -1,3 +1,4 @@
+import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
@@ -8,24 +9,13 @@ import {
   type CoachAlertFeedItem,
 } from "@/components/coach/alerts-types";
 import { CoachAlertsClient } from "@/components/coach/CoachAlertsClient";
-import { Bell } from "lucide-react";
 
-/**
- * Phase 52: Coach Alerts Page — server shell.
- *
- * Merges two feeds:
- *   1. Legacy 100h milestone (NOTIF-08, quick task 260401-cwd) — direct Supabase
- *      query. Preserved because `get_coach_milestones` RPC does NOT emit
- *      100h_milestone rows (see 52-RESEARCH Open Question #1, Pitfall 5).
- *   2. Phase 51 milestone RPC (NOTIF-02..04) — cached via getCoachMilestonesCached.
- *
- * Merge output is CoachAlertFeedItem[] — flat, client-safe, ready to group by
- * student_id in the client component. Server does NOT group; grouping + filter
- * logic is the client's responsibility so filter tab toggles don't round-trip.
- *
- * IMPORTANT: getTodayUTC() not getToday() — matches Phase 48/51 precedent so the
- * RPC cache key is stable across server timezone drift.
- */
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
+
 export default async function CoachAlertsPage() {
   const user = await requireRole("coach");
   const today = getTodayUTC();
@@ -57,7 +47,6 @@ export default async function CoachAlertsPage() {
     (dismissalsResult.data ?? []).map((d) => d.alert_key),
   );
 
-  // Legacy 100h feed — preserves NOTIF-08 behavior from pre-Phase 52 page.tsx.
   const nowMs = new Date(today + "T23:59:59Z").getTime();
   const milestoneCutoff = new Date(
     nowMs - COACH_CONFIG.milestoneDaysWindow * 86400000,
@@ -115,7 +104,6 @@ export default async function CoachAlertsPage() {
     }
   }
 
-  // RPC feed — already undismissed (RPC filters alert_dismissals internally).
   const rpcItems: CoachAlertFeedItem[] = milestonesPayload.milestones.map(
     milestoneRowToFeedItem,
   );
@@ -127,18 +115,27 @@ export default async function CoachAlertsPage() {
   );
 
   return (
-    <div className="space-y-6 px-4">
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <Bell className="h-6 w-6 text-ima-primary" aria-hidden="true" />
-          <h1 className="text-2xl font-semibold text-ima-text">Milestone Alerts</h1>
-        </div>
-        <p className="text-sm text-ima-text-secondary">
-          Your students&apos; milestone achievements — review and dismiss when actioned.
-        </p>
-      </div>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20 space-y-8">
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            Alerts
+          </p>
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+            Milestone Alerts
+          </h1>
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+            Your students&apos; milestone achievements — review and dismiss when actioned.
+          </p>
+        </header>
 
-      <CoachAlertsClient initialFeed={feed} />
+        <CoachAlertsClient initialFeed={feed} />
+      </div>
     </div>
   );
 }

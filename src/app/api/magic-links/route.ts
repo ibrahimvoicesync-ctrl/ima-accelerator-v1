@@ -18,10 +18,6 @@ const postSchema = z.object({
   max_uses: z.number().int().min(1).max(10000).optional().default(10),
 });
 
-const patchSchema = z.object({
-  is_active: z.boolean(),
-});
-
 export async function POST(request: NextRequest) {
   // CSRF protection -- Origin header must match app host
   const csrfError = verifyOrigin(request);
@@ -105,7 +101,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ data: link, registerUrl }, { status: 201 });
 }
 
-export async function PATCH(request: NextRequest) {
+export async function DELETE(request: NextRequest) {
   // CSRF protection -- Origin header must match app host
   const csrfError = verifyOrigin(request);
   if (csrfError) return csrfError;
@@ -132,32 +128,17 @@ export async function PATCH(request: NextRequest) {
   }
 
   // Rate limit check (per D-01, D-04)
-  const { allowed: patchAllowed, retryAfterSeconds: patchRetryAfter } = await checkRateLimit(profile.id, "/api/magic-links/update");
-  if (!patchAllowed) {
+  const { allowed: deleteAllowed, retryAfterSeconds: deleteRetryAfter } = await checkRateLimit(profile.id, "/api/magic-links/delete");
+  if (!deleteAllowed) {
     return NextResponse.json(
-      { error: `Too many requests, try again in ${patchRetryAfter} seconds.` },
-      { status: 429, headers: { "Retry-After": String(patchRetryAfter) } }
+      { error: `Too many requests, try again in ${deleteRetryAfter} seconds.` },
+      { status: 429, headers: { "Retry-After": String(deleteRetryAfter) } }
     );
   }
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
-  }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Validation failed" },
-      { status: 400 }
-    );
   }
 
   // Ownership check
@@ -175,17 +156,15 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { data: updated, error: updateError } = await admin
+  const { error: deleteError } = await admin
     .from("magic_links")
-    .update({ is_active: parsed.data.is_active })
-    .eq("id", id)
-    .select()
-    .single();
+    .delete()
+    .eq("id", id);
 
-  if (updateError) {
-    console.error("[PATCH /api/magic-links] DB error:", updateError);
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  if (deleteError) {
+    console.error("[DELETE /api/magic-links] DB error:", deleteError);
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ data: updated });
+  return NextResponse.json({ ok: true });
 }

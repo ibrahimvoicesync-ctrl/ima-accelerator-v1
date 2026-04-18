@@ -105,7 +105,7 @@ export default async function StudentDetailPage({
       (nowMs - new Date(lastActiveDateStr + "T00:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
     );
     if (daysInactive >= COACH_CONFIG.atRiskInactiveDays) {
-      reasons.push(`Inactive ${daysInactive}d`);
+      reasons.push(`Kaslan ${daysInactive}d`);
     }
   }
 

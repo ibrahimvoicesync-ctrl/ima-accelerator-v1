@@ -17,6 +17,7 @@ type InviteItem = {
   code: string;
   role: string;
   used: boolean;
+  used_at: string | null;
   expires_at: string;
   created_at: string;
 };
@@ -217,7 +218,7 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
   };
 
   const TAB_OPTIONS: { key: Tab; label: string; icon: typeof Mail }[] = [
-    { key: "email", label: "Email Invite", icon: Mail },
+    { key: "email", label: "Email whitelisting", icon: Mail },
     { key: "magic", label: "Invite Link", icon: Link2 },
   ];
 
@@ -286,11 +287,11 @@ export function OwnerInvitesClient({ invites, magicLinks }: Props) {
       {activeTab === "email" && (
         <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
           <h2 className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
-            Generate Email Invite
+            Whitelist an Email
           </h2>
           <p className="mt-1 text-[12px] text-[#8A8474]">
-            Whitelist an email address. The {selectedRole} can then sign in with
-            Google to create their account. Expires in 72 hours.
+            The {selectedRole} can then sign in with Google to create their
+            account. Expires in 72 hours.
           </p>
           <div className="h-px bg-[#EDE9E0] mt-4" aria-hidden="true" />
           <form

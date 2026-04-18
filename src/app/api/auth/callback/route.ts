@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     // Atomically mark invite as used (prevents race condition)
     const { data: consumed } = await admin
       .from("invites")
-      .update({ used: true })
+      .update({ used: true, used_at: new Date().toISOString() })
       .eq("id", invite.id)
       .eq("used", false)
       .select("id")
@@ -144,7 +144,7 @@ export async function GET(request: Request) {
       // Rollback invite consumption
       const { error: rollbackError } = await admin
         .from("invites")
-        .update({ used: false })
+        .update({ used: false, used_at: null })
         .eq("id", invite.id);
       if (rollbackError) {
         console.error(
@@ -354,7 +354,7 @@ export async function GET(request: Request) {
     // Atomically mark invite as used (prevents race condition)
     const { data: consumed } = await admin
       .from("invites")
-      .update({ used: true })
+      .update({ used: true, used_at: new Date().toISOString() })
       .eq("id", whitelistInvite.id)
       .eq("used", false)
       .select("id")
@@ -368,7 +368,7 @@ export async function GET(request: Request) {
         // Rollback
         await admin
           .from("invites")
-          .update({ used: false })
+          .update({ used: false, used_at: null })
           .eq("id", whitelistInvite.id);
         return NextResponse.redirect(`${origin}/no-access`);
       }
@@ -401,7 +401,7 @@ export async function GET(request: Request) {
         // Rollback invite consumption
         const { error: rollbackError } = await admin
           .from("invites")
-          .update({ used: false })
+          .update({ used: false, used_at: null })
           .eq("id", whitelistInvite.id);
         if (rollbackError) {
           console.error(

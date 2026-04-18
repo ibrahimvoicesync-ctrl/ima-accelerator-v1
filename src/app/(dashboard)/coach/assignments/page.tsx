@@ -1,7 +1,13 @@
-import { ArrowLeftRight } from "lucide-react";
+import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CoachAssignmentsClient } from "@/components/coach/CoachAssignmentsClient";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
 
 export default async function CoachAssignmentsPage() {
   await requireRole("coach");
@@ -12,7 +18,7 @@ export default async function CoachAssignmentsPage() {
     admin
       .from("users")
       .select("id, name, email, status, coach_id")
-      .eq("role", "student")          // D-02: student only, NOT student_diy
+      .eq("role", "student")
       .eq("status", "active")
       .order("name"),
     admin
@@ -33,7 +39,6 @@ export default async function CoachAssignmentsPage() {
   const students = studentsResult.data ?? [];
   const coaches = coachesResult.data ?? [];
 
-  // Build coach -> student count mapping from students data
   const coachStudentCounts: Record<string, number> = {};
   for (const student of students) {
     if (student.coach_id) {
@@ -48,18 +53,27 @@ export default async function CoachAssignmentsPage() {
   }));
 
   return (
-    <div className="space-y-6 px-4">
-      {/* Page Header */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <ArrowLeftRight className="h-6 w-6 text-ima-primary" aria-hidden="true" />
-          <h1 className="text-2xl font-bold text-ima-text">Assignments</h1>
-        </div>
-        <p className="text-sm text-ima-text-secondary">
-          Assign and reassign students across coaches.
-        </p>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20 space-y-8">
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            Assignments
+          </p>
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+            Student Assignments
+          </h1>
+          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+            Assign and reassign students across coaches.
+          </p>
+        </header>
+
+        <CoachAssignmentsClient students={students} coaches={coachOptions} />
       </div>
-      <CoachAssignmentsClient students={students} coaches={coachOptions} />
     </div>
   );
 }

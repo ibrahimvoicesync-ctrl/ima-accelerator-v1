@@ -4,15 +4,13 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bell } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { cn } from "@/lib/utils";
 import {
   MILESTONE_META,
   type CoachAlertFeedItem,
+  type CoachAlertFeedType,
 } from "@/components/coach/alerts-types";
 
 type FilterTab = "all" | "active" | "dismissed";
@@ -35,6 +33,54 @@ const EMPTY_COPY: Record<FilterTab, { title: string; description: string }> = {
   dismissed: {
     title: "No dismissed alerts",
     description: "Alerts you dismiss will be archived here for reference.",
+  },
+};
+
+// Warm-palette mapping per milestone type. Icon tint + background replace the
+// ima-* defaults in MILESTONE_META so alerts sit coherently on #FAFAF7.
+const TYPE_TINT: Record<
+  CoachAlertFeedType,
+  { iconBg: string; iconColor: string; rail: string; badgeBg: string; badgeBorder: string; badgeText: string }
+> = {
+  "100h_milestone": {
+    iconBg: "bg-[#E2F5E9]",
+    iconColor: "text-[#16A34A]",
+    rail: "border-l-[#16A34A]",
+    badgeBg: "bg-[#E2F5E9]",
+    badgeBorder: "border-[#BFE4CD]",
+    badgeText: "text-[#16A34A]",
+  },
+  "closed_deal": {
+    iconBg: "bg-[#E2F5E9]",
+    iconColor: "text-[#16A34A]",
+    rail: "border-l-[#16A34A]",
+    badgeBg: "bg-[#E2F5E9]",
+    badgeBorder: "border-[#BFE4CD]",
+    badgeText: "text-[#16A34A]",
+  },
+  "5_influencers": {
+    iconBg: "bg-[#E8EEFF]",
+    iconColor: "text-[#4A6CF7]",
+    rail: "border-l-[#4A6CF7]",
+    badgeBg: "bg-[#E8EEFF]",
+    badgeBorder: "border-[#C9D5FF]",
+    badgeText: "text-[#4A6CF7]",
+  },
+  "brand_response": {
+    iconBg: "bg-[#E8EEFF]",
+    iconColor: "text-[#4A6CF7]",
+    rail: "border-l-[#4A6CF7]",
+    badgeBg: "bg-[#E8EEFF]",
+    badgeBorder: "border-[#C9D5FF]",
+    badgeText: "text-[#4A6CF7]",
+  },
+  "tech_setup": {
+    iconBg: "bg-[#E8EEFF]",
+    iconColor: "text-[#4A6CF7]",
+    rail: "border-l-[#4A6CF7]",
+    badgeBg: "bg-[#E8EEFF]",
+    badgeBorder: "border-[#C9D5FF]",
+    badgeText: "text-[#4A6CF7]",
   },
 };
 
@@ -62,9 +108,6 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
     routerRef.current = router;
   }, [router]);
 
-  // Session-scoped dismissed keys (optimistic). After a successful dismiss +
-  // router.refresh(), the server fetches fresh data that already excludes
-  // these keys — this set is harmless stale state on remount.
   const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<FilterTab>("active");
   const [inflightKeys, setInflightKeys] = useState<Set<string>>(new Set());
@@ -94,8 +137,6 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
     [initialFeed, dismissedKeys],
   );
 
-  // Filter then group. Groups sorted by most-recent occurred_at descending.
-  // Rows within a group sorted by occurred_at descending.
   const visibleGroups: StudentGroup[] = useMemo(() => {
     const filtered = initialFeed.filter((r) => {
       if (filter === "all") return true;
@@ -185,9 +226,6 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
 
   const handleBulkDismiss = useCallback(
     async (group: StudentGroup) => {
-      // Guard: if any row in this group is already inflight, bail out to prevent
-      // double-submission in the narrow window before React re-renders the button
-      // as disabled.
       if (group.rows.some((r) => inflightKeys.has(r.alert_key))) return;
       const keys = group.rows
         .filter((r) => !dismissedKeys.has(r.alert_key))
@@ -228,48 +266,71 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
   );
 
   return (
-    <>
-      {/* Summary stats */}
-      <div className="flex items-center gap-4 text-sm text-ima-text-secondary">
-        <span>{activeCount} active</span>
-        <span aria-hidden="true" className="text-ima-border">
-          |
-        </span>
-        <span>{dismissedCount} dismissed</span>
-      </div>
+    <div
+      className="space-y-6 motion-safe:animate-fadeIn"
+      style={{ animationDelay: "50ms" }}
+    >
+      {/* Summary + filter bar */}
+      <div className="bg-white border border-[#EDE9E0] rounded-[14px] px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div
+          className="flex items-center gap-4 text-[11px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase"
+          style={{ fontFamily: "var(--font-mono-bold)" }}
+        >
+          <span>
+            <span className="text-[14px] font-bold text-[#1A1A17] tabular-nums mr-[6px]">
+              {activeCount}
+            </span>
+            Active
+          </span>
+          <span aria-hidden="true" className="text-[#EDE9E0]">
+            |
+          </span>
+          <span>
+            <span className="text-[14px] font-bold text-[#1A1A17] tabular-nums mr-[6px]">
+              {dismissedCount}
+            </span>
+            Dismissed
+          </span>
+        </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 flex-wrap" role="tablist">
-        {FILTER_TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={filter === key}
-            onClick={() => setFilter(key)}
-            className={cn(
-              "px-4 py-2 rounded-lg text-sm font-semibold min-h-[44px] motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-1",
-              filter === key
-                ? "bg-ima-primary text-white"
-                : "bg-ima-surface border border-ima-border text-ima-text hover:bg-ima-surface-light",
-            )}
-          >
-            {key === "active" && activeCount > 0
-              ? `Active (${activeCount})`
-              : label}
-          </button>
-        ))}
+        <div className="flex gap-[6px] flex-wrap sm:ml-auto" role="tablist">
+          {FILTER_TABS.map(({ key, label }) => {
+            const active = filter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setFilter(key)}
+                className={[
+                  "min-h-[44px] px-4 text-[13px] font-semibold rounded-[10px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                  active
+                    ? "bg-[#4A6CF7] text-white"
+                    : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]",
+                ].join(" ")}
+              >
+                {key === "active" && activeCount > 0
+                  ? `Active (${activeCount})`
+                  : label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Grouped feed */}
       {visibleGroups.length === 0 ? (
-        <EmptyState
-          icon={<Bell className="h-6 w-6" aria-hidden="true" />}
-          title={EMPTY_COPY[filter].title}
-          description={EMPTY_COPY[filter].description}
-        />
+        <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+          <EmptyState
+            variant="compact"
+            icon={<Bell className="h-5 w-5" aria-hidden="true" />}
+            title={EMPTY_COPY[filter].title}
+            description={EMPTY_COPY[filter].description}
+          />
+        </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-7">
           {visibleGroups.map((group) => {
             const undismissedInGroup = group.rows.filter(
               (r) => !dismissedKeys.has(r.alert_key),
@@ -284,13 +345,14 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
               <section
                 key={group.student_id}
                 aria-labelledby={`group-${group.student_id}`}
-                className="space-y-3"
+                className="space-y-[10px]"
               >
                 {/* Group header */}
                 <div className="flex items-center justify-between gap-3 px-1">
                   <h2
                     id={`group-${group.student_id}`}
-                    className="text-sm font-semibold text-ima-text"
+                    className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+                    style={{ fontFamily: "var(--font-mono-bold)" }}
                   >
                     {group.student_name}
                   </h2>
@@ -310,87 +372,78 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
                 {/* Alert rows */}
                 {group.rows.map((row) => {
                   const meta = MILESTONE_META[row.milestone_type];
+                  const tint = TYPE_TINT[row.milestone_type];
                   const isDismissed = dismissedKeys.has(row.alert_key);
                   const isInflight = inflightKeys.has(row.alert_key);
                   return (
-                    <Card
+                    <article
                       key={row.alert_key}
-                      variant={isDismissed ? "default" : "bordered-left"}
-                      className={cn(!isDismissed && "border-l-ima-success")}
+                      aria-label={`milestone alert: ${row.student_name} — ${meta.label}`}
+                      className={[
+                        "bg-white border rounded-[14px] p-5 motion-safe:transition-colors",
+                        isDismissed
+                          ? "border-[#EDE9E0] opacity-70"
+                          : `border-[#EDE9E0] border-l-[3px] ${tint.rail}`,
+                      ].join(" ")}
                     >
-                      <CardContent className="p-4">
+                      <div className="flex gap-4">
                         <div
-                          role="article"
-                          aria-label={`milestone alert: ${row.student_name} — ${meta.label}`}
-                          className="flex gap-4"
+                          className={`shrink-0 w-10 h-10 rounded-[8px] flex items-center justify-center ${tint.iconBg} ${tint.iconColor}`}
                         >
-                          {/* Icon */}
-                          <div
-                            className={cn(
-                              "shrink-0 w-10 h-10 rounded-lg flex items-center justify-center",
-                              meta.iconBg,
-                              meta.iconTint,
+                          <meta.Icon className="w-5 h-5" aria-hidden="true" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <h3 className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                                {row.student_name}
+                              </h3>
+                              <span
+                                className={`inline-flex items-center px-2 py-[2px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] ${tint.badgeBg} ${tint.badgeBorder} ${tint.badgeText}`}
+                              >
+                                {meta.label}
+                              </span>
+                            </div>
+                            {!isDismissed && (
+                              <div
+                                className={`w-2 h-2 rounded-full ${tint.iconColor.replace("text-", "bg-")} shrink-0 mt-1`}
+                                aria-hidden="true"
+                              />
                             )}
-                          >
-                            <meta.Icon className="w-5 h-5" aria-hidden="true" />
                           </div>
 
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4 mb-1.5">
-                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                <h3 className="text-sm font-semibold text-ima-text truncate">
-                                  {row.student_name}
-                                </h3>
-                                <Badge variant={meta.badgeVariant} size="sm">
-                                  {meta.label}
-                                </Badge>
-                              </div>
-                              {!isDismissed && (
-                                <div
-                                  className="w-2 h-2 rounded-full bg-ima-success shrink-0 mt-1"
-                                  aria-hidden="true"
-                                />
-                              )}
-                            </div>
-
-                            {row.message && (
-                              <p className="text-sm text-ima-text-secondary mb-3">
-                                {row.message}
-                              </p>
+                          <p className="text-[13px] text-[#7A7466] mb-4 leading-[1.5]">
+                            {row.message ?? (
+                              <time dateTime={row.occurred_at}>
+                                {new Date(row.occurred_at).toLocaleString()}
+                              </time>
                             )}
-                            {!row.message && (
-                              <p className="text-sm text-ima-text-secondary mb-3">
-                                <time dateTime={row.occurred_at}>
-                                  {new Date(row.occurred_at).toLocaleString()}
-                                </time>
-                              </p>
-                            )}
+                          </p>
 
-                            <div className="flex gap-3 flex-wrap">
-                              <Link
-                                href={`/coach/students/${row.student_id}`}
-                                aria-label={`View ${row.student_name}`}
-                                className="text-xs text-ima-primary font-semibold hover:underline min-h-[44px] inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-1 rounded px-1"
+                          <div className="flex gap-3 flex-wrap items-center">
+                            <Link
+                              href={`/coach/students/${row.student_id}`}
+                              aria-label={`View ${row.student_name}`}
+                              className="text-[12px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] inline-flex items-center focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded px-1"
+                            >
+                              View Student →
+                            </Link>
+                            {!isDismissed && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                loading={isInflight}
+                                onClick={() => handleDismiss(row.alert_key)}
+                                className="text-xs"
                               >
-                                View Student
-                              </Link>
-                              {!isDismissed && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  loading={isInflight}
-                                  onClick={() => handleDismiss(row.alert_key)}
-                                  className="text-xs"
-                                >
-                                  Dismiss Alert
-                                </Button>
-                              )}
-                            </div>
+                                Dismiss Alert
+                              </Button>
+                            )}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </article>
                   );
                 })}
               </section>
@@ -398,6 +451,6 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
           })}
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -16,33 +16,22 @@ import {
   YAxis,
 } from "recharts";
 import {
-  Check,
-  Clock,
   DollarSign,
   Flame,
   Handshake,
   Mail,
   TrendingUp,
   Users,
+  type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { PaginationControls } from "@/components/ui/PaginationControls";
-import { ROADMAP_STEPS, WORK_TRACKER } from "@/lib/config";
-import {
-  getDeadlineStatus,
-  type DeadlineStatus,
-} from "@/lib/roadmap-utils";
+import { WORK_TRACKER } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import {
-  STUDENT_ANALYTICS_PAGE_SIZE,
   STUDENT_ANALYTICS_RANGES,
-  type DealRow,
   type StudentAnalyticsPayload,
   type StudentAnalyticsRange,
 } from "@/lib/rpc/student-analytics-types";
-import { DealAttributionChip } from "@/components/shared/DealAttributionChip";
-import type { LoggedByUser, ViewerRole } from "@/lib/deals-attribution";
 
 // Recharts requires literal hex values for stroke/fill props. Mirrors ima-* tokens.
 const chartColors = {
@@ -51,56 +40,43 @@ const chartColors = {
   textMuted: "#94A3B8", // ima-text-muted
 } as const;
 
+const MONO: React.CSSProperties = { fontFamily: "var(--font-mono-bold)" };
+
 const RANGE_LABELS: Record<StudentAnalyticsRange, string> = {
-  "7d": "7d",
-  "30d": "30d",
-  "90d": "90d",
-  all: "All",
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
 };
 
 const RANGE_ARIA_LABELS: Record<StudentAnalyticsRange, string> = {
-  "7d": "Last 7 days",
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-  all: "All time",
+  daily: "Daily view",
+  weekly: "Weekly view",
+  monthly: "Monthly view",
 };
 
 interface AnalyticsClientProps {
   initialData: StudentAnalyticsPayload;
-  studentId: string;
-  joinedAt: string;
   initialRange: StudentAnalyticsRange;
-  initialPage: number;
   basePath: "/student/analytics" | "/student_diy/analytics";
-  viewerId: string;
-  viewerRole: ViewerRole;
-  userMap: Record<string, LoggedByUser>;
   /** Student DIY hides outreach metrics (KPIs + trend chart). Default true for the mentored student view. */
   showOutreach?: boolean;
 }
 
 export function AnalyticsClient({
   initialData,
-  joinedAt,
   initialRange,
-  initialPage,
   basePath,
-  viewerId,
-  viewerRole,
-  userMap,
   showOutreach = true,
 }: AnalyticsClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const data = initialData;
   const range = initialRange;
-  const page = initialPage;
 
   const navigate = useCallback(
-    (nextRange: StudentAnalyticsRange, nextPage: number) => {
+    (nextRange: StudentAnalyticsRange) => {
       const params = new URLSearchParams();
       params.set("range", nextRange);
-      params.set("page", String(nextPage));
       startTransition(() => {
         router.push(`${basePath}?${params.toString()}`, { scroll: false });
       });
@@ -111,15 +87,9 @@ export function AnalyticsClient({
   const onRangeChange = useCallback(
     (r: StudentAnalyticsRange) => {
       if (r === range) return;
-      navigate(r, 1);
+      navigate(r);
     },
     [navigate, range],
-  );
-
-  const totalPages = useMemo(
-    () =>
-      Math.max(1, Math.ceil(data.total_deal_count / STUDENT_ANALYTICS_PAGE_SIZE)),
-    [data.total_deal_count],
   );
 
   const outreachSummary = useMemo(() => {
@@ -141,73 +111,91 @@ export function AnalyticsClient({
   );
 
   const hoursBucketLabel =
-    range === "7d" || range === "30d" ? "day" : "week";
-
-  const roadmapSummary = useMemo(() => {
-    const completed = data.roadmap_progress.filter(
-      (r) => r.status === "completed",
-    ).length;
-    const total = ROADMAP_STEPS.length;
-    const percent = Math.round((completed / total) * 100);
-    return { completed, total, percent };
-  }, [data.roadmap_progress]);
+    range === "daily" ? "day" : range === "weekly" ? "week" : "month";
 
   return (
     <div
       className={cn(
-        "space-y-12",
+        "space-y-10",
         isPending && "opacity-75 motion-safe:transition-opacity",
       )}
       aria-busy={isPending || undefined}
     >
-      {/* Hero — monumental lifetime hours. Single focal point per view. */}
-      <header className="motion-safe:animate-fadeIn">
-        <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
-          <h1 className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
-            Analytics &middot; Lifetime
-          </h1>
-          {data.streak > 0 ? (
-            <span className="inline-flex items-center gap-1.5 bg-ima-primary/10 text-ima-primary rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] font-semibold tabular-nums">
-              <Flame className="h-3 w-3" aria-hidden="true" />
-              {data.streak}-day streak
-            </span>
-          ) : null}
-        </div>
-        <div className="flex items-end gap-4 flex-wrap">
-          <span className="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight leading-[0.95] text-ima-primary">
-            {formatHoursCompact(data.totals.total_hours ?? 0)}
-          </span>
-          <span className="text-xl md:text-2xl font-medium text-ima-text-muted tabular-nums mb-1.5">
-            hrs worked
-          </span>
-        </div>
+      {/* Masthead — editorial kicker + title + lead (matches dashboard rhythm). */}
+      <header id="student-analytics-h1" className="motion-safe:animate-fadeIn">
+        <p
+          className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+          style={MONO}
+        >
+          Analytics · Lifetime
+        </p>
+        <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
+          Lifetime performance
+        </h1>
+        <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
+          {showOutreach
+            ? "Hours, outreach, and deals — at a glance."
+            : "Hours and deals — at a glance."}
+        </p>
       </header>
 
-      {/* KPI Strip — lifetime totals. First (hours) is the single blue signal. */}
+      {/* Hero — single focal point: lifetime hours. */}
+      <section
+        aria-labelledby="analytics-hero-label"
+        className="motion-safe:animate-fadeIn"
+        style={{ animationDelay: "100ms" }}
+      >
+        <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p
+              id="analytics-hero-label"
+              className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+              style={MONO}
+            >
+              Lifetime Hours
+            </p>
+            {data.streak > 0 ? (
+              <span
+                className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-surface-accent border border-ima-primary/15 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-primary tabular-nums"
+                style={MONO}
+              >
+                <Flame className="h-3 w-3" aria-hidden="true" />
+                {data.streak}-day streak
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-6 flex items-end gap-3 flex-wrap">
+            <span className="text-6xl md:text-7xl font-semibold tabular-nums tracking-tight leading-[0.95] text-ima-primary">
+              {formatHoursCompact(data.totals.total_hours ?? 0)}
+            </span>
+            <span className="pb-2 text-[15px] font-medium text-ima-text-muted tabular-nums">
+              hrs worked · all time
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* KPI strip — compact stat cards (matches dashboard / coach KPI grid). */}
       <section
         aria-label="Lifetime totals"
         className={cn(
-          "grid grid-cols-2 gap-3 motion-safe:animate-fadeIn",
-          showOutreach
-            ? "sm:grid-cols-3 lg:grid-cols-6"
-            : "sm:grid-cols-2 lg:grid-cols-4",
+          "grid grid-cols-1 sm:grid-cols-2 gap-[14px] motion-safe:animate-fadeIn",
+          showOutreach ? "lg:grid-cols-5" : "lg:grid-cols-3",
         )}
+        style={{ animationDelay: "150ms" }}
       >
-        <KpiCard
-          emphasis
-          icon={<Clock className="h-4 w-4" aria-hidden="true" />}
-          label="Total Hours"
-          value={formatHours(data.totals.total_hours ?? 0)}
-        />
         {showOutreach ? (
           <>
-            <KpiCard
-              icon={<Mail className="h-4 w-4" aria-hidden="true" />}
+            <StatCard
+              icon={Mail}
+              tint="primary"
               label="Brand Outreach"
               value={(data.totals.total_brand_outreach ?? 0).toLocaleString()}
             />
-            <KpiCard
-              icon={<Users className="h-4 w-4" aria-hidden="true" />}
+            <StatCard
+              icon={Users}
+              tint="primary"
               label="Influencer Outreach"
               value={(
                 data.totals.total_influencer_outreach ?? 0
@@ -215,218 +203,199 @@ export function AnalyticsClient({
             />
           </>
         ) : null}
-        <KpiCard
-          icon={<Handshake className="h-4 w-4" aria-hidden="true" />}
+        <StatCard
+          icon={Handshake}
+          tint="accent"
           label="Total Deals"
           value={(data.totals.total_deals ?? 0).toLocaleString()}
         />
-        <KpiCard
-          icon={<DollarSign className="h-4 w-4" aria-hidden="true" />}
-          label="Total Revenue"
+        <StatCard
+          icon={DollarSign}
+          tint="primary"
+          label="Revenue"
           value={formatMoney(data.totals.total_revenue ?? 0)}
         />
-        <KpiCard
-          icon={<TrendingUp className="h-4 w-4" aria-hidden="true" />}
-          label="Total Profit"
+        <StatCard
+          icon={TrendingUp}
+          tint="success"
+          label="Profit"
           value={formatMoney(data.totals.total_profit ?? 0)}
         />
       </section>
 
-      {/* Trend charts — monochrome blue. Single range selector controls both. */}
-      <section
-        aria-label="Trend charts"
-        className="motion-safe:animate-slideUp"
-      >
-        <div className="flex items-baseline justify-between gap-3 mb-5 flex-wrap">
-          <h2 className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
+      {/* Trend — mono-bold kicker + pill range selector, then charts. */}
+      <section aria-label="Trend charts" className="motion-safe:animate-slideUp">
+        <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+            style={MONO}
+          >
             Trend
-          </h2>
-          <RangeSelector range={range} onChange={onRangeChange} />
+          </p>
+          <RangePills range={range} onChange={onRangeChange} />
         </div>
+
         <div
           className={cn(
-            "grid grid-cols-1 gap-4",
+            "grid grid-cols-1 gap-[14px]",
             showOutreach && "lg:grid-cols-2",
           )}
         >
-          {/* Outreach */}
           {showOutreach ? (
-          <div className="rounded-2xl border border-ima-border bg-ima-surface p-5 md:p-6">
-            <div className="flex items-baseline justify-between gap-3 mb-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
-                Outreach
-              </p>
-              <p className="text-xs text-ima-text-secondary tabular-nums">
-                {outreachSummary.brands + outreachSummary.influencers} sent
-              </p>
-            </div>
-            {data.outreach_trend.length === 0 ? (
-              <EmptyState
-                variant="compact"
-                title="No activity in this range"
-                description="Try a longer time range, or check back after your next session."
-              />
-            ) : (
-              <>
-                <div
-                  role="img"
-                  aria-label={`Outreach for the selected range. Brands sent: ${outreachSummary.brands}. Influencers sent: ${outreachSummary.influencers}.`}
-                  tabIndex={0}
-                  className="focus-visible:outline-2 focus-visible:outline-ima-primary rounded"
-                >
-                  <ResponsiveContainer width="100%" height={240}>
-                    <AreaChart
-                      data={data.outreach_trend}
-                      margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="outreachBrandsFill"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor={chartColors.primary}
-                            stopOpacity={0.18}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor={chartColors.primary}
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke={chartColors.border}
-                        vertical={false}
+            <TrendCard
+              kicker="Outreach"
+              meta={`${outreachSummary.brands + outreachSummary.influencers} sent`}
+            >
+              {data.outreach_trend.length === 0 ? (
+                <EmptyState
+                  variant="compact"
+                  title="No activity in this range"
+                  description="Try a longer time range, or check back after your next session."
+                />
+              ) : (
+                <>
+                  <div
+                    role="img"
+                    aria-label={`Outreach for the selected range. Brands sent: ${outreachSummary.brands}. Influencers sent: ${outreachSummary.influencers}.`}
+                    tabIndex={0}
+                    className="focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded"
+                  >
+                    <ResponsiveContainer width="100%" height={240}>
+                      <AreaChart
+                        data={data.outreach_trend}
+                        margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+                      >
+                        <defs>
+                          <linearGradient
+                            id="outreachBrandsFill"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="0%"
+                              stopColor={chartColors.primary}
+                              stopOpacity={0.18}
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor={chartColors.primary}
+                              stopOpacity={0}
+                            />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke={chartColors.border}
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="bucket"
+                          stroke={chartColors.textMuted}
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={false}
+                          tickFormatter={(v) =>
+                            formatBucketTick(String(v), range)
+                          }
+                        />
+                        <YAxis
+                          stroke={chartColors.textMuted}
+                          fontSize={11}
+                          tickLine={false}
+                          axisLine={false}
+                          allowDecimals={false}
+                          width={30}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#FFFFFF",
+                            border: `1px solid ${chartColors.border}`,
+                            borderRadius: 12,
+                            fontSize: 12,
+                            boxShadow:
+                              "0 8px 25px -5px rgba(15, 23, 42, 0.08)",
+                          }}
+                          labelFormatter={(label) =>
+                            formatBucketTick(String(label), range)
+                          }
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="brands"
+                          name="Brands"
+                          stroke={chartColors.primary}
+                          strokeWidth={2}
+                          fill="url(#outreachBrandsFill)"
+                          dot={false}
+                          activeDot={{ r: 4 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="influencers"
+                          name="Influencers"
+                          stroke={chartColors.primary}
+                          strokeOpacity={0.4}
+                          strokeWidth={2}
+                          strokeDasharray="4 3"
+                          dot={false}
+                          activeDot={{ r: 4 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div
+                    className="flex items-center gap-4 mt-4 text-[11px] uppercase tracking-[0.18em] font-semibold text-ima-text-muted"
+                    style={MONO}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className="h-2 w-2 rounded-full bg-ima-primary"
+                        aria-hidden="true"
                       />
-                      <XAxis
-                        dataKey="week_start"
-                        stroke={chartColors.textMuted}
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={formatDateTick}
+                      Brands ·{" "}
+                      <span className="tabular-nums text-ima-text">
+                        {outreachSummary.brands}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className="h-2 w-2 rounded-full bg-ima-primary/40"
+                        aria-hidden="true"
                       />
-                      <YAxis
-                        stroke={chartColors.textMuted}
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                        allowDecimals={false}
-                        width={30}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#FFFFFF",
-                          border: `1px solid ${chartColors.border}`,
-                          borderRadius: 12,
-                          fontSize: 12,
-                          boxShadow:
-                            "0 8px 25px -5px rgba(15, 23, 42, 0.08)",
-                        }}
-                        labelFormatter={(label) =>
-                          formatDateTick(String(label))
-                        }
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="brands"
-                        name="Brands"
-                        stroke={chartColors.primary}
-                        strokeWidth={2}
-                        fill="url(#outreachBrandsFill)"
-                        dot={false}
-                        activeDot={{ r: 4 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="influencers"
-                        name="Influencers"
-                        stroke={chartColors.primary}
-                        strokeOpacity={0.4}
-                        strokeWidth={2}
-                        strokeDasharray="4 3"
-                        dot={false}
-                        activeDot={{ r: 4 }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex items-center gap-4 mt-3 text-[11px] uppercase tracking-[0.18em] font-medium text-ima-text-muted">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span
-                      className="h-2 w-2 rounded-full bg-ima-primary"
-                      aria-hidden="true"
-                    />
-                    Brands &middot; {outreachSummary.brands}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span
-                      className="h-2 w-2 rounded-full bg-ima-primary/40"
-                      aria-hidden="true"
-                    />
-                    Influencers &middot; {outreachSummary.influencers}
-                  </span>
-                </div>
-                <details className="mt-3">
-                  <summary className="min-h-[44px] inline-flex items-center text-xs uppercase tracking-[0.18em] font-semibold text-ima-primary cursor-pointer hover:text-ima-primary-hover focus-visible:outline-2 focus-visible:outline-ima-primary rounded">
-                    View data table
-                  </summary>
-                  <table className="w-full text-xs mt-2 border border-ima-border rounded-lg">
-                    <caption className="sr-only">
-                      Outreach per week (brands and influencers).
-                    </caption>
-                    <thead className="bg-ima-surface-light">
-                      <tr>
-                        <th scope="col" className="text-left p-2">
-                          Week of
-                        </th>
-                        <th scope="col" className="text-right p-2">
-                          Brands
-                        </th>
-                        <th scope="col" className="text-right p-2">
-                          Influencers
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.outreach_trend.map((b) => (
-                        <tr
-                          key={b.week_start}
-                          className="border-t border-ima-border"
-                        >
-                          <td className="p-2">{formatDateTick(b.week_start)}</td>
-                          <td className="p-2 text-right tabular-nums">
-                            {b.brands}
-                          </td>
-                          <td className="p-2 text-right tabular-nums">
-                            {b.influencers}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </details>
-              </>
-            )}
-          </div>
+                      Influencers ·{" "}
+                      <span className="tabular-nums text-ima-text">
+                        {outreachSummary.influencers}
+                      </span>
+                    </span>
+                  </div>
+                  <DataTable
+                    caption={`Outreach per ${hoursBucketLabel} (brands and influencers).`}
+                    headers={[
+                      range === "daily"
+                        ? "Date"
+                        : range === "weekly"
+                          ? "Week of"
+                          : "Month",
+                      "Brands",
+                      "Influencers",
+                    ]}
+                    rows={data.outreach_trend.map((b) => [
+                      formatBucketTick(b.bucket, range),
+                      String(b.brands),
+                      String(b.influencers),
+                    ])}
+                  />
+                </>
+              )}
+            </TrendCard>
           ) : null}
 
-          {/* Hours */}
-          <div className="rounded-2xl border border-ima-border bg-ima-surface p-5 md:p-6">
-            <div className="flex items-baseline justify-between gap-3 mb-4">
-              <p className="text-[11px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted">
-                Hours worked
-              </p>
-              <p className="text-xs text-ima-text-secondary tabular-nums">
-                {hoursSummary.toFixed(1)} hrs
-              </p>
-            </div>
+          <TrendCard
+            kicker="Hours worked"
+            meta={`${hoursSummary.toFixed(1)} hrs`}
+          >
             {data.hours_trend.length === 0 ? (
               <EmptyState
                 variant="compact"
@@ -439,7 +408,7 @@ export function AnalyticsClient({
                   role="img"
                   aria-label={`Hours worked per ${hoursBucketLabel} for the selected range. Total: ${hoursSummary.toFixed(1)} hours.`}
                   tabIndex={0}
-                  className="focus-visible:outline-2 focus-visible:outline-ima-primary rounded"
+                  className="focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded"
                 >
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart
@@ -457,7 +426,9 @@ export function AnalyticsClient({
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={formatDateTick}
+                        tickFormatter={(v) =>
+                          formatBucketTick(String(v), range)
+                        }
                       />
                       <YAxis
                         stroke={chartColors.textMuted}
@@ -477,7 +448,7 @@ export function AnalyticsClient({
                             "0 8px 25px -5px rgba(15, 23, 42, 0.08)",
                         }}
                         labelFormatter={(label) =>
-                          formatDateTick(String(label))
+                          formatBucketTick(String(label), range)
                         }
                       />
                       {hoursBucketLabel === "day" && (
@@ -502,233 +473,33 @@ export function AnalyticsClient({
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <p className="mt-3 text-[11px] uppercase tracking-[0.18em] font-medium text-ima-text-muted">
-                  Per {hoursBucketLabel} &middot; {hoursSummary.toFixed(1)} hrs total
+                <p
+                  className="mt-4 text-[11px] uppercase tracking-[0.18em] font-semibold text-ima-text-muted"
+                  style={MONO}
+                >
+                  Per {hoursBucketLabel} ·{" "}
+                  <span className="tabular-nums text-ima-text">
+                    {hoursSummary.toFixed(1)} hrs total
+                  </span>
                 </p>
-                <details className="mt-3">
-                  <summary className="min-h-[44px] inline-flex items-center text-xs uppercase tracking-[0.18em] font-semibold text-ima-primary cursor-pointer hover:text-ima-primary-hover focus-visible:outline-2 focus-visible:outline-ima-primary rounded">
-                    View data table
-                  </summary>
-                  <table className="w-full text-xs mt-2 border border-ima-border rounded-lg">
-                    <caption className="sr-only">
-                      Hours worked per {hoursBucketLabel}.
-                    </caption>
-                    <thead className="bg-ima-surface-light">
-                      <tr>
-                        <th scope="col" className="text-left p-2">
-                          {hoursBucketLabel === "day" ? "Date" : "Week of"}
-                        </th>
-                        <th scope="col" className="text-right p-2">
-                          Hours
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.hours_trend.map((b) => (
-                        <tr
-                          key={b.bucket}
-                          className="border-t border-ima-border"
-                        >
-                          <td className="p-2">{formatDateTick(b.bucket)}</td>
-                          <td className="p-2 text-right tabular-nums">
-                            {Number(b.hours).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </details>
+                <DataTable
+                  caption={`Hours worked per ${hoursBucketLabel}.`}
+                  headers={[
+                    range === "daily"
+                      ? "Date"
+                      : range === "weekly"
+                        ? "Week of"
+                        : "Month",
+                    "Hours",
+                  ]}
+                  rows={data.hours_trend.map((b) => [
+                    formatBucketTick(b.bucket, range),
+                    Number(b.hours).toFixed(2),
+                  ])}
+                />
               </>
             )}
-          </div>
-        </div>
-      </section>
-
-      {/* Roadmap Progress — progress bar + filled-circle "stack of wins" checklist. */}
-      <section
-        className="motion-safe:animate-fadeIn"
-        aria-label="Roadmap progress"
-      >
-        <div className="rounded-2xl border border-ima-border bg-ima-surface p-5 md:p-6">
-          <div className="flex items-baseline justify-between gap-3 mb-5 flex-wrap">
-            <h2 className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
-              Roadmap progress
-            </h2>
-            <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-ima-text-muted tabular-nums">
-              {roadmapSummary.completed}/{roadmapSummary.total} steps &middot;{" "}
-              {roadmapSummary.percent}%
-            </p>
-          </div>
-          <div
-            className="bg-ima-surface-light rounded-full h-2.5 overflow-hidden mb-6"
-            role="progressbar"
-            aria-valuenow={roadmapSummary.completed}
-            aria-valuemin={0}
-            aria-valuemax={roadmapSummary.total}
-            aria-label={`Roadmap progress: ${roadmapSummary.completed} of ${roadmapSummary.total} steps completed`}
-          >
-            <div
-              className="h-full rounded-full bg-ima-primary motion-safe:transition-[width] duration-700 ease-out"
-              style={{ width: `${roadmapSummary.percent}%` }}
-            />
-          </div>
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-            {ROADMAP_STEPS.map((step) => {
-              const row = data.roadmap_progress.find(
-                (r) => r.step_number === step.step,
-              );
-              const statusValue = (row?.status ?? "locked") as
-                | "locked"
-                | "active"
-                | "completed";
-              const deadline = getDeadlineStatus(
-                step.target_days,
-                joinedAt,
-                statusValue,
-                row?.completed_at ?? null,
-              );
-              return (
-                <li
-                  key={step.step}
-                  className="flex items-start gap-3 py-1.5 min-h-[44px]"
-                >
-                  <StepMedallion
-                    step={step.step}
-                    status={statusValue}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={cn(
-                        "text-sm font-medium leading-tight",
-                        statusValue === "locked"
-                          ? "text-ima-text-muted"
-                          : "text-ima-text",
-                      )}
-                    >
-                      {step.title}
-                    </p>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-ima-text-muted mt-1">
-                      {step.stageName}
-                    </p>
-                  </div>
-                  <RoadmapStatusTag deadline={deadline} />
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </section>
-
-      {/* Deal History — stitch-blend table: hero summary, filled-circle rank motif, tabular-nums columns. */}
-      <section
-        className="motion-safe:animate-fadeIn"
-        aria-label="Deal history"
-      >
-        <div className="rounded-2xl border border-ima-border bg-ima-surface p-5 md:p-6">
-          <div className="flex items-baseline justify-between gap-4 mb-6 flex-wrap">
-            <div>
-              <h2 className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text">
-                Deal history
-              </h2>
-              <p className="text-[11px] uppercase tracking-[0.18em] font-medium text-ima-text-muted mt-1 tabular-nums">
-                {data.deal_summary.count} closed &middot; {data.deals.length} on
-                this page
-              </p>
-            </div>
-            <div className="flex items-end gap-6">
-              <div className="text-right">
-                <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted">
-                  Revenue
-                </p>
-                <p className="text-2xl font-semibold tabular-nums tracking-tight text-ima-text mt-0.5">
-                  {formatMoney(data.deal_summary.revenue)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted">
-                  Profit
-                </p>
-                <p className="text-2xl font-semibold tabular-nums tracking-tight text-ima-primary mt-0.5">
-                  {formatMoney(data.deal_summary.profit)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {data.deals.length === 0 ? (
-            <EmptyState
-              title="No deals logged yet"
-              description="Once you close your first deal, it will show up here. Keep your outreach consistent."
-            />
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <caption className="sr-only">
-                    Paginated deal history with revenue, profit, margin, and
-                    attribution.
-                  </caption>
-                  <thead>
-                    <tr className="border-b border-ima-border">
-                      <th
-                        scope="col"
-                        className="text-left py-3 pr-3 font-semibold text-[10px] uppercase tracking-[0.18em] text-ima-text-muted"
-                      >
-                        Deal
-                      </th>
-                      <th
-                        scope="col"
-                        className="text-right py-3 px-3 font-semibold text-[10px] uppercase tracking-[0.18em] text-ima-text-muted"
-                      >
-                        Revenue
-                      </th>
-                      <th
-                        scope="col"
-                        className="text-right py-3 px-3 font-semibold text-[10px] uppercase tracking-[0.18em] text-ima-text-muted"
-                      >
-                        Profit
-                      </th>
-                      <th
-                        scope="col"
-                        className="text-right py-3 px-3 font-semibold text-[10px] uppercase tracking-[0.18em] text-ima-text-muted"
-                      >
-                        Margin
-                      </th>
-                      <th
-                        scope="col"
-                        className="text-left py-3 px-3 font-semibold text-[10px] uppercase tracking-[0.18em] text-ima-text-muted hidden sm:table-cell"
-                      >
-                        Logged
-                      </th>
-                      <th
-                        scope="col"
-                        className="text-left py-3 pl-3 font-semibold text-[10px] uppercase tracking-[0.18em] text-ima-text-muted"
-                      >
-                        By
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.deals.map((d) => (
-                      <DealTableRow
-                        key={d.id}
-                        deal={d}
-                        viewerId={viewerId}
-                        viewerRole={viewerRole}
-                        userMap={userMap}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <PaginationControls
-                page={page}
-                totalPages={totalPages}
-                basePath={basePath}
-                searchParams={{ range }}
-              />
-            </>
-          )}
+          </TrendCard>
         </div>
       </section>
     </div>
@@ -739,215 +510,172 @@ export function AnalyticsClient({
 // Sub-components
 // ---------------------------------------------------------------------------
 
-interface KpiCardProps {
-  icon: React.ReactNode;
+type StatTint = "primary" | "success" | "warning" | "accent";
+
+const STAT_TINTS: Record<StatTint, { bg: string; fg: string }> = {
+  primary: { bg: "bg-ima-surface-accent", fg: "text-ima-primary" },
+  success: { bg: "bg-ima-success/10", fg: "text-ima-success" },
+  warning: { bg: "bg-ima-warning/10", fg: "text-ima-warning" },
+  accent: { bg: "bg-ima-surface-light", fg: "text-ima-text-secondary" },
+};
+
+function StatCard({
+  icon: Icon,
+  tint,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  tint: StatTint;
   label: string;
   value: string;
-  /** If true, paints the value in ima-primary and lifts the card with a soft tint. Use on the single hero KPI per view. */
-  emphasis?: boolean;
-}
-
-function KpiCard({ icon, label, value, emphasis }: KpiCardProps) {
+}) {
+  const t = STAT_TINTS[tint];
   return (
-    <div
-      className={cn(
-        "rounded-2xl border p-4 md:p-5 flex flex-col gap-2",
-        emphasis
-          ? "border-ima-primary/25 bg-ima-surface-accent"
-          : "border-ima-border bg-ima-surface",
-      )}
-    >
+    <div className="flex items-start gap-4 bg-ima-surface border border-ima-border rounded-[12px] px-[18px] py-[16px] min-h-[72px]">
       <div
         className={cn(
-          "flex items-center gap-2",
-          emphasis ? "text-ima-primary" : "text-ima-text-muted",
+          "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
+          t.bg,
         )}
       >
-        {icon}
-        <span className="text-[10px] uppercase tracking-[0.18em] font-semibold">
-          {label}
-        </span>
+        <Icon className={cn("h-[18px] w-[18px]", t.fg)} aria-hidden="true" />
       </div>
-      <p
-        className={cn(
-          "font-semibold tabular-nums tracking-tight leading-tight",
-          emphasis
-            ? "text-3xl md:text-4xl text-ima-primary"
-            : "text-2xl md:text-3xl text-ima-text",
-        )}
-      >
-        {value}
-      </p>
+      <div className="min-w-0 flex-1">
+        <p className="text-[24px] md:text-[28px] font-bold leading-none tabular-nums tracking-tight text-ima-text">
+          {value}
+        </p>
+        <p
+          className="mt-[8px] text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
+          style={MONO}
+        >
+          {label}
+        </p>
+      </div>
     </div>
   );
 }
 
-interface RangeSelectorProps {
-  range: StudentAnalyticsRange;
-  onChange: (r: StudentAnalyticsRange) => void;
+function TrendCard({
+  kicker,
+  meta,
+  children,
+}: {
+  kicker: string;
+  meta: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-ima-surface border border-ima-border rounded-[14px] p-5 md:p-6">
+      <div className="flex items-baseline justify-between gap-3 mb-5">
+        <p
+          className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+          style={MONO}
+        >
+          {kicker}
+        </p>
+        <p className="text-[12px] text-ima-text-secondary tabular-nums">
+          {meta}
+        </p>
+      </div>
+      {children}
+    </div>
+  );
 }
 
-function RangeSelector({ range, onChange }: RangeSelectorProps) {
+function DataTable({
+  caption,
+  headers,
+  rows,
+}: {
+  caption: string;
+  headers: string[];
+  rows: string[][];
+}) {
+  return (
+    <details className="mt-4 group">
+      <summary
+        className="min-h-[44px] inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] font-semibold text-ima-primary cursor-pointer hover:text-ima-primary-hover focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded"
+        style={MONO}
+      >
+        View data table
+      </summary>
+      <table className="w-full text-[12px] mt-3 border border-ima-border rounded-[10px] overflow-hidden tabular-nums">
+        <caption className="sr-only">{caption}</caption>
+        <thead className="bg-ima-surface-light">
+          <tr>
+            {headers.map((h, i) => (
+              <th
+                key={h}
+                scope="col"
+                className={cn(
+                  "p-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-ima-text-muted",
+                  i === 0 ? "text-left" : "text-right",
+                )}
+                style={MONO}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, idx) => (
+            <tr key={idx} className="border-t border-ima-border">
+              {r.map((cell, i) => (
+                <td
+                  key={i}
+                  className={cn(
+                    "p-2 text-ima-text",
+                    i === 0 ? "text-left" : "text-right",
+                  )}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
+
+function RangePills({
+  range,
+  onChange,
+}: {
+  range: StudentAnalyticsRange;
+  onChange: (r: StudentAnalyticsRange) => void;
+}) {
   return (
     <div
-      role="group"
+      className="flex gap-[6px] flex-wrap"
+      role="tablist"
       aria-label="Select time range"
-      className="inline-flex items-center gap-1 rounded-xl border border-ima-border bg-ima-surface p-1"
     >
       {STUDENT_ANALYTICS_RANGES.map((r) => {
         const active = r === range;
         return (
-          <Button
+          <button
             key={r}
             type="button"
-            variant="secondary"
-            size="sm"
-            aria-pressed={active}
+            role="tab"
+            aria-selected={active}
             aria-label={RANGE_ARIA_LABELS[r]}
-            className={cn(
-              "min-h-[44px] min-w-[48px] rounded-lg border-0 text-xs font-semibold tracking-wide",
-              active
-                ? "bg-ima-primary text-white hover:bg-ima-primary-hover"
-                : "bg-transparent text-ima-text-secondary hover:bg-ima-surface-light hover:text-ima-text",
-            )}
             onClick={() => onChange(r)}
+            className={cn(
+              "min-h-[44px] min-w-[48px] px-[14px] rounded-[10px] text-[12px] font-semibold tracking-wide motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2",
+              active
+                ? "bg-ima-primary text-white"
+                : "bg-ima-surface border border-ima-border text-ima-text hover:border-ima-text-muted",
+            )}
           >
             {RANGE_LABELS[r]}
-          </Button>
+          </button>
         );
       })}
     </div>
-  );
-}
-
-function StepMedallion({
-  step,
-  status,
-}: {
-  step: number;
-  status: "locked" | "active" | "completed";
-}) {
-  if (status === "completed") {
-    return (
-      <span
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-ima-primary text-white mt-0.5"
-        aria-hidden="true"
-      >
-        <Check className="h-4 w-4" strokeWidth={3} />
-      </span>
-    );
-  }
-  if (status === "active") {
-    return (
-      <span
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-ima-surface-accent text-ima-primary text-[11px] font-semibold tabular-nums border border-ima-primary mt-0.5"
-        aria-hidden="true"
-      >
-        {step}
-      </span>
-    );
-  }
-  return (
-    <span
-      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-ima-border text-ima-text-muted text-[11px] font-semibold tabular-nums mt-0.5"
-      aria-hidden="true"
-    >
-      {step}
-    </span>
-  );
-}
-
-function RoadmapStatusTag({ deadline }: { deadline: DeadlineStatus }) {
-  const base =
-    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] font-semibold tabular-nums whitespace-nowrap";
-  switch (deadline.kind) {
-    case "completed":
-      return (
-        <span className={cn(base, "bg-ima-primary/10 text-ima-primary")}>
-          <span className="sr-only">Status: </span>
-          Done
-          {deadline.daysLate !== null ? ` · ${deadline.daysLate}d late` : ""}
-        </span>
-      );
-    case "on-track":
-      return (
-        <span className={cn(base, "bg-ima-success/10 text-ima-success")}>
-          <span className="sr-only">Status: </span>
-          On track
-        </span>
-      );
-    case "due-soon":
-      return (
-        <span className={cn(base, "bg-ima-warning/10 text-ima-warning")}>
-          <span className="sr-only">Status: </span>
-          Due soon
-        </span>
-      );
-    case "overdue":
-      return (
-        <span className={cn(base, "bg-ima-error/10 text-ima-error")}>
-          <span className="sr-only">Status: </span>
-          {deadline.daysOverdue}d late
-        </span>
-      );
-    case "none":
-    default:
-      return (
-        <span
-          className={cn(
-            base,
-            "bg-ima-surface-light text-ima-text-muted border border-ima-border",
-          )}
-        >
-          <span className="sr-only">Status: </span>
-          Pending
-        </span>
-      );
-  }
-}
-
-function DealTableRow({
-  deal,
-  viewerId,
-  viewerRole,
-  userMap,
-}: {
-  deal: DealRow;
-  viewerId: string;
-  viewerRole: ViewerRole;
-  userMap: Record<string, LoggedByUser>;
-}) {
-  return (
-    <tr className="border-b border-ima-border last:border-b-0 hover:bg-ima-surface-light motion-safe:transition-colors">
-      <td className="py-3 pr-3">
-        <span
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ima-primary text-white text-xs font-semibold tabular-nums"
-          aria-label={`Deal ${deal.deal_number}`}
-        >
-          {deal.deal_number}
-        </span>
-      </td>
-      <td className="py-3 px-3 text-right tabular-nums font-medium text-ima-text">
-        {formatMoney(deal.revenue)}
-      </td>
-      <td className="py-3 px-3 text-right tabular-nums font-semibold text-ima-primary">
-        {formatMoney(deal.profit)}
-      </td>
-      <td className="py-3 px-3 text-right tabular-nums text-ima-text-secondary">
-        {deal.margin}%
-      </td>
-      <td className="py-3 px-3 text-ima-text-secondary tabular-nums hidden sm:table-cell">
-        {formatDate(deal.created_at)}
-      </td>
-      <td className="py-3 pl-3">
-        <DealAttributionChip
-          deal={{ logged_by: deal.logged_by }}
-          viewerRole={viewerRole}
-          viewerId={viewerId}
-          userMap={userMap}
-        />
-      </td>
-    </tr>
   );
 }
 
@@ -961,26 +689,10 @@ function formatHoursCompact(hours: number): string {
   return rounded.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
-function formatHours(hours: number): string {
-  if (!Number.isFinite(hours)) return "0";
-  const rounded = Math.round(hours * 10) / 10;
-  return `${rounded.toLocaleString(undefined, { maximumFractionDigits: 1 })} hrs`;
-}
-
 function formatMoney(amount: number): string {
   const n = Number(amount);
   if (!Number.isFinite(n)) return "$0";
   return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-
-function formatDate(iso: string): string {
-  try {
-    const date = iso.includes("T") ? iso.split("T")[0] : iso;
-    const [y, m, d] = date.split("-");
-    return `${m}/${d}/${y.slice(2)}`;
-  } catch {
-    return iso;
-  }
 }
 
 function formatDateTick(value: string): string {
@@ -990,4 +702,30 @@ function formatDateTick(value: string): string {
   if (parts.length !== 3) return value;
   const [, m, d] = parts;
   return `${m}/${d}`;
+}
+
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function formatBucketTick(value: string, range: StudentAnalyticsRange): string {
+  if (!value) return "";
+  if (range !== "monthly") return formatDateTick(value);
+  const date = value.includes("T") ? value.split("T")[0] : value;
+  const parts = date.split("-");
+  if (parts.length !== 3) return value;
+  const monthIdx = Number(parts[1]) - 1;
+  if (monthIdx < 0 || monthIdx > 11) return value;
+  return MONTH_NAMES[monthIdx];
 }

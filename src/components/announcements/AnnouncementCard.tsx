@@ -53,83 +53,92 @@ export function AnnouncementCard({
   const authorRole = announcement.author?.role ?? "coach";
   const roleLabel = authorRole === "owner" ? "Owner" : "Coach";
 
+  const rolePillClass =
+    authorRole === "owner"
+      ? "bg-ima-warning/10 text-ima-warning"
+      : "bg-ima-surface-accent text-ima-primary";
+
   return (
-    <article className="group rounded-2xl border border-ima-border bg-ima-surface p-5 md:p-6 hover:shadow-card-hover motion-safe:transition-shadow duration-200 ease-out">
-      <header className="flex items-start gap-3 mb-4">
-        <span
-          aria-hidden="true"
-          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-ima-primary text-white text-sm font-semibold tracking-tight"
-        >
-          {getInitials(authorName)}
-        </span>
-        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
+    <article className="group grid grid-cols-[44px_minmax(0,1fr)] gap-5 rounded-2xl border border-ima-border bg-ima-surface p-5 md:p-6 hover:shadow-card-hover motion-safe:transition-shadow duration-200 ease-out">
+      <span
+        aria-hidden="true"
+        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-ima-primary text-white text-sm font-semibold tracking-tight ring-1 ring-ima-primary/20"
+      >
+        {getInitials(authorName)}
+      </span>
+      <div className="min-w-0">
+        <header className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <div className="flex items-center gap-2.5 min-w-0">
             <span className="text-sm font-semibold tracking-tight text-ima-text truncate">
               {authorName}
             </span>
-            <span className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-primary">
+            <span
+              className={`inline-flex items-center text-[10px] uppercase tracking-[0.22em] font-semibold px-2 py-1 rounded-md ${rolePillClass}`}
+            >
               {roleLabel}
             </span>
           </div>
-          <span className="text-[10px] uppercase tracking-[0.18em] font-medium text-ima-text-muted tabular-nums flex items-center gap-1.5">
-            <time dateTime={announcement.created_at}>
-              {formatRelativeTime(new Date(announcement.created_at))}
-            </time>
-            {announcement.is_edited && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>Edited</span>
-              </>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-[10px] uppercase tracking-[0.22em] font-medium text-ima-text-muted tabular-nums flex items-center gap-1.5">
+              <time dateTime={announcement.created_at}>
+                {formatRelativeTime(new Date(announcement.created_at))}
+              </time>
+              {announcement.is_edited && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>Edited</span>
+                </>
+              )}
+            </span>
+            {canMutate && !editing && (
+              <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 motion-safe:transition-opacity -mr-2 ml-1">
+                <button
+                  type="button"
+                  aria-label="Edit announcement"
+                  onClick={() => setEditing(true)}
+                  className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-ima-text-muted hover:text-ima-primary hover:bg-ima-surface-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-colors"
+                >
+                  <Pencil className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Delete announcement"
+                  onClick={() => setDeleteOpen(true)}
+                  className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-ima-text-muted hover:text-ima-error hover:bg-ima-error/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-error focus-visible:ring-offset-2 motion-safe:transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+                </button>
+              </div>
             )}
-          </span>
-        </div>
-        {canMutate && !editing && (
-          <div className="flex items-center gap-1 flex-shrink-0 -mr-2">
-            <button
-              type="button"
-              aria-label="Edit announcement"
-              onClick={() => setEditing(true)}
-              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-ima-text-muted hover:text-ima-primary hover:bg-ima-surface-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 motion-safe:transition-colors"
-            >
-              <Pencil className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-label="Delete announcement"
-              onClick={() => setDeleteOpen(true)}
-              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-ima-text-muted hover:text-ima-error hover:bg-ima-error/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-error focus-visible:ring-offset-2 motion-safe:transition-colors"
-            >
-              <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
-            </button>
           </div>
+        </header>
+
+        {editing ? (
+          <AnnouncementForm
+            mode="edit"
+            announcementId={announcement.id}
+            initialContent={announcement.content}
+            onSuccess={(updated) => {
+              onUpdated(updated);
+              setEditing(false);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
+          <p className="text-base text-ima-text whitespace-pre-wrap leading-[1.6] max-w-[56ch]">
+            {announcement.content}
+          </p>
         )}
-      </header>
 
-      {editing ? (
-        <AnnouncementForm
-          mode="edit"
-          announcementId={announcement.id}
-          initialContent={announcement.content}
-          onSuccess={(updated) => {
-            onUpdated(updated);
-            setEditing(false);
-          }}
-          onCancel={() => setEditing(false)}
-        />
-      ) : (
-        <p className="text-base text-ima-text whitespace-pre-wrap leading-relaxed">
-          {announcement.content}
-        </p>
-      )}
-
-      {canMutate && (
-        <DeleteAnnouncementDialog
-          open={deleteOpen}
-          announcementId={announcement.id}
-          onClose={() => setDeleteOpen(false)}
-          onDeleted={() => onDeleted(announcement.id)}
-        />
-      )}
+        {canMutate && (
+          <DeleteAnnouncementDialog
+            open={deleteOpen}
+            announcementId={announcement.id}
+            onClose={() => setDeleteOpen(false)}
+            onDeleted={() => onDeleted(announcement.id)}
+          />
+        )}
+      </div>
     </article>
   );
 }

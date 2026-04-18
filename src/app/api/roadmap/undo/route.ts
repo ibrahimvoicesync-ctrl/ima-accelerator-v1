@@ -70,12 +70,14 @@ export async function PATCH(request: NextRequest) {
     // 8. Destructure validated data
     const { studentId, step_number } = parsed.data;
 
-    // Ownership check — coach may only undo steps for their assigned students
+    // Ownership check — coach may only undo steps for their assigned students.
+    // Accept both "student" and "student_diy" roles (DIY students may also have
+    // an assigned coach).
     const { data: student, error: studentError } = await admin
       .from("users")
       .select("id, coach_id")
       .eq("id", studentId)
-      .eq("role", "student")
+      .in("role", ["student", "student_diy"])
       .single();
 
     if (studentError || !student) {

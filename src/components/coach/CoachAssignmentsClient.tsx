@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -29,39 +28,43 @@ interface CoachAssignmentsClientProps {
 
 type FilterTab = "all" | "assigned" | "unassigned";
 
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsClientProps) {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Stable refs — prevent dep churn in callbacks
   const routerRef = useRef(router);
   const toastRef = useRef(toast);
   routerRef.current = router;
   toastRef.current = toast;
 
-  // Local assignment overrides — key: studentId, value: coachId | null
   const [localAssignments, setLocalAssignments] = useState<Record<string, string | null>>({});
-  // Per-row saving state
   const [savingRows, setSavingRows] = useState<Record<string, boolean>>({});
 
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
 
-  // Compute effective coach_id for a student (local override takes precedence)
   function getEffectiveCoachId(student: Student): string | null {
-    return localAssignments.hasOwnProperty(student.id)
+    return Object.prototype.hasOwnProperty.call(localAssignments, student.id)
       ? localAssignments[student.id]
       : student.coach_id;
   }
 
-  // Live coach student counts based on local overrides
   const liveCoachCounts: Record<string, number> = {};
   for (const coach of coaches) {
     liveCoachCounts[coach.id] = 0;
   }
   for (const student of students) {
     const effectiveCoachId = getEffectiveCoachId(student);
-    if (effectiveCoachId && liveCoachCounts.hasOwnProperty(effectiveCoachId)) {
+    if (effectiveCoachId && Object.prototype.hasOwnProperty.call(liveCoachCounts, effectiveCoachId)) {
       liveCoachCounts[effectiveCoachId]++;
     }
   }
@@ -84,7 +87,6 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
             type: "error",
             title: (json as { error?: string }).error ?? "Failed to update assignment",
           });
-          // Revert local override
           setLocalAssignments((prev) => ({ ...prev, [studentId]: prevCoachId }));
           return;
         }
@@ -97,7 +99,6 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
       } catch (err) {
         console.error("[CoachAssignmentsClient] assignment error:", err);
         toastRef.current({ type: "error", title: "Something went wrong" });
-        // Revert local override
         setLocalAssignments((prev) => ({ ...prev, [studentId]: prevCoachId }));
       } finally {
         setSavingRows((prev) => ({ ...prev, [studentId]: false }));
@@ -106,15 +107,12 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
     []
   );
 
-  // Filter logic
   const filteredStudents = students.filter((student) => {
     const effectiveCoachId = getEffectiveCoachId(student);
 
-    // Filter tab
     if (activeFilter === "assigned" && !effectiveCoachId) return false;
     if (activeFilter === "unassigned" && effectiveCoachId) return false;
 
-    // Search
     if (search.trim()) {
       const q = search.toLowerCase();
       const nameMatch = student.name.toLowerCase().includes(q);
@@ -125,44 +123,50 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
     return true;
   });
 
-  // Tab counts (not affected by search)
   const allCount = students.length;
   const assignedCount = students.filter((s) => getEffectiveCoachId(s) !== null).length;
   const unassignedCount = students.filter((s) => getEffectiveCoachId(s) === null).length;
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6 motion-safe:animate-fadeIn"
+      style={{ animationDelay: "50ms" }}
+    >
       {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-[6px]">
         {(
           [
             { key: "all", label: "All", count: allCount },
             { key: "assigned", label: "Assigned", count: assignedCount },
             { key: "unassigned", label: "Unassigned", count: unassignedCount },
           ] as { key: FilterTab; label: string; count: number }[]
-        ).map(({ key, label, count }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setActiveFilter(key)}
-            className={`min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium motion-safe:transition-colors flex items-center gap-2 ${
-              activeFilter === key
-                ? "bg-ima-primary text-white"
-                : "bg-ima-surface text-ima-text-secondary border border-ima-border hover:text-ima-text"
-            }`}
-          >
-            {label}
-            <span
-              className={`text-xs rounded-full px-1.5 py-0.5 ${
-                activeFilter === key
-                  ? "bg-white/20 text-white"
-                  : "bg-ima-border text-ima-text-secondary"
-              }`}
+        ).map(({ key, label, count }) => {
+          const active = activeFilter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveFilter(key)}
+              aria-pressed={active}
+              className={[
+                "min-h-[44px] px-4 rounded-[10px] text-[13px] font-semibold motion-safe:transition-colors flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                active
+                  ? "bg-[#4A6CF7] text-white"
+                  : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]",
+              ].join(" ")}
             >
-              {count}
-            </span>
-          </button>
-        ))}
+              {label}
+              <span
+                className={[
+                  "text-[11px] tabular-nums rounded-full px-[7px] py-[1px] font-semibold",
+                  active ? "bg-white/20 text-white" : "bg-[#F1EEE6] text-[#5A5648]",
+                ].join(" ")}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Search */}
@@ -175,9 +179,10 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
 
       {/* Student Assignment Rows */}
       {filteredStudents.length === 0 ? (
-        <Card>
+        <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
           <EmptyState
-            icon={<Users className="h-6 w-6" />}
+            variant="compact"
+            icon={<Users className="h-5 w-5" aria-hidden="true" />}
             title="No students found"
             description={
               activeFilter === "unassigned"
@@ -186,64 +191,77 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
                   ? "No students have been assigned to this coach yet."
                   : "No students are available for assignment."
             }
-            action={undefined}
           />
-        </Card>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-[10px]">
           {filteredStudents.map((student) => {
             const effectiveCoachId = getEffectiveCoachId(student);
             const isSaving = !!savingRows[student.id];
-            const hasLocalChange = localAssignments.hasOwnProperty(student.id);
-            const initial = student.name.charAt(0).toUpperCase();
+            const hasLocalChange = Object.prototype.hasOwnProperty.call(localAssignments, student.id);
 
             return (
-              <Card key={student.id}>
-                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                  {/* Left: Avatar + info */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-ima-primary flex items-center justify-center text-sm font-bold text-white shrink-0">
-                      {initial}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-ima-text truncate">{student.name}</p>
-                      <p className="text-xs text-ima-text-secondary truncate">{student.email}</p>
-                    </div>
+              <div
+                key={student.id}
+                className={[
+                  "bg-white border rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-3 motion-safe:transition-colors",
+                  hasLocalChange
+                    ? "border-[#EDE9E0] border-l-[3px] border-l-[#4A6CF7]"
+                    : "border-[#EDE9E0]",
+                ].join(" ")}
+              >
+                {/* Identity */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-[#F1EEE6] border border-[#EDE9E0] flex items-center justify-center text-[12.5px] font-semibold text-[#5A5648] shrink-0">
+                    {initials(student.name)}
                   </div>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                      {student.name}
+                    </p>
+                    <p className="mt-[3px] text-[12px] text-[#7A7466] truncate">
+                      {student.email}
+                    </p>
+                  </div>
+                </div>
 
-                  {/* Right: Coach dropdown */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <select
-                      value={effectiveCoachId ?? ""}
-                      onChange={(e) => {
-                        const val = e.target.value === "" ? null : e.target.value;
-                        const prev = effectiveCoachId;
-                        handleAssign(student.id, val, prev);
-                      }}
-                      disabled={isSaving}
-                      aria-label={`Assign ${student.name} to coach`}
-                      className={`rounded-lg border bg-ima-surface px-3 py-2 text-sm text-ima-text min-h-[44px] min-w-0 w-full sm:min-w-[180px] sm:w-auto focus:outline-none focus:ring-2 focus:ring-ima-primary disabled:opacity-50 motion-safe:transition-colors ${
-                        hasLocalChange
-                          ? "border-ima-primary ring-1 ring-ima-primary/30"
-                          : "border-ima-border"
-                      }`}
+                {/* Coach dropdown */}
+                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                  <select
+                    value={effectiveCoachId ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value === "" ? null : e.target.value;
+                      handleAssign(student.id, val, effectiveCoachId);
+                    }}
+                    disabled={isSaving}
+                    aria-label={`Assign ${student.name} to coach`}
+                    className={[
+                      "rounded-[10px] border bg-white px-3 text-[13px] text-[#1A1A17] min-h-[44px] min-w-0 w-full sm:min-w-[200px] sm:w-auto focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 disabled:opacity-50 motion-safe:transition-colors",
+                      hasLocalChange
+                        ? "border-[#4A6CF7] ring-1 ring-[#4A6CF7]/30"
+                        : "border-[#EDE9E0] hover:border-[#D8D2C4]",
+                    ].join(" ")}
+                  >
+                    <option value="">Unassigned</option>
+                    {coaches.map((c) => {
+                      const cnt = liveCoachCounts[c.id] ?? 0;
+                      return (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({cnt} student{cnt !== 1 ? "s" : ""})
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {isSaving && (
+                    <span
+                      className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase"
+                      style={{ fontFamily: "var(--font-mono-bold)" }}
                     >
-                      <option value="">Unassigned</option>
-                      {coaches.map((c) => {
-                        const cnt = liveCoachCounts[c.id] ?? 0;
-                        return (
-                          <option key={c.id} value={c.id}>
-                            {c.name} ({cnt} student{cnt !== 1 ? "s" : ""})
-                          </option>
-                        );
-                      })}
-                    </select>
-                    {isSaving && (
-                      <span className="text-xs text-ima-text-secondary">Saving...</span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      Saving…
+                    </span>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>

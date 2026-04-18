@@ -61,10 +61,10 @@ export function StarRating({ value, onChange, max = 5, disabled = false }: StarR
             <Star
               aria-hidden="true"
               className={cn(
-                "h-8 w-8 motion-safe:transition-colors",
+                "h-9 w-9 md:h-10 md:w-10 motion-safe:transition-colors",
                 isFilled && !isHoverPreview && "fill-ima-warning text-ima-warning",
                 isHoverPreview && "fill-ima-warning/60 text-ima-warning/60",
-                !isFilled && "text-ima-text-muted"
+                !isFilled && "text-ima-text-muted/60"
               )}
             />
           </button>

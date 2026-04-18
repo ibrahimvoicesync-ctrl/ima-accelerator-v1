@@ -1,13 +1,19 @@
+import Link from "next/link";
+import { JetBrains_Mono } from "next/font/google";
+import { FileText, Clock, CheckCircle, Timer } from "lucide-react";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
 import { getToday } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/Card";
 import { CoachReportsClient } from "@/components/coach/CoachReportsClient";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
-import { FileText, Clock, CheckCircle, Timer } from "lucide-react";
-import Link from "next/link";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
 
 export default async function CoachReportsPage({
   searchParams,
@@ -18,7 +24,6 @@ export default async function CoachReportsPage({
   const admin = createAdminClient();
   const today = getToday();
 
-  // Derive date range using the established pattern (avoids impure Date.now())
   const nowMs = new Date(today + "T23:59:59Z").getTime();
   const sevenDaysAgo = new Date(
     nowMs - COACH_CONFIG.reportInboxDays * 24 * 60 * 60 * 1000
@@ -26,7 +31,6 @@ export default async function CoachReportsPage({
     .toISOString()
     .split("T")[0];
 
-  // Fetch assigned active students
   const { data: students, error: studentsError } = await admin
     .from("users")
     .select("id, name")
@@ -41,33 +45,54 @@ export default async function CoachReportsPage({
   const studentList = students ?? [];
   const studentIds = studentList.map((s) => s.id);
 
-  // Early return if no students assigned
+  const shellHeader = (
+    <header className="motion-safe:animate-fadeIn">
+      <p
+        className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+        style={{ fontFamily: "var(--font-mono-bold)" }}
+      >
+        Inbox
+      </p>
+      <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+        Reports
+      </h1>
+      <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+        Review student reports from the last 7 days
+      </p>
+    </header>
+  );
+
   if (studentIds.length === 0) {
     return (
-      <div className="px-4">
-        <h1 className="text-2xl font-bold text-ima-text">Reports</h1>
-        <p className="mt-1 text-ima-text-secondary">
-          Review student reports from the last 7 days
-        </p>
-        <div className="mt-6">
-          <Card>
+      <div
+        className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+      >
+        <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+          {shellHeader}
+          <div
+            className="mt-10 bg-white border border-[#EDE9E0] rounded-[14px] p-6 motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
             <EmptyState
-              icon={<FileText className="h-6 w-6" />}
+              variant="compact"
+              icon={<FileText className="h-5 w-5" aria-hidden="true" />}
               title="No students assigned yet"
               description="Reports will appear here once students are assigned to you."
               action={
-                <Link href="/coach/invites" className={buttonVariants({ variant: "primary" })}>
+                <Link
+                  href="/coach/invites"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
                   Invite Students
                 </Link>
               }
             />
-          </Card>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Fetch reports for assigned students in last 7 days
   const { data: reports, error: reportsError } = await admin
     .from("daily_reports")
     .select(
@@ -84,7 +109,6 @@ export default async function CoachReportsPage({
 
   const allReports = reports ?? [];
 
-  // Fetch comments for all report IDs
   const reportIds = allReports.map((r) => r.id);
   const { data: commentsData } = reportIds.length > 0
     ? await admin
@@ -93,13 +117,11 @@ export default async function CoachReportsPage({
         .in("report_id", reportIds)
     : { data: [] };
 
-  // Build comment lookup map
   const commentMap: Record<string, string> = {};
   for (const c of commentsData ?? []) {
     commentMap[c.report_id] = c.comment;
   }
 
-  // Compute stat values server-side
   const totalReports = allReports.length;
   const pendingCount = allReports.filter((r) => r.reviewed_by === null).length;
   const reviewedCount = allReports.filter((r) => r.reviewed_by !== null).length;
@@ -109,10 +131,8 @@ export default async function CoachReportsPage({
         allReports.length
       : 0;
 
-  // Read search params
   const sp = await searchParams;
 
-  // Apply filters based on searchParams
   let filteredReports = allReports;
   if (sp.reviewed === "false") {
     filteredReports = allReports.filter((r) => r.reviewed_by === null);
@@ -125,105 +145,98 @@ export default async function CoachReportsPage({
     );
   }
 
-  // Map each report to include its existing comment
   const reportsWithComments = filteredReports.map((r) => ({
     ...r,
     existingComment: commentMap[r.id] ?? null,
   }));
 
-  // Build student name map
   const studentMap: Record<string, string> = {};
   for (const s of studentList) {
     studentMap[s.id] = s.name;
   }
 
+  const stats = [
+    {
+      label: "Total Reports",
+      value: String(totalReports),
+      icon: FileText,
+      iconBg: "bg-[#E8EEFF]",
+      iconColor: "text-[#4A6CF7]",
+      valueColor: "text-[#1A1A17]",
+    },
+    {
+      label: "Pending",
+      value: String(pendingCount),
+      icon: Clock,
+      iconBg: "bg-[#FDF3E0]",
+      iconColor: "text-[#D97706]",
+      valueColor: pendingCount > 0 ? "text-[#D97706]" : "text-[#1A1A17]",
+    },
+    {
+      label: "Reviewed",
+      value: String(reviewedCount),
+      icon: CheckCircle,
+      iconBg: "bg-[#E2F5E9]",
+      iconColor: "text-[#16A34A]",
+      valueColor: "text-[#1A1A17]",
+    },
+    {
+      label: "Avg Hours",
+      value: avgHours.toFixed(1),
+      icon: Timer,
+      iconBg: "bg-[#F1EEE6]",
+      iconColor: "text-[#7A7466]",
+      valueColor: "text-[#1A1A17]",
+    },
+  ];
+
   return (
-    <div className="px-4">
-      <h1 className="text-2xl font-bold text-ima-text">Reports</h1>
-      <p className="mt-1 text-ima-text-secondary">
-        Review student reports from the last 7 days
-      </p>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {shellHeader}
 
-      {/* 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        {/* Total Reports */}
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-ima-primary/10 flex items-center justify-center shrink-0">
-              <FileText
-                className="h-5 w-5 text-ima-primary"
-                aria-hidden="true"
-              />
+        {/* Stats row */}
+        <section
+          aria-label="Report totals"
+          className="mt-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[14px] motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
+        >
+          {stats.map((s) => (
+            <div
+              key={s.label}
+              className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px]"
+            >
+              <div
+                className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${s.iconBg}`}
+              >
+                <s.icon className={`h-[18px] w-[18px] ${s.iconColor}`} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-[24px] font-bold leading-none tabular-nums ${s.valueColor}`}>
+                  {s.value}
+                </p>
+                <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-ima-text">{totalReports}</p>
-              <p className="text-xs text-ima-text-secondary">Total Reports</p>
-            </div>
-          </CardContent>
-        </Card>
+          ))}
+        </section>
 
-        {/* Pending */}
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-ima-warning/10 flex items-center justify-center shrink-0">
-              <Clock
-                className="h-5 w-5 text-ima-warning"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-ima-text">{pendingCount}</p>
-              <p className="text-xs text-ima-text-secondary">Pending</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Reviewed */}
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-ima-success/10 flex items-center justify-center shrink-0">
-              <CheckCircle
-                className="h-5 w-5 text-ima-success"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-ima-text">
-                {reviewedCount}
-              </p>
-              <p className="text-xs text-ima-text-secondary">Reviewed</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Avg Hours */}
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-ima-info/10 flex items-center justify-center shrink-0">
-              <Timer
-                className="h-5 w-5 text-ima-info"
-                aria-hidden="true"
-              />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-ima-text">
-                {avgHours.toFixed(1)}
-              </p>
-              <p className="text-xs text-ima-text-secondary">Avg Hours</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div
+          className="motion-safe:animate-fadeIn"
+          style={{ animationDelay: "100ms" }}
+        >
+          <CoachReportsClient
+            key={`${sp.reviewed ?? "all"}-${sp.student_id ?? ""}`}
+            reports={reportsWithComments}
+            students={studentList}
+            studentMap={studentMap}
+            currentFilter={sp.reviewed ?? "all"}
+            currentStudentId={sp.student_id ?? ""}
+          />
+        </div>
       </div>
-
-      {/* Report inbox client component */}
-      <CoachReportsClient
-        key={`${sp.reviewed ?? "all"}-${sp.student_id ?? ""}`}
-        reports={reportsWithComments}
-        students={studentList}
-        studentMap={studentMap}
-        currentFilter={sp.reviewed ?? "all"}
-        currentStudentId={sp.student_id ?? ""}
-      />
     </div>
   );
 }

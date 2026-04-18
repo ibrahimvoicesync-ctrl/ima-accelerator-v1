@@ -8,13 +8,12 @@
 
 export const STUDENT_ANALYTICS_PAGE_SIZE = 25;
 
-export type StudentAnalyticsRange = "7d" | "30d" | "90d" | "all";
+export type StudentAnalyticsRange = "daily" | "weekly" | "monthly";
 
 export const STUDENT_ANALYTICS_RANGES: readonly StudentAnalyticsRange[] = [
-  "7d",
-  "30d",
-  "90d",
-  "all",
+  "daily",
+  "weekly",
+  "monthly",
 ] as const;
 
 export type StudentAnalyticsTotals = {
@@ -27,7 +26,7 @@ export type StudentAnalyticsTotals = {
 };
 
 export type OutreachBucket = {
-  week_start: string; // YYYY-MM-DD
+  bucket: string; // YYYY-MM-DD (day / ISO week-start / first-of-month)
   brands: number;
   influencers: number;
 };
