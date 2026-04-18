@@ -141,7 +141,7 @@ export default async function StudentDiyRoadmapPage() {
       className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
     >
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
-        {/* Masthead — amplified scale for student_diy */}
+        {/* Masthead */}
         <header className="motion-safe:animate-fadeIn">
           <p
             className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
@@ -149,21 +149,21 @@ export default async function StudentDiyRoadmapPage() {
           >
             Roadmap
           </p>
-          <h1 className="mt-3 text-4xl md:text-6xl font-bold leading-[1.0] text-ima-text tracking-[-0.02em]">
-            Your roadmap.
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
+            Your Roadmap
           </h1>
-          <p className="mt-3 text-[15px] md:text-base text-ima-text-secondary leading-[1.5] max-w-2xl">
+          <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
             {ROADMAP_STEPS.length} steps from beginner to closing your first brand deal.
           </p>
         </header>
 
-        {/* Hero row — progress (3) + current step (2). Monumental hero metric per stitch-blend motif. */}
+        {/* Hero row — progress (3) + current step (2) */}
         <section
           aria-label="Roadmap progress"
-          className="mt-10 grid grid-cols-1 lg:grid-cols-5 gap-[14px] motion-safe:animate-fadeIn"
+          className="mt-9 grid grid-cols-1 lg:grid-cols-5 gap-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "100ms" }}
         >
-          {/* Overall progress — monumental hero metric */}
+          {/* Overall progress — hero metric */}
           <div className="lg:col-span-3 bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8">
             <div className="flex items-center justify-between gap-3">
               <p
@@ -187,23 +187,23 @@ export default async function StudentDiyRoadmapPage() {
               )}
             </div>
 
-            <div className="mt-6 flex items-end gap-3">
+            <div className="mt-5 flex items-end gap-3">
               <span
                 className={cn(
-                  "text-7xl md:text-8xl font-bold tabular-nums tracking-[-0.02em] leading-[0.95]",
+                  "text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none",
                   allComplete ? "text-ima-success" : "text-ima-primary",
                 )}
               >
                 {percent}
-                <span className="text-3xl md:text-4xl text-ima-text-muted font-semibold">%</span>
+                <span className="text-[26px] md:text-[30px] text-ima-text-muted font-semibold">%</span>
               </span>
-              <span className="pb-2 text-[13px] text-ima-text-muted tabular-nums">
+              <span className="pb-[6px] text-[13px] text-ima-text-muted tabular-nums">
                 {completedCount} / {ROADMAP_STEPS.length} steps
               </span>
             </div>
 
             <div
-              className="mt-6 h-[8px] rounded-full bg-ima-surface-light overflow-hidden"
+              className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
               role="progressbar"
               aria-valuenow={completedCount}
               aria-valuemin={0}
@@ -270,7 +270,7 @@ export default async function StudentDiyRoadmapPage() {
                   </p>
                   <PartyPopper className="h-[18px] w-[18px] text-ima-success" aria-hidden="true" />
                 </div>
-                <p className="mt-5 text-[24px] md:text-[28px] font-bold tracking-[-0.01em] text-ima-text leading-tight">
+                <p className="mt-5 text-[22px] md:text-[24px] font-bold tracking-[-0.01em] text-ima-text leading-tight">
                   Congratulations, {firstName}.
                 </p>
                 <p className="mt-3 text-[14px] text-ima-text-secondary leading-relaxed">
@@ -299,7 +299,7 @@ export default async function StudentDiyRoadmapPage() {
                 >
                   {activeStepConfig.stageName}
                 </p>
-                <h2 className="mt-2 text-[24px] md:text-[28px] font-bold tracking-[-0.01em] text-ima-text leading-tight">
+                <h2 className="mt-2 text-[22px] md:text-[24px] font-bold tracking-[-0.01em] text-ima-text leading-tight">
                   {activeStepConfig.title}
                 </h2>
                 <p className="mt-3 text-[14px] text-ima-text-secondary line-clamp-3 leading-relaxed">
@@ -314,7 +314,7 @@ export default async function StudentDiyRoadmapPage() {
                 >
                   Status
                 </p>
-                <p className="mt-5 text-[24px] md:text-[28px] font-bold tracking-[-0.01em] text-ima-text leading-tight">
+                <p className="mt-5 text-[22px] md:text-[24px] font-bold tracking-[-0.01em] text-ima-text leading-tight">
                   Ready to begin.
                 </p>
                 <p className="mt-3 text-[14px] text-ima-text-secondary leading-relaxed">
