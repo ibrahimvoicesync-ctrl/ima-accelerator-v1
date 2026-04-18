@@ -22,6 +22,8 @@ import {
   dailyOutreachRag,
   daysInProgram as computeDaysInProgram,
   lifetimeOutreachRag,
+  ragToBgClass,
+  ragToColorClass,
   type RagStatus,
 } from "@/lib/kpi";
 import { ReferralCard } from "@/components/student/ReferralCard";
@@ -57,19 +59,6 @@ function getNextAction(
     label: reportSubmitted ? "Update daily report" : "Submit daily report",
     href: "/student/report",
   };
-}
-
-function ragHex(status: RagStatus): string {
-  switch (status) {
-    case "green":
-      return "#16A34A";
-    case "amber":
-      return "#D97706";
-    case "red":
-      return "#DC2626";
-    default:
-      return "#8A8474";
-  }
 }
 
 export default async function StudentDashboard() {
@@ -189,21 +178,21 @@ export default async function StudentDashboard() {
 
   return (
     <div
-      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
     >
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
         {/* Masthead */}
         <header className="motion-safe:animate-fadeIn">
           <p
-            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+            className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
             style={MONO}
           >
             Dashboard
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
             Assalamu3leikum, {firstName}.
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
             Here&apos;s how today is tracking.
           </p>
         </header>
@@ -222,23 +211,23 @@ export default async function StudentDashboard() {
           className="motion-safe:animate-fadeIn"
           style={{ animationDelay: "100ms" }}
         >
-          <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 md:p-8">
+          <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 md:p-8">
             <div className="flex items-center justify-between gap-3">
               <p
                 id="todays-work-label"
-                className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+                className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
                 style={MONO}
               >
                 Today&apos;s Work
               </p>
               {goalMet ? (
-                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BBE5CA] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A]">
+                <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-success/10 border border-ima-success/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-success">
                   <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                   Goal Reached
                 </span>
               ) : (
                 <span
-                  className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase tabular-nums"
+                  className="text-[10px] font-semibold tracking-[0.14em] text-ima-text-muted uppercase tabular-nums"
                   style={MONO}
                 >
                   {completedCount} Session{completedCount !== 1 ? "s" : ""}
@@ -247,16 +236,21 @@ export default async function StudentDashboard() {
             </div>
 
             <div className="mt-5 flex items-end gap-2">
-              <span className="text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none text-[#4A6CF7]">
+              <span
+                className={cn(
+                  "text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none",
+                  goalMet ? "text-ima-success" : "text-ima-primary",
+                )}
+              >
                 {formatHoursMinutes(totalMinutesWorked)}
               </span>
-              <span className="pb-[6px] text-[15px] font-medium text-[#8A8474] tabular-nums">
+              <span className="pb-[6px] text-[15px] font-medium text-ima-text-muted tabular-nums">
                 / {WORK_TRACKER.dailyGoalHours}h
               </span>
             </div>
 
             <div
-              className="mt-5 h-[6px] rounded-full bg-[#F1EEE6] overflow-hidden"
+              className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
               role="progressbar"
               aria-valuenow={totalMinutesWorked}
               aria-valuemin={0}
@@ -266,7 +260,7 @@ export default async function StudentDashboard() {
               <div
                 className={cn(
                   "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
-                  goalMet ? "bg-[#16A34A]" : "bg-[#4A6CF7]",
+                  goalMet ? "bg-ima-success" : "bg-ima-primary",
                 )}
                 style={{ width: `${progressBarWidth}%` }}
               />
@@ -275,7 +269,7 @@ export default async function StudentDashboard() {
 
           <Link
             href={nextAction.href}
-            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[10px] bg-[#4A6CF7] text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-[#3852D8] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 motion-safe:transition-colors"
+            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[10px] bg-ima-primary text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-ima-primary-hover focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 motion-safe:transition-colors"
           >
             {nextAction.label}
             <ArrowRight
@@ -293,19 +287,19 @@ export default async function StudentDashboard() {
         >
           <div className="flex items-center gap-3">
             <h2
-              className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+              className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
               style={MONO}
             >
               KPI Tracking
             </h2>
-            <div className="flex-1 h-px bg-[#EDE9E0]" aria-hidden="true" />
+            <div className="flex-1 h-px bg-ima-border" aria-hidden="true" />
           </div>
 
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
             <KpiCard
               icon={Megaphone}
-              iconBg="bg-[#E8EEFF]"
-              iconColor="text-[#4A6CF7]"
+              iconBg="bg-ima-primary/10"
+              iconColor="text-ima-primary"
               label="Lifetime Outreach"
               value={lifetimeOutreach.toLocaleString()}
               target={`Target ${KPI_TARGETS.lifetimeOutreach.toLocaleString()}`}
@@ -314,8 +308,8 @@ export default async function StudentDashboard() {
             />
             <KpiCard
               icon={Mail}
-              iconBg="bg-[#FDF3E0]"
-              iconColor="text-[#D97706]"
+              iconBg="bg-ima-warning/10"
+              iconColor="text-ima-warning"
               label="Daily Outreach"
               value={String(dailyOutreachTotal)}
               target={`Target ${KPI_TARGETS.dailyOutreach}/day`}
@@ -324,8 +318,8 @@ export default async function StudentDashboard() {
             />
             <KpiCard
               icon={Clock}
-              iconBg="bg-[#F1EEE6]"
-              iconColor="text-[#7A7466]"
+              iconBg="bg-ima-surface-light"
+              iconColor="text-ima-text-secondary"
               label="Hours Today"
               value={formatHoursMinutes(totalMinutesWorked)}
               target={`Target ${WORK_TRACKER.dailyGoalHours}h/day`}
@@ -343,37 +337,40 @@ export default async function StudentDashboard() {
         >
           <div className="flex items-center gap-3">
             <h2
-              className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
+              className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
               style={MONO}
             >
               Deals
             </h2>
-            <div className="flex-1 h-px bg-[#EDE9E0]" aria-hidden="true" />
+            <div className="flex-1 h-px bg-ima-border" aria-hidden="true" />
           </div>
 
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
             <StatCard
               icon={Briefcase}
-              iconBg="bg-[#FDF3E0]"
-              iconColor="text-[#D97706]"
+              iconBg="bg-ima-warning/10"
+              iconColor="text-ima-warning"
               label="Deals Closed"
               value={String(dealsClosed)}
+              valueColor="text-ima-warning"
               caption={hasDeals ? "All time" : "None yet"}
             />
             <StatCard
               icon={DollarSign}
-              iconBg="bg-[#E8EEFF]"
-              iconColor="text-[#4A6CF7]"
+              iconBg="bg-ima-primary/10"
+              iconColor="text-ima-primary"
               label="Total Revenue"
               value={currencyFormat(totalRevenue)}
+              valueColor="text-ima-primary"
               caption={`From ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
             />
             <StatCard
               icon={TrendingUp}
-              iconBg="bg-[#E2F5E9]"
-              iconColor="text-[#16A34A]"
+              iconBg="bg-ima-success/10"
+              iconColor="text-ima-success"
               label="Total Profit"
               value={currencyFormat(totalProfit)}
+              valueColor="text-ima-success"
               caption={hasDeals ? "All time" : "None yet"}
             />
           </div>
@@ -387,17 +384,17 @@ export default async function StudentDashboard() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
             {/* Roadmap */}
-            <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 flex flex-col">
+            <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-[8px] bg-[#E8EEFF] flex items-center justify-center shrink-0">
-                    <MapIcon className="h-[18px] w-[18px] text-[#4A6CF7]" aria-hidden="true" />
+                  <div className="w-9 h-9 rounded-[8px] bg-ima-primary/10 flex items-center justify-center shrink-0">
+                    <MapIcon className="h-[18px] w-[18px] text-ima-primary" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+                    <p className="text-[15px] font-semibold text-ima-text leading-tight">
                       Roadmap
                     </p>
-                    <p className="mt-[3px] text-[12px] text-[#8A8474]">
+                    <p className="mt-[3px] text-[12px] text-ima-text-muted">
                       {allRoadmapDone
                         ? "All steps completed"
                         : activeRoadmapStep
@@ -407,7 +404,7 @@ export default async function StudentDashboard() {
                   </div>
                 </div>
                 <span
-                  className="text-[12px] font-semibold tabular-nums text-[#1A1A17] shrink-0"
+                  className="text-[12px] font-semibold tabular-nums text-ima-text shrink-0"
                   style={MONO}
                 >
                   {roadmapCompleted}/{ROADMAP_STEPS.length}
@@ -415,7 +412,7 @@ export default async function StudentDashboard() {
               </div>
 
               <div
-                className="mt-5 h-[6px] rounded-full bg-[#F1EEE6] overflow-hidden"
+                className="mt-5 h-[6px] rounded-full bg-ima-surface-light overflow-hidden"
                 role="progressbar"
                 aria-valuenow={roadmapCompleted}
                 aria-valuemin={0}
@@ -425,7 +422,7 @@ export default async function StudentDashboard() {
                 <div
                   className={cn(
                     "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
-                    allRoadmapDone ? "bg-[#16A34A]" : "bg-[#4A6CF7]",
+                    allRoadmapDone ? "bg-ima-success" : "bg-ima-primary",
                   )}
                   style={{ width: `${roadmapPercent}%` }}
                 />
@@ -440,7 +437,7 @@ export default async function StudentDashboard() {
                       ? `Continue step ${activeRoadmapStep.step_number}`
                       : "View roadmap"
                 }
-                className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
+                className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded-md"
               >
                 {allRoadmapDone
                   ? "View roadmap"
@@ -455,17 +452,17 @@ export default async function StudentDashboard() {
             </div>
 
             {/* Daily Report */}
-            <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 flex flex-col">
+            <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6 flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-[8px] bg-[#F1EEE6] flex items-center justify-center shrink-0">
-                    <FileText className="h-[18px] w-[18px] text-[#7A7466]" aria-hidden="true" />
+                  <div className="w-9 h-9 rounded-[8px] bg-ima-surface-light flex items-center justify-center shrink-0">
+                    <FileText className="h-[18px] w-[18px] text-ima-text-secondary" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+                    <p className="text-[15px] font-semibold text-ima-text leading-tight">
                       Daily Report
                     </p>
-                    <p className="mt-[3px] text-[12px] text-[#8A8474]">
+                    <p className="mt-[3px] text-[12px] text-ima-text-muted">
                       {reportSubmitted
                         ? "Submitted — you can still update it."
                         : "Close today's loop before 11 PM."}
@@ -473,14 +470,14 @@ export default async function StudentDashboard() {
                   </div>
                 </div>
                 {reportSubmitted ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BBE5CA] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A] shrink-0">
+                  <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-ima-success/10 border border-ima-success/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-success shrink-0">
                     <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                     Submitted
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-[#FDF3E0] border border-[#F0DFB3] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9A6B1F] shrink-0">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-[3px] rounded-full bg-ima-warning/10 border border-ima-warning/30 text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-warning shrink-0">
                     <span
-                      className="inline-block h-[6px] w-[6px] rounded-full bg-[#D97706]"
+                      className="inline-block h-[6px] w-[6px] rounded-full bg-ima-warning"
                       aria-hidden="true"
                     />
                     Pending
@@ -490,12 +487,12 @@ export default async function StudentDashboard() {
 
               <div className="mt-5 flex items-center gap-3">
                 <span
-                  className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+                  className="text-[10px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
                   style={MONO}
                 >
                   Due
                 </span>
-                <span className="text-[13px] font-semibold tabular-nums text-[#1A1A17]">
+                <span className="text-[13px] font-semibold tabular-nums text-ima-text">
                   11:00 PM
                 </span>
               </div>
@@ -503,7 +500,7 @@ export default async function StudentDashboard() {
               <Link
                 href="/student/report"
                 aria-label={reportSubmitted ? "Update report" : "Submit report"}
-                className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
+                className="group mt-auto pt-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ima-primary hover:text-ima-primary-hover min-h-[44px] focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded-md"
               >
                 {reportSubmitted ? "Update report" : "Submit report"}
                 <ArrowRight
@@ -546,46 +543,52 @@ function KpiCard({
   percent: number;
   rag: RagStatus;
 }) {
-  const accent = ragHex(rag);
   return (
-    <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+    <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${iconBg}`}
+            className={cn(
+              "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
+              iconBg,
+            )}
           >
-            <Icon className={`h-[18px] w-[18px] ${iconColor}`} aria-hidden="true" />
+            <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
           </div>
           <p
-            className="text-[11px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+            className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
             style={MONO}
           >
             {label}
           </p>
         </div>
         <span
-          className="inline-block h-[8px] w-[8px] rounded-full shrink-0"
-          style={{ backgroundColor: accent }}
+          className={cn("inline-block h-[8px] w-[8px] rounded-full shrink-0", ragToBgClass(rag))}
           aria-hidden="true"
         />
       </div>
 
       <div className="mt-5 flex items-baseline justify-between gap-3">
-        <p className="text-[28px] md:text-[32px] font-bold tabular-nums text-[#1A1A17] leading-none">
+        <p
+          className={cn(
+            "text-[28px] md:text-[32px] font-bold tabular-nums leading-none",
+            ragToColorClass(rag),
+          )}
+        >
           {value}
         </p>
         <p
-          className="text-[11px] font-semibold tabular-nums text-[#7A7466]"
+          className="text-[11px] font-semibold tabular-nums text-ima-text-muted"
           style={MONO}
         >
           {percent}%
         </p>
       </div>
 
-      <p className="mt-[10px] text-[12px] text-[#8A8474]">{target}</p>
+      <p className="mt-[10px] text-[12px] text-ima-text-muted">{target}</p>
 
       <div
-        className="mt-4 h-[4px] rounded-full bg-[#F1EEE6] overflow-hidden"
+        className="mt-4 h-[4px] rounded-full bg-ima-surface-light overflow-hidden"
         role="progressbar"
         aria-valuenow={percent}
         aria-valuemin={0}
@@ -593,8 +596,11 @@ function KpiCard({
         aria-label={`${label}: ${percent}%`}
       >
         <div
-          className="h-full rounded-full motion-safe:transition-[width] duration-700 ease-out"
-          style={{ width: `${percent}%`, backgroundColor: accent }}
+          className={cn(
+            "h-full rounded-full motion-safe:transition-[width] duration-700 ease-out",
+            ragToBgClass(rag),
+          )}
+          style={{ width: `${percent}%` }}
         />
       </div>
     </div>
@@ -607,6 +613,7 @@ function StatCard({
   iconColor,
   label,
   value,
+  valueColor,
   caption,
 }: {
   icon: LucideIcon;
@@ -614,27 +621,36 @@ function StatCard({
   iconColor: string;
   label: string;
   value: string;
+  valueColor: string;
   caption: string;
 }) {
   return (
-    <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+    <div className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
       <div className="flex items-center gap-3">
         <div
-          className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${iconBg}`}
+          className={cn(
+            "w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0",
+            iconBg,
+          )}
         >
-          <Icon className={`h-[18px] w-[18px] ${iconColor}`} aria-hidden="true" />
+          <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
         </div>
         <p
-          className="text-[11px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+          className="text-[11px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
           style={MONO}
         >
           {label}
         </p>
       </div>
-      <p className="mt-5 text-[28px] md:text-[32px] font-bold tabular-nums text-[#1A1A17] leading-none">
+      <p
+        className={cn(
+          "mt-5 text-[28px] md:text-[32px] font-bold tabular-nums leading-none",
+          valueColor,
+        )}
+      >
         {value}
       </p>
-      <p className="mt-[10px] text-[12px] text-[#8A8474]">{caption}</p>
+      <p className="mt-[10px] text-[12px] text-ima-text-muted">{caption}</p>
     </div>
   );
 }
