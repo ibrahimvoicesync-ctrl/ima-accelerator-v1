@@ -4,8 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bell, DollarSign } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -38,8 +36,16 @@ const EMPTY_MESSAGES: Record<FilterTab, string> = {
   dismissed: "No dismissed alerts yet.",
 };
 
-const TYPE_CONFIG: Record<string, { bg: string; text: string; Icon: LucideIcon; label: string }> = {
-  deal_closed: { bg: "bg-ima-success/10", text: "text-ima-success", Icon: DollarSign, label: "Deal" },
+const TYPE_CONFIG: Record<
+  string,
+  { iconBg: string; iconColor: string; Icon: LucideIcon; label: string }
+> = {
+  deal_closed: {
+    iconBg: "bg-[#E2F5E9]",
+    iconColor: "text-[#16A34A]",
+    Icon: DollarSign,
+    label: "Deal",
+  },
 };
 
 interface OwnerAlertsClientProps {
@@ -49,24 +55,28 @@ interface OwnerAlertsClientProps {
 export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
   const { toast } = useToast();
   const toastRef = useRef(toast);
-  useEffect(() => { toastRef.current = toast; }, [toast]);
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const router = useRouter();
   const routerRef = useRef(router);
-  useEffect(() => { routerRef.current = router; }, [router]);
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
 
   const [alerts, setAlerts] = useState<AlertItem[]>(initialAlerts);
   const [filter, setFilter] = useState<FilterTab>("active");
   const [dismissingKey, setDismissingKey] = useState<string | null>(null);
 
   const activeCount = alerts.filter((a) => !a.dismissed).length;
-  const dismissedCount = alerts.filter((a) => a.dismissed).length;
 
-  const filteredAlerts = filter === "all"
-    ? alerts
-    : filter === "active"
-      ? alerts.filter((a) => !a.dismissed)
-      : alerts.filter((a) => a.dismissed);
+  const filteredAlerts =
+    filter === "all"
+      ? alerts
+      : filter === "active"
+        ? alerts.filter((a) => !a.dismissed)
+        : alerts.filter((a) => a.dismissed);
 
   function handleFilterChange(newFilter: FilterTab) {
     setFilter(newFilter);
@@ -90,7 +100,10 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
         setAlerts((prev) =>
           prev.map((a) => (a.key === alertKey ? { ...a, dismissed: false } : a))
         );
-        toastRef.current({ type: "error", title: (json as { error?: string }).error ?? "Failed to dismiss alert" });
+        toastRef.current({
+          type: "error",
+          title: (json as { error?: string }).error ?? "Failed to dismiss alert",
+        });
         return;
       }
       toastRef.current({ type: "success", title: "Alert dismissed" });
@@ -128,132 +141,142 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
   }
 
   return (
-    <>
-      {/* Summary stats */}
-      <div className="flex items-center gap-4 text-sm text-ima-text-secondary">
-        <span>{activeCount} active</span>
-        <span aria-hidden="true" className="text-ima-border">|</span>
-        <span>{dismissedCount} dismissed</span>
+    <div>
+      {/* Pill filter tabs */}
+      <div className="flex gap-2 flex-wrap" role="tablist" aria-label="Filter alerts">
+        {FILTER_TABS.map(({ key, label }) => {
+          const isActive = filter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => handleFilterChange(key)}
+              className={cn(
+                "min-h-[44px] px-4 rounded-[10px] text-[13px] font-medium motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                isActive
+                  ? "bg-[#4A6CF7] text-white"
+                  : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]"
+              )}
+            >
+              {label}
+              {key === "active" && activeCount > 0 && (
+                <span className="ml-1.5 text-[11px] opacity-80 tabular-nums">
+                  ({activeCount})
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {FILTER_TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => handleFilterChange(key)}
-            className={cn(
-              "px-4 py-2 rounded-lg text-sm font-medium min-h-[44px] motion-safe:transition-colors",
-              filter === key
-                ? "bg-ima-primary text-white"
-                : "bg-ima-surface border border-ima-border text-ima-text hover:bg-ima-surface-light"
-            )}
-          >
-            {label}
-            {key === "active" && activeCount > 0 && (
-              <span className="ml-1.5 text-xs opacity-80">({activeCount})</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Alert Cards */}
+      {/* Alerts list */}
       {filteredAlerts.length === 0 ? (
-        <EmptyState
-          icon={<Bell className="h-6 w-6" />}
-          title={EMPTY_MESSAGES[filter]}
-          description={filter === "all" ? "No alerts have been triggered. Keep up the great work!" : undefined}
-        />
+        <div className="mt-6 bg-white border border-[#EDE9E0] rounded-[14px] p-6">
+          <EmptyState
+            icon={<Bell className="h-6 w-6" />}
+            title={EMPTY_MESSAGES[filter]}
+            description={
+              filter === "all"
+                ? "No alerts have been triggered. Keep up the great work!"
+                : undefined
+            }
+          />
+        </div>
       ) : (
-        <div className="space-y-3">
+        <ul className="mt-6 space-y-3" role="list">
           {filteredAlerts.map((alert) => {
-            const config = TYPE_CONFIG[alert.type] ?? TYPE_CONFIG.student_inactive;
+            const config = TYPE_CONFIG[alert.type] ?? TYPE_CONFIG.deal_closed;
             const { Icon } = config;
             const detailHref = getDetailHref(alert);
+            const isLive = !alert.dismissed;
 
             return (
-              <Card
+              <li
                 key={alert.key}
-                variant={!alert.dismissed ? "bordered-left" : "default"}
                 className={cn(
-                  !alert.dismissed && "border-l-ima-success"
+                  "rounded-[14px] border bg-white p-5",
+                  isLive
+                    ? "border-[#EDE9E0] border-l-[3px] border-l-[#16A34A]"
+                    : "border-[#EDE9E0] bg-[#FAFAF7]"
                 )}
               >
-                <CardContent className="p-5">
+                <div
+                  role="alert"
+                  aria-label={`${alert.severity} alert: ${alert.title}`}
+                  className="flex gap-4"
+                >
+                  {/* Type icon */}
                   <div
-                    role="alert"
-                    aria-label={`${alert.severity} alert: ${alert.title}`}
-                    className="flex gap-4"
+                    className={cn(
+                      "shrink-0 w-10 h-10 rounded-[8px] flex items-center justify-center",
+                      config.iconBg,
+                      config.iconColor
+                    )}
                   >
-                    {/* Severity icon */}
-                    <div
-                      className={cn(
-                        "shrink-0 w-10 h-10 rounded-lg flex items-center justify-center",
-                        config.bg, config.text
-                      )}
-                    >
-                      <Icon className="w-5 h-5" aria-hidden="true" />
+                    <Icon className="w-5 h-5" aria-hidden="true" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h3 className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                          {alert.title}
+                        </h3>
+                        <span className="inline-flex items-center px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BBE5CA] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A] shrink-0">
+                          {config.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className="text-[10px] font-medium text-[#8A8474] tracking-[0.12em] uppercase whitespace-nowrap"
+                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                        >
+                          {getTimeAgo(alert.triggeredAt)}
+                        </span>
+                        {isLive && (
+                          <div
+                            className="w-2 h-2 rounded-full bg-[#16A34A] shrink-0"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4 mb-1.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <h3 className="text-sm font-semibold text-ima-text truncate">{alert.title}</h3>
-                          <Badge
-                            variant={
-                              alert.severity === "critical"
-                                ? "error"
-                                : alert.severity === "info"
-                                  ? "success"
-                                  : "warning"
-                            }
-                            size="sm"
-                          >
-                            {config.label}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs text-ima-text-secondary whitespace-nowrap">
-                            {getTimeAgo(alert.triggeredAt)}
-                          </span>
-                          {!alert.dismissed && (
-                            <div className="w-2 h-2 rounded-full bg-ima-success shrink-0" aria-hidden="true" />
-                          )}
-                        </div>
-                      </div>
+                    <p className="text-[13px] text-[#7A7466] mb-3">
+                      {alert.message}
+                    </p>
 
-                      <p className="text-sm text-ima-text-secondary mb-3">{alert.message}</p>
-
-                      <div className="flex gap-3">
-                        {detailHref && (
-                          <Link
-                            href={detailHref}
-                            className="text-xs text-ima-primary font-medium hover:underline min-h-[44px] inline-flex items-center"
-                          >
-                            View Details
-                          </Link>
-                        )}
-                        {!alert.dismissed && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            loading={dismissingKey === alert.key}
-                            onClick={() => handleDismiss(alert.key)}
-                            className="text-xs"
-                          >
-                            Dismiss
-                          </Button>
-                        )}
-                      </div>
+                    <div className="flex gap-3 items-center">
+                      {detailHref && (
+                        <Link
+                          href={detailHref}
+                          className="text-[12px] font-medium text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] inline-flex items-center focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md px-1"
+                        >
+                          View Details
+                        </Link>
+                      )}
+                      {isLive && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          loading={dismissingKey === alert.key}
+                          onClick={() => handleDismiss(alert.key)}
+                          className="text-[12px]"
+                        >
+                          Dismiss
+                        </Button>
+                      )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
-    </>
+    </div>
   );
 }
