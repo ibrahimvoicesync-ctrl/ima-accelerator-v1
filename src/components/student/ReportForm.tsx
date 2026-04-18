@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Textarea } from "@/components/ui";
+import { ArrowRight } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { cn } from "@/lib/utils";
 import { StarRating } from "./StarRating";
 import { DAILY_REPORT, VALIDATION } from "@/lib/config";
-import { formatHours } from "@/lib/utils";
 import type { Database } from "@/lib/types";
 
 type DailyReport = Database["public"]["Tables"]["daily_reports"]["Row"];
 
 interface ReportFormData {
-  star_rating: number;
   brands_contacted: number;
   influencers_contacted: number;
   calls_joined: number;
@@ -24,10 +24,28 @@ interface ReportFormProps {
   date: string;
   existingReport: DailyReport | null;
   autoMinutes: number;
-  onSuccess?: (report: DailyReport) => void;
 }
 
-export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: ReportFormProps) {
+const RATING_LABELS: Record<number, string> = {
+  0: "Tap a star",
+  1: "Tough day",
+  2: "Below par",
+  3: "Steady",
+  4: "Strong",
+  5: "Exceptional",
+};
+
+/* Numeric inputs — sized a clear step below the hero date so the hero
+   stays dominant (hero = 5xl/7xl, these = 3xl/4xl). */
+const UNDERLINE_NUMERIC =
+  "w-full text-3xl md:text-4xl font-semibold tabular-nums tracking-tight text-ima-text bg-transparent border-0 border-b border-ima-border leading-none pt-2 pb-0.5 focus:border-ima-primary focus:outline-none focus:ring-0 appearance-none motion-safe:transition-colors [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+/* Reflection textareas — bordered box, restored from the pre-bolder design. */
+const BOX_TEXTAREA =
+  "w-full min-h-[72px] px-3 py-2 bg-ima-surface border border-ima-border rounded-lg text-sm text-ima-text leading-6 placeholder:italic placeholder:text-ima-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-ima-primary focus:border-transparent motion-safe:transition-colors";
+
+export function ReportForm({ date, existingReport, autoMinutes }: ReportFormProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [starRating, setStarRating] = useState(existingReport?.star_rating ?? 0);
@@ -36,10 +54,8 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
     register,
     handleSubmit,
     watch,
-    formState: { errors },
   } = useForm<ReportFormData>({
     defaultValues: {
-      star_rating: existingReport?.star_rating ?? 0,
       brands_contacted: existingReport?.brands_contacted ?? 0,
       influencers_contacted: existingReport?.influencers_contacted ?? 0,
       calls_joined: existingReport?.calls_joined ?? 0,
@@ -80,114 +96,152 @@ export function ReportForm({ date, existingReport, autoMinutes, onSuccess }: Rep
         return;
       }
 
-      const result = await res.json();
+      await res.json();
       toast({ type: "success", title: existingReport ? "Report updated!" : "Report submitted!" });
-      onSuccess?.(result.data as DailyReport);
-    } catch {
+      router.refresh();
+    } catch (err) {
+      console.error("[ReportForm] submit failed:", err);
       toast({ type: "error", title: "Failed to submit report" });
     } finally {
       setSubmitting(false);
     }
   };
 
+  const numericFields = [
+    {
+      id: "brands_contacted" as const,
+      label: DAILY_REPORT.fields.brandsContacted.label,
+      validation: VALIDATION.brandsContacted,
+    },
+    {
+      id: "calls_joined" as const,
+      label: DAILY_REPORT.fields.callsJoined.label,
+      validation: VALIDATION.callsJoined,
+    },
+    {
+      id: "influencers_contacted" as const,
+      label: DAILY_REPORT.fields.influencersContacted.label,
+      validation: VALIDATION.influencersContacted,
+    },
+  ];
+
   return (
-    <Card>
-      <CardHeader className="p-4">
-        <CardTitle>{existingReport ? "Update Report" : "Submit Report"}</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Hours worked (read-only) */}
-          <div>
-            <p className="text-sm font-medium text-ima-text-secondary">
-              Hours Worked Today
-            </p>
-            <p className="mt-1 text-2xl font-bold text-ima-text">
-              {formatHours(autoMinutes)}
-            </p>
-          </div>
-
-          {/* Star rating */}
-          <div>
-            <p id="star-rating-label" className="text-sm font-medium text-ima-text-secondary mb-2">
-              {DAILY_REPORT.fields.starRating.label}
-            </p>
-            <StarRating value={starRating} onChange={setStarRating} />
-          </div>
-
-          {/* Outreach fields */}
-          <fieldset>
-            <legend className="text-sm font-medium text-ima-text-secondary mb-2">
-              Outreach Today
-            </legend>
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                label={DAILY_REPORT.fields.brandsContacted.label}
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="rounded-[28px] border-2 border-ima-text/10 bg-ima-surface overflow-hidden"
+    >
+      {/* Outreach — compact numeric row */}
+      <fieldset className="px-6 md:px-8 pt-7 md:pt-9 pb-8 md:pb-10">
+        <legend className="sr-only">Outreach today</legend>
+        <div className="grid grid-cols-3 gap-6 md:gap-10">
+          {numericFields.map(field => (
+            <label key={field.id} htmlFor={field.id} className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
+                {field.label}
+              </span>
+              <input
+                id={field.id}
                 type="number"
-                min={VALIDATION.brandsContacted.min}
-                max={VALIDATION.brandsContacted.max}
-                error={errors.brands_contacted?.message}
-                {...register("brands_contacted", { valueAsNumber: true })}
+                min={field.validation.min}
+                max={field.validation.max}
+                inputMode="numeric"
+                aria-label={field.label}
+                className={UNDERLINE_NUMERIC}
+                {...register(field.id, { valueAsNumber: true })}
               />
-              <Input
-                label={DAILY_REPORT.fields.influencersContacted.label}
-                type="number"
-                min={VALIDATION.influencersContacted.min}
-                max={VALIDATION.influencersContacted.max}
-                error={errors.influencers_contacted?.message}
-                {...register("influencers_contacted", { valueAsNumber: true })}
-              />
-            </div>
-            <div className="mt-3">
-              <Input
-                label={DAILY_REPORT.fields.callsJoined.label}
-                type="number"
-                min={VALIDATION.callsJoined.min}
-                max={VALIDATION.callsJoined.max}
-                error={errors.calls_joined?.message}
-                {...register("calls_joined", { valueAsNumber: true })}
-              />
-            </div>
-          </fieldset>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
-          {/* Wins */}
-          <div>
-            <Textarea
-              label={DAILY_REPORT.fields.wins.label}
-              maxLength={VALIDATION.reportWins.max}
-              error={errors.wins?.message}
-              {...register("wins")}
-            />
-            <p className="text-xs text-ima-text-muted mt-1 text-right">
-              {winsValue.length}/{VALIDATION.reportWins.max}
+      {/* Rate your day — the emotional beat */}
+      <section className="px-6 md:px-8 pt-7 md:pt-9 pb-8 md:pb-10">
+        <p id="star-rating-label" className="sr-only">
+          {DAILY_REPORT.fields.starRating.label}
+        </p>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 md:gap-6">
+          <StarRating value={starRating} onChange={setStarRating} />
+          <div className="md:text-right">
+            <p className="text-xl md:text-2xl font-semibold tracking-tight text-ima-text leading-none">
+              {RATING_LABELS[starRating] ?? "Tap a star"}
             </p>
+            {starRating > 0 && (
+              <p className="mt-2 text-[10px] uppercase tracking-[0.22em] font-semibold text-ima-text-muted tabular-nums">
+                {starRating} of 5
+              </p>
+            )}
           </div>
+        </div>
+      </section>
 
-          {/* Improvements */}
-          <div>
-            <Textarea
-              label={DAILY_REPORT.fields.improvements.label}
-              maxLength={VALIDATION.reportImprovements.max}
-              error={errors.improvements?.message}
-              {...register("improvements")}
-            />
-            <p className="text-xs text-ima-text-muted mt-1 text-right">
-              {improvementsValue.length}/{VALIDATION.reportImprovements.max}
-            </p>
-          </div>
+      {/* Reflections */}
+      <section className="px-6 md:px-8 pt-7 md:pt-9 pb-8 md:pb-10 space-y-7">
+        <div>
+          <label htmlFor="wins" className="block text-sm font-medium text-ima-text mb-2">
+            {DAILY_REPORT.fields.wins.label}
+          </label>
+          <textarea
+            id="wins"
+            rows={2}
+            maxLength={VALIDATION.reportWins.max}
+            placeholder="Even one small win counts — what was yours?"
+            className={BOX_TEXTAREA}
+            {...register("wins")}
+          />
+          <p
+            className={cn(
+              "text-xs mt-1 text-right tabular-nums",
+              winsValue.length / VALIDATION.reportWins.max >= 0.9
+                ? "font-medium text-ima-warning"
+                : "text-ima-text-muted",
+            )}
+          >
+            {winsValue.length}/{VALIDATION.reportWins.max}
+          </p>
+        </div>
 
-          <Button type="submit" size="md" loading={submitting} className="w-full">
-            {existingReport ? "Update Report" : "Submit Report"}
-          </Button>
+        <div>
+          <label htmlFor="improvements" className="block text-sm font-medium text-ima-text mb-2">
+            {DAILY_REPORT.fields.improvements.label}
+          </label>
+          <textarea
+            id="improvements"
+            rows={2}
+            maxLength={VALIDATION.reportImprovements.max}
+            placeholder="One concrete thing — specific beats general."
+            className={BOX_TEXTAREA}
+            {...register("improvements")}
+          />
+          <p
+            className={cn(
+              "text-xs mt-1 text-right tabular-nums",
+              improvementsValue.length / VALIDATION.reportImprovements.max >= 0.9
+                ? "font-medium text-ima-warning"
+                : "text-ima-text-muted",
+            )}
+          >
+            {improvementsValue.length}/{VALIDATION.reportImprovements.max}
+          </p>
+        </div>
+      </section>
 
-          {existingReport?.submitted_at && (
-            <p className="text-xs text-ima-text-muted text-center">
-              Last submitted at{" "}
-              {new Date(existingReport.submitted_at).toLocaleTimeString()}
-            </p>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+      {/* Submit pedestal — tinted footer distinct from form body */}
+      <div className="px-6 md:px-8 py-5 flex items-center justify-between gap-4 flex-wrap bg-ima-bg border-t border-ima-border">
+        <p className="text-xs text-ima-text-muted">
+          You can edit this tomorrow morning until 6 AM.
+        </p>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="group inline-flex items-center justify-center gap-2 bg-ima-primary hover:bg-ima-primary-hover text-white rounded-full min-h-[44px] px-6 text-sm font-semibold motion-safe:transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ima-primary focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {submitting ? "Saving…" : existingReport ? "Update report" : "Submit report"}
+          <ArrowRight
+            className="h-4 w-4 motion-safe:transition-transform duration-200 ease-out group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
+        </button>
+      </div>
+    </form>
   );
 }
