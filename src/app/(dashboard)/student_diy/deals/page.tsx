@@ -1,8 +1,15 @@
+import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DealsClient } from "@/components/student/DealsClient";
 import type { Database } from "@/lib/types";
 import type { LoggedByUser } from "@/lib/deals-attribution";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
 
 type Deal = Database["public"]["Tables"]["deals"]["Row"];
 
@@ -21,7 +28,6 @@ export default async function StudentDiyDealsPage() {
     console.error("[student_diy deals page] Failed to load deals:", error);
   }
 
-  // Phase 49: resolve logged_by id -> { name, role } for the attribution chip.
   const loggedByIds = Array.from(
     new Set(
       (deals ?? [])
@@ -31,10 +37,7 @@ export default async function StudentDiyDealsPage() {
   );
   const { data: loggedByUsers } =
     loggedByIds.length > 0
-      ? await admin
-          .from("users")
-          .select("id, name, role")
-          .in("id", loggedByIds)
+      ? await admin.from("users").select("id, name, role").in("id", loggedByIds)
       : { data: [] as { id: string; name: string; role: string }[] };
   const userMap: Record<string, LoggedByUser> = {};
   for (const u of loggedByUsers ?? []) {
@@ -46,25 +49,38 @@ export default async function StudentDiyDealsPage() {
   }
 
   return (
-    <div className="px-4 py-2 max-w-7xl mx-auto">
-      {/* Editorial-restrained header — stitch-blend treatment */}
-      <header className="mb-10">
-        <p className="text-xs uppercase tracking-[0.22em] font-semibold text-ima-text-muted mb-3">
-          Deals
-        </p>
-        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-ima-text leading-[0.95]">
-          Brand deals.
-        </h1>
-        <p className="mt-3 text-sm md:text-base text-ima-text-secondary max-w-2xl">
-          Track revenue and profit from every deal you close.
-        </p>
-      </header>
-      <DealsClient
-        initialDeals={(deals ?? []) as Deal[]}
-        viewerId={user.id}
-        viewerRole="student_diy"
-        userMap={userMap}
-      />
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {/* Amplified masthead for student_diy */}
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            Deals
+          </p>
+          <h1 className="mt-3 text-4xl md:text-6xl font-bold leading-[1.0] text-ima-text tracking-[-0.02em]">
+            Brand deals.
+          </h1>
+          <p className="mt-3 text-[15px] md:text-base text-ima-text-secondary leading-[1.5] max-w-2xl">
+            Track revenue and profit from every deal you close.
+          </p>
+        </header>
+
+        <div
+          className="mt-10 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "100ms" }}
+        >
+          <DealsClient
+            initialDeals={(deals ?? []) as Deal[]}
+            viewerId={user.id}
+            viewerRole="student_diy"
+            userMap={userMap}
+          />
+        </div>
+      </div>
     </div>
   );
 }

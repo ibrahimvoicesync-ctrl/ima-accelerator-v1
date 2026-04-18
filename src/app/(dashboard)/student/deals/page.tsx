@@ -1,8 +1,15 @@
+import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DealsClient } from "@/components/student/DealsClient";
 import type { Database } from "@/lib/types";
 import type { LoggedByUser } from "@/lib/deals-attribution";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
 
 type Deal = Database["public"]["Tables"]["deals"]["Row"];
 
@@ -21,7 +28,6 @@ export default async function StudentDealsPage() {
     console.error("[student deals page] Failed to load deals:", error);
   }
 
-  // Phase 49: resolve logged_by id -> { name, role } for the attribution chip.
   const loggedByIds = Array.from(
     new Set(
       (deals ?? [])
@@ -31,10 +37,7 @@ export default async function StudentDealsPage() {
   );
   const { data: loggedByUsers } =
     loggedByIds.length > 0
-      ? await admin
-          .from("users")
-          .select("id, name, role")
-          .in("id", loggedByIds)
+      ? await admin.from("users").select("id, name, role").in("id", loggedByIds)
       : { data: [] as { id: string; name: string; role: string }[] };
   const userMap: Record<string, LoggedByUser> = {};
   for (const u of loggedByUsers ?? []) {
@@ -46,13 +49,37 @@ export default async function StudentDealsPage() {
   }
 
   return (
-    <div className="px-4 py-2">
-      <DealsClient
-        initialDeals={(deals ?? []) as Deal[]}
-        viewerId={user.id}
-        viewerRole="student"
-        userMap={userMap}
-      />
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+    >
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        <header className="motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+            style={{ fontFamily: "var(--font-mono-bold)" }}
+          >
+            Deals
+          </p>
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
+            Brand Deals
+          </h1>
+          <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
+            Track revenue and profit from every deal you close.
+          </p>
+        </header>
+
+        <div
+          className="mt-9 motion-safe:animate-fadeIn"
+          style={{ animationDelay: "100ms" }}
+        >
+          <DealsClient
+            initialDeals={(deals ?? []) as Deal[]}
+            viewerId={user.id}
+            viewerRole="student"
+            userMap={userMap}
+          />
+        </div>
+      </div>
     </div>
   );
 }
