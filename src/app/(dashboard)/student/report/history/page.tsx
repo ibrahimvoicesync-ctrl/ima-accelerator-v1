@@ -1,13 +1,21 @@
+import { ArrowLeft, FileText, Star } from "lucide-react";
+import { JetBrains_Mono } from "next/font/google";
+import Link from "next/link";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatHours } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
-import { Star, ArrowLeft, FileText } from "lucide-react";
-import Link from "next/link";
-import type { Database } from "@/lib/types";
 import { CoachFeedbackCard } from "@/components/shared/CoachFeedbackCard";
+import type { Database } from "@/lib/types";
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono-bold",
+});
+
+const MONO: React.CSSProperties = { fontFamily: "var(--font-mono-bold)" };
 
 type DailyReport = Database["public"]["Tables"]["daily_reports"]["Row"];
 
@@ -36,7 +44,8 @@ export default async function ReportHistoryPage() {
 
   const { data: reports, error } = await admin
     .from("daily_reports")
-    .select(`
+    .select(
+      `
       *,
       report_comments (
         id,
@@ -44,7 +53,8 @@ export default async function ReportHistoryPage() {
         updated_at,
         coach:users!report_comments_coach_id_fkey ( name )
       )
-    `)
+    `,
+    )
     .eq("student_id", user.id)
     .order("date", { ascending: false })
     .limit(30);
@@ -56,89 +66,146 @@ export default async function ReportHistoryPage() {
   const reportList = (reports ?? []) as ReportWithComment[];
 
   return (
-    <div className="px-4 space-y-5 max-w-2xl mx-auto">
-      {/* Back link */}
-      <Link
-        href="/student/report"
-        className="text-sm text-ima-primary hover:underline min-h-[44px] inline-flex items-center gap-1"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Back to Report
-      </Link>
+    <div
+      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-ima-bg`}
+    >
+      <div className="mx-auto max-w-3xl px-6 md:px-14 pt-10 md:pt-14 pb-20">
+        {/* Back link */}
+        <Link
+          href="/student/report"
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ima-text-secondary hover:text-ima-text min-h-[44px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-ima-primary focus-visible:outline-offset-2 rounded-md"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          Back to Report
+        </Link>
 
-      {/* Header */}
-      <h1 className="text-2xl font-bold text-ima-text">Past Reports</h1>
+        {/* Masthead */}
+        <header className="mt-4 motion-safe:animate-fadeIn">
+          <p
+            className="text-[11px] font-semibold tracking-[0.22em] text-ima-text-muted uppercase"
+            style={MONO}
+          >
+            Report History
+          </p>
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-ima-text tracking-[-0.02em]">
+            Past Reports
+          </h1>
+          <p className="mt-2 text-[15px] text-ima-text-secondary leading-[1.5]">
+            Your last {reportList.length} submissions.
+          </p>
+        </header>
 
-      {/* Empty state */}
-      {reportList.length === 0 && (
-        <Card>
-          <EmptyState
-            icon={<FileText className="h-6 w-6" />}
-            title="No reports submitted yet"
-            description="Start tracking your progress by submitting your first daily report."
-            action={
-              <Link href="/student/report" className={buttonVariants({ variant: "primary" })}>
-                Submit Your First Report
-              </Link>
-            }
-          />
-        </Card>
-      )}
-
-      {/* Report list */}
-      {reportList.map((report) => {
-        const feedbackComment = report.report_comments?.[0] ?? null;
-        return (
-          <div key={report.id} className="space-y-2">
-            <Card>
-              <CardContent className="p-5 space-y-2">
-                {/* Date row */}
-                <p className="text-sm font-semibold text-ima-text">
-                  {formatDateDisplay(report.date)}
-                </p>
-
-                {/* Stats row */}
-                <div className="flex items-center gap-4 text-sm text-ima-text-secondary">
-                  <span>{formatHours(report.hours_worked * 60)}</span>
-                  <span className="flex items-center gap-0.5">
-                    {Array.from({ length: report.star_rating ?? 0 }, (_, i) => (
-                      <Star
-                        key={i}
-                        className="h-4 w-4 fill-ima-warning text-ima-warning"
-                        aria-hidden="true"
-                      />
-                    ))}
-                  </span>
-                  <span>{report.outreach_count} outreach</span>
-                </div>
-
-                {/* Wins */}
-                {report.wins && (
-                  <p className="text-sm text-ima-text">
-                    <span className="font-medium text-ima-text-secondary">Wins: </span>
-                    {report.wins}
-                  </p>
-                )}
-
-                {/* Improvements */}
-                {report.improvements && (
-                  <p className="text-sm text-ima-text">
-                    <span className="font-medium text-ima-text-secondary">Improvements: </span>
-                    {report.improvements}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-            {feedbackComment && feedbackComment.comment && (
-              <CoachFeedbackCard
-                comment={feedbackComment.comment}
-                coachName={feedbackComment.coach?.name ?? "Coach"}
-                updatedAt={feedbackComment.updated_at}
-              />
-            )}
+        {/* Empty state */}
+        {reportList.length === 0 ? (
+          <div
+            className="mt-9 bg-ima-surface border border-ima-border rounded-[14px] p-6 motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
+            <EmptyState
+              variant="compact"
+              icon={<FileText className="h-5 w-5" aria-hidden="true" />}
+              title="No reports submitted yet"
+              description="Start tracking your progress by submitting your first daily report."
+              action={
+                <Link
+                  href="/student/report"
+                  className={buttonVariants({ variant: "primary" })}
+                >
+                  Submit Your First Report
+                </Link>
+              }
+            />
           </div>
-        );
-      })}
+        ) : (
+          <section
+            aria-label="Past reports"
+            className="mt-9 space-y-4 motion-safe:animate-fadeIn"
+            style={{ animationDelay: "100ms" }}
+          >
+            {reportList.map((report) => {
+              const feedbackComment = report.report_comments?.[0] ?? null;
+              return (
+                <div key={report.id} className="space-y-2">
+                  <article className="bg-ima-surface border border-ima-border rounded-[14px] p-6">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[15px] font-semibold text-ima-text">
+                        {formatDateDisplay(report.date)}
+                      </p>
+                      <div
+                        className="flex items-center gap-[2px] shrink-0"
+                        aria-label={`${report.star_rating ?? 0} of 5 stars`}
+                      >
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className={
+                              n <= (report.star_rating ?? 0)
+                                ? "h-[13px] w-[13px] fill-ima-warning text-ima-warning"
+                                : "h-[13px] w-[13px] text-ima-border"
+                            }
+                            aria-hidden="true"
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span
+                        className="inline-flex items-center px-2 py-[2px] rounded-full bg-ima-surface-light border border-ima-border text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-text-secondary tabular-nums"
+                        style={MONO}
+                      >
+                        {formatHours(report.hours_worked * 60)}
+                      </span>
+                      <span
+                        className="inline-flex items-center px-2 py-[2px] rounded-full bg-ima-surface-light border border-ima-border text-[10px] font-semibold uppercase tracking-[0.08em] text-ima-text-secondary tabular-nums"
+                        style={MONO}
+                      >
+                        {report.outreach_count} Outreach
+                      </span>
+                    </div>
+
+                    {report.wins && (
+                      <div className="mt-4">
+                        <p
+                          className="text-[10px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
+                          style={MONO}
+                        >
+                          Wins
+                        </p>
+                        <p className="mt-1 text-[14px] text-ima-text leading-relaxed">
+                          {report.wins}
+                        </p>
+                      </div>
+                    )}
+
+                    {report.improvements && (
+                      <div className="mt-3">
+                        <p
+                          className="text-[10px] font-semibold tracking-[0.18em] text-ima-text-muted uppercase"
+                          style={MONO}
+                        >
+                          Improvements
+                        </p>
+                        <p className="mt-1 text-[14px] text-ima-text leading-relaxed">
+                          {report.improvements}
+                        </p>
+                      </div>
+                    )}
+                  </article>
+
+                  {feedbackComment && feedbackComment.comment && (
+                    <CoachFeedbackCard
+                      comment={feedbackComment.comment}
+                      coachName={feedbackComment.coach?.name ?? "Coach"}
+                      updatedAt={feedbackComment.updated_at}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        )}
+      </div>
     </div>
   );
 }
