@@ -172,10 +172,10 @@ export function ResourcesClient({ role, coachEditorial = false }: ResourcesClien
                 aria-selected={active}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  "min-h-[44px] px-4 text-[13px] font-semibold rounded-[10px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 whitespace-nowrap",
+                  "min-h-[44px] px-4 text-[13px] font-semibold rounded-[10px] border motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 whitespace-nowrap",
                   active
-                    ? "bg-[#4A6CF7] text-white"
-                    : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]"
+                    ? "bg-[#4A6CF7] text-white border-[#4A6CF7]"
+                    : "bg-white border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]"
                 )}
               >
                 {meta.label}

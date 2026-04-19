@@ -112,15 +112,15 @@ export function KPIGrid({ stats }: { stats: CoachAnalyticsStats }) {
               <Icon className={`h-[18px] w-[18px] ${tint.text}`} aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[22px] font-bold leading-none tabular-nums text-[#1A1A17]">
+              <p className="text-2xl font-semibold leading-none tabular-nums text-[#1A1A17]">
                 {card.value}
               </p>
               {card.subLabel ? (
-                <p className="mt-[6px] text-[13px] font-semibold text-[#1A1A17] truncate">
+                <p className="mt-[6px] text-sm font-semibold text-[#1A1A17] truncate">
                   {card.subLabel}
                 </p>
               ) : null}
-              <p className="mt-[6px] text-[12px] text-[#8A8474]">{card.label}</p>
+              <p className="mt-[6px] text-xs text-[#8A8474]">{card.label}</p>
             </div>
           </div>
         );

@@ -149,10 +149,10 @@ export default async function StudentDiyRoadmapPage() {
           >
             Roadmap
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-semibold leading-[1.05] text-[#1A1A17] tracking-[-0.02em]">
             Your Roadmap
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 max-w-[58ch] text-[15px] text-[#7A7466] leading-[1.55]">
             {ROADMAP_STEPS.length} steps from beginner to closing your first brand deal.
           </p>
         </header>
@@ -179,7 +179,7 @@ export default async function StudentDiyRoadmapPage() {
                 </span>
               ) : (
                 <span
-                  className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase tabular-nums"
+                  className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase tabular-nums"
                   style={MONO}
                 >
                   {remaining} Remaining
@@ -187,16 +187,16 @@ export default async function StudentDiyRoadmapPage() {
               )}
             </div>
 
-            <div className="mt-5 flex items-end gap-2">
+            <div className="mt-6 flex items-end gap-3 flex-wrap">
               <span
                 className={cn(
-                  "text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none",
+                  "text-6xl md:text-7xl font-semibold tabular-nums tracking-tight leading-[0.95]",
                   allComplete ? "text-[#16A34A]" : "text-[#4A6CF7]",
                 )}
               >
                 {percent}%
               </span>
-              <span className="pb-[6px] text-[15px] font-medium text-[#8A8474] tabular-nums">
+              <span className="pb-2 text-[15px] font-medium text-[#8A8474] tabular-nums">
                 {completedCount} / {ROADMAP_STEPS.length} steps
               </span>
             </div>
@@ -266,12 +266,12 @@ export default async function StudentDiyRoadmapPage() {
                 <div className="mt-5 flex items-baseline justify-between gap-3">
                   <p
                     className={cn(
-                      "text-[28px] font-bold tabular-nums leading-none",
+                      "text-[28px] md:text-[30px] font-semibold tabular-nums tracking-tight leading-none",
                       valueColor,
                     )}
                   >
                     {done}
-                    <span className="text-[18px] text-[#8A8474] font-semibold">/{total}</span>
+                    <span className="text-[18px] md:text-[20px] font-semibold text-[#8A8474]">/{total}</span>
                   </p>
                   <p
                     className="text-[11px] font-semibold tabular-nums text-[#8A8474]"
@@ -325,7 +325,7 @@ export default async function StudentDiyRoadmapPage() {
                   </p>
                   <PartyPopper className="h-[18px] w-[18px] text-[#16A34A]" aria-hidden="true" />
                 </div>
-                <p className="mt-5 text-[22px] md:text-[24px] font-bold tracking-[-0.01em] text-[#1A1A17] leading-tight">
+                <p className="mt-5 text-[22px] md:text-[24px] font-semibold tracking-[-0.01em] text-[#1A1A17] leading-tight">
                   Congratulations, {firstName}.
                 </p>
                 <p className="mt-3 text-[14px] text-[#7A7466] leading-relaxed">
@@ -354,7 +354,7 @@ export default async function StudentDiyRoadmapPage() {
                 >
                   {activeStepConfig.stageName}
                 </p>
-                <h2 className="mt-2 text-[22px] md:text-[24px] font-bold tracking-[-0.01em] text-[#1A1A17] leading-tight">
+                <h2 className="mt-2 text-[22px] md:text-[24px] font-semibold tracking-[-0.01em] text-[#1A1A17] leading-tight">
                   {activeStepConfig.title}
                 </h2>
                 <p className="mt-3 text-[14px] text-[#7A7466] leading-relaxed">
@@ -369,7 +369,7 @@ export default async function StudentDiyRoadmapPage() {
                 >
                   Status
                 </p>
-                <p className="mt-5 text-[22px] md:text-[24px] font-bold tracking-[-0.01em] text-[#1A1A17] leading-tight">
+                <p className="mt-5 text-[22px] md:text-[24px] font-semibold tracking-[-0.01em] text-[#1A1A17] leading-tight">
                   Ready to begin.
                 </p>
                 <p className="mt-3 text-[14px] text-[#7A7466] leading-relaxed">

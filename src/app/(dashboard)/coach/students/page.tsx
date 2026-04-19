@@ -1,4 +1,3 @@
-import { JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -12,12 +11,6 @@ import {
   CheckCircle2,
   Sparkles,
 } from "lucide-react";
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-mono-bold",
-});
 
 type EnrichedStudent = {
   id: string;
@@ -242,22 +235,17 @@ export default async function CoachStudentsPage() {
   ];
 
   return (
-    <div
-      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
-    >
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]">
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
         {/* Header */}
         <header className="motion-safe:animate-fadeIn">
-          <p
-            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-            style={{ fontFamily: "var(--font-mono-bold)" }}
-          >
+          <p className="text-xs font-semibold tracking-[0.2em] text-[#8A8474] uppercase">
             Roster
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+          <h1 className="mt-3 text-3xl md:text-4xl font-semibold leading-tight text-[#1A1A17] tracking-tight">
             My Students
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 text-sm text-[#7A7466] leading-relaxed">
             {studentList.length} student{studentList.length !== 1 ? "s" : ""} assigned to you
           </p>
         </header>
@@ -281,11 +269,11 @@ export default async function CoachStudentsPage() {
                 </div>
                 <div className="min-w-0">
                   <p
-                    className={`text-[24px] font-bold leading-none tabular-nums ${s.valueColor}`}
+                    className={`text-2xl font-semibold leading-none tabular-nums ${s.valueColor}`}
                   >
                     {s.value}
                   </p>
-                  <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+                  <p className="mt-[6px] text-xs text-[#8A8474]">{s.label}</p>
                 </div>
               </div>
             ))}
@@ -298,10 +286,7 @@ export default async function CoachStudentsPage() {
           className="mt-10 motion-safe:animate-fadeIn"
           style={{ animationDelay: "100ms" }}
         >
-          <h2
-            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-            style={{ fontFamily: "var(--font-mono-bold)" }}
-          >
+          <h2 className="text-xs font-semibold tracking-[0.2em] text-[#8A8474] uppercase">
             All Students
           </h2>
 
@@ -343,7 +328,7 @@ export default async function CoachStudentsPage() {
                       <div className="flex items-center gap-3 min-w-0">
                         <div
                           className={[
-                            "w-10 h-10 rounded-full flex items-center justify-center text-[12.5px] font-semibold shrink-0 border",
+                            "w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 border",
                             atRisk
                               ? "bg-white border-[#EAD9A8] text-[#5A4A1F]"
                               : "bg-[#F1EEE6] border-[#EDE9E0] text-[#5A5648]",
@@ -351,17 +336,17 @@ export default async function CoachStudentsPage() {
                         >
                           {initials(student.name)}
                         </div>
-                        <p className="text-[14px] font-semibold text-[#1A1A17] truncate">
+                        <p className="text-sm font-semibold text-[#1A1A17] truncate">
                           {student.name}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         {student.isNew ? (
-                          <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#E8EEFF] border border-[#C9D5FF] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#4A6CF7]">
+                          <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#E8EEFF] border border-[#C9D5FF] text-[10px] font-semibold uppercase tracking-wider text-[#4A6CF7]">
                             New
                           </span>
                         ) : atRisk ? (
-                          <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#FDEAEA] border border-[#F5C6C6] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#DC2626]">
+                          <span className="inline-flex items-center px-2 py-[2px] rounded-full bg-[#FDEAEA] border border-[#F5C6C6] text-[10px] font-semibold uppercase tracking-wider text-[#DC2626]">
                             At Risk
                           </span>
                         ) : null}
@@ -377,30 +362,24 @@ export default async function CoachStudentsPage() {
                     {/* Mini-stats */}
                     <div className="mt-5 grid grid-cols-3 gap-4">
                       <div>
-                        <p
-                          className="text-[9px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
-                          style={{ fontFamily: "var(--font-mono-bold)" }}
-                        >
+                        <p className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase">
                           Last Active
                         </p>
-                        <p className="mt-[6px] text-[13px] font-semibold text-[#1A1A17] tabular-nums">
+                        <p className="mt-[6px] text-sm font-semibold text-[#1A1A17] tabular-nums">
                           {student.lastActiveLabel}
                         </p>
                       </div>
                       <div>
-                        <p
-                          className="text-[9px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
-                          style={{ fontFamily: "var(--font-mono-bold)" }}
-                        >
+                        <p className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase">
                           Today&apos;s Report
                         </p>
                         {student.todayReportSubmitted ? (
-                          <p className="mt-[6px] flex items-center gap-[5px] text-[13px] font-semibold text-[#16A34A]">
+                          <p className="mt-[6px] flex items-center gap-[5px] text-sm font-semibold text-[#16A34A]">
                             <CheckCircle2 className="h-[13px] w-[13px]" aria-hidden="true" />
                             Submitted
                           </p>
                         ) : (
-                          <p className="mt-[6px] flex items-center gap-[6px] text-[13px] font-semibold text-[#D97706]">
+                          <p className="mt-[6px] flex items-center gap-[6px] text-sm font-semibold text-[#D97706]">
                             <span
                               className="inline-block h-[7px] w-[7px] rounded-full bg-[#D97706]"
                               aria-hidden="true"
@@ -410,13 +389,10 @@ export default async function CoachStudentsPage() {
                         )}
                       </div>
                       <div>
-                        <p
-                          className="text-[9px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
-                          style={{ fontFamily: "var(--font-mono-bold)" }}
-                        >
+                        <p className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase">
                           Roadmap
                         </p>
-                        <p className="mt-[6px] text-[13px] font-semibold text-[#1A1A17] tabular-nums">
+                        <p className="mt-[6px] text-sm font-semibold text-[#1A1A17] tabular-nums">
                           Step {student.currentRoadmapStep}
                           <span className="text-[#8A8474]">/{ROADMAP_STEPS.length}</span>
                         </p>
@@ -425,10 +401,7 @@ export default async function CoachStudentsPage() {
 
                     {/* Risk reasons row */}
                     {atRisk && student.atRiskReasons.length > 0 && (
-                      <p
-                        className="mt-5 text-[10px] font-medium text-[#9A6B1F] tracking-[0.14em] uppercase"
-                        style={{ fontFamily: "var(--font-mono-bold)" }}
-                      >
+                      <p className="mt-5 text-[10px] font-medium text-[#9A6B1F] tracking-widest uppercase">
                         {student.atRiskReasons.join(" · ")}
                       </p>
                     )}

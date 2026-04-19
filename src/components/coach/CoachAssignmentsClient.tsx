@@ -149,7 +149,7 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
               onClick={() => setActiveFilter(key)}
               aria-pressed={active}
               className={[
-                "min-h-[44px] px-4 rounded-[10px] text-[13px] font-semibold motion-safe:transition-colors flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                "min-h-[44px] px-4 rounded-[10px] text-sm font-semibold motion-safe:transition-colors flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
                 active
                   ? "bg-[#4A6CF7] text-white"
                   : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]",
@@ -158,7 +158,7 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
               {label}
               <span
                 className={[
-                  "text-[11px] tabular-nums rounded-full px-[7px] py-[1px] font-semibold",
+                  "text-xs tabular-nums rounded-full px-[7px] py-[1px] font-semibold",
                   active ? "bg-white/20 text-white" : "bg-[#F1EEE6] text-[#5A5648]",
                 ].join(" ")}
               >
@@ -204,22 +204,20 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
               <div
                 key={student.id}
                 className={[
-                  "bg-white border rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-3 motion-safe:transition-colors",
-                  hasLocalChange
-                    ? "border-[#EDE9E0] border-l-[3px] border-l-[#4A6CF7]"
-                    : "border-[#EDE9E0]",
+                  "border border-[#EDE9E0] rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-3 motion-safe:transition-colors",
+                  hasLocalChange ? "bg-[#FCFCFF]" : "bg-white",
                 ].join(" ")}
               >
                 {/* Identity */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-[#F1EEE6] border border-[#EDE9E0] flex items-center justify-center text-[12.5px] font-semibold text-[#5A5648] shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-[#F1EEE6] border border-[#EDE9E0] flex items-center justify-center text-sm font-semibold text-[#5A5648] shrink-0">
                     {initials(student.name)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                    <p className="text-sm font-semibold text-[#1A1A17] truncate leading-tight">
                       {student.name}
                     </p>
-                    <p className="mt-[3px] text-[12px] text-[#7A7466] truncate">
+                    <p className="mt-[3px] text-xs text-[#7A7466] truncate">
                       {student.email}
                     </p>
                   </div>
@@ -236,7 +234,7 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
                     disabled={isSaving}
                     aria-label={`Assign ${student.name} to coach`}
                     className={[
-                      "rounded-[10px] border bg-white px-3 text-[13px] text-[#1A1A17] min-h-[44px] min-w-0 w-full sm:min-w-[200px] sm:w-auto focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 disabled:opacity-50 motion-safe:transition-colors",
+                      "rounded-[10px] border bg-white px-3 text-sm text-[#1A1A17] min-h-[44px] min-w-0 w-full sm:min-w-[200px] sm:w-auto focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 disabled:opacity-50 motion-safe:transition-colors",
                       hasLocalChange
                         ? "border-[#4A6CF7] ring-1 ring-[#4A6CF7]/30"
                         : "border-[#EDE9E0] hover:border-[#D8D2C4]",
@@ -254,8 +252,7 @@ export function CoachAssignmentsClient({ students, coaches }: CoachAssignmentsCl
                   </select>
                   {isSaving && (
                     <span
-                      className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase"
-                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                      className="text-[10px] font-semibold tracking-widest text-[#8A8474] uppercase"
                     >
                       Saving…
                     </span>

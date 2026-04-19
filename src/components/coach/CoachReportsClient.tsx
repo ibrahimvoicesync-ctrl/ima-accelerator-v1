@@ -52,7 +52,7 @@ export function CoachReportsClient({
     student_id?: string | undefined;
   }) {
     const sp = new URLSearchParams();
-    if (params.reviewed !== undefined && params.reviewed !== "all") {
+    if (params.reviewed !== undefined && params.reviewed !== "false") {
       sp.set("reviewed", params.reviewed);
     }
     if (params.student_id) {
@@ -65,7 +65,7 @@ export function CoachReportsClient({
   function handleFilterTab(filter: "all" | "false" | "true") {
     routerRef.current.push(
       buildUrl({
-        reviewed: filter === "all" ? undefined : filter,
+        reviewed: filter,
         student_id: currentStudentId || undefined,
       })
     );
@@ -74,8 +74,7 @@ export function CoachReportsClient({
   function handleStudentFilter(studentId: string) {
     routerRef.current.push(
       buildUrl({
-        reviewed:
-          currentFilter === "all" ? undefined : currentFilter,
+        reviewed: currentFilter,
         student_id: studentId || undefined,
       })
     );
@@ -142,7 +141,7 @@ export function CoachReportsClient({
                 onClick={() => handleFilterTab(tab.value)}
                 aria-pressed={isActive}
                 className={[
-                  "min-h-[44px] px-4 text-[13px] font-semibold rounded-[10px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                  "min-h-[44px] px-4 text-sm font-semibold rounded-[10px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
                   isActive
                     ? "bg-[#4A6CF7] text-white"
                     : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]",
@@ -158,7 +157,7 @@ export function CoachReportsClient({
           aria-label="Filter by student"
           value={currentStudentId}
           onChange={(e) => handleStudentFilter(e.target.value)}
-          className="min-h-[44px] px-3 text-[13px] rounded-[10px] border border-[#EDE9E0] bg-white text-[#1A1A17] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 hover:border-[#D8D2C4] motion-safe:transition-colors"
+          className="min-h-[44px] px-3 text-sm rounded-[10px] border border-[#EDE9E0] bg-white text-[#1A1A17] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 hover:border-[#D8D2C4] motion-safe:transition-colors"
         >
           <option value="">All Students</option>
           {students.map((s) => (

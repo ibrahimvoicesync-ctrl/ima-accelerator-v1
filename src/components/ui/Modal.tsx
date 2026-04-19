@@ -73,18 +73,12 @@ export function Modal({ open, onClose, title, description, children, size = "md"
 
     previousActiveElement.current = document.activeElement;
 
-    // Compensate for the removed vertical scrollbar to prevent the page
-    // behind the modal from shifting when body overflow is locked.
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    // Scrollbar gutter is reserved globally via `scrollbar-gutter: stable` +
+    // `overflow-y: scroll` on html/body (see globals.css), so locking body
+    // overflow does NOT remove scrollbar space. Adding padding-right here
+    // would double-compensate and shift centered content left.
     const prevOverflow = document.body.style.overflow;
-    const prevPaddingRight = document.body.style.paddingRight;
-
     document.body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) {
-      const existingPadding =
-        parseFloat(window.getComputedStyle(document.body).paddingRight) || 0;
-      document.body.style.paddingRight = `${existingPadding + scrollbarWidth}px`;
-    }
 
     document.addEventListener("keydown", handleEscape);
     setTimeout(() => closeButtonRef.current?.focus(), 0);
@@ -95,7 +89,6 @@ export function Modal({ open, onClose, title, description, children, size = "md"
 
     return () => {
       document.body.style.overflow = prevOverflow;
-      document.body.style.paddingRight = prevPaddingRight;
       document.removeEventListener("keydown", handleEscape);
       if (appRoot) appRoot.removeAttribute("inert");
       if (previousActiveElement.current instanceof HTMLElement) {

@@ -112,40 +112,36 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <p
-              className="text-[10px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
             >
               Roadmap Progress
             </p>
             <p className="mt-3 flex items-baseline gap-2 leading-none">
-              <span className="text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] text-[#4A6CF7]">
+              <span className="text-5xl md:text-6xl font-semibold tabular-nums tracking-tight text-[#4A6CF7]">
                 {completedCount}
               </span>
               <span
-                className="text-[18px] md:text-[20px] font-semibold tabular-nums text-[#8A8474]"
-                style={{ fontFamily: "var(--font-mono-bold)" }}
+                className="text-lg md:text-xl font-semibold tabular-nums text-[#8A8474]"
               >
                 / {totalSteps}
               </span>
             </p>
             <p
-              className="mt-2 text-[11px] font-semibold tracking-[0.14em] uppercase text-[#8A8474]"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="mt-2 text-xs font-semibold tracking-widest uppercase text-[#8A8474]"
             >
               Steps Completed
             </p>
           </div>
           <div className="sm:text-right shrink-0">
             <p
-              className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474]"
             >
               Active Step
             </p>
-            <p className="mt-2 text-[15px] font-semibold text-[#1A1A17] tabular-nums">
+            <p className="mt-2 text-sm font-semibold text-[#1A1A17] tabular-nums">
               {activeStep !== null ? `Step ${String(activeStep).padStart(2, "0")}` : "—"}
             </p>
-            <p className="mt-[2px] text-[12px] text-[#7A7466] max-w-[260px] sm:ml-auto truncate">
+            <p className="mt-[2px] text-xs text-[#7A7466] max-w-[260px] sm:ml-auto truncate">
               {activeStep !== null
                 ? ROADMAP_STEPS.find((s) => s.step === activeStep)?.title
                 : "All caught up"}
@@ -169,14 +165,12 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
           </div>
           <div className="mt-2 flex items-center justify-between">
             <span
-              className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#8A8474]"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-xs font-semibold tracking-widest uppercase text-[#8A8474]"
             >
               Overall
             </span>
             <span
-              className="text-[11px] font-semibold tabular-nums text-[#1A1A17]"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-xs font-semibold tabular-nums text-[#1A1A17]"
             >
               {progressPct}%
             </span>
@@ -197,21 +191,18 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
               {/* Stage header */}
               <div className="flex items-center gap-3">
                 <span
-                  className="text-[10px] font-bold tracking-[0.22em] uppercase text-[#8A8474] tabular-nums"
-                  style={{ fontFamily: "var(--font-mono-bold)" }}
+                  className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474] tabular-nums"
                 >
                   Stage {String(idx + 1).padStart(2, "0")}
                 </span>
                 <span
-                  className="text-[11px] font-semibold tracking-[0.14em] uppercase text-[#1A1A17]"
-                  style={{ fontFamily: "var(--font-mono-bold)" }}
+                  className="text-xs font-semibold tracking-widest uppercase text-[#1A1A17]"
                 >
                   {stageName}
                 </span>
                 <div className="flex-1 h-px bg-[#EDE9E0]" aria-hidden="true" />
                 <span
-                  className="text-[10px] font-semibold tracking-[0.12em] uppercase text-[#8A8474] tabular-nums"
-                  style={{ fontFamily: "var(--font-mono-bold)" }}
+                  className="text-[10px] font-semibold tracking-widest uppercase text-[#8A8474] tabular-nums"
                 >
                   {stageCompleted}/{stageSteps.length}
                 </span>
@@ -282,14 +273,13 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                           <span
-                            className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#8A8474] tabular-nums"
-                            style={{ fontFamily: "var(--font-mono-bold)" }}
+                            className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474] tabular-nums"
                           >
                             Step {String(step.step).padStart(2, "0")}
                           </span>
                           <p
                             className={[
-                              "text-[15px] font-bold leading-tight tracking-[-0.01em]",
+                              "text-sm font-semibold leading-tight tracking-tight",
                               isCompleted
                                 ? "text-[#1A1A17]"
                                 : isActive
@@ -300,13 +290,13 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
                             {step.title}
                           </p>
                         </div>
-                        <p className="mt-[6px] text-[13px] text-[#7A7466] leading-[1.5]">
+                        <p className="mt-[6px] text-sm text-[#7A7466] leading-relaxed">
                           {step.description}
                         </p>
 
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           {ds.kind === "completed" && (
-                            <span className="inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] bg-[#E2F5E9] border-[#BBE5CA] text-[#16A34A]">
+                            <span className="inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-wider bg-[#E2F5E9] border-[#BBE5CA] text-[#16A34A]">
                               Completed{" "}
                               {new Date(ds.completedAt).toLocaleDateString("en-US", {
                                 month: "short",
@@ -319,17 +309,17 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
                             </span>
                           )}
                           {ds.kind === "on-track" && (
-                            <span className="inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] bg-[#E2F5E9] border-[#BBE5CA] text-[#16A34A]">
+                            <span className="inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-wider bg-[#E2F5E9] border-[#BBE5CA] text-[#16A34A]">
                               On Track — {ds.deadlineLabel}
                             </span>
                           )}
                           {ds.kind === "due-soon" && (
-                            <span className="inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] bg-[#FDF3E0] border-[#F0DFB3] text-[#9A6B1F]">
+                            <span className="inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-wider bg-[#FDF3E0] border-[#F0DFB3] text-[#9A6B1F]">
                               Due Soon — {ds.deadlineLabel}
                             </span>
                           )}
                           {ds.kind === "overdue" && (
-                            <span className="inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] bg-[#FDEAEA] border-[#F5C6C6] text-[#DC2626]">
+                            <span className="inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-wider bg-[#FDEAEA] border-[#F5C6C6] text-[#DC2626]">
                               Overdue — {ds.daysOverdue}d
                             </span>
                           )}
@@ -337,8 +327,7 @@ export function RoadmapTab({ roadmap, joinedAt, studentId }: RoadmapTabProps) {
                           {isCompleted && (
                             <button
                               onClick={() => setConfirmStep(step.step)}
-                              className="inline-flex items-center gap-[4px] text-[11px] font-semibold tracking-[0.08em] uppercase text-[#7A7466] hover:text-[#4A6CF7] motion-safe:transition-colors min-h-[44px] px-2 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md ml-auto"
-                              style={{ fontFamily: "var(--font-mono-bold)" }}
+                              className="inline-flex items-center gap-[4px] text-xs font-semibold tracking-wider uppercase text-[#7A7466] hover:text-[#4A6CF7] motion-safe:transition-colors min-h-[44px] px-2 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md ml-auto"
                               aria-label={`Undo Step ${step.step}: ${step.title}`}
                             >
                               <RotateCcw className="h-[13px] w-[13px]" aria-hidden="true" />

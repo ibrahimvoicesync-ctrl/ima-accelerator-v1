@@ -176,11 +176,11 @@ function TeaserRow({
         >
           #1
         </span>
-        <span className="flex-1 text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+        <span className="flex-1 text-[14px] font-semibold tracking-[-0.005em] text-[#1A1A17] truncate leading-tight">
           {row.student_name}
         </span>
         <span
-          className="text-[13px] font-semibold text-[#1A1A17] tabular-nums shrink-0"
+          className="text-[13px] font-semibold text-[#1A1A17] tabular-nums slashed-zero shrink-0"
           style={{ fontFamily: "var(--font-mono-bold)" }}
         >
           {row.metric_display}

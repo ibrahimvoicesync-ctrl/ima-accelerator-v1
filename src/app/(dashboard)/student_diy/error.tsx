@@ -6,7 +6,7 @@ import { Button, buttonVariants } from "@/components/ui";
 import { Card, CardContent } from "@/components/ui";
 import Link from "next/link";
 
-export default function CoachStudentDetailError({
+export default function StudentDiyError({
   error,
   reset,
 }: {
@@ -22,13 +22,13 @@ export default function CoachStudentDetailError({
       <Card className="max-w-md w-full mx-4">
         <CardContent className="pt-6 flex flex-col items-center text-center">
           <AlertTriangle className="h-12 w-12 text-[#DC2626] mb-4" aria-hidden="true" />
-          <h1 className="text-xl font-semibold tracking-tight text-[#1A1A17] mb-2">Something went wrong</h1>
+          <h1 className="text-[22px] md:text-[24px] font-semibold tracking-[-0.01em] leading-tight text-[#1A1A17] mb-2">Something went wrong</h1>
           <p className="text-sm text-[#7A7466] mb-6">
             We couldn&apos;t load this page. Please try again.
           </p>
           <div className="flex gap-3">
             <Button variant="primary" onClick={reset}>Try Again</Button>
-            <Link href="/coach" className={buttonVariants({ variant: "secondary" })}>Go Home</Link>
+            <Link href="/student_diy" className={buttonVariants({ variant: "secondary" })}>Go Home</Link>
           </div>
         </CardContent>
       </Card>

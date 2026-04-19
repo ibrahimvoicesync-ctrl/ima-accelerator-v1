@@ -189,11 +189,11 @@ export function OwnerAssignmentsClient({
                   key={coach.id}
                   className="bg-white border border-[#EDE9E0] rounded-[12px] p-4"
                 >
-                  <p className="text-[13px] font-semibold text-[#1A1A17] truncate leading-tight">
+                  <p className="text-[13px] font-semibold tracking-[-0.005em] text-[#1A1A17] truncate leading-tight">
                     {coach.name}
                   </p>
                   <p
-                    className="mt-[6px] text-[11px] font-medium tracking-[0.12em] uppercase text-[#8A8474] tabular-nums"
+                    className="mt-[6px] text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8A8474] tabular-nums slashed-zero"
                     style={{ fontFamily: "var(--font-mono-bold)" }}
                   >
                     {count} / {max} students
@@ -250,7 +250,7 @@ export function OwnerAssignmentsClient({
               {label}
               <span
                 className={cn(
-                  "text-[11px] tabular-nums rounded-full px-[7px] py-[1px]",
+                  "text-[11px] tabular-nums slashed-zero rounded-full px-[7px] py-[1px]",
                   isActive
                     ? "bg-white/20 text-white"
                     : "bg-[#F1EEE6] text-[#7A7466]",
@@ -319,7 +319,7 @@ export function OwnerAssignmentsClient({
                     {initials(student.name)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                    <p className="text-[14px] font-semibold tracking-[-0.005em] text-[#1A1A17] truncate leading-tight">
                       {student.name}
                     </p>
                     <p className="text-[12px] text-[#7A7466] truncate mt-[2px]">
@@ -358,7 +358,7 @@ export function OwnerAssignmentsClient({
                   </select>
                   {isSaving && (
                     <span
-                      className="text-[10px] font-medium tracking-[0.12em] uppercase text-[#8A8474]"
+                      className="text-[10px] font-semibold tracking-[0.14em] uppercase text-[#8A8474]"
                       style={{ fontFamily: "var(--font-mono-bold)" }}
                     >
                       Saving…

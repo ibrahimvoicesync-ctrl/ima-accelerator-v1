@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Trophy } from "lucide-react";
-import { JetBrains_Mono } from "next/font/google";
 import { StudentHeader } from "./StudentHeader";
 import { StudentDetailTabs, type TabKey } from "./StudentDetailTabs";
 import { CalendarTab } from "./CalendarTab";
@@ -13,12 +12,6 @@ import { StudentKpiSummary } from "@/components/student/StudentKpiSummary";
 import type { LoggedByUser } from "@/lib/deals-attribution";
 
 type Deal = Database["public"]["Tables"]["deals"]["Row"];
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-mono-bold",
-});
 
 interface StudentDetailClientProps {
   student: {
@@ -99,9 +92,7 @@ export function StudentDetailClient({
   }
 
   return (
-    <div
-      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
-    >
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]">
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20 space-y-8">
         <StudentHeader
           student={student}
@@ -115,15 +106,15 @@ export function StudentDetailClient({
             className="motion-safe:animate-fadeIn"
             style={{ animationDelay: "50ms" }}
           >
-            <div className="flex items-center gap-4 bg-white border border-[#EDE9E0] border-l-[3px] border-l-[#16A34A] rounded-[14px] px-6 py-5 min-h-[72px]">
+            <div className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[14px] px-6 py-5 min-h-[72px]">
               <div className="w-10 h-10 rounded-[8px] bg-[#E2F5E9] flex items-center justify-center shrink-0">
                 <Trophy className="h-[18px] w-[18px] text-[#16A34A]" aria-hidden="true" />
               </div>
               <div className="min-w-0">
-                <p className="text-[15px] font-semibold text-[#1A1A17] leading-tight">
+                <p className="text-sm font-semibold text-[#1A1A17] leading-tight">
                   100+ Hours Milestone
                 </p>
-                <p className="mt-1 text-[12px] text-[#8A8474]">
+                <p className="mt-1 text-xs text-[#8A8474]">
                   {milestone.totalHours} hours reached in {milestone.days} days
                 </p>
               </div>
@@ -155,6 +146,9 @@ export function StudentDetailClient({
         </div>
 
         <div
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          aria-labelledby={`tab-${activeTab}`}
           className="motion-safe:animate-fadeIn"
           style={{ animationDelay: "200ms" }}
         >

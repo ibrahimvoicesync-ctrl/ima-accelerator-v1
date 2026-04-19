@@ -20,6 +20,7 @@ export interface AlertItem {
   subjectName: string;
   triggeredAt: string;
   dismissed: boolean;
+  dismissedAt: string | null;
 }
 
 type FilterTab = "all" | "active" | "dismissed";
@@ -84,9 +85,12 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
 
   const handleDismiss = useCallback(async (alertKey: string) => {
     setDismissingKey(alertKey);
+    const nowIso = new Date().toISOString();
     // Optimistic update
     setAlerts((prev) =>
-      prev.map((a) => (a.key === alertKey ? { ...a, dismissed: true } : a))
+      prev.map((a) =>
+        a.key === alertKey ? { ...a, dismissed: true, dismissedAt: nowIso } : a,
+      ),
     );
     try {
       const res = await fetch("/api/alerts/dismiss", {
@@ -98,7 +102,9 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
         const json = await res.json().catch(() => ({}));
         // Revert optimistic update
         setAlerts((prev) =>
-          prev.map((a) => (a.key === alertKey ? { ...a, dismissed: false } : a))
+          prev.map((a) =>
+            a.key === alertKey ? { ...a, dismissed: false, dismissedAt: null } : a,
+          ),
         );
         toastRef.current({
           type: "error",
@@ -112,7 +118,9 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
       console.error("[OwnerAlertsClient] dismiss error:", err);
       // Revert optimistic update
       setAlerts((prev) =>
-        prev.map((a) => (a.key === alertKey ? { ...a, dismissed: false } : a))
+        prev.map((a) =>
+          a.key === alertKey ? { ...a, dismissed: false, dismissedAt: null } : a,
+        ),
       );
       toastRef.current({ type: "error", title: "Something went wrong" });
     } finally {
@@ -154,15 +162,15 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
               aria-selected={isActive}
               onClick={() => handleFilterChange(key)}
               className={cn(
-                "min-h-[44px] px-4 rounded-[10px] text-[13px] font-medium motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                "min-h-[44px] px-4 rounded-[10px] text-[13px] font-medium border motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
                 isActive
-                  ? "bg-[#4A6CF7] text-white"
-                  : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]"
+                  ? "bg-[#4A6CF7] text-white border-[#4A6CF7]"
+                  : "bg-white border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]"
               )}
             >
               {label}
               {key === "active" && activeCount > 0 && (
-                <span className="ml-1.5 text-[11px] opacity-80 tabular-nums">
+                <span className="ml-1.5 text-[11px] opacity-80 tabular-nums slashed-zero">
                   ({activeCount})
                 </span>
               )}
@@ -222,7 +230,7 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        <h3 className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                        <h3 className="text-[14px] font-semibold tracking-[-0.005em] text-[#1A1A17] truncate leading-tight">
                           {alert.title}
                         </h3>
                         <span className="inline-flex items-center px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BBE5CA] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A] shrink-0">
@@ -231,7 +239,7 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span
-                          className="text-[10px] font-medium text-[#8A8474] tracking-[0.12em] uppercase whitespace-nowrap"
+                          className="text-[10px] font-semibold text-[#8A8474] tracking-[0.14em] uppercase whitespace-nowrap tabular-nums slashed-zero"
                           style={{ fontFamily: "var(--font-mono-bold)" }}
                         >
                           {getTimeAgo(alert.triggeredAt)}
@@ -245,9 +253,18 @@ export function OwnerAlertsClient({ initialAlerts }: OwnerAlertsClientProps) {
                       </div>
                     </div>
 
-                    <p className="text-[13px] text-[#7A7466] mb-3">
+                    <p className="text-[13px] text-[#7A7466] mb-2">
                       {alert.message}
                     </p>
+
+                    {alert.dismissed && alert.dismissedAt && (
+                      <p className="text-xs text-[#8A8474] mb-3">
+                        Dismissed{" "}
+                        <time dateTime={alert.dismissedAt}>
+                          {getTimeAgo(alert.dismissedAt)}
+                        </time>
+                      </p>
+                    )}
 
                     <div className="flex gap-3 items-center">
                       {detailHref && (

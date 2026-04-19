@@ -31,15 +31,18 @@ export default async function OwnerAlertsPage() {
       .order("created_at", { ascending: false }),
     admin
       .from("alert_dismissals")
-      .select("alert_key")
-      .eq("owner_id", user.id),
+      .select("alert_key, dismissed_at")
+      .eq("owner_id", user.id)
+      .gte("dismissed_at", thirtyDaysAgoIso),
   ]);
 
   if (dealsResult.error) console.error("[owner alerts] deals fetch error:", dealsResult.error);
   if (dismissalsResult.error) console.error("[owner alerts] dismissals fetch error:", dismissalsResult.error);
 
   const deals = dealsResult.data ?? [];
-  const dismissedKeys = new Set((dismissalsResult.data ?? []).map((d) => d.alert_key));
+  const dismissedAtByKey = new Map<string, string>(
+    (dismissalsResult.data ?? []).map((d) => [d.alert_key, d.dismissed_at]),
+  );
 
   // --- Map deals → AlertItem[] ---
   const alerts: AlertItem[] = deals.map((d) => {
@@ -51,6 +54,7 @@ export default async function OwnerAlertsPage() {
     const studentName = studentRow?.name ?? "Unknown student";
     const key = `deal_closed:${d.id}`;
     const revenueFormatted = Number(d.revenue).toLocaleString("en-US", { maximumFractionDigits: 0 });
+    const dismissedAt = dismissedAtByKey.get(key) ?? null;
     return {
       key,
       type: "deal_closed",
@@ -60,7 +64,8 @@ export default async function OwnerAlertsPage() {
       subjectId: d.student_id,
       subjectName: studentName,
       triggeredAt: d.created_at,
-      dismissed: dismissedKeys.has(key),
+      dismissed: dismissedAt !== null,
+      dismissedAt,
     };
   });
 
@@ -108,10 +113,10 @@ export default async function OwnerAlertsPage() {
           >
             Alerts
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-semibold leading-[1.05] text-[#1A1A17] tracking-[-0.02em]">
             Deal closures this month
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 max-w-[58ch] text-[15px] text-[#7A7466] leading-[1.55]">
             Monitor closed deals from the last 30 days.
           </p>
         </header>
@@ -136,10 +141,15 @@ export default async function OwnerAlertsPage() {
                 />
               </div>
               <div className="min-w-0">
-                <p className="text-[24px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                <p className="text-[24px] font-semibold leading-none tabular-nums slashed-zero tracking-[-0.01em] text-[#1A1A17]">
                   {s.value}
                 </p>
-                <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+                <p
+                  className="mt-[6px] text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8474]"
+                  style={{ fontFamily: "var(--font-mono-bold)" }}
+                >
+                  {s.label}
+                </p>
               </div>
             </div>
           ))}

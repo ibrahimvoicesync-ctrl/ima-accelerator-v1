@@ -100,7 +100,7 @@ The app ships a **single editorial-restrained lane** across every role — `owne
 1. **ONE focal point per view** — the hero metric is unmistakably the hero. No competing heroes.
 2. **Typography over ornament** — hierarchy from size/weight/tracking, not effects.
 3. **Blue is signal** — `ima-primary` marks what *matters*, not what looks nice. Reserve it for active nav, the single hero metric, primary CTAs, and focus rings.
-4. **Restraint is respect** — calm interfaces honor the user's focus. No decorative motion, no parallax, no bounce easing — `ease-out` only.
+4. **Motion is allowed** — decorative motion, parallax, scroll-driven reveals, spring physics, and expressive easing (including bounce) are all fair game. Keep `motion-safe:` wrappers on every `animate-*` class so users with reduced-motion preferences still get a calm experience. Still aim for motion that *serves* the content rather than distracting from it.
 5. **Every border earns its place** — if it doesn't serve hierarchy, remove it. Shadows only on hover, never at rest.
 
 ### Brand Asset

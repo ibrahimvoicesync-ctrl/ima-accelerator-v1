@@ -155,19 +155,17 @@ export function DealsTab({
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
           <div className="min-w-0">
             <p
-              className="text-[10px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
             >
               Total Revenue
             </p>
-            <p className="mt-3 text-[40px] md:text-[52px] font-bold leading-none tabular-nums tracking-[-0.02em] text-[#4A6CF7]">
+            <p className="mt-3 text-5xl md:text-6xl font-semibold leading-none tabular-nums tracking-tight text-[#4A6CF7]">
               {currencyCompact.format(totalRevenue)}
             </p>
             <p
-              className="mt-3 text-[11px] font-semibold tracking-[0.14em] uppercase text-[#8A8474]"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="mt-3 text-xs font-semibold tracking-widest uppercase text-[#8A8474]"
             >
-              <span className="text-[13px] tabular-nums text-[#1A1A17] normal-case tracking-normal mr-[6px]">
+              <span className="text-sm tabular-nums text-[#1A1A17] normal-case tracking-normal mr-[6px]">
                 {dealCount}
               </span>
               Deal{dealCount !== 1 ? "s" : ""} Logged
@@ -179,7 +177,7 @@ export function DealsTab({
             onClick={openAddModal}
             disabled={submitting}
             aria-label={`Add deal for ${studentName}`}
-            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-[10px] bg-[#4A6CF7] text-white text-[13px] font-semibold hover:bg-[#3852D8] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 disabled:opacity-60 shrink-0"
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-[10px] bg-[#4A6CF7] text-white text-sm font-semibold hover:bg-[#3852D8] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 disabled:opacity-60 shrink-0"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Add Deal
@@ -206,12 +204,11 @@ export function DealsTab({
                 key={m.label}
                 className="rounded-[10px] border border-[#EDE9E0] bg-[#FAFAF7] px-4 py-3"
               >
-                <p className="text-[20px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                <p className="text-xl font-semibold leading-none tabular-nums text-[#1A1A17]">
                   {m.value}
                 </p>
                 <p
-                  className="mt-[6px] text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
-                  style={{ fontFamily: "var(--font-mono-bold)" }}
+                  className="mt-[6px] text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474]"
                 >
                   {m.label}
                 </p>
@@ -235,14 +232,12 @@ export function DealsTab({
         <section aria-label="Deals ledger">
           <div className="flex items-baseline justify-between gap-3">
             <p
-              className="text-[10px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
             >
               Ledger
             </p>
             <span
-              className="text-[11px] font-semibold tabular-nums text-[#8A8474]"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-xs font-semibold tabular-nums text-[#8A8474]"
             >
               {dealCount} entr{dealCount !== 1 ? "ies" : "y"}
             </span>
@@ -251,8 +246,7 @@ export function DealsTab({
           <div className="mt-3 bg-white border border-[#EDE9E0] rounded-[14px] overflow-hidden">
             {/* Column headers — hidden on mobile */}
             <div
-              className="hidden sm:grid grid-cols-[110px_1fr_1fr_90px_130px_110px] items-center gap-4 px-5 py-3 border-b border-[#EDE9E0] text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A8474]"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="hidden sm:grid grid-cols-[110px_1fr_1fr_90px_130px_110px] items-center gap-4 px-5 py-3 border-b border-[#EDE9E0] text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A8474]"
             >
               <span>Deal</span>
               <span>Revenue</span>
@@ -271,43 +265,38 @@ export function DealsTab({
                 >
                   <span className="col-span-2 sm:col-span-1 flex items-baseline gap-2">
                     <span
-                      className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
-                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                      className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474]"
                     >
                       Deal
                     </span>
                     <span
-                      className="text-[15px] font-bold tabular-nums text-[#1A1A17]"
-                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                      className="text-sm font-semibold tabular-nums text-[#1A1A17]"
                     >
                       #{String(deal.deal_number).padStart(2, "0")}
                     </span>
                   </span>
 
-                  <span className="text-[14px] font-semibold tabular-nums text-[#1A1A17]">
+                  <span className="text-sm font-semibold tabular-nums text-[#1A1A17]">
                     <span
-                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A8474] mr-2"
-                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A8474] mr-2"
                     >
                       Revenue
                     </span>
                     {formatCurrency(deal.revenue)}
                   </span>
 
-                  <span className="text-[14px] tabular-nums text-[#5A5648]">
+                  <span className="text-sm tabular-nums text-[#5A5648]">
                     <span
-                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A8474] mr-2"
-                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A8474] mr-2"
                     >
                       Profit
                     </span>
                     {formatCurrency(deal.profit)}
                   </span>
 
-                  <span className="text-[13px] tabular-nums text-[#5A5648]">
+                  <span className="text-sm tabular-nums text-[#5A5648]">
                     <span
-                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A8474] mr-2"
-                      style={{ fontFamily: "var(--font-mono-bold)" }}
+                      className="sm:hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A8474] mr-2"
                     >
                       Margin
                     </span>
@@ -324,8 +313,7 @@ export function DealsTab({
                   </span>
 
                   <span
-                    className="text-[11px] tabular-nums uppercase tracking-[0.08em] text-[#8A8474] sm:text-right"
-                    style={{ fontFamily: "var(--font-mono-bold)" }}
+                    className="text-xs tabular-nums uppercase tracking-wider text-[#8A8474] sm:text-right"
                   >
                     {new Date(deal.created_at).toLocaleDateString("en-US", {
                       month: "short",
@@ -342,18 +330,17 @@ export function DealsTab({
               className="hidden sm:grid grid-cols-[110px_1fr_1fr_90px_130px_110px] items-center gap-4 px-5 py-3 border-t border-[#EDE9E0] bg-[#FAFAF7]"
             >
               <span
-                className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
-                style={{ fontFamily: "var(--font-mono-bold)" }}
+                className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474]"
               >
                 Total
               </span>
-              <span className="text-[14px] font-bold tabular-nums text-[#1A1A17]">
+              <span className="text-sm font-semibold tabular-nums text-[#1A1A17]">
                 {formatCurrency(totalRevenue)}
               </span>
-              <span className="text-[14px] font-semibold tabular-nums text-[#5A5648]">
+              <span className="text-sm font-semibold tabular-nums text-[#5A5648]">
                 {formatCurrency(totalProfit)}
               </span>
-              <span className="text-[13px] font-semibold tabular-nums text-[#5A5648]">
+              <span className="text-sm font-semibold tabular-nums text-[#5A5648]">
                 {formatMargin(totalRevenue, totalProfit)}
               </span>
               <span />

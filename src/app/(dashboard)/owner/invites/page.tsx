@@ -95,10 +95,10 @@ export default async function OwnerInvitesPage() {
           >
             Invites
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-semibold leading-[1.05] text-[#1A1A17] tracking-[-0.02em]">
             Invite members
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 max-w-[58ch] text-[15px] text-[#7A7466] leading-[1.55]">
             Whitelist emails and generate invite links for new coaches and
             students.
           </p>
@@ -124,10 +124,15 @@ export default async function OwnerInvitesPage() {
                 />
               </div>
               <div className="min-w-0">
-                <p className="text-[24px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                <p className="text-[24px] font-semibold leading-none tabular-nums slashed-zero tracking-[-0.01em] text-[#1A1A17]">
                   {s.value}
                 </p>
-                <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+                <p
+                  className="mt-[6px] text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8474]"
+                  style={{ fontFamily: "var(--font-mono-bold)" }}
+                >
+                  {s.label}
+                </p>
               </div>
             </div>
           ))}

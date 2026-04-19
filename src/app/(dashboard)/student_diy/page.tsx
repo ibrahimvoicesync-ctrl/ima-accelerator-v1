@@ -129,10 +129,10 @@ export default async function StudentDiyDashboard() {
           >
             Dashboard
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-semibold leading-[1.05] text-[#1A1A17] tracking-[-0.02em]">
             Assalamu3leikum, {firstName}.
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 max-w-[58ch] text-[15px] text-[#7A7466] leading-[1.55]">
             Here&apos;s how today is tracking.
           </p>
         </header>
@@ -167,7 +167,7 @@ export default async function StudentDiyDashboard() {
                 </span>
               ) : (
                 <span
-                  className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase tabular-nums"
+                  className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase tabular-nums"
                   style={MONO}
                 >
                   {completedCount} Session{completedCount !== 1 ? "s" : ""}
@@ -175,16 +175,16 @@ export default async function StudentDiyDashboard() {
               )}
             </div>
 
-            <div className="mt-5 flex items-end gap-2">
+            <div className="mt-6 flex items-end gap-3 flex-wrap">
               <span
                 className={cn(
-                  "text-[44px] md:text-[52px] font-bold tabular-nums tracking-[-0.02em] leading-none",
+                  "text-6xl md:text-7xl font-semibold tabular-nums tracking-tight leading-[0.95]",
                   goalMet ? "text-[#16A34A]" : "text-[#4A6CF7]",
                 )}
               >
                 {formatHoursMinutes(totalMinutesWorked)}
               </span>
-              <span className="pb-[6px] text-[15px] font-medium text-[#8A8474] tabular-nums">
+              <span className="pb-2 text-[15px] font-medium text-[#8A8474] tabular-nums">
                 / {WORK_TRACKER.dailyGoalHours}h
               </span>
             </div>
@@ -358,7 +358,7 @@ function CompactStat({
         <Icon className={cn("h-[18px] w-[18px]", iconColor)} aria-hidden="true" />
       </div>
       <div className="min-w-0">
-        <p className="text-[24px] font-bold leading-none tabular-nums text-[#1A1A17]">
+        <p className="text-[24px] md:text-[26px] font-semibold leading-none tabular-nums tracking-tight text-[#1A1A17]">
           {value}
         </p>
         <p className="mt-[6px] text-[12px] text-[#8A8474]">{label}</p>

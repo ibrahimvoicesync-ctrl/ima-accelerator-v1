@@ -63,8 +63,8 @@ export function ReportRow({
   return (
     <div
       className={[
-        "bg-white border rounded-[14px] motion-safe:transition-colors",
-        isReviewed ? "border-[#EDE9E0]" : "border-[#EDE9E0] border-l-[3px] border-l-[#4A6CF7]",
+        "border border-[#EDE9E0] rounded-[14px] motion-safe:transition-colors",
+        isReviewed ? "bg-white" : "bg-[#FCFCFF]",
       ].join(" ")}
     >
       <details className="group">
@@ -72,16 +72,15 @@ export function ReportRow({
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 min-h-[44px]">
             {/* Identity */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-[#F1EEE6] border border-[#EDE9E0] flex items-center justify-center text-[11px] font-semibold text-[#5A5648] shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#F1EEE6] border border-[#EDE9E0] flex items-center justify-center text-xs font-semibold text-[#5A5648] shrink-0">
                 {initials(studentName)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                <p className="text-sm font-semibold text-[#1A1A17] truncate leading-tight">
                   {studentName}
                 </p>
                 <p
-                  className="mt-[3px] text-[10px] font-medium text-[#8A8474] tracking-[0.14em] uppercase"
-                  style={{ fontFamily: "var(--font-mono-bold)" }}
+                  className="mt-[3px] text-[10px] font-medium text-[#8A8474] tracking-widest uppercase"
                 >
                   {formatDate(report.date)}
                 </p>
@@ -89,7 +88,7 @@ export function ReportRow({
               {/* Mobile: review badge inline */}
               <div className="sm:hidden shrink-0">
                 {isReviewed && (
-                  <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BFE4CD] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A]">
+                  <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BFE4CD] text-[10px] font-semibold uppercase tracking-wider text-[#16A34A]">
                     <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                     Reviewed
                   </span>
@@ -101,11 +100,10 @@ export function ReportRow({
             <div className="flex items-center gap-4 flex-wrap">
               <StarDisplay rating={report.star_rating} />
               <div
-                className="flex items-center gap-3 text-[11px] text-[#8A8474] tracking-[0.06em] uppercase"
-                style={{ fontFamily: "var(--font-mono-bold)" }}
+                className="flex items-center gap-3 text-xs text-[#8A8474] tracking-wider uppercase"
               >
                 <span>
-                  <span className="text-[13px] font-semibold text-[#1A1A17] tabular-nums">
+                  <span className="text-sm font-semibold text-[#1A1A17] tabular-nums">
                     {typeof report.hours_worked === "number"
                       ? report.hours_worked.toFixed(1)
                       : "0.0"}
@@ -113,7 +111,7 @@ export function ReportRow({
                   <span className="ml-[2px] normal-case tracking-normal text-[#8A8474]">h</span>
                 </span>
                 <span>
-                  <span className="text-[13px] font-semibold text-[#1A1A17] tabular-nums">
+                  <span className="text-sm font-semibold text-[#1A1A17] tabular-nums">
                     {report.outreach_count}
                   </span>
                   <span className="ml-[4px]">outreach</span>
@@ -123,7 +121,7 @@ export function ReportRow({
               <div className="flex items-center gap-2 shrink-0 ml-auto">
                 {isReviewed ? (
                   <>
-                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BFE4CD] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16A34A]">
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#E2F5E9] border border-[#BFE4CD] text-[10px] font-semibold uppercase tracking-wider text-[#16A34A]">
                       <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                       Reviewed
                     </span>
@@ -167,30 +165,28 @@ export function ReportRow({
               {report.wins && (
                 <div>
                   <p
-                    className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
-                    style={{ fontFamily: "var(--font-mono-bold)" }}
+                    className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
                   >
                     Wins
                   </p>
-                  <p className="mt-[6px] text-[14px] text-[#1A1A17] leading-[1.5]">{report.wins}</p>
+                  <p className="mt-[6px] text-sm text-[#1A1A17] leading-relaxed">{report.wins}</p>
                 </div>
               )}
               {report.improvements && (
                 <div>
                   <p
-                    className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
-                    style={{ fontFamily: "var(--font-mono-bold)" }}
+                    className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
                   >
                     Improvements
                   </p>
-                  <p className="mt-[6px] text-[14px] text-[#1A1A17] leading-[1.5]">
+                  <p className="mt-[6px] text-sm text-[#1A1A17] leading-relaxed">
                     {report.improvements}
                   </p>
                 </div>
               )}
             </div>
           ) : (
-            <p className="pt-4 text-[13px] text-[#8A8474] italic">No details provided</p>
+            <p className="pt-4 text-sm text-[#8A8474] italic">No details provided</p>
           )}
         </div>
 

@@ -97,7 +97,7 @@ function DealForm({
         disabled={loading}
       />
       {error && (
-        <p role="alert" className="text-xs text-ima-error">
+        <p role="alert" className="text-xs text-[#DC2626]">
           {error}
         </p>
       )}

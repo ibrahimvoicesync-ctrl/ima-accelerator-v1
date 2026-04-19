@@ -1,47 +1,56 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/Card";
-import { Skeleton } from "@/components/ui/Skeleton";
-
 export default function AnalyticsLoading() {
   return (
-    <div className="px-4 md:px-6 py-8 md:py-12 max-w-7xl mx-auto space-y-8">
-      <header>
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-4 w-64 mt-2" />
-      </header>
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]">
+      <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20 space-y-10">
+        {/* Masthead */}
+        <div className="motion-safe:animate-pulse">
+          <div className="h-[11px] w-32 rounded bg-[#EDE9E0]" />
+          <div className="mt-3 h-9 w-72 max-w-full rounded bg-[#EDE9E0]" />
+          <div className="mt-2 h-4 w-80 max-w-full rounded bg-[#EDE9E0]" />
+        </div>
 
-      <section
-        aria-busy="true"
-        aria-label="Loading lifetime totals"
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
-      >
-        <span className="sr-only">Loading analytics</span>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-4 space-y-2">
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-8 w-24" />
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+        {/* Hero — Lifetime Hours */}
+        <div className="rounded-[14px] border border-[#EDE9E0] bg-white p-6 md:p-8 motion-safe:animate-pulse">
+          <div className="flex items-center justify-between gap-3">
+            <div className="h-3 w-32 rounded bg-[#F1EEE6]" />
+            <div className="h-5 w-28 rounded-full bg-[#F1EEE6]" />
+          </div>
+          <div className="mt-6 h-16 md:h-20 w-56 rounded bg-[#F1EEE6]" />
+        </div>
 
-      <section
-        aria-busy="true"
-        aria-label="Loading trend charts"
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-      >
-        {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-40" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-[260px] w-full" />
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+        {/* KPI strip */}
+        <section aria-busy="true" aria-label="Loading lifetime totals" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-[14px]">
+          <span className="sr-only">Loading analytics</span>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-4 rounded-[12px] border border-[#EDE9E0] bg-white px-[18px] py-[16px] min-h-[72px] motion-safe:animate-pulse"
+            >
+              <div className="h-9 w-9 rounded-[8px] bg-[#F1EEE6] shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="h-6 w-20 rounded bg-[#F1EEE6]" />
+                <div className="mt-[8px] h-3 w-24 rounded bg-[#F1EEE6]" />
+              </div>
+            </div>
+          ))}
+        </section>
 
+        {/* Trend cards */}
+        <section aria-busy="true" aria-label="Loading trend charts" className="grid grid-cols-1 lg:grid-cols-2 gap-[14px]">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-[14px] border border-[#EDE9E0] bg-white p-5 md:p-6 motion-safe:animate-pulse"
+            >
+              <div className="flex items-baseline justify-between gap-3 mb-5">
+                <div className="h-3 w-24 rounded bg-[#F1EEE6]" />
+                <div className="h-3 w-16 rounded bg-[#F1EEE6]" />
+              </div>
+              <div className="h-[240px] w-full rounded bg-[#F1EEE6]" />
+            </div>
+          ))}
+        </section>
+      </div>
     </div>
   );
 }

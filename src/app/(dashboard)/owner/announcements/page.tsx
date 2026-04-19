@@ -78,10 +78,10 @@ export default async function OwnerAnnouncementsPage() {
           >
             Announcements
           </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+          <h1 className="mt-3 text-[32px] md:text-[36px] font-semibold leading-[1.05] text-[#1A1A17] tracking-[-0.02em]">
             Broadcast to the program
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 max-w-[58ch] text-[15px] text-[#7A7466] leading-[1.55]">
             Post updates for coaches and students. Everyone with access sees
             them immediately.
           </p>

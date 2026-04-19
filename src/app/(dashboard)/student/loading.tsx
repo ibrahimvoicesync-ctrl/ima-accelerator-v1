@@ -18,7 +18,7 @@ export default function Loading() {
             <div className="h-3 w-24 rounded bg-[#F1EEE6]" />
             <div className="h-4 w-20 rounded bg-[#F1EEE6]" />
           </div>
-          <div className="mt-5 h-[44px] md:h-[52px] w-44 rounded bg-[#F1EEE6]" />
+          <div className="mt-6 h-[60px] md:h-[72px] w-48 rounded bg-[#F1EEE6]" />
           <div className="mt-5 h-[6px] w-full rounded-full bg-[#F1EEE6]" />
         </div>
         <div className="mt-[14px] h-12 rounded-[12px] bg-[#F1EEE6] motion-safe:animate-pulse" />

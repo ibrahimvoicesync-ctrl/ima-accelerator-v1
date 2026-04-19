@@ -7,6 +7,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { formatRelativeTime } from "@/lib/chat-utils";
 import {
   MILESTONE_META,
   type CoachAlertFeedItem,
@@ -32,20 +33,19 @@ const EMPTY_COPY: Record<FilterTab, { title: string; description: string }> = {
   },
   dismissed: {
     title: "No dismissed alerts",
-    description: "Alerts you dismiss will be archived here for reference.",
+    description: "Alerts you dismiss will show here for 30 days before being cleared.",
   },
 };
 
-// Warm-palette mapping per milestone type. Icon tint + background replace the
-// ima-* defaults in MILESTONE_META so alerts sit coherently on #FAFAF7.
+// Warm-palette mapping per milestone type. Icon tint + badge tint carry the
+// signal; no side-stripe rails (absolute ban).
 const TYPE_TINT: Record<
   CoachAlertFeedType,
-  { iconBg: string; iconColor: string; rail: string; badgeBg: string; badgeBorder: string; badgeText: string }
+  { iconBg: string; iconColor: string; badgeBg: string; badgeBorder: string; badgeText: string }
 > = {
   "100h_milestone": {
     iconBg: "bg-[#E2F5E9]",
     iconColor: "text-[#16A34A]",
-    rail: "border-l-[#16A34A]",
     badgeBg: "bg-[#E2F5E9]",
     badgeBorder: "border-[#BFE4CD]",
     badgeText: "text-[#16A34A]",
@@ -53,7 +53,6 @@ const TYPE_TINT: Record<
   "closed_deal": {
     iconBg: "bg-[#E2F5E9]",
     iconColor: "text-[#16A34A]",
-    rail: "border-l-[#16A34A]",
     badgeBg: "bg-[#E2F5E9]",
     badgeBorder: "border-[#BFE4CD]",
     badgeText: "text-[#16A34A]",
@@ -61,7 +60,6 @@ const TYPE_TINT: Record<
   "5_influencers": {
     iconBg: "bg-[#E8EEFF]",
     iconColor: "text-[#4A6CF7]",
-    rail: "border-l-[#4A6CF7]",
     badgeBg: "bg-[#E8EEFF]",
     badgeBorder: "border-[#C9D5FF]",
     badgeText: "text-[#4A6CF7]",
@@ -69,7 +67,6 @@ const TYPE_TINT: Record<
   "brand_response": {
     iconBg: "bg-[#E8EEFF]",
     iconColor: "text-[#4A6CF7]",
-    rail: "border-l-[#4A6CF7]",
     badgeBg: "bg-[#E8EEFF]",
     badgeBorder: "border-[#C9D5FF]",
     badgeText: "text-[#4A6CF7]",
@@ -77,7 +74,6 @@ const TYPE_TINT: Record<
   "tech_setup": {
     iconBg: "bg-[#E8EEFF]",
     iconColor: "text-[#4A6CF7]",
-    rail: "border-l-[#4A6CF7]",
     badgeBg: "bg-[#E8EEFF]",
     badgeBorder: "border-[#C9D5FF]",
     badgeText: "text-[#4A6CF7]",
@@ -86,6 +82,7 @@ const TYPE_TINT: Record<
 
 interface CoachAlertsClientProps {
   initialFeed: CoachAlertFeedItem[];
+  initialDismissedAtMap: Record<string, string>;
 }
 
 interface StudentGroup {
@@ -95,7 +92,10 @@ interface StudentGroup {
   maxOccurredAt: number;
 }
 
-export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
+export function CoachAlertsClient({
+  initialFeed,
+  initialDismissedAtMap,
+}: CoachAlertsClientProps) {
   const { toast } = useToast();
   const toastRef = useRef(toast);
   useEffect(() => {
@@ -108,9 +108,16 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
     routerRef.current = router;
   }, [router]);
 
-  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(new Set());
+  const [dismissedAtMap, setDismissedAtMap] = useState<Record<string, string>>(
+    initialDismissedAtMap,
+  );
   const [filter, setFilter] = useState<FilterTab>("active");
   const [inflightKeys, setInflightKeys] = useState<Set<string>>(new Set());
+
+  const dismissedKeys = useMemo(
+    () => new Set(Object.keys(dismissedAtMap)),
+    [dismissedAtMap],
+  );
 
   const addInflight = useCallback((keys: string[]) => {
     setInflightKeys((prev) => {
@@ -130,10 +137,6 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
 
   const activeCount = useMemo(
     () => initialFeed.filter((r) => !dismissedKeys.has(r.alert_key)).length,
-    [initialFeed, dismissedKeys],
-  );
-  const dismissedCount = useMemo(
-    () => initialFeed.filter((r) => dismissedKeys.has(r.alert_key)).length,
     [initialFeed, dismissedKeys],
   );
 
@@ -199,16 +202,13 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
     async (alertKey: string) => {
       if (inflightKeys.has(alertKey)) return;
       addInflight([alertKey]);
-      setDismissedKeys((prev) => {
-        const next = new Set(prev);
-        next.add(alertKey);
-        return next;
-      });
+      const nowIso = new Date().toISOString();
+      setDismissedAtMap((prev) => ({ ...prev, [alertKey]: nowIso }));
       const ok = await postDismiss(alertKey);
       if (!ok) {
-        setDismissedKeys((prev) => {
-          const next = new Set(prev);
-          next.delete(alertKey);
+        setDismissedAtMap((prev) => {
+          const next = { ...prev };
+          delete next[alertKey];
           return next;
         });
         toastRef.current({
@@ -232,9 +232,12 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
         .map((r) => r.alert_key);
       if (keys.length === 0) return;
       addInflight(keys);
-      setDismissedKeys((prev) => {
-        const next = new Set(prev);
-        keys.forEach((k) => next.add(k));
+      const nowIso = new Date().toISOString();
+      setDismissedAtMap((prev) => {
+        const next = { ...prev };
+        keys.forEach((k) => {
+          next[k] = nowIso;
+        });
         return next;
       });
       const results = await Promise.allSettled(keys.map((k) => postDismiss(k)));
@@ -245,9 +248,11 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
         }
       });
       if (failedKeys.length > 0) {
-        setDismissedKeys((prev) => {
-          const next = new Set(prev);
-          failedKeys.forEach((k) => next.delete(k));
+        setDismissedAtMap((prev) => {
+          const next = { ...prev };
+          failedKeys.forEach((k) => {
+            delete next[k];
+          });
           return next;
         });
         toastRef.current({
@@ -268,55 +273,32 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
   return (
     <div
       className="space-y-6 motion-safe:animate-fadeIn"
-      style={{ animationDelay: "50ms" }}
+      style={{ animationDelay: "100ms" }}
     >
-      {/* Summary + filter bar */}
-      <div className="bg-white border border-[#EDE9E0] rounded-[14px] px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
-        <div
-          className="flex items-center gap-4 text-[11px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase"
-          style={{ fontFamily: "var(--font-mono-bold)" }}
-        >
-          <span>
-            <span className="text-[14px] font-bold text-[#1A1A17] tabular-nums mr-[6px]">
-              {activeCount}
-            </span>
-            Active
-          </span>
-          <span aria-hidden="true" className="text-[#EDE9E0]">
-            |
-          </span>
-          <span>
-            <span className="text-[14px] font-bold text-[#1A1A17] tabular-nums mr-[6px]">
-              {dismissedCount}
-            </span>
-            Dismissed
-          </span>
-        </div>
-
-        <div className="flex gap-[6px] flex-wrap sm:ml-auto" role="tablist">
-          {FILTER_TABS.map(({ key, label }) => {
-            const active = filter === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setFilter(key)}
-                className={[
-                  "min-h-[44px] px-4 text-[13px] font-semibold rounded-[10px] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
-                  active
-                    ? "bg-[#4A6CF7] text-white"
-                    : "bg-white border border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]",
-                ].join(" ")}
-              >
-                {key === "active" && activeCount > 0
-                  ? `Active (${activeCount})`
-                  : label}
-              </button>
-            );
-          })}
-        </div>
+      {/* Filter bar */}
+      <div className="flex gap-[6px] flex-wrap" role="tablist">
+        {FILTER_TABS.map(({ key, label }) => {
+          const active = filter === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setFilter(key)}
+              className={[
+                "min-h-[44px] px-4 text-sm font-semibold rounded-[10px] border motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+                active
+                  ? "bg-[#4A6CF7] text-white border-[#4A6CF7]"
+                  : "bg-white border-[#EDE9E0] text-[#1A1A17] hover:border-[#D8D2C4]",
+              ].join(" ")}
+            >
+              {key === "active" && activeCount > 0
+                ? `Active (${activeCount})`
+                : label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Grouped feed */}
@@ -351,8 +333,7 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
                 <div className="flex items-center justify-between gap-3 px-1">
                   <h2
                     id={`group-${group.student_id}`}
-                    className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-                    style={{ fontFamily: "var(--font-mono-bold)" }}
+                    className="text-xs font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
                   >
                     {group.student_name}
                   </h2>
@@ -375,16 +356,17 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
                   const tint = TYPE_TINT[row.milestone_type];
                   const isDismissed = dismissedKeys.has(row.alert_key);
                   const isInflight = inflightKeys.has(row.alert_key);
+                  const dismissedAtIso = dismissedAtMap[row.alert_key];
                   return (
                     <article
                       key={row.alert_key}
                       aria-label={`milestone alert: ${row.student_name} — ${meta.label}`}
                       className={[
-                        "bg-white border rounded-[14px] p-5 motion-safe:transition-colors",
-                        isDismissed
-                          ? "border-[#EDE9E0] opacity-70"
-                          : `border-[#EDE9E0] border-l-[3px] ${tint.rail}`,
-                      ].join(" ")}
+                        "bg-white border border-[#EDE9E0] rounded-[14px] p-5 motion-safe:transition-colors",
+                        isDismissed && "opacity-70",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                     >
                       <div className="flex gap-4">
                         <div
@@ -396,11 +378,11 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-4 mb-2">
                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                              <h3 className="text-[14px] font-semibold text-[#1A1A17] truncate leading-tight">
+                              <h3 className="text-sm font-semibold text-[#1A1A17] truncate leading-tight">
                                 {row.student_name}
                               </h3>
                               <span
-                                className={`inline-flex items-center px-2 py-[2px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em] ${tint.badgeBg} ${tint.badgeBorder} ${tint.badgeText}`}
+                                className={`inline-flex items-center px-2 py-[2px] rounded-full border text-[10px] font-semibold uppercase tracking-wider ${tint.badgeBg} ${tint.badgeBorder} ${tint.badgeText}`}
                               >
                                 {meta.label}
                               </span>
@@ -413,7 +395,7 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
                             )}
                           </div>
 
-                          <p className="text-[13px] text-[#7A7466] mb-4 leading-[1.5]">
+                          <p className="text-sm text-[#7A7466] mb-2 leading-relaxed">
                             {row.message ?? (
                               <time dateTime={row.occurred_at}>
                                 {new Date(row.occurred_at).toLocaleString()}
@@ -421,11 +403,20 @@ export function CoachAlertsClient({ initialFeed }: CoachAlertsClientProps) {
                             )}
                           </p>
 
+                          {isDismissed && dismissedAtIso && (
+                            <p className="text-xs text-[#8A8474] mb-4">
+                              Dismissed{" "}
+                              <time dateTime={dismissedAtIso}>
+                                {formatRelativeTime(new Date(dismissedAtIso))}
+                              </time>
+                            </p>
+                          )}
+
                           <div className="flex gap-3 flex-wrap items-center">
                             <Link
-                              href={`/coach/students/${row.student_id}`}
+                              href={`/coach/students/${row.student_id}?tab=${row.milestone_type === "closed_deal" ? "deals" : "roadmap"}`}
                               aria-label={`View ${row.student_name}`}
-                              className="text-[12px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] inline-flex items-center focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded px-1"
+                              className="text-xs font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] inline-flex items-center focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded px-1"
                             >
                               View Student →
                             </Link>

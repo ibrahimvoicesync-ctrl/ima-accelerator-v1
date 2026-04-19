@@ -46,23 +46,23 @@ export function CoachCard({ coach }: CoachCardProps) {
       <div className="mt-4 grid grid-cols-2 gap-4">
         <div>
           <p
-            className="text-[9px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+            className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase"
             style={{ fontFamily: "var(--font-mono-bold)" }}
           >
             Students
           </p>
-          <p className="mt-[6px] text-[16px] font-semibold text-[#1A1A17] tabular-nums">
+          <p className="mt-[6px] text-[16px] font-semibold text-[#1A1A17] tabular-nums slashed-zero tracking-[-0.005em]">
             {coach.studentCount}
           </p>
         </div>
         <div>
           <p
-            className="text-[9px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
+            className="text-[10px] font-semibold tracking-[0.14em] text-[#8A8474] uppercase"
             style={{ fontFamily: "var(--font-mono-bold)" }}
           >
             Avg Rating (7d)
           </p>
-          <p className="mt-[6px] text-[16px] font-semibold text-[#1A1A17] tabular-nums">
+          <p className="mt-[6px] text-[16px] font-semibold text-[#1A1A17] tabular-nums slashed-zero tracking-[-0.005em]">
             {coach.avgRating !== null ? coach.avgRating.toFixed(1) : "—"}
           </p>
         </div>

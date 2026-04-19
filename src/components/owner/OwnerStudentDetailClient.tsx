@@ -162,15 +162,17 @@ export function OwnerStudentDetailClient({
         {/* Student info */}
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           {/* Avatar */}
-          <div className="w-14 h-14 rounded-full bg-[#4A6CF7]flex items-center justify-center text-xl font-bold text-white shrink-0">
+          <div className="w-14 h-14 rounded-full bg-[#4A6CF7] flex items-center justify-center text-xl font-semibold text-white shrink-0">
             {initial}
           </div>
 
           {/* Name and join date */}
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-[#1A1A17]">{student.name}</h1>
-            <p className="text-sm text-[#7A7466]">{student.email}</p>
-            <p className="text-sm text-[#7A7466]">
+            <h1 className="text-xl font-semibold tracking-[-0.01em] text-[#1A1A17]">
+              {student.name}
+            </h1>
+            <p className="mt-[2px] text-sm text-[#7A7466]">{student.email}</p>
+            <p className="mt-[2px] text-sm tabular-nums slashed-zero text-[#7A7466]">
               Joined {joinDate}
             </p>
             {student.status === "suspended" && (
@@ -180,7 +182,10 @@ export function OwnerStudentDetailClient({
 
           {/* Coach Assignment */}
           <div className="flex flex-col gap-1">
-            <label htmlFor="coach-assign" className="text-xs font-medium text-[#7A7466]">
+            <label
+              htmlFor="coach-assign"
+              className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A8474]"
+            >
               Assigned Coach
             </label>
             <div className="flex items-center gap-2">
@@ -232,8 +237,10 @@ export function OwnerStudentDetailClient({
             <Trophy className="h-5 w-5 text-[#16A34A]" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#1A1A17]">100+ Hours Milestone</p>
-            <p className="text-xs text-[#7A7466]">
+            <p className="text-sm font-semibold tracking-[-0.005em] text-[#1A1A17]">
+              100+ Hours Milestone
+            </p>
+            <p className="mt-[2px] text-xs tabular-nums slashed-zero text-[#7A7466]">
               {milestone.totalHours} hours reached in {milestone.days} days
             </p>
           </div>

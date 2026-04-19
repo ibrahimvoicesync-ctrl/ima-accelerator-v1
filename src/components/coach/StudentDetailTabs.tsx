@@ -31,7 +31,7 @@ export function StudentDetailTabs({ activeTab, onTabChange }: StudentDetailTabsP
             aria-controls={`tabpanel-${tab.key}`}
             onClick={() => onTabChange(tab.key)}
             className={[
-              "shrink-0 relative min-h-[44px] px-5 py-3 inline-flex items-center text-[14px] font-semibold motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+              "shrink-0 relative min-h-[44px] px-5 py-3 inline-flex items-center text-sm font-semibold motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
               active ? "text-[#1A1A17]" : "text-[#8A8474] hover:text-[#1A1A17]",
             ].join(" ")}
           >

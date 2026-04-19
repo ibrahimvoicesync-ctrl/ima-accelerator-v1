@@ -127,15 +127,22 @@ export function CalendarTab({
     const dateStr = dateStrLocal(day.date);
     const activity = getActivity(dateStr);
     const selected = selectedDate === dateStr;
+    const activityLabel =
+      activity === "full"
+        ? "session and report"
+        : activity === "partial"
+          ? "partial activity"
+          : "no activity";
     return (
       <button
         {...buttonProps}
+        aria-label={`${formatLongDate(dateStr)} — ${activityLabel}`}
         className={[
-          "flex flex-col items-center justify-center gap-[3px] w-full min-h-[44px] rounded-[10px] text-[13px] tabular-nums font-medium motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
+          "flex flex-col items-center justify-center gap-[3px] w-full min-h-[44px] rounded-[10px] text-sm tabular-nums font-medium motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
           selected
             ? "bg-[#E8EEFF] text-[#4A6CF7] font-semibold"
             : "text-[#1A1A17] hover:bg-[#F4F1EA]",
-          modifiers?.today && !selected ? "font-bold text-[#4A6CF7]" : "",
+          modifiers?.today && !selected ? "font-semibold text-[#4A6CF7]" : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -231,18 +238,16 @@ export function CalendarTab({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p
-              className="text-[10px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
             >
               Activity Calendar
             </p>
-            <p className="mt-2 text-[13px] text-[#7A7466]">
+            <p className="mt-2 text-sm text-[#7A7466]">
               Daily sessions{!isDiy ? " and reports" : ""} by month.
             </p>
           </div>
           <div
-            className="flex items-center gap-4 text-[11px] tracking-[0.08em] uppercase text-[#8A8474]"
-            style={{ fontFamily: "var(--font-mono-bold)" }}
+            className="flex items-center gap-4 text-xs tracking-wider uppercase text-[#8A8474]"
             aria-label="Calendar legend"
           >
             <span className="inline-flex items-center gap-[6px]">
@@ -267,20 +272,18 @@ export function CalendarTab({
           aria-label="Month totals"
         >
           <span
-            className="text-[11px] tracking-[0.14em] uppercase text-[#8A8474]"
-            style={{ fontFamily: "var(--font-mono-bold)" }}
+            className="text-xs tracking-widest uppercase text-[#8A8474]"
           >
-            <span className="text-[17px] font-bold text-[#1A1A17] tabular-nums not-italic normal-case tracking-normal mr-[4px]">
+            <span className="text-base font-semibold text-[#1A1A17] tabular-nums not-italic normal-case tracking-normal mr-[4px]">
               {monthSessionCount}
             </span>
             Sessions
           </span>
           {!isDiy && (
             <span
-              className="text-[11px] tracking-[0.14em] uppercase text-[#8A8474]"
-              style={{ fontFamily: "var(--font-mono-bold)" }}
+              className="text-xs tracking-widest uppercase text-[#8A8474]"
             >
-              <span className="text-[17px] font-bold text-[#1A1A17] tabular-nums not-italic normal-case tracking-normal mr-[4px]">
+              <span className="text-base font-semibold text-[#1A1A17] tabular-nums not-italic normal-case tracking-normal mr-[4px]">
                 {monthReportCount}
               </span>
               Reports
@@ -298,7 +301,7 @@ export function CalendarTab({
               months: "w-full",
               month: "w-full",
               month_caption:
-                "flex items-center justify-center py-2 text-[15px] font-bold tabular-nums tracking-tight text-[#1A1A17]",
+                "flex items-center justify-center py-2 text-sm font-semibold tabular-nums tracking-tight text-[#1A1A17]",
               nav: "flex items-center justify-between mb-1",
               button_previous:
                 "flex items-center justify-center w-11 h-11 rounded-[10px] text-[#5A5648] hover:bg-[#F4F1EA] motion-safe:transition-colors focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2",
@@ -307,7 +310,7 @@ export function CalendarTab({
               month_grid: "w-full border-collapse mt-2",
               weekdays: "",
               weekday:
-                "text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474] text-center py-2",
+                "text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474] text-center py-2",
               week: "",
               day: "text-center p-[2px]",
               today: "",
@@ -327,19 +330,18 @@ export function CalendarTab({
           <div className="flex items-baseline justify-between gap-3">
             <div>
               <p
-                className="text-[10px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-                style={{ fontFamily: "var(--font-mono-bold)" }}
+                className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
               >
                 Day Detail
               </p>
-              <p className="mt-2 text-[20px] md:text-[22px] font-bold leading-tight text-[#1A1A17] tracking-[-0.01em]">
+              <p className="mt-2 text-xl md:text-2xl font-semibold leading-tight text-[#1A1A17] tracking-tight">
                 {formatLongDate(selectedDate)}
               </p>
             </div>
             <button
               type="button"
               onClick={() => setSelectedDate(null)}
-              className="text-[12px] font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] px-1 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
+              className="text-xs font-semibold text-[#4A6CF7] hover:text-[#3852D8] min-h-[44px] px-1 focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 rounded-md"
             >
               Clear
             </button>
@@ -349,14 +351,13 @@ export function CalendarTab({
             {/* Work Sessions card */}
             <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-5">
               <p
-                className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
-                style={{ fontFamily: "var(--font-mono-bold)" }}
+                className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
               >
                 Work Sessions
               </p>
 
               {selectedSessions.length === 0 ? (
-                <p className="mt-3 text-[13px] text-[#8A8474] italic">No sessions this day.</p>
+                <p className="mt-3 text-sm text-[#8A8474] italic">No sessions this day.</p>
               ) : (
                 <ul className="mt-3 divide-y divide-[#F3EFE4]" role="list">
                   {[...selectedSessions]
@@ -369,10 +370,9 @@ export function CalendarTab({
                           className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
                         >
                           <span
-                            className="text-[11px] tracking-[0.14em] uppercase text-[#8A8474]"
-                            style={{ fontFamily: "var(--font-mono-bold)" }}
+                            className="text-xs tracking-widest uppercase text-[#8A8474]"
                           >
-                            <span className="text-[14px] font-bold tabular-nums text-[#1A1A17] normal-case tracking-normal mr-[4px]">
+                            <span className="text-sm font-semibold tabular-nums text-[#1A1A17] normal-case tracking-normal mr-[4px]">
                               {String(s.cycle_number).padStart(2, "0")}
                             </span>
                             Cycle
@@ -381,7 +381,7 @@ export function CalendarTab({
                             {pill && (
                               <span
                                 className={[
-                                  "inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em]",
+                                  "inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-wider",
                                   pill.bg,
                                   pill.border,
                                   pill.fg,
@@ -392,18 +392,16 @@ export function CalendarTab({
                             )}
                             {s.status === "completed" && (
                               <span
-                                className="text-[12px] font-semibold text-[#1A1A17] tabular-nums"
-                                style={{ fontFamily: "var(--font-mono-bold)" }}
+                                className="text-xs font-semibold text-[#1A1A17] tabular-nums"
                               >
                                 {formatHoursMinutes(s.duration_minutes)}
                               </span>
                             )}
                             {(s.status === "paused" || s.status === "abandoned") && (
                               <span
-                                className="text-[11px] tracking-[0.08em] uppercase text-[#8A8474]"
-                                style={{ fontFamily: "var(--font-mono-bold)" }}
+                                className="text-xs tracking-wider uppercase text-[#8A8474]"
                               >
-                                <span className="text-[12px] tabular-nums text-[#1A1A17] normal-case tracking-normal mr-[3px]">
+                                <span className="text-xs tabular-nums text-[#1A1A17] normal-case tracking-normal mr-[3px]">
                                   {s.session_minutes}m
                                 </span>
                                 Planned
@@ -422,15 +420,14 @@ export function CalendarTab({
               <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-5">
                 <div className="flex items-center justify-between gap-2">
                   <p
-                    className="text-[10px] font-semibold tracking-[0.18em] text-[#8A8474] uppercase"
-                    style={{ fontFamily: "var(--font-mono-bold)" }}
+                    className="text-[10px] font-semibold tracking-[0.2em] text-[#8A8474] uppercase"
                   >
                     Daily Report
                   </p>
                   {selectedReport && (
                     <span
                       className={[
-                        "inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-[0.08em]",
+                        "inline-flex items-center px-2 py-[3px] rounded-full border text-[10px] font-semibold uppercase tracking-wider",
                         selectedReport.reviewed_by
                           ? "bg-[#E2F5E9] border-[#BBE5CA] text-[#16A34A]"
                           : "bg-[#FDF3E0] border-[#F0DFB3] text-[#9A6B1F]",
@@ -442,7 +439,7 @@ export function CalendarTab({
                 </div>
 
                 {selectedReport === null ? (
-                  <p className="mt-3 text-[13px] text-[#8A8474] italic">No report submitted.</p>
+                  <p className="mt-3 text-sm text-[#8A8474] italic">No report submitted.</p>
                 ) : (
                   <div className="mt-4">
                     <div className="grid grid-cols-2 gap-[14px]">
@@ -468,12 +465,11 @@ export function CalendarTab({
                           key={m.label}
                           className="rounded-[10px] border border-[#EDE9E0] bg-[#FAFAF7] px-3 py-[10px]"
                         >
-                          <p className="text-[20px] font-bold leading-none tabular-nums text-[#1A1A17]">
+                          <p className="text-xl font-semibold leading-none tabular-nums text-[#1A1A17]">
                             {m.value}
                           </p>
                           <p
-                            className="mt-[6px] text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
-                            style={{ fontFamily: "var(--font-mono-bold)" }}
+                            className="mt-[6px] text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474]"
                           >
                             {m.label}
                           </p>
@@ -484,12 +480,11 @@ export function CalendarTab({
                     {selectedReport.wins && (
                       <div className="mt-4">
                         <p
-                          className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
-                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                          className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474]"
                         >
                           Wins
                         </p>
-                        <p className="mt-[6px] text-[13.5px] text-[#1A1A17] leading-[1.55]">
+                        <p className="mt-[6px] text-sm text-[#1A1A17] leading-relaxed">
                           {selectedReport.wins}
                         </p>
                       </div>
@@ -498,12 +493,11 @@ export function CalendarTab({
                     {selectedReport.improvements && (
                       <div className="mt-4">
                         <p
-                          className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[#8A8474]"
-                          style={{ fontFamily: "var(--font-mono-bold)" }}
+                          className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#8A8474]"
                         >
                           Improvements
                         </p>
-                        <p className="mt-[6px] text-[13.5px] text-[#1A1A17] leading-[1.55]">
+                        <p className="mt-[6px] text-sm text-[#1A1A17] leading-relaxed">
                           {selectedReport.improvements}
                         </p>
                       </div>

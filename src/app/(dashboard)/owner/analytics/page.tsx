@@ -47,11 +47,11 @@ export default async function OwnerAnalyticsPage() {
           </p>
           <h1
             id="owner-analytics-h1"
-            className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]"
+            className="mt-3 text-[32px] md:text-[36px] font-semibold leading-[1.05] text-[#1A1A17] tracking-[-0.02em]"
           >
             Leaderboards
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 max-w-[58ch] text-[15px] text-[#7A7466] leading-[1.55]">
             Top performers across students and coaches — toggle each card
             independently.
           </p>

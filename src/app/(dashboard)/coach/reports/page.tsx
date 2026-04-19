@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { JetBrains_Mono } from "next/font/google";
 import { FileText, Clock, CheckCircle, Timer } from "lucide-react";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,12 +7,6 @@ import { getToday } from "@/lib/utils";
 import { CoachReportsClient } from "@/components/coach/CoachReportsClient";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui";
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-mono-bold",
-});
 
 export default async function CoachReportsPage({
   searchParams,
@@ -47,16 +40,13 @@ export default async function CoachReportsPage({
 
   const shellHeader = (
     <header className="motion-safe:animate-fadeIn">
-      <p
-        className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-        style={{ fontFamily: "var(--font-mono-bold)" }}
-      >
+      <p className="text-xs font-semibold tracking-[0.2em] text-[#8A8474] uppercase">
         Inbox
       </p>
-      <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+      <h1 className="mt-3 text-3xl md:text-4xl font-semibold leading-tight text-[#1A1A17] tracking-tight">
         Reports
       </h1>
-      <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+      <p className="mt-2 text-sm text-[#7A7466] leading-relaxed">
         Review student reports from the last 7 days
       </p>
     </header>
@@ -64,9 +54,7 @@ export default async function CoachReportsPage({
 
   if (studentIds.length === 0) {
     return (
-      <div
-        className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
-      >
+      <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]">
         <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
           {shellHeader}
           <div
@@ -132,11 +120,12 @@ export default async function CoachReportsPage({
       : 0;
 
   const sp = await searchParams;
+  const filter = sp.reviewed ?? "false";
 
   let filteredReports = allReports;
-  if (sp.reviewed === "false") {
+  if (filter === "false") {
     filteredReports = allReports.filter((r) => r.reviewed_by === null);
-  } else if (sp.reviewed === "true") {
+  } else if (filter === "true") {
     filteredReports = allReports.filter((r) => r.reviewed_by !== null);
   }
   if (sp.student_id) {
@@ -191,9 +180,7 @@ export default async function CoachReportsPage({
   ];
 
   return (
-    <div
-      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
-    >
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]">
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20">
         {shellHeader}
 
@@ -214,10 +201,10 @@ export default async function CoachReportsPage({
                 <s.icon className={`h-[18px] w-[18px] ${s.iconColor}`} aria-hidden="true" />
               </div>
               <div className="min-w-0">
-                <p className={`text-[24px] font-bold leading-none tabular-nums ${s.valueColor}`}>
+                <p className={`text-2xl font-semibold leading-none tabular-nums ${s.valueColor}`}>
                   {s.value}
                 </p>
-                <p className="mt-[6px] text-[12px] text-[#8A8474]">{s.label}</p>
+                <p className="mt-[6px] text-xs text-[#8A8474]">{s.label}</p>
               </div>
             </div>
           ))}
@@ -228,11 +215,11 @@ export default async function CoachReportsPage({
           style={{ animationDelay: "100ms" }}
         >
           <CoachReportsClient
-            key={`${sp.reviewed ?? "all"}-${sp.student_id ?? ""}`}
+            key={`${filter}-${sp.student_id ?? ""}`}
             reports={reportsWithComments}
             students={studentList}
             studentMap={studentMap}
-            currentFilter={sp.reviewed ?? "all"}
+            currentFilter={filter}
             currentStudentId={sp.student_id ?? ""}
           />
         </div>
