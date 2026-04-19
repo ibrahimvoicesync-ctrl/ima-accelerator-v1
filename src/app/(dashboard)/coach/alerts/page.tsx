@@ -9,7 +9,7 @@ import {
   type CoachAlertFeedType,
 } from "@/components/coach/alerts-types";
 import { CoachAlertsClient } from "@/components/coach/CoachAlertsClient";
-import { Trophy, Bell, CheckCircle2, DollarSign } from "lucide-react";
+import { Trophy, Bell, DollarSign } from "lucide-react";
 
 const DISMISSED_WINDOW_MS = 30 * 86400000;
 
@@ -204,7 +204,6 @@ export default async function CoachAlertsPage() {
 
   // Stats
   const activeCount = activeItems.length;
-  const dismissedCount = dismissedItems.length;
   const milestoneAlertsCount = feed.filter(
     (i) => i.milestone_type !== "closed_deal",
   ).length;
@@ -229,13 +228,6 @@ export default async function CoachAlertsPage() {
       icon: Bell,
       iconBg: activeCount > 0 ? "bg-[#E8EEFF]" : "bg-[#F1EEE6]",
       iconColor: activeCount > 0 ? "text-[#4A6CF7]" : "text-[#8A8474]",
-    },
-    {
-      label: "Dismissed (30d)",
-      value: String(dismissedCount),
-      icon: CheckCircle2,
-      iconBg: "bg-[#F1EEE6]",
-      iconColor: "text-[#8A8474]",
     },
     {
       label: "Deals closed (30d)",
@@ -277,7 +269,7 @@ export default async function CoachAlertsPage() {
 
         <section
           aria-label="Alert totals"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[14px] motion-safe:animate-fadeIn"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
           style={{ animationDelay: "50ms" }}
         >
           {statCards.map((s) => (
