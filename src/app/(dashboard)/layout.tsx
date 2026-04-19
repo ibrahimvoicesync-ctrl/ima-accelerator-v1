@@ -19,7 +19,7 @@ const getSidebarBadges = unstable_cache(
     }
     return (data as SidebarBadgesResult) ?? {};
   },
-  ["sidebar-badges-v2"],
+  ["sidebar-badges-v3"],
   {
     tags: ["badges"],
     revalidate: 60,

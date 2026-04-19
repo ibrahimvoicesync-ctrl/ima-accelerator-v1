@@ -1,4 +1,3 @@
-import { JetBrains_Mono } from "next/font/google";
 import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COACH_CONFIG } from "@/lib/config";
@@ -7,14 +6,12 @@ import { getCoachMilestonesCached } from "@/lib/rpc/coach-milestones";
 import {
   milestoneRowToFeedItem,
   type CoachAlertFeedItem,
+  type CoachAlertFeedType,
 } from "@/components/coach/alerts-types";
 import { CoachAlertsClient } from "@/components/coach/CoachAlertsClient";
+import { Trophy, Bell, CheckCircle2, DollarSign } from "lucide-react";
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-mono-bold",
-});
+const DISMISSED_WINDOW_MS = 30 * 86400000;
 
 export default async function CoachAlertsPage() {
   const user = await requireRole("coach");
@@ -30,7 +27,7 @@ export default async function CoachAlertsPage() {
       .eq("status", "active"),
     admin
       .from("alert_dismissals")
-      .select("alert_key")
+      .select("alert_key, dismissed_at")
       .eq("owner_id", user.id),
     getCoachMilestonesCached(user.id, today),
   ]);
@@ -43,8 +40,14 @@ export default async function CoachAlertsPage() {
   }
 
   const students = studentsResult.data ?? [];
-  const dismissedKeys = new Set(
-    (dismissalsResult.data ?? []).map((d) => d.alert_key),
+  const studentsById = new Map(students.map((s) => [s.id, s]));
+
+  const dismissals = dismissalsResult.data ?? [];
+  const dismissedKeys = new Set(dismissals.map((d) => d.alert_key));
+  const nowTs = new Date().getTime();
+  const recentCutoffMs = nowTs - DISMISSED_WINDOW_MS;
+  const recentDismissals = dismissals.filter(
+    (d) => new Date(d.dismissed_at).getTime() >= recentCutoffMs,
   );
 
   const nowMs = new Date(today + "T23:59:59Z").getTime();
@@ -58,6 +61,7 @@ export default async function CoachAlertsPage() {
     (s) => s.joined_at >= milestoneCutoff,
   );
 
+  // ACTIVE feed: RPC items (roadmap milestones) + legacy 100h for qualifying students
   const legacyItems: CoachAlertFeedItem[] = [];
   if (qualifyingStudents.length > 0) {
     const qualifyingIds = qualifyingStudents.map((s) => s.id);
@@ -108,33 +112,198 @@ export default async function CoachAlertsPage() {
     milestoneRowToFeedItem,
   );
 
-  const feed: CoachAlertFeedItem[] = [...legacyItems, ...rpcItems];
+  // DISMISSED feed (last 30 days): reconstruct feed items by parsing alert_key.
+  // Students no longer under this coach get filtered out — the dismissal stays
+  // in DB but is not surfaced here.
+  const dismissedAtMap: Record<string, string> = {};
+  const dismissedItems: CoachAlertFeedItem[] = [];
+
+  for (const d of recentDismissals) {
+    dismissedAtMap[d.alert_key] = d.dismissed_at;
+
+    let studentId: string | null = null;
+    let milestoneType: CoachAlertFeedType | null = null;
+    let dealId: string | null = null;
+
+    if (d.alert_key.startsWith("100h_milestone:")) {
+      studentId = d.alert_key.slice("100h_milestone:".length);
+      milestoneType = "100h_milestone";
+    } else if (d.alert_key.startsWith("milestone_5_influencers:")) {
+      studentId = d.alert_key.slice("milestone_5_influencers:".length);
+      milestoneType = "5_influencers";
+    } else if (d.alert_key.startsWith("milestone_brand_response:")) {
+      studentId = d.alert_key.slice("milestone_brand_response:".length);
+      milestoneType = "brand_response";
+    } else if (d.alert_key.startsWith("milestone_tech_setup:")) {
+      studentId = d.alert_key.slice("milestone_tech_setup:".length);
+      milestoneType = "tech_setup";
+    } else if (d.alert_key.startsWith("milestone_closed_deal:")) {
+      const rest = d.alert_key.slice("milestone_closed_deal:".length);
+      const sep = rest.indexOf(":");
+      if (sep > 0) {
+        studentId = rest.slice(0, sep);
+        dealId = rest.slice(sep + 1);
+        milestoneType = "closed_deal";
+      }
+    }
+
+    if (!studentId || !milestoneType) continue;
+    const student = studentsById.get(studentId);
+    if (!student) continue;
+
+    dismissedItems.push({
+      alert_key: d.alert_key,
+      student_id: studentId,
+      student_name: student.name,
+      milestone_type: milestoneType,
+      occurred_at: d.dismissed_at,
+      message: null,
+      deal_id: dealId,
+    });
+  }
+
+  // Merge everything. Client uses dismissedAtMap to determine dismissed status.
+  const activeItems: CoachAlertFeedItem[] = [...legacyItems, ...rpcItems];
+  const feed: CoachAlertFeedItem[] = [...activeItems, ...dismissedItems];
+
+  // Fetch deal revenues so closed_deal alerts show "Closed a $X deal" like
+  // /owner/alerts — lets coaches see deal size at a glance without opening
+  // the student profile.
+  const dealIds = Array.from(
+    new Set(
+      feed
+        .filter((i) => i.milestone_type === "closed_deal" && i.deal_id)
+        .map((i) => i.deal_id as string),
+    ),
+  );
+  if (dealIds.length > 0) {
+    const { data: dealsData, error: dealsError } = await admin
+      .from("deals")
+      .select("id, revenue")
+      .in("id", dealIds);
+    if (dealsError) {
+      console.error("[coach alerts] deals fetch error:", dealsError);
+    }
+    const revenueById = new Map<string, number>();
+    for (const d of dealsData ?? []) {
+      revenueById.set(d.id, Number(d.revenue));
+    }
+    for (const item of feed) {
+      if (item.milestone_type !== "closed_deal" || !item.deal_id) continue;
+      const revenue = revenueById.get(item.deal_id);
+      if (revenue == null || Number.isNaN(revenue)) continue;
+      const formatted = revenue.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      item.message = `Closed a $${formatted} deal`;
+    }
+  }
+
   feed.sort(
     (a, b) =>
       new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
   );
 
+  // Stats
+  const activeCount = activeItems.length;
+  const dismissedCount = dismissedItems.length;
+  const milestoneAlertsCount = feed.filter(
+    (i) => i.milestone_type !== "closed_deal",
+  ).length;
+  const thirtyDaysAgoMs = nowTs - 30 * 86400000;
+  const dealsClosedCount = feed.filter(
+    (i) =>
+      i.milestone_type === "closed_deal" &&
+      new Date(i.occurred_at).getTime() >= thirtyDaysAgoMs,
+  ).length;
+
+  const statCards = [
+    {
+      label: "Milestone Alerts",
+      value: String(milestoneAlertsCount),
+      icon: Trophy,
+      iconBg: "bg-[#E8EEFF]",
+      iconColor: "text-[#4A6CF7]",
+    },
+    {
+      label: "Active",
+      value: String(activeCount),
+      icon: Bell,
+      iconBg: activeCount > 0 ? "bg-[#E8EEFF]" : "bg-[#F1EEE6]",
+      iconColor: activeCount > 0 ? "text-[#4A6CF7]" : "text-[#8A8474]",
+    },
+    {
+      label: "Dismissed (30d)",
+      value: String(dismissedCount),
+      icon: CheckCircle2,
+      iconBg: "bg-[#F1EEE6]",
+      iconColor: "text-[#8A8474]",
+    },
+    {
+      label: "Deals closed (30d)",
+      value: String(dealsClosedCount),
+      icon: DollarSign,
+      iconBg: "bg-[#E2F5E9]",
+      iconColor: "text-[#16A34A]",
+    },
+  ];
+
   return (
-    <div
-      className={`${jetbrainsMono.variable} -mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]`}
-    >
+    <div className="-mx-4 md:-mx-8 -mt-4 md:-mt-8 -mb-4 md:-mb-8 min-h-screen bg-[#FAFAF7]">
       <div className="mx-auto max-w-[1200px] px-6 md:px-14 pt-10 md:pt-14 pb-20 space-y-8">
         <header className="motion-safe:animate-fadeIn">
-          <p
-            className="text-[11px] font-semibold tracking-[0.22em] text-[#8A8474] uppercase"
-            style={{ fontFamily: "var(--font-mono-bold)" }}
-          >
-            Alerts
-          </p>
-          <h1 className="mt-3 text-[32px] md:text-[36px] font-bold leading-[1.1] text-[#1A1A17] tracking-[-0.02em]">
+          <div className="flex items-center gap-3 flex-wrap">
+            <p className="text-xs font-semibold tracking-[0.2em] text-[#8A8474] uppercase">
+              Alerts
+            </p>
+            {activeCount > 0 && (
+              <span
+                className="inline-flex items-center gap-[6px] rounded-full bg-[#E8EEFF] text-[#4A6CF7] px-[10px] py-[2px] text-[10px] font-semibold uppercase tracking-[0.18em] tabular-nums"
+                aria-label={`${activeCount} active alerts`}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-[#4A6CF7]"
+                  aria-hidden="true"
+                />
+                {activeCount} active
+              </span>
+            )}
+          </div>
+          <h1 className="mt-3 text-3xl md:text-4xl font-semibold leading-tight text-[#1A1A17] tracking-tight">
             Milestone Alerts
           </h1>
-          <p className="mt-2 text-[15px] text-[#7A7466] leading-[1.5]">
+          <p className="mt-2 text-sm text-[#7A7466] leading-relaxed">
             Your students&apos; milestone achievements — review and dismiss when actioned.
           </p>
         </header>
 
-        <CoachAlertsClient initialFeed={feed} />
+        <section
+          aria-label="Alert totals"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[14px] motion-safe:animate-fadeIn"
+          style={{ animationDelay: "50ms" }}
+        >
+          {statCards.map((s) => (
+            <div
+              key={s.label}
+              className="flex items-center gap-4 bg-white border border-[#EDE9E0] rounded-[12px] px-[18px] py-[16px] min-h-[72px]"
+            >
+              <div
+                className={`w-9 h-9 rounded-[8px] flex items-center justify-center shrink-0 ${s.iconBg}`}
+              >
+                <s.icon className={`h-[18px] w-[18px] ${s.iconColor}`} aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-semibold leading-none tabular-nums text-[#1A1A17]">
+                  {s.value}
+                </p>
+                <p className="mt-[6px] text-xs text-[#8A8474]">{s.label}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <CoachAlertsClient
+          initialFeed={feed}
+          initialDismissedAtMap={dismissedAtMap}
+        />
       </div>
     </div>
   );
