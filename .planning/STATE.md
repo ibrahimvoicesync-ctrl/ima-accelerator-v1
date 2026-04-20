@@ -90,6 +90,12 @@ Progress: [██████████] 100%
 - Per-edit change-log for deal updates deferred (v1.5 D-17).
 - Full email notifications pipeline (Resend) still out-of-scope.
 
+## Quick Tasks Completed
+
+| Date       | Slug                                 | Summary                                                                                      |
+|------------|--------------------------------------|----------------------------------------------------------------------------------------------|
+| 2026-04-20 | 260420-rbl-referral-link-drop-rebrandly | Replace Rebrandly with application.imaccelerator.com/<code> referral URLs; migration 00041 nulls cached rebrand.ly values; external service owns the redirect. |
+
 ## Session Continuity
 
 Last session: 2026-04-17T05:01:18.156Z
