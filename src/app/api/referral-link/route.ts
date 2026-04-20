@@ -128,11 +128,35 @@ export async function POST(request: Request) {
   let shortUrl: string;
   try {
     let rbResponse = await registerSlashtag(primarySlashtag);
-    if (rbResponse.status === 409 && nameSlug) {
-      // Primary name-slug is already taken in the workspace (another student with
-      // the same slug, or a race with a concurrent click). Retry once with the
-      // random referral code appended for disambiguation.
-      rbResponse = await registerSlashtag(`${nameSlug}-${codeLower}`);
+    if (!rbResponse.ok && nameSlug) {
+      // Rebrandly returns HTTP 403 (not 409) for a duplicate slashtag, with
+      // { errors: [{ code: "AlreadyExists", property: "slashtag" }] } in the
+      // body. Inspect the body before deciding to retry; surface any other
+      // non-ok immediately.
+      const firstErrText = await rbResponse.text().catch(() => "");
+      let slashtagTaken = false;
+      try {
+        const parsed: { errors?: unknown } = JSON.parse(firstErrText);
+        if (Array.isArray(parsed.errors)) {
+          slashtagTaken = parsed.errors.some(
+            (e: { code?: unknown; property?: unknown }) =>
+              e?.code === "AlreadyExists" && e?.property === "slashtag"
+          );
+        }
+      } catch {
+        slashtagTaken = false;
+      }
+      if (slashtagTaken) {
+        rbResponse = await registerSlashtag(`${nameSlug}-${codeLower}`);
+      } else {
+        console.error(
+          "[POST /api/referral-link] Rebrandly non-OK:",
+          rbResponse.status,
+          rbResponse.statusText,
+          firstErrText
+        );
+        return NextResponse.json({ error: "Failed to generate referral link" }, { status: 502 });
+      }
     }
     if (!rbResponse.ok) {
       const errText = await rbResponse.text().catch(() => "<unreadable>");
