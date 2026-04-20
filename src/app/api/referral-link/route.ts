@@ -7,7 +7,6 @@ import { verifyOrigin } from "@/lib/csrf";
 
 const bodySchema = z.object({}).strict();
 
-const REFERRAL_BASE_URL = "https://application.imaccelerator.com";
 const REFERRAL_DESTINATION = "https://www.imaccelerator.com/apply/typeform";
 
 function slugifyName(name: string | null | undefined): string {
@@ -15,12 +14,11 @@ function slugifyName(name: string | null | undefined): string {
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "");
-  const slug = normalized
+  return normalized
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40)
     .replace(/-+$/g, "");
-  return slug || "student";
 }
 
 export async function POST(request: Request) {
@@ -104,12 +102,14 @@ export async function POST(request: Request) {
     if (refreshed?.referral_code) referralCode = refreshed.referral_code;
   }
 
-  const utmContent = `${slugifyName(profile.name)}-${referralCode.toLowerCase()}`;
-  const destination = `${REFERRAL_DESTINATION}?utm_source=referral&utm_content=${encodeURIComponent(utmContent)}`;
+  const nameSlug = slugifyName(profile.name);
+  const codeLower = referralCode.toLowerCase();
+  const primarySlashtag = nameSlug || `student-${codeLower}`;
+  const utmCampaign = nameSlug || "student";
+  const destination = `${REFERRAL_DESTINATION}?utm_source=referral&utm_campaign=${encodeURIComponent(utmCampaign)}`;
 
-  let shortUrl: string;
-  try {
-    const rbResponse = await fetch("https://api.rebrandly.com/v1/links", {
+  const registerSlashtag = (slashtag: string) =>
+    fetch("https://api.rebrandly.com/v1/links", {
       method: "POST",
       headers: {
         apikey: apiKey,
@@ -118,19 +118,23 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         destination,
-        slashtag: referralCode,
+        slashtag,
         domain: { id: domainId },
         title: `IMA Referral - ${profile.name ?? referralCode}`,
       }),
       signal: AbortSignal.timeout(8000),
     });
 
-    if (rbResponse.status === 409) {
-      // Concurrent writer already registered this slashtag in Rebrandly. The link
-      // exists on the branded domain with a deterministic URL, so continue rather
-      // than failing the user request.
-      shortUrl = `${REFERRAL_BASE_URL}/${referralCode}`;
-    } else if (!rbResponse.ok) {
+  let shortUrl: string;
+  try {
+    let rbResponse = await registerSlashtag(primarySlashtag);
+    if (rbResponse.status === 409 && nameSlug) {
+      // Primary name-slug is already taken in the workspace (another student with
+      // the same slug, or a race with a concurrent click). Retry once with the
+      // random referral code appended for disambiguation.
+      rbResponse = await registerSlashtag(`${nameSlug}-${codeLower}`);
+    }
+    if (!rbResponse.ok) {
       const errText = await rbResponse.text().catch(() => "<unreadable>");
       console.error(
         "[POST /api/referral-link] Rebrandly non-OK:",
@@ -139,14 +143,13 @@ export async function POST(request: Request) {
         errText
       );
       return NextResponse.json({ error: "Failed to generate referral link" }, { status: 502 });
-    } else {
-      const rbBody: { shortUrl?: unknown } = await rbResponse.json();
-      if (typeof rbBody.shortUrl !== "string" || rbBody.shortUrl.length === 0) {
-        console.error("[POST /api/referral-link] Rebrandly response missing shortUrl:", rbBody);
-        return NextResponse.json({ error: "Failed to generate referral link" }, { status: 502 });
-      }
-      shortUrl = `https://${rbBody.shortUrl}`;
     }
+    const rbBody: { shortUrl?: unknown } = await rbResponse.json();
+    if (typeof rbBody.shortUrl !== "string" || rbBody.shortUrl.length === 0) {
+      console.error("[POST /api/referral-link] Rebrandly response missing shortUrl:", rbBody);
+      return NextResponse.json({ error: "Failed to generate referral link" }, { status: 502 });
+    }
+    shortUrl = `https://${rbBody.shortUrl}`;
   } catch (err) {
     console.error("[POST /api/referral-link] Rebrandly fetch failed:", err);
     return NextResponse.json({ error: "Failed to generate referral link" }, { status: 502 });
