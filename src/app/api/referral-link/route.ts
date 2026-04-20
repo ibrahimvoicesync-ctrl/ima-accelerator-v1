@@ -8,6 +8,20 @@ import { verifyOrigin } from "@/lib/csrf";
 const bodySchema = z.object({}).strict();
 
 const REFERRAL_BASE_URL = "https://application.imaccelerator.com";
+const REFERRAL_DESTINATION = "https://www.imaccelerator.com/apply/typeform";
+
+function slugifyName(name: string | null | undefined): string {
+  const normalized = (name ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const slug = normalized
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+  return slug || "student";
+}
 
 export async function POST(request: Request) {
   const csrfError = verifyOrigin(request);
@@ -34,6 +48,22 @@ export async function POST(request: Request) {
   }
   if (profile.role !== "student" && profile.role !== "student_diy") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const apiKey = process.env.REBRANDLY_API_KEY;
+  const workspaceId = process.env.REBRANDLY_WORKSPACE_ID;
+  const domainId = process.env.REBRANDLY_DOMAIN_ID;
+  if (!apiKey) {
+    console.error("[POST /api/referral-link] REBRANDLY_API_KEY not configured");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+  if (!workspaceId) {
+    console.error("[POST /api/referral-link] REBRANDLY_WORKSPACE_ID not configured");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+  if (!domainId) {
+    console.error("[POST /api/referral-link] REBRANDLY_DOMAIN_ID not configured");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
   let body: unknown = {};
@@ -74,9 +104,54 @@ export async function POST(request: Request) {
     if (refreshed?.referral_code) referralCode = refreshed.referral_code;
   }
 
-  const shortUrl = `${REFERRAL_BASE_URL}/${referralCode}`;
+  const utmContent = `${slugifyName(profile.name)}-${referralCode.toLowerCase()}`;
+  const destination = `${REFERRAL_DESTINATION}?utm_source=referral&utm_content=${encodeURIComponent(utmContent)}`;
 
-  // Compare-and-swap persist: first writer wins; a concurrent writer's value is returned below.
+  let shortUrl: string;
+  try {
+    const rbResponse = await fetch("https://api.rebrandly.com/v1/links", {
+      method: "POST",
+      headers: {
+        apikey: apiKey,
+        workspace: workspaceId,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        destination,
+        slashtag: referralCode,
+        domain: { id: domainId },
+        title: `IMA Referral - ${profile.name ?? referralCode}`,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (rbResponse.status === 409) {
+      // Concurrent writer already registered this slashtag in Rebrandly. The link
+      // exists on the branded domain with a deterministic URL, so continue rather
+      // than failing the user request.
+      shortUrl = `${REFERRAL_BASE_URL}/${referralCode}`;
+    } else if (!rbResponse.ok) {
+      const errText = await rbResponse.text().catch(() => "<unreadable>");
+      console.error(
+        "[POST /api/referral-link] Rebrandly non-OK:",
+        rbResponse.status,
+        rbResponse.statusText,
+        errText
+      );
+      return NextResponse.json({ error: "Failed to generate referral link" }, { status: 502 });
+    } else {
+      const rbBody: { shortUrl?: unknown } = await rbResponse.json();
+      if (typeof rbBody.shortUrl !== "string" || rbBody.shortUrl.length === 0) {
+        console.error("[POST /api/referral-link] Rebrandly response missing shortUrl:", rbBody);
+        return NextResponse.json({ error: "Failed to generate referral link" }, { status: 502 });
+      }
+      shortUrl = `https://${rbBody.shortUrl}`;
+    }
+  } catch (err) {
+    console.error("[POST /api/referral-link] Rebrandly fetch failed:", err);
+    return NextResponse.json({ error: "Failed to generate referral link" }, { status: 502 });
+  }
+
   const { data: persisted, error: persistError } = await admin
     .from("users")
     .update({ referral_short_url: shortUrl })
@@ -91,7 +166,6 @@ export async function POST(request: Request) {
   }
 
   if (!persisted) {
-    // Concurrent writer won; re-read and return their value.
     const { data: winner } = await admin
       .from("users")
       .select("referral_short_url")
