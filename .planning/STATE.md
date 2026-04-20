@@ -95,6 +95,7 @@ Progress: [██████████] 100%
 | Date       | Slug                                 | Summary                                                                                      |
 |------------|--------------------------------------|----------------------------------------------------------------------------------------------|
 | 2026-04-20 | 260420-rbl-referral-link-drop-rebrandly | Replace Rebrandly with application.imaccelerator.com/<code> referral URLs; migration 00041 nulls cached rebrand.ly values; external service owns the redirect. |
+| 2026-04-20 | 260420-rbd-referral-link-branded-domain | Correction to 260420-rbl: application.imaccelerator.com IS a Rebrandly branded domain. Re-register each referral code via POST /v1/links scoped to domain id fc91a930…; 409 → treat as success; migration 00042 nulls unregistered application.* URLs; REBRANDLY_API_KEY/WORKSPACE_ID/DOMAIN_ID all required. |
 
 ## Session Continuity
 
