@@ -227,7 +227,7 @@ export function ProgressBanner({
       aria-label="KPI summary"
     >
       <div className="flex min-h-12 flex-wrap items-center gap-y-1 md:h-12 md:flex-nowrap">
-        {/* Goal group — progress-bearing stats */}
+        {/* Goal group — lifetime pair */}
         <div className="flex items-center gap-0.5">
           <GoalKpi
             label="Lifetime Outreach"
@@ -247,6 +247,13 @@ export function ProgressBanner({
             ragStatus={lifetimeHoursRagStatus}
             ariaLabel={`Lifetime hours worked: ${formatHoursMinutes(lifetimeMinutesWorked)} of ${KPI_TARGETS.lifetimeHours} hours`}
           />
+        </div>
+
+        {/* Divider between lifetime and daily goal groups */}
+        <div className="mx-2 hidden h-6 w-px bg-ima-border md:block" aria-hidden="true" />
+
+        {/* Goal group — daily pair */}
+        <div className="flex items-center gap-0.5">
           <GoalKpi
             label="Daily Outreach"
             current={dailyOutreach}
