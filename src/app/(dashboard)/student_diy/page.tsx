@@ -199,11 +199,11 @@ export default async function StudentDiyDashboard() {
 
           <Link
             href={nextAction.href}
-            className="group mt-[14px] inline-flex items-center justify-center gap-2 w-full rounded-[12px] bg-[#4A6CF7] text-white text-[14px] font-semibold min-h-[48px] px-4 hover:bg-[#3852D8] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2 motion-safe:transition-colors"
+            className="group mt-5 inline-flex items-center justify-center gap-3 w-full rounded-[14px] bg-[#4A6CF7] text-white text-[15px] md:text-[17px] font-bold tracking-tight min-h-[60px] md:min-h-[64px] px-6 motion-safe:transition-all motion-safe:duration-200 ease-out hover:bg-[#3852D8] hover:shadow-[0_14px_32px_-14px_rgba(74,108,247,0.65)] hover:-translate-y-[1px] active:translate-y-0 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-[#4A6CF7] focus-visible:outline-offset-2"
           >
             {nextAction.label}
             <ArrowRight
-              className="h-4 w-4 motion-safe:transition-transform group-hover:translate-x-0.5"
+              className="h-5 w-5 motion-safe:transition-transform duration-200 ease-out group-hover:translate-x-1"
               aria-hidden="true"
             />
           </Link>
