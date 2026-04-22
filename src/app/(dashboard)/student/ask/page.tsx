@@ -68,7 +68,7 @@ export default async function AskAbuLahyaPage() {
               Coming soon
             </h2>
             <p className="mt-2 text-[14px] text-[#7A7466] leading-relaxed max-w-md mx-auto">
-              The AI assistant will be available soon. Your coach Abu Lahya is setting it up.
+              The AI assistant will be available soon.
             </p>
           </section>
         )}
