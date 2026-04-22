@@ -97,6 +97,7 @@ Progress: [██████████] 100%
 | 2026-04-20 | 260420-rbl-referral-link-drop-rebrandly | Replace Rebrandly with application.imaccelerator.com/<code> referral URLs; migration 00041 nulls cached rebrand.ly values; external service owns the redirect. |
 | 2026-04-20 | 260420-rbd-referral-link-branded-domain | Correction to 260420-rbl: application.imaccelerator.com IS a Rebrandly branded domain. Re-register each referral code via POST /v1/links scoped to domain id fc91a930…; 409 → treat as success; migration 00042 nulls unregistered application.* URLs; REBRANDLY_API_KEY/WORKSPACE_ID/DOMAIN_ID all required. |
 | 2026-04-20 | 260420-rbn-referral-name-slashtag | Switch Rebrandly slashtag from 8-char code to slugifyName(profile.name); destination uses utm_campaign=<slug> instead of utm_content; on 409 retry once with <slug>-<code>; nameless users get student-<code>. Migration 00043 nulls 1 legacy code-based URL; orphan Rebrandly link 75691E9F deleted. Redeployed dpl_8KZAgnEQuZDvB3qZFQmcsTsXf2aK. |
+| 2026-04-22 | 260422-rfb-referral-sidebar-tab | Move referral off student + student_diy dashboards into a dedicated sidebar tab. Added ROUTES.{student,student_diy}.referral, appended Referral nav item (Gift icon) as last entry for both roles, registered Gift in Sidebar ICON_MAP. New /student/referral and /student_diy/referral pages reuse ReferralCard inside the editorial-restrained masthead shell. Both ReferralNudge and ReferralCard removed from dashboards; ReferralNudge.tsx deleted (no remaining consumers). Owner/coach sidebars unchanged. |
 
 ## Session Continuity
 
