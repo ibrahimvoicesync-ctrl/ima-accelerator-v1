@@ -145,6 +145,8 @@ export const WORK_TRACKER = {
 export const KPI_TARGETS = {
   lifetimeOutreach: 2500,
   dailyOutreach: 50,
+  // 75 program days × WORK_TRACKER.dailyGoalHours
+  lifetimeHours: 300,
 } as const;
 
 // ---------------------------------------------------------------------------

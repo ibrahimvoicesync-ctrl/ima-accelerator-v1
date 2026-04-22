@@ -27,6 +27,12 @@ export function dailyHoursRag(minutesWorked: number, daysInProgram: number): Rag
   return getRagStatus(minutesWorked / goalMinutes, daysInProgram);
 }
 
+/** Lifetime hours RAG: ratio of actual minutes against KPI_TARGETS.lifetimeHours * 60. */
+export function lifetimeHoursRag(minutesWorked: number, daysInProgram: number): RagStatus {
+  const goalMinutes = KPI_TARGETS.lifetimeHours * 60;
+  return getRagStatus(minutesWorked / goalMinutes, daysInProgram);
+}
+
 /** Maps RagStatus to text color class using ima-* tokens */
 export function ragToColorClass(status: RagStatus): string {
   switch (status) {

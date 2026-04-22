@@ -2,6 +2,7 @@ import { cn, formatHoursMinutes } from "@/lib/utils";
 import { KPI_TARGETS, WORK_TRACKER } from "@/lib/config";
 import {
   lifetimeOutreachRag,
+  lifetimeHoursRag,
   dailyOutreachRag,
   dailyHoursRag,
   ragToColorClass,
@@ -212,10 +213,12 @@ export function ProgressBanner({
   const days = outreachStarted ? computeDaysInProgram(joinedAt) : 0;
 
   const lifetimeRag = lifetimeOutreachRag(lifetimeOutreach, days);
+  const lifetimeHoursRagStatus = lifetimeHoursRag(lifetimeMinutesWorked, days);
   const dailyRag = dailyOutreachRag(dailyOutreach, days);
   const hoursRag = dailyHoursRag(dailyMinutesWorked, days);
 
   const hoursTargetMinutes = WORK_TRACKER.dailyGoalHours * 60;
+  const lifetimeHoursTargetMinutes = KPI_TARGETS.lifetimeHours * 60;
 
   return (
     <div
@@ -235,10 +238,14 @@ export function ProgressBanner({
             ragStatus={lifetimeRag}
             ariaLabel={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
           />
-          <CounterKpi
+          <GoalKpi
             label="Lifetime Hours"
-            value={formatHoursMinutes(lifetimeMinutesWorked)}
-            ariaLabel={`Lifetime hours worked: ${formatHoursMinutes(lifetimeMinutesWorked)}`}
+            current={lifetimeMinutesWorked}
+            target={lifetimeHoursTargetMinutes}
+            currentDisplay={formatHoursMinutes(lifetimeMinutesWorked)}
+            targetDisplay={`${KPI_TARGETS.lifetimeHours}h`}
+            ragStatus={lifetimeHoursRagStatus}
+            ariaLabel={`Lifetime hours worked: ${formatHoursMinutes(lifetimeMinutesWorked)} of ${KPI_TARGETS.lifetimeHours} hours`}
           />
           <GoalKpi
             label="Daily Outreach"
