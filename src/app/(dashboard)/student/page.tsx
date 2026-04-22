@@ -331,40 +331,11 @@ export default async function StudentDashboard() {
           />
         </section>
 
-        {/* Deals — compact horizontal stat cards (matches coach Row A) */}
-        <section
-          aria-label="Deals summary"
-          className="mt-[14px] grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
-          style={{ animationDelay: "200ms" }}
-        >
-          <CompactStat
-            icon={Briefcase}
-            iconBg="bg-[#FDF3E0]"
-            iconColor="text-[#D97706]"
-            value={String(dealsClosed)}
-            label={hasDeals ? "Deals Closed — all time" : "Deals Closed — none yet"}
-          />
-          <CompactStat
-            icon={DollarSign}
-            iconBg="bg-[#E8EEFF]"
-            iconColor="text-[#4A6CF7]"
-            value={currencyFormat(totalRevenue)}
-            label={`Revenue — ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
-          />
-          <CompactStat
-            icon={TrendingUp}
-            iconBg="bg-[#E2F5E9]"
-            iconColor="text-[#16A34A]"
-            value={currencyFormat(totalProfit)}
-            label={hasDeals ? "Profit — all time" : "Profit — none yet"}
-          />
-        </section>
-
         {/* Roadmap + Daily Report */}
         <section
           aria-label="Roadmap and daily report"
           className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-[14px] motion-safe:animate-fadeIn"
-          style={{ animationDelay: "250ms" }}
+          style={{ animationDelay: "200ms" }}
         >
           {/* Roadmap */}
           <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 flex flex-col">
@@ -492,6 +463,35 @@ export default async function StudentDashboard() {
               />
             </Link>
           </div>
+        </section>
+
+        {/* Deals — compact horizontal stat cards (matches coach Row A) */}
+        <section
+          aria-label="Deals summary"
+          className="mt-[14px] grid grid-cols-1 sm:grid-cols-3 gap-[14px] motion-safe:animate-fadeIn"
+          style={{ animationDelay: "250ms" }}
+        >
+          <CompactStat
+            icon={Briefcase}
+            iconBg="bg-[#FDF3E0]"
+            iconColor="text-[#D97706]"
+            value={String(dealsClosed)}
+            label={hasDeals ? "Deals Closed — all time" : "Deals Closed — none yet"}
+          />
+          <CompactStat
+            icon={DollarSign}
+            iconBg="bg-[#E8EEFF]"
+            iconColor="text-[#4A6CF7]"
+            value={currencyFormat(totalRevenue)}
+            label={`Revenue — ${dealsClosed} deal${dealsClosed !== 1 ? "s" : ""}`}
+          />
+          <CompactStat
+            icon={TrendingUp}
+            iconBg="bg-[#E2F5E9]"
+            iconColor="text-[#16A34A]"
+            value={currencyFormat(totalProfit)}
+            label={hasDeals ? "Profit — all time" : "Profit — none yet"}
+          />
         </section>
 
       </div>
