@@ -88,6 +88,7 @@ export const ROUTES = {
     deals: "/student/deals",
     resources: "/student/resources",
     analytics: "/student/analytics",
+    referral: "/student/referral",
   },
   student_diy: {
     dashboard: "/student_diy",
@@ -96,6 +97,7 @@ export const ROUTES = {
     deals: "/student_diy/deals",
     resources: "/student_diy/resources",
     analytics: "/student_diy/analytics",
+    referral: "/student_diy/referral",
   },
   api: {
     auth: "/api/auth",
@@ -315,6 +317,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Deals",         href: ROUTES.student.deals, icon: "DollarSign" },
     { label: "Analytics",     href: ROUTES.student.analytics, icon: "BarChart3" },
     { label: "Resources",     href: ROUTES.student.resources, icon: "BookOpen" },
+    { label: "Referral",      href: ROUTES.student.referral, icon: "Gift" },
   ],
   student_diy: [
     { label: "Dashboard",    href: "/student_diy",         icon: "LayoutDashboard" },
@@ -324,6 +327,7 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
     { label: "Deals",        href: ROUTES.student_diy.deals, icon: "DollarSign" },
     { label: "Analytics",    href: ROUTES.student_diy.analytics, icon: "BarChart3" },
     { label: "Resources",    href: ROUTES.student_diy.resources, icon: "BookOpen" },
+    { label: "Referral",     href: ROUTES.student_diy.referral, icon: "Gift" },
   ],
 };
 
