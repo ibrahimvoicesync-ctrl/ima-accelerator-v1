@@ -58,25 +58,31 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const todayReport = todayReportResult.data;
   const userRow = userResult.data;
 
-  // Compute today's total minutes from work_sessions for hours KPI
-  const { data: todaySessions, error: sessionsError } = await admin
+  // Lifetime + today's minutes — single query (status='completed' filtered server-side)
+  const { data: allSessions, error: sessionsError } = await admin
     .from("work_sessions")
-    .select("duration_minutes, status")
+    .select("duration_minutes, date")
     .eq("student_id", user.id)
-    .eq("date", today);
+    .eq("status", "completed");
 
   if (sessionsError) {
     console.error("[student layout] Failed to load sessions:", sessionsError);
   }
 
-  const dailyMinutesWorked = (todaySessions ?? [])
-    .filter((s) => s.status === "completed")
+  const sessions = allSessions ?? [];
+  const dailyMinutesWorked = sessions
+    .filter((s) => s.date === today)
     .reduce((sum, s) => sum + s.duration_minutes, 0);
+  const lifetimeMinutesWorked = sessions.reduce(
+    (sum, s) => sum + s.duration_minutes,
+    0,
+  );
 
   return (
     <>
       <ProgressBanner
         lifetimeOutreach={lifetimeOutreach}
+        lifetimeMinutesWorked={lifetimeMinutesWorked}
         dailyOutreach={(todayReport?.brands_contacted ?? 0) + (todayReport?.influencers_contacted ?? 0)}
         dailyMinutesWorked={dailyMinutesWorked}
         callsJoined={todayReport?.calls_joined ?? 0}

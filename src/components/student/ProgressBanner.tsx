@@ -12,6 +12,7 @@ import {
 
 interface ProgressBannerProps {
   lifetimeOutreach: number;
+  lifetimeMinutesWorked: number;
   dailyOutreach: number;
   dailyMinutesWorked: number;
   callsJoined: number;
@@ -198,6 +199,7 @@ function CounterKpi({
 
 export function ProgressBanner({
   lifetimeOutreach,
+  lifetimeMinutesWorked,
   dailyOutreach,
   dailyMinutesWorked,
   callsJoined,
@@ -232,6 +234,11 @@ export function ProgressBanner({
             targetDisplay={KPI_TARGETS.lifetimeOutreach.toLocaleString()}
             ragStatus={lifetimeRag}
             ariaLabel={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
+          />
+          <CounterKpi
+            label="Lifetime Hours"
+            value={formatHoursMinutes(lifetimeMinutesWorked)}
+            ariaLabel={`Lifetime hours worked: ${formatHoursMinutes(lifetimeMinutesWorked)}`}
           />
           <GoalKpi
             label="Daily Outreach"
