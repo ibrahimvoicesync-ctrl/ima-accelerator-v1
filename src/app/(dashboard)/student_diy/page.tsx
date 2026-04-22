@@ -13,8 +13,6 @@ import { requireRole } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ROADMAP_STEPS, WORK_TRACKER } from "@/lib/config";
 import { cn, formatHoursMinutes, getToday } from "@/lib/utils";
-import { ReferralCard } from "@/components/student/ReferralCard";
-import { ReferralNudge } from "@/components/student/ReferralNudge";
 import type { Database } from "@/lib/types";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -137,18 +135,10 @@ export default async function StudentDiyDashboard() {
           </p>
         </header>
 
-        {/* Referral nudge (shared) */}
-        <div
-          className="mt-9 motion-safe:animate-fadeIn"
-          style={{ animationDelay: "50ms" }}
-        >
-          <ReferralNudge />
-        </div>
-
         {/* Hero — Today's Work */}
         <section
           aria-labelledby="todays-work-label"
-          className="mt-[14px] motion-safe:animate-fadeIn"
+          className="mt-9 motion-safe:animate-fadeIn"
           style={{ animationDelay: "100ms" }}
         >
           <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 md:p-8">
@@ -322,13 +312,6 @@ export default async function StudentDiyDashboard() {
           </div>
         </section>
 
-        {/* Referral (shared) */}
-        <div
-          className="mt-10 motion-safe:animate-fadeIn"
-          style={{ animationDelay: "250ms" }}
-        >
-          <ReferralCard />
-        </div>
       </div>
     </div>
   );

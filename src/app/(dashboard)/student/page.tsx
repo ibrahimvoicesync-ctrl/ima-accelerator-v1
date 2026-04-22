@@ -24,8 +24,6 @@ import {
   lifetimeOutreachRag,
   type RagStatus,
 } from "@/lib/kpi";
-import { ReferralCard } from "@/components/student/ReferralCard";
-import { ReferralNudge } from "@/components/student/ReferralNudge";
 import type { Database } from "@/lib/types";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -221,18 +219,10 @@ export default async function StudentDashboard() {
           </p>
         </header>
 
-        {/* Referral nudge (shared) */}
-        <div
-          className="mt-9 motion-safe:animate-fadeIn"
-          style={{ animationDelay: "50ms" }}
-        >
-          <ReferralNudge />
-        </div>
-
         {/* Hero — Today's Work */}
         <section
           aria-labelledby="todays-work-label"
-          className="mt-[14px] motion-safe:animate-fadeIn"
+          className="mt-9 motion-safe:animate-fadeIn"
           style={{ animationDelay: "100ms" }}
         >
           <div className="bg-white border border-[#EDE9E0] rounded-[14px] p-6 md:p-8">
@@ -504,13 +494,6 @@ export default async function StudentDashboard() {
           </div>
         </section>
 
-        {/* Referral (shared) */}
-        <div
-          className="mt-10 motion-safe:animate-fadeIn"
-          style={{ animationDelay: "300ms" }}
-        >
-          <ReferralCard />
-        </div>
       </div>
     </div>
   );
