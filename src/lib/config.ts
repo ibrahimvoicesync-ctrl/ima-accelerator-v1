@@ -274,8 +274,8 @@ export const THEME = {
 //   - Owner: Dashboard, Coaches, Students | Invites, Assignments, Alerts | Resources
 //   - Coach: Dashboard, My Students, Reports | Invite Students, Analytics, Alerts, Chat | Resources
 //     (Reports has badge for unreviewed count)
-//   - Student: Dashboard, Work Tracker, Roadmap, Ask Abu Lahya, Daily Report, Chat, Resources
-//     (Ask Abu Lahya is 4th position, before Daily Report)
+//   - Student: Dashboard, Work Tracker, Daily Report, Roadmap, Ask Abu Lahya, Announcements, Deals, Analytics, Resources, Referral
+//     (Daily Report sits directly under Work Tracker so logging the day stays one click from the timer)
 //   - Student_DIY: Dashboard, Work Tracker, Roadmap (NO Resources per D-11)
 // ---------------------------------------------------------------------------
 export type NavItem = {
@@ -312,9 +312,9 @@ export const NAVIGATION: Record<Role, NavItem[]> = {
   student: [
     { label: "Dashboard",     href: "/student",         icon: "LayoutDashboard" },
     { label: "Work Tracker",  href: "/student/work",    icon: "Timer" },
+    { label: "Daily Report",  href: "/student/report",  icon: "FileText" },
     { label: "Roadmap",       href: "/student/roadmap", icon: "Map" },
     { label: "Ask Abu Lahya", href: "/student/ask",     icon: "MessageSquare" },
-    { label: "Daily Report",  href: "/student/report",  icon: "FileText" },
     { label: "Announcements", href: "/student/announcements", icon: "Megaphone" },
     { label: "Deals",         href: ROUTES.student.deals, icon: "DollarSign" },
     { label: "Analytics",     href: ROUTES.student.analytics, icon: "BarChart3" },
