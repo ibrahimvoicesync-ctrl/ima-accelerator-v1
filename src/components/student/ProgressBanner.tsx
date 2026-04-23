@@ -2,7 +2,6 @@ import { cn, formatHoursMinutes } from "@/lib/utils";
 import { KPI_TARGETS, WORK_TRACKER } from "@/lib/config";
 import {
   lifetimeOutreachRag,
-  lifetimeHoursRag,
   dailyOutreachRag,
   dailyHoursRag,
   ragToColorClass,
@@ -198,6 +197,57 @@ function CounterKpi({
   );
 }
 
+function RingCounterKpi({
+  label,
+  value,
+  targetDisplay,
+  ariaLabel,
+}: {
+  label: string;
+  value: string;
+  targetDisplay?: string;
+  ariaLabel: string;
+}) {
+  return (
+    <div
+      className="flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-1.5 motion-safe:transition-colors hover:bg-ima-surface-light/60"
+      aria-label={ariaLabel}
+    >
+      <div
+        className="relative shrink-0"
+        style={{ width: RING_SIZE, height: RING_SIZE }}
+        aria-hidden="true"
+      >
+        <svg
+          width={RING_SIZE}
+          height={RING_SIZE}
+          viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+        >
+          <circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RING_RADIUS}
+            fill="none"
+            strokeWidth={RING_STROKE}
+            className="stroke-ima-border"
+          />
+        </svg>
+      </div>
+      <div className="flex flex-col">
+        <span className="font-mono text-[9.5px] uppercase leading-[1] tracking-[0.16em] text-ima-text-secondary">
+          {label}
+        </span>
+        <span className="mt-1 text-[13px] font-semibold leading-[1.1] tabular-nums">
+          <span className="text-ima-text">{value}</span>
+          {targetDisplay && (
+            <span className="text-ima-text-secondary"> / {targetDisplay}</span>
+          )}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function ProgressBanner({
   lifetimeOutreach,
   lifetimeMinutesWorked,
@@ -213,12 +263,10 @@ export function ProgressBanner({
   const days = outreachStarted ? computeDaysInProgram(joinedAt) : 0;
 
   const lifetimeRag = lifetimeOutreachRag(lifetimeOutreach, days);
-  const lifetimeHoursRagStatus = lifetimeHoursRag(lifetimeMinutesWorked, days);
   const dailyRag = dailyOutreachRag(dailyOutreach, days);
   const hoursRag = dailyHoursRag(dailyMinutesWorked, days);
 
   const hoursTargetMinutes = WORK_TRACKER.dailyGoalHours * 60;
-  const lifetimeHoursTargetMinutes = KPI_TARGETS.lifetimeHours * 60;
 
   return (
     <div
@@ -238,14 +286,11 @@ export function ProgressBanner({
             ragStatus={lifetimeRag}
             ariaLabel={`Lifetime outreach: ${lifetimeOutreach} of ${KPI_TARGETS.lifetimeOutreach}`}
           />
-          <GoalKpi
+          <RingCounterKpi
             label="Lifetime Hours"
-            current={lifetimeMinutesWorked}
-            target={lifetimeHoursTargetMinutes}
-            currentDisplay={formatHoursMinutes(lifetimeMinutesWorked)}
-            targetDisplay={`${KPI_TARGETS.lifetimeHours}h`}
-            ragStatus={lifetimeHoursRagStatus}
-            ariaLabel={`Lifetime hours worked: ${formatHoursMinutes(lifetimeMinutesWorked)} of ${KPI_TARGETS.lifetimeHours} hours`}
+            value={formatHoursMinutes(lifetimeMinutesWorked)}
+            targetDisplay="∞"
+            ariaLabel={`Lifetime hours worked: ${formatHoursMinutes(lifetimeMinutesWorked)}`}
           />
         </div>
 
